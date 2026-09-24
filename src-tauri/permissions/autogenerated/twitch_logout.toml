@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-twitch-logout"
+description = "Enables the twitch_logout command without any pre-configured scope."
+commands.allow = ["twitch_logout"]
+
+[[permission]]
+identifier = "deny-twitch-logout"
+description = "Denies the twitch_logout command without any pre-configured scope."
+commands.deny = ["twitch_logout"]

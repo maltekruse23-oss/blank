@@ -1,0 +1,128 @@
+:root {
+  color-scheme: dark;
+  --sidebar: transparent;
+  --danger: #b83a32;
+  --danger-text: #e08a80;
+  --titlebar-height: 36px;
+  --radius: 16px;
+  --gap: 20px;
+  --font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+}
+
+/*
+ * Colour schemes (Settings → Darstellung), set as data-theme on <html>. "forest" is the default:
+ * near-black frame with a green tint, content on a slightly lighter panel. The other schemes
+ * keep its saturation and lightness and only change the hue. Keep the list in sync with
+ * src/features/settings/themes.ts.
+ */
+:root,
+[data-theme='forest'] {
+  --bg: #080b09;
+  --glow: #13251a;
+  --panel: #0d1210;
+  --panel-border: #1a221d;
+  --surface: #121915;
+  --surface-hover: #19221c;
+  --border: #212b24;
+  --text: #e6ede5;
+  --muted: #8d9b90;
+  --subtle: #5f6e64;
+  --scrollbar: #243028;
+  --scrollbar-hover: #3a4a3e;
+  --accent: #afd58c;
+  --accent-soft: #1e2c1b;
+  /* Borders of selected/active elements; text on an accent background. */
+  --accent-line: #405534;
+  --accent-ink: #182114;
+}
+[data-theme='ocean'] {
+  --bg: #080a0b;
+  --glow: #131c25;
+  --panel: #0d0f12;
+  --panel-border: #1a1e22;
+  --surface: #121519;
+  --surface-hover: #191e22;
+  --border: #21272b;
+  --text: #e5eded;
+  --muted: #8d979b;
+  --subtle: #5f686e;
+  --scrollbar: #242b30;
+  --scrollbar-hover: #3a454a;
+  --accent: #8cc2d5;
+  --accent-soft: #1b232c;
+  --accent-line: #344955;
+  --accent-ink: #141b21;
+}
+[data-theme='lavender'] {
+  --bg: #09080b;
+  --glow: #1b1325;
+  --panel: #100d12;
+  --panel-border: #1d1a22;
+  --surface: #151219;
+  --surface-hover: #1c1922;
+  --border: #24212b;
+  --text: #e5e6ed;
+  --muted: #908d9b;
+  --subtle: #655f6e;
+  --scrollbar: #282430;
+  --scrollbar-hover: #3f3a4a;
+  --accent: #a78cd5;
+  --accent-soft: #261b2c;
+  --accent-line: #443455;
+  --accent-ink: #1b1421;
+}
+[data-theme='ember'] {
+  --bg: #0b0908;
+  --glow: #251c13;
+  --panel: #12100d;
+  --panel-border: #221e1a;
+  --surface: #191612;
+  --surface-hover: #221d19;
+  --border: #2b2521;
+  --text: #ede5e5;
+  --muted: #9b918d;
+  --subtle: #6e655f;
+  --scrollbar: #302924;
+  --scrollbar-hover: #4a3f3a;
+  --accent: #d5ae8c;
+  --accent-soft: #2c281b;
+  --accent-line: #554734;
+  --accent-ink: #211c14;
+}
+[data-theme='rose'] {
+  --bg: #0b0809;
+  --glow: #251318;
+  --panel: #120d0d;
+  --panel-border: #221a1c;
+  --surface: #191214;
+  --surface-hover: #22191c;
+  --border: #2b2125;
+  --text: #ede5eb;
+  --muted: #9b8d93;
+  --subtle: #6e5f64;
+  --scrollbar: #302428;
+  --scrollbar-hover: #4a3a41;
+  --accent: #d58c9e;
+  --accent-soft: #2c1c1b;
+  --accent-line: #553438;
+  --accent-ink: #211415;
+}
+[data-theme='graphite'] {
+  --bg: #090a0a;
+  --glow: #1b1c1d;
+  --panel: #0f0f10;
+  --panel-border: #1e1e1e;
+  --surface: #151516;
+  --surface-hover: #1d1e1e;
+  --border: #262626;
+  --text: #e9e9e9;
+  --muted: #939495;
+  --subtle: #666767;
+  --scrollbar: #2a2a2a;
+  --scrollbar-hover: #414243;
+  --accent: #cfd3d8;
+  --accent-soft: #222325;
+  --accent-line: #4a4d51;
+  --accent-ink: #1a1a1b;
+}

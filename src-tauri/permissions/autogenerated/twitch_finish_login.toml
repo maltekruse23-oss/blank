@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-twitch-finish-login"
+description = "Enables the twitch_finish_login command without any pre-configured scope."
+commands.allow = ["twitch_finish_login"]
+
+[[permission]]
+identifier = "deny-twitch-finish-login"
+description = "Denies the twitch_finish_login command without any pre-configured scope."
+commands.deny = ["twitch_finish_login"]

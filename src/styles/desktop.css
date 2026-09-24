@@ -1,0 +1,640 @@
+/* Compact utility window with a fixed 860 × 640 canvas: the desktop app keeps the aspect ratio
+   and zooms the content with the window (src-tauri/src/window_aspect.rs), so this layout is
+   what every window size shows. Overview pages fill the canvas exactly; lists scroll. */
+.app {
+  --gap: 12px;
+  background: radial-gradient(90% 55% at 0% 100%, var(--glow) 0%, transparent 62%), var(--bg);
+}
+/* Sidebar on the dark frame: sections with small captions, profile block at the bottom. */
+.sidebar {
+  width: 150px;
+  padding: 18px 10px 10px;
+  border-right: 0;
+}
+.brand {
+  font-family: var(--font-display);
+  font-size: 25px;
+  line-height: 1;
+  padding: 0 10px;
+}
+.brand-version {
+  display: block;
+  padding: 5px 12px 0;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+.sidebar nav {
+  margin-top: 8px;
+  gap: 0;
+}
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar-caption {
+  display: block;
+  margin: 16px 10px 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--panel-border);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+.nav-item {
+  position: relative;
+  padding: 9px 10px;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.nav-item:hover {
+  filter: none;
+  background: #ffffff08;
+  color: var(--text);
+}
+.nav-item.current {
+  background: var(--surface);
+  color: var(--text);
+}
+.nav-item.current svg {
+  color: var(--accent);
+}
+.nav-item.current::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  text-align: left;
+}
+.sidebar-account:hover {
+  filter: none;
+  border-color: var(--border);
+}
+.sidebar-account .avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+.sidebar-account-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sidebar-account-text b {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-account-text small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--subtle);
+}
+.sidebar-account-text i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--subtle);
+}
+.sidebar-account-text i.on {
+  background: var(--accent);
+}
+main {
+  padding: 16px;
+}
+/* Frameless window: own title bar; content sits in a framed panel and only it scrolls. */
+.app {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+.workspace {
+  margin-left: 150px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.titlebar {
+  flex: none;
+  height: var(--titlebar-height);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+}
+/* Live usage of the app; clicks fall through to the drag area. */
+.usage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 2px;
+  font-size: 10px;
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.usage-chip > * {
+  pointer-events: none;
+}
+.usage-chip span + span::before {
+  content: '·';
+  margin-right: 6px;
+}
+.usage-detail {
+  font-variant-numeric: tabular-nums;
+}
+.panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0 8px 8px 0;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+}
+.scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+main {
+  flex: 1 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* Grids of overview pages take the remaining height; rows share it equally. */
+.dashboard-grid,
+.device-grid,
+.pc-grid {
+  flex: 1 0 auto;
+  grid-auto-rows: 1fr;
+}
+.window-controls {
+  display: flex;
+  gap: 4px;
+}
+.window-button {
+  width: 30px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+}
+.window-button:hover {
+  filter: none;
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.window-button.close:hover {
+  background: var(--danger);
+  color: #fff;
+}
+.window-button:focus-visible {
+  outline-offset: 1px;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-hover);
+}
+.page-heading {
+  justify-content: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.page-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--bg));
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.page-heading h1 {
+  font-family: var(--font-display);
+  font-size: 21px;
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+/* "Went live" notices at the bottom right; the whole notice opens the stream. */
+.toasts {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 250px;
+  pointer-events: none;
+}
+.toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 10px 28px #000a;
+  pointer-events: auto;
+  animation: toast-in 0.2s ease-out;
+}
+.toast:has(.channel-link:hover) {
+  border-color: var(--accent-line);
+  border-left-color: var(--accent);
+}
+.toast .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+.toast-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.toast-text b {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast-text small {
+  font-size: 10px;
+}
+.toast-close {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+}
+.toast-close:hover {
+  filter: none;
+  background: var(--surface-hover);
+  color: var(--text);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+/* Empty states: icon in a small framed tile, bold title, muted text. */
+.empty-state {
+  padding: 56px 20px;
+}
+.empty-state > svg {
+  box-sizing: content-box;
+  width: 18px;
+  height: 18px;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+}
+.empty-state h2 {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--text);
+}
+.card {
+  padding: 16px;
+  border-radius: 12px;
+}
+.card.stream-card {
+  padding: 0;
+}
+.card-header {
+  margin-bottom: 14px;
+}
+h2 {
+  font-size: 14px;
+}
+.list-row {
+  padding: 9px 0;
+}
+.dashboard-grid,
+.device-grid,
+.pc-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.device-grid {
+  margin-bottom: 0;
+}
+.device-card {
+  display: flex;
+  flex-direction: column;
+}
+.device-illustration {
+  flex: 1;
+  height: auto;
+  min-height: 70px;
+}
+.device-card .meter {
+  flex: none;
+}
+.pc-grid .card {
+  position: relative;
+}
+.metric-icon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 22px;
+  height: 22px;
+}
+.metric-value {
+  font-size: 30px;
+  margin: 6px 0 12px;
+}
+.pc-grid .card > p {
+  margin-top: 10px;
+}
+.system-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 28px;
+}
+.system-rows > div {
+  padding: 9px 0;
+}
+/* Home: Twitch takes the left column, Setup and PC share the right one. */
+.home-twitch {
+  grid-row: span 2;
+}
+.more-note {
+  display: block;
+  padding-top: 8px;
+}
+.toolbar {
+  margin-bottom: 16px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.toolbar .filter-button {
+  flex-shrink: 0;
+}
+.toolbar-count {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+.toolbar-count b {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--accent);
+  margin-right: 4px;
+}
+.setting-row {
+  padding: 13px 0;
+}
+@media (max-width: 780px) {
+  .sidebar {
+    width: 60px;
+    padding: 20px 6px;
+  }
+  .brand {
+    font-size: 0;
+    padding: 0;
+  }
+  .workspace {
+    margin-left: 60px;
+  }
+  .nav-item {
+    padding: 12px 8px;
+  }
+  .nav-item.current::before {
+    left: -6px;
+  }
+  .sidebar-caption,
+  .brand-version,
+  .sidebar-account-text {
+    display: none;
+  }
+  .sidebar-account {
+    justify-content: center;
+    padding: 6px;
+  }
+  main {
+    padding: 12px;
+  }
+}
+@media (max-width: 540px) {
+  .toolbar {
+    flex-wrap: wrap;
+  }
+  .dashboard-grid,
+  .device-grid,
+  .pc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* Do not disturb switched on. */
+.window-button.quiet {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.toast.warning .toast-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--danger-text);
+}
+.metric-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* "Close program" in overload warnings (toast and pet). */
+.close-program {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-hover);
+  color: var(--text);
+  font-size: 11px;
+}
+.close-program span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.close-program.force {
+  border-color: color-mix(in srgb, var(--danger-text) 45%, var(--border));
+  color: var(--danger-text);
+}
+.close-program:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.close-program.done,
+.close-program.failed {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.close-program.done {
+  color: var(--accent);
+}
+.close-program.failed {
+  color: var(--danger-text);
+}
+/* Music (SoundCloud): the embedded player stays invisible; the page shows its own controls and
+   the required credits (track, uploader, SoundCloud, links). */
+.music-frame {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 320px;
+  height: 166px;
+  border: 0;
+  pointer-events: none;
+}
+.music-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.now-playing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.music-status {
+  flex: 1;
+  font-size: 12px;
+  color: var(--muted);
+}
+.music-link {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.music-link:hover {
+  color: var(--accent);
+}
+.row-copy > .music-link b {
+  font-size: 12px;
+  font-weight: 500;
+}
+.music-controls {
+  display: flex;
+  gap: 6px;
+}
+.music-progress,
+.music-volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.music-progress .volume-slider {
+  flex: 1;
+  width: auto;
+}
+/* Settings → Übertragen: contents of a chosen file, confirmed before it replaces anything. */
+.import-check {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent-line);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  font-size: 12px;
+}
+.import-check p + p {
+  margin-top: 4px;
+  color: var(--muted);
+}
+.import-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}

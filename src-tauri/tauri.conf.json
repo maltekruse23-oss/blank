@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "blank.",
+  "version": "0.1.0",
+  "identifier": "com.blank.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "blank.",
+        "label": "main",
+        "visible": false,
+        "width": 860,
+        "height": 640,
+        "minWidth": 720,
+        "minHeight": 536,
+        "maxWidth": 1000,
+        "maxHeight": 744,
+        "maximizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "shadow": true,
+        "transparent": true,
+        "resizable": true,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu --in-process-gpu"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://static-cdn.jtvnw.net https://ddragon.leagueoflegends.com https://*.sndcdn.com; connect-src 'self' https://soundcloud.com; frame-src https://w.soundcloud.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/icon.ico"]
+  }
+}

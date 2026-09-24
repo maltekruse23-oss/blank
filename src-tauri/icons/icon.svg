@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- blank. app icon: neutral black and white, independent of the app's colour schemes.
+       Regenerate icon.ico: pnpm tauri icon src-tauri/icons/icon.svg -o <temp dir>, copy icon.ico. -->
+  <rect x="8" y="8" width="240" height="240" rx="60" fill="#111111"/>
+  <rect x="11" y="11" width="234" height="234" rx="57" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="6"/>
+  <rect x="38" y="48" width="38" height="160" rx="19" fill="#ffffff"/>
+  <circle cx="106" cy="140" r="49" fill="none" stroke="#ffffff" stroke-width="38"/>
+  <circle cx="198" cy="188" r="20" fill="#ffffff"/>
+</svg>

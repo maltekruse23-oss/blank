@@ -1,0 +1,68 @@
+name: Release
+
+# Builds blank.exe on Windows for every version tag (v0.1.0, v0.2.0, …) and attaches it to a
+# GitHub release. The tag must match the version in package.json. A manual run (Actions tab)
+# only builds and keeps the EXE as a workflow artifact.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "Tag ${{ github.ref_name }} does not match package.json version $version"
+          }
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test --locked
+      # Release EXE only via the Tauri CLI (custom-protocol), never plain cargo build --release.
+      - run: pnpm desktop:build
+
+      - name: Name the download
+        shell: pwsh
+        run: Copy-Item src-tauri/target/release/blank.exe "blank-${{ github.ref_name }}-windows-x64.exe"
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: blank. ${{ github.ref_name }}
+          files: blank-${{ github.ref_name }}-windows-x64.exe
+          body: |
+            **Download:** `blank-${{ github.ref_name }}-windows-x64.exe` below, no installation needed — just start it.
+
+            - Windows 10/11 (64-bit). WebView2 is part of Windows 11 and current Windows 10.
+            - The EXE is not signed, so Windows SmartScreen may warn on the first start: *More info → Run anyway*.
+            - Twitch needs your own free Client ID once (see README: "Twitch einrichten").
+            - Settings are stored per user; to remove the app, delete the EXE (and the autostart switch off first if you turned it on).
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: blank-windows-x64
+          path: blank-${{ github.ref_name }}-windows-x64.exe

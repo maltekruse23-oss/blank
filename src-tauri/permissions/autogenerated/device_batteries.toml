@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-device-batteries"
+description = "Enables the device_batteries command without any pre-configured scope."
+commands.allow = ["device_batteries"]
+
+[[permission]]
+identifier = "deny-device-batteries"
+description = "Denies the device_batteries command without any pre-configured scope."
+commands.deny = ["device_batteries"]

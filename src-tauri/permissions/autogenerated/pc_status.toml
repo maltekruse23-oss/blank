@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-pc-status"
+description = "Enables the pc_status command without any pre-configured scope."
+commands.allow = ["pc_status"]
+
+[[permission]]
+identifier = "deny-pc-status"
+description = "Denies the pc_status command without any pre-configured scope."
+commands.deny = ["pc_status"]

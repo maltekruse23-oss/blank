@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-twitch-eventsub-status"
+description = "Enables the twitch_eventsub_status command without any pre-configured scope."
+commands.allow = ["twitch_eventsub_status"]
+
+[[permission]]
+identifier = "deny-twitch-eventsub-status"
+description = "Denies the twitch_eventsub_status command without any pre-configured scope."
+commands.deny = ["twitch_eventsub_status"]

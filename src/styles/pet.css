@@ -1,0 +1,295 @@
+/* Pet mode: the window is transparent except for the pet and its speech bubble. */
+html.pet-mode,
+html.pet-mode body {
+  background: transparent;
+  overflow: hidden;
+}
+html.pet-mode ::-webkit-scrollbar {
+  display: none;
+}
+.pet {
+  position: fixed;
+  inset: 0;
+  user-select: none;
+}
+.pet-figure {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  width: 88px;
+  height: 81px;
+  cursor: pointer;
+  outline: none;
+}
+.pet-figure:focus-visible .pet-svg {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+.pet-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.pet-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.pet-eyes.blink {
+  transform: scaleY(0.12);
+}
+/* Minimal: flat shape, simple eyes. */
+.minimal-body {
+  fill: var(--accent);
+}
+.minimal-eye {
+  fill: var(--accent-ink);
+}
+.minimal-arc {
+  fill: none;
+  stroke: var(--accent-ink);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+}
+.minimal-z {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  fill: var(--muted);
+}
+/* Blob: the first figure. */
+.blob-ground {
+  fill: color-mix(in srgb, var(--bg) 55%, transparent);
+}
+.blob-body {
+  fill: var(--accent);
+}
+.blob-shade {
+  fill: color-mix(in srgb, var(--accent) 70%, var(--bg));
+}
+.blob-shine {
+  fill: color-mix(in srgb, var(--text) 55%, transparent);
+}
+.blob-cheek {
+  fill: color-mix(in srgb, var(--danger-text) 45%, var(--accent));
+  opacity: 0.8;
+}
+.blob-eye,
+.blob-mouth,
+.blob-star {
+  fill: var(--accent-ink);
+}
+.blob-glint {
+  fill: var(--text);
+}
+.blob-line {
+  fill: none;
+  stroke: var(--accent-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.blob-z,
+.blob-bang {
+  font-family: var(--font-display);
+  font-weight: 700;
+  fill: var(--accent);
+  stroke: var(--accent-ink);
+  stroke-width: 1;
+  paint-order: stroke;
+}
+.blob-z {
+  font-size: 15px;
+}
+.blob-z.small {
+  font-size: 10px;
+}
+.blob-bang {
+  font-size: 22px;
+}
+.pet-count {
+  position: absolute;
+  top: 6px;
+  left: 2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--accent-ink);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+/* Three hops with a small squash on landing; only after a go-live. */
+.pet-figure.hop .pet-svg {
+  animation: pet-hop 1.3s ease-in-out;
+  transform-origin: 50% 100%;
+}
+@keyframes pet-hop {
+  0%,
+  33%,
+  66%,
+  100% {
+    transform: translateY(0) scale(1.06, 0.92);
+  }
+  16%,
+  50%,
+  83% {
+    transform: translateY(-14px) scale(0.96, 1.05);
+  }
+}
+.pet-bubble {
+  position: absolute;
+  right: 28px;
+  bottom: 92px;
+  max-width: 228px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px 0 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--bg) 70%, transparent);
+  animation: toast-in 0.2s ease-out;
+}
+.pet-bubble::after {
+  content: '';
+  position: absolute;
+  right: 22px;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: var(--surface);
+  border-right: 1px solid var(--accent-line);
+  border-bottom: 1px solid var(--accent-line);
+  transform: rotate(45deg);
+}
+.pet-bubble-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 4px 8px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.pet-bubble-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+}
+.pet-bubble-close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.pet-bubble span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pet-bubble b {
+  color: var(--accent);
+}
+.pet-bubble small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.pet-bubble .avatar {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  font-size: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pet-figure.hop .pet-svg,
+  .pet-bubble {
+    animation: none;
+  }
+}
+/* Warning: worried face and a two-line bubble. */
+.minimal-arc.thin {
+  stroke-width: 3.5;
+}
+.minimal-drop,
+.blob-drop {
+  fill: color-mix(in srgb, var(--text) 80%, var(--accent));
+}
+.pet-bubble.warning {
+  border-color: color-mix(in srgb, var(--danger-text) 45%, var(--accent-line));
+}
+.pet-bubble-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--danger-text);
+}
+.pet-bubble-lines {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pet-bubble-lines b,
+.pet-bubble-lines small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pet-bubble.warning b {
+  color: var(--text);
+}
+.pet-quiet {
+  position: absolute;
+  top: 6px;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--accent-ink);
+  color: var(--muted);
+  border: 1px solid var(--accent-line);
+  pointer-events: none;
+}
+/* A warning bubble with a "close program" row. */
+.pet-bubble.warning {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+.pet-bubble-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.pet-bubble-action {
+  padding: 0 10px 9px 42px;
+  min-width: 0;
+}
+.pet-bubble-action .close-program {
+  margin-top: 0;
+}

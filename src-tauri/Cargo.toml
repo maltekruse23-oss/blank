@@ -1,0 +1,37 @@
+[package]
+name = "blank"
+version = "0.1.0"
+description = "Private desktop workspace"
+authors = ["blank contributors"]
+edition = "2021"
+
+[lib]
+name = "blank_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# tray-icon: icon in the notification area (src/tray.rs).
+tauri = { version = "2", features = ["tray-icon"] }
+keyring = { version = "3", features = ["windows-native"] }
+# native-tls uses Windows Schannel; no extra build tools needed.
+reqwest = { version = "0.13", default-features = false, features = ["json", "form", "query", "native-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "sync", "time"] }
+# EventSub WebSocket for instant "went live" notifications; TLS via Windows Schannel as above.
+tokio-tungstenite = { version = "0.30", features = ["native-tls"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_Media_Audio", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Diagnostics_ToolHelp", "Win32_System_Performance", "Win32_System_ProcessStatus", "Win32_System_Registry", "Win32_System_RemoteDesktop", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_UI_HiDpi", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+# Already used by Tauri/wry (same versions); needed to put the hidden WebView2 into low-memory mode.
+webview2-com = "0.38"
+# Battery levels of wireless devices (read-only HID requests); pure-Rust Windows backend.
+hidapi = { version = "2", default-features = false, features = ["windows-native"] }
+windows-core = "0.61"
+# Same version as used by wry; for listing graphics adapters (DXGI) in pc.rs and finding the own
+# taskbar button (UI Automation, read-only) in taskbar.rs.
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dxgi", "Win32_System_Com", "Win32_System_Ole", "Win32_System_Variant", "Win32_UI_Accessibility"] }
