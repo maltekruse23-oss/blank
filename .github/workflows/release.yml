@@ -44,25 +44,22 @@ jobs:
       # Release EXE only via the Tauri CLI (custom-protocol), never plain cargo build --release.
       - run: pnpm desktop:build
 
-      - name: Name the download
+      # Always the same file name, so the README link .../releases/latest/download/blank.exe works.
+      - name: Collect the download
         shell: pwsh
-        run: Copy-Item src-tauri/target/release/blank.exe "blank-${{ github.ref_name }}-windows-x64.exe"
+        run: |
+          New-Item -ItemType Directory -Force download | Out-Null
+          Copy-Item src-tauri/target/release/blank.exe download/blank.exe
 
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: blank. ${{ github.ref_name }}
-          files: blank-${{ github.ref_name }}-windows-x64.exe
-          body: |
-            **Download:** `blank-${{ github.ref_name }}-windows-x64.exe` below, no installation needed — just start it.
-
-            - Windows 10/11 (64-bit). WebView2 is part of Windows 11 and current Windows 10.
-            - The EXE is not signed, so Windows SmartScreen may warn on the first start: *More info → Run anyway*.
-            - Twitch needs your own free Client ID once (see README: "Twitch einrichten").
-            - Settings are stored per user; to remove the app, delete the EXE (and the autostart switch off first if you turned it on).
+          files: download/blank.exe
+          body_path: .github/release-notes.md
 
       - uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           name: blank-windows-x64
-          path: blank-${{ github.ref_name }}-windows-x64.exe
+          path: download/blank.exe

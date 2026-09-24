@@ -42,7 +42,7 @@ Private Windows-App. Stack: Tauri **2**, React, TypeScript (strict), Vite, pnpm.
 - Betroffene Seiten in der Vorschau prüfen. Bei nativen Änderungen `pnpm desktop:build` auf Windows mit Rust/MSVC prüfen.
 - Die Release-EXE nur mit `pnpm desktop:build` bauen, nie mit `cargo build --release`: Ohne das von der Tauri-CLI gesetzte Feature `custom-protocol` lädt die EXE den Dev-Server (127.0.0.1:1420) und zeigt nur eine Fehlerseite. `cargo check` ist unkritisch. Nach dem Build die EXE starten und sichtbar prüfen.
 - Mindestens Navigation, Twitch-Live-Filter/Kanalverwaltung/Leerzustand, Pros-Filter und persistierte Einstellungen prüfen, wenn diese betroffen sind.
-- Neue Version: Versionsnummer in `package.json`, `src-tauri/Cargo.toml` und `src-tauri/tauri.conf.json` gleich anheben, committen, Tag `vX.Y.Z` pushen (nur auf Auftrag); GitHub Actions prüft, baut und hängt `blank-vX.Y.Z-windows-x64.exe` an das Release. Die EXE ist nicht signiert.
+- Neue Version: Versionsnummer in `package.json`, `src-tauri/Cargo.toml` und `src-tauri/tauri.conf.json` gleich anheben, committen, Tag `vX.Y.Z` pushen (nur auf Auftrag); GitHub Actions prüft, baut und hängt immer gleich benannt `blank.exe` an das Release (der README-Link `releases/latest/download/blank.exe` hängt daran; Release-Text in `.github/release-notes.md`). Die EXE ist nicht signiert. Der obere README-Teil ist für Nicht-Entwickler: einfach halten.
 - Lockfile behalten; Cargo.lock bei der ersten erfolgreichen nativen Auflösung erzeugen und für die App versionieren.
 - README/VALIDATION bei geänderter Architektur oder neuem Prüfstand aktualisieren. Blockierte Prüfungen ehrlich benennen.
 

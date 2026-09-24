@@ -1,12 +1,32 @@
 # blank.
 
-Private Windows-Desktop-App mit Tauri 2, React, TypeScript und Vite. In der Desktop-App sind alle angezeigten Daten echt: **Twitch** über die offizielle Helix-API (Login nötig), Akkustände direkt von den Geräten (nur lesend), PC-Werte von Windows. Die Browser-Vorschau zeigt für Twitch fiktive Mock-Daten; Akkus und PC-Werte gibt es dort nicht. Kein Scraping.
+Kleine Windows-App für nebenbei: zeigt, wer auf Twitch live ist (mit Sofort-Meldung), welche League-Pros gerade streamen, spielt SoundCloud-Mixes, zeigt die Akkustände von Maus und Headset und die Auslastung deines PCs. Auf Knopfdruck wird sie zu einem kleinen Pet auf dem Desktop.
 
 ## Download
 
-Die fertige App liegt unter **Releases** in diesem Repository: `blank-vX.Y.Z-windows-x64.exe` herunterladen und starten, ohne Installation (Windows 10/11, 64 Bit; WebView2 ist in Windows 11 und aktuellem Windows 10 enthalten). Die EXE ist nicht signiert; Windows SmartScreen warnt deshalb beim ersten Start: „Weitere Informationen“ → „Trotzdem ausführen“. Einstellungen eines anderen PCs übernimmt man unter Settings → Übertragen.
+### ➜ [blank.exe herunterladen](https://github.com/maltekruse23-oss/blank/releases/latest/download/blank.exe)
 
-Gebaut wird jede Version automatisch von GitHub (`.github/workflows/release.yml`): Versionsnummer in `package.json`, `src-tauri/Cargo.toml` und `src-tauri/tauri.conf.json` anheben, committen, Tag `vX.Y.Z` pushen. Der Ablauf prüft Formatierung und Rust-Tests, baut mit `pnpm desktop:build` und hängt die EXE an das Release.
+1. Auf den Link oben klicken. `blank.exe` landet in deinem Downloads-Ordner.
+2. `blank.exe` doppelklicken. Keine Installation nötig.
+3. Erscheint „Der Computer wurde durch Windows geschützt“: auf **Weitere Informationen** und dann auf **Trotzdem ausführen** klicken. (Die App ist nicht signiert; das kommt nur beim ersten Start.)
+
+Mehr brauchst du nicht. Die Ordner auf dieser Seite und die „Source code“-Dateien im Release sind nur der Quellcode.
+
+**Gut zu wissen**
+
+- **Neue Version:** blank. über das Symbol unten rechts in der Taskleiste beenden (Rechtsklick → Beenden), dann den Link oben erneut benutzen und die alte `blank.exe` ersetzen. Einstellungen bleiben erhalten.
+- **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumentelank`), bevor du in den Settings „Mit Windows starten“ einschaltest.
+- **Anderer PC:** Einstellungen dort unter Settings → Übertragen → Exportieren speichern, hier unter Settings → Übertragen → Importieren übernehmen. Twitch danach einmal neu verbinden.
+- **Twitch:** braucht einmalig eine eigene, kostenlose Client-ID; Anleitung unten unter „Twitch einrichten“.
+- Voraussetzung: Windows 10 oder 11 (64 Bit). Alle Versionen: [Releases](https://github.com/maltekruse23-oss/blank/releases).
+
+---
+
+# Für Entwickler
+
+Tauri 2, React, TypeScript und Vite. In der Desktop-App sind alle angezeigten Daten echt: **Twitch** über die offizielle Helix-API (Login nötig), Akkustände direkt von den Geräten (nur lesend), PC-Werte von Windows, Musik über SoundClouds offiziellen Player. Die Browser-Vorschau zeigt für Twitch fiktive Mock-Daten; Akkus und PC-Werte gibt es dort nicht. Kein Scraping.
+
+**Neue Version veröffentlichen:** Versionsnummer in `package.json`, `src-tauri/Cargo.toml` und `src-tauri/tauri.conf.json` anheben, committen, Tag `vX.Y.Z` pushen. GitHub Actions (`.github/workflows/release.yml`) prüft Formatierung und Rust-Tests, baut mit `pnpm desktop:build` und hängt `blank.exe` an das Release (Text aus `.github/release-notes.md`); der Download-Link oben zeigt immer auf das neueste Release.
 
 ## Starten
 

@@ -28,6 +28,15 @@ Native Titelleiste und klassische Scrollbar ersetzt: `decorations: false`, eigen
 - Abweichung: tao meldet bei rahmenlosen Fenstern `WM_GETMINMAXINFO` ohne die unsichtbaren 8-px-Resize-Ränder. Effektive Client-Grenzen beim Ziehen daher ca. 704 × 511 bis 984 × 751 statt 720 × 520 bis 1000 × 760. Layout bleibt in diesem Bereich überlauffrei.
 - Nicht automatisiert geprüft: Ziehen des Fensters (Windows-Verschiebeschleife folgt der echten Maus), Schließen-Knopf. Manuell prüfen.
 
+## Download über GitHub (Benutzerauftrag)
+
+Öffentliches Repository `maltekruse23-oss/blank`; vor dem Hochladen persönliche Testdetails (Hardware, Geräte, laufende Programme, Musik-Accounts) aus VALIDATION.md entfernt und alle Dateien nach Tokens, E-Mail-Adresse und Benutzerpfaden durchsucht (nichts gefunden). Commits mit der anonymen GitHub-Adresse. Nur die EXE, kein Installer (Benutzerwahl).
+
+- GitHub Actions (Tag `v0.1.0`, windows-latest): Versionsprüfung, `pnpm install --frozen-lockfile`, `pnpm format:check`, `cargo test --locked`, `pnpm desktop:build`, Release — alle Schritte erfolgreich, EXE 13 MB.
+- Die von GitHub gebaute EXE heruntergeladen und gestartet: lädt die App (`http://tauri.localhost`, nicht den Dev-Server), alle sieben Bereiche, echte Twitch-Daten.
+- Auf Wunsch des Benutzers vereinfacht: Datei heißt immer `blank.exe`, README beginnt mit Download-Link und drei Schritten, Release-Text auf Deutsch, Repository-Link „Website“ zeigt auf das neueste Release.
+- Hinweis: Der Projektordner gehört technisch einem anderen Windows-Konto (frühere Sitzung); Git lehnt ihn deshalb ab („dubious ownership“). Befehle liefen mit `git -c safe.directory=<Ordner>`; die globale Git-Einstellung wurde nicht geändert.
+
 ## Einstellungen übertragen (Benutzerauftrag)
 
 Settings → Übertragen: Export schreibt `blank-einstellungen.json` (freier Name, sonst „(2)“ usw.) in den Downloads-Ordner (`SHGetKnownFolderPath`, auch verschoben) und zeigt sie im Explorer; Rust ergänzt Twitch-Kanäle und Client-ID. Import über den Windows-Dateidialog der WebView, strenge Prüfung je Teil, Übernehmen erst nach Bestätigung. Nie enthalten: Twitch-Token, Autostart.
