@@ -36,14 +36,45 @@ import { useWarnings } from './useWarnings';
 import { usePcStatus } from '../features/pc/usePcStatus';
 import { readPcStatus } from '../adapters/pc';
 export type Page = 'home' | 'twitch' | 'pros' | 'music' | 'devices' | 'pc' | 'settings';
+// tagline: short line next to the page title, shown in the "Arena" design only.
 const navigation = [
-  { id: 'home', label: 'Home', icon: LayoutGrid, section: 'Übersicht' },
-  { id: 'twitch', label: 'Twitch', icon: Radio, section: 'Live' },
-  { id: 'pros', label: 'Pros', icon: Trophy, section: 'Live' },
-  { id: 'music', label: 'Musik', icon: MusicIcon, section: 'Live' },
-  { id: 'devices', label: 'Devices', icon: Headphones, section: 'System' },
-  { id: 'pc', label: 'PC', icon: Cpu, section: 'System' },
-  { id: 'settings', label: 'Settings', icon: Settings, section: null },
+  {
+    id: 'home',
+    label: 'Home',
+    icon: LayoutGrid,
+    section: 'Übersicht',
+    tagline: 'Alles Wichtige auf einen Blick',
+  },
+  {
+    id: 'twitch',
+    label: 'Twitch',
+    icon: Radio,
+    section: 'Live',
+    tagline: 'Deine Kanäle, live verfolgt',
+  },
+  { id: 'pros', label: 'Pros', icon: Trophy, section: 'Live', tagline: 'League-Pros gerade live' },
+  {
+    id: 'music',
+    label: 'Musik',
+    icon: MusicIcon,
+    section: 'Live',
+    tagline: 'SoundCloud-Mixes nebenbei',
+  },
+  {
+    id: 'devices',
+    label: 'Devices',
+    icon: Headphones,
+    section: 'System',
+    tagline: 'Akkustände deiner Geräte',
+  },
+  { id: 'pc', label: 'PC', icon: Cpu, section: 'System', tagline: 'Auslastung live von Windows' },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: Settings,
+    section: null,
+    tagline: 'Darstellung, Meldungen, System',
+  },
 ] as const;
 const sections = ['Übersicht', 'Live', 'System'] as const;
 const storageKey = 'blank.preferences.v1';
@@ -60,7 +91,7 @@ export function App() {
   const [mode, setMode] = useState<'app' | 'pet'>('app');
   const [settings, setSettings] = useState(loadPreferences);
   const twitch = useTwitch(twitchAdapter);
-  const { sound, volume, theme, quiet } = settings.preferences;
+  const { sound, volume, theme, design, quiet } = settings.preferences;
   // Do not disturb mutes the live sound; the notice itself still appears.
   const liveAlerts = useGoLiveAlerts(twitch, sound && !quiet ? volume : 0);
   const warnings = useWarnings(
@@ -76,7 +107,8 @@ export function App() {
   // On <html>, so the page background and scrollbars follow the colour scheme too.
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme;
-  }, [theme]);
+    document.documentElement.dataset.design = design;
+  }, [theme, design]);
   function update(preferences: Preferences) {
     let storageAvailable = true;
     try {
@@ -135,6 +167,13 @@ export function App() {
           quiet={quiet}
           warnings={warnings.warnings}
           dismissWarning={warnings.dismiss}
+          musicTrack={
+            music.player.status === 'playing'
+              ? music.player.track
+                ? `${music.player.track.title}${music.player.track.artist ? ` – ${music.player.track.artist}` : ''}`
+                : 'Musik'
+              : null
+          }
           onOpenApp={leavePet}
         />
         {music.frame}
@@ -237,6 +276,7 @@ export function App() {
                     <PageIcon size={17} />
                   </span>
                   <h1>{current.label}</h1>
+                  <p className="page-tagline">{current.tagline}</p>
                 </div>
                 {page === 'home' && (
                   <HomePage navigate={setPage} twitch={twitch} batteries={batteries} pc={pc} />

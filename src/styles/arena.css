@@ -1,0 +1,197 @@
+/*
+ * Design "Arena" (Settings → Darstellung → Design): same layout, different look, in the style of
+ * gaming companion apps (no foreign logos or assets). Colours come from the Arena tokens in
+ * tokens.css; nothing here uses fixed colour values.
+ */
+[data-design='arena'] .app {
+  background:
+    radial-gradient(70% 45% at 100% 0%, var(--glow) 0%, transparent 60%),
+    radial-gradient(
+      55% 45% at 0% 100%,
+      color-mix(in srgb, var(--glow) 70%, transparent) 0%,
+      transparent 62%
+    ),
+    var(--bg);
+}
+
+/* Sidebar: bold brand, spaced captions, white active item with a bar. */
+[data-design='arena'] .brand {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+[data-design='arena'] .brand-version {
+  letter-spacing: 1.6px;
+}
+[data-design='arena'] .sidebar-caption {
+  color: var(--subtle);
+  font-weight: 700;
+  letter-spacing: 1.8px;
+}
+[data-design='arena'] .nav-item {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+[data-design='arena'] .nav-item:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text);
+}
+[data-design='arena'] .nav-item.current {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--text) 9%, transparent), transparent);
+  color: var(--text);
+  font-weight: 600;
+}
+[data-design='arena'] .nav-item.current svg {
+  color: var(--text);
+}
+[data-design='arena'] .nav-item.current::before {
+  background: var(--text);
+}
+[data-design='arena'] .sidebar-account {
+  padding: 6px 4px;
+  border-color: transparent;
+  background: transparent;
+}
+[data-design='arena'] .sidebar-account .avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+[data-design='arena'] .sidebar-account-text b {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+/* Content panel with a faint accent glow at the top. */
+[data-design='arena'] .panel {
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel) 90%, var(--accent)) 0%,
+    var(--panel) 150px
+  );
+}
+
+/* Page heading: plain icon, big bold title, divider and a short tagline. */
+[data-design='arena'] .page-heading {
+  gap: 12px;
+}
+[data-design='arena'] .page-icon {
+  width: auto;
+  height: auto;
+  border: 0;
+  background: none;
+  color: var(--text);
+}
+[data-design='arena'] .page-icon svg {
+  width: 24px;
+  height: 24px;
+}
+[data-design='arena'] .page-heading h1 {
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.8px;
+}
+[data-design='arena'] .page-tagline {
+  display: block;
+  max-width: 190px;
+  margin: 0 0 0 4px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* Cards: subtle top light, titles in capitals with an accent bar. */
+[data-design='arena'] .card {
+  border-color: var(--border);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 95%, var(--text)) 0%,
+    var(--surface) 48px
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 5%, transparent);
+}
+[data-design='arena'] .card-header h2 {
+  padding-left: 9px;
+  border-left: 3px solid var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+/* PC metrics: icons in coloured tiles, bolder values. */
+[data-design='arena'] .metric-icon {
+  box-sizing: content-box;
+  top: 12px;
+  right: 12px;
+  width: 18px;
+  height: 18px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 30%, var(--surface));
+  border-radius: 9px;
+  background: color-mix(in srgb, currentColor 15%, var(--surface));
+}
+[data-design='arena'] .ram-clean {
+  top: 17px;
+  right: 60px;
+}
+[data-design='arena'] .metric-value {
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+/* Controls: filled accent switches with a light knob, pill badges, gradient meters. */
+[data-design='arena'] .switch {
+  border-color: var(--border);
+  background: var(--surface-hover);
+}
+[data-design='arena'] .switch[aria-checked='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+[data-design='arena'] .switch[aria-checked='true'] > span {
+  background: var(--text);
+}
+[data-design='arena'] .badge {
+  border-radius: 6px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+[data-design='arena'] .meter {
+  height: 5px;
+  background: var(--surface-hover);
+}
+[data-design='arena'] .meter > span {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 55%, var(--bg)),
+    var(--accent)
+  );
+}
+[data-design='arena'] .filter-button,
+[data-design='arena'] .secondary-button,
+[data-design='arena'] .icon-button {
+  border-color: var(--border);
+  border-radius: 8px;
+  background: var(--surface-hover);
+}
+[data-design='arena'] .filter-button:hover:not(:disabled),
+[data-design='arena'] .icon-button:hover {
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+[data-design='arena'] .filter-button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+[data-design='arena'] .toast {
+  border-radius: 12px;
+}

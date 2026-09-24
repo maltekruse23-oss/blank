@@ -8,6 +8,11 @@
   --gap: 20px;
   --font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  /* Category colours of icon tiles (e.g. PC metrics); the classic design uses the accent for all. */
+  --tone-1: var(--accent);
+  --tone-2: var(--accent);
+  --tone-3: var(--accent);
+  --tone-4: var(--accent);
 }
 
 /*
@@ -125,4 +130,35 @@
   --accent-soft: #222325;
   --accent-line: #4a4d51;
   --accent-ink: #1a1a1b;
+}
+
+/*
+ * Design "Arena" (Settings → Darstellung → Design): deep blue-black with an indigo accent and
+ * coloured category tiles, in the style of gaming companion apps. It replaces the colour scheme.
+ * Also set on the design preview in the settings. Look: src/styles/arena.css.
+ */
+html[data-design='arena'],
+[data-design-preview='arena'] {
+  --bg: #06070b;
+  --glow: #141a3a;
+  --panel: #0b0d13;
+  --panel-border: #191c28;
+  --surface: #11131b;
+  --surface-hover: #181b26;
+  --border: #1f2230;
+  --text: #f2f4fa;
+  --muted: #8f95aa;
+  --subtle: #5e6378;
+  --scrollbar: #22263a;
+  --scrollbar-hover: #363c58;
+  --accent: #7c87ff;
+  --accent-soft: #181c38;
+  --accent-line: #3a4287;
+  --accent-ink: #0a0c1c;
+  --danger: #d8434d;
+  --danger-text: #ff7a83;
+  --tone-1: #ff9f43;
+  --tone-2: #34d399;
+  --tone-3: #a78bfa;
+  --tone-4: #f5c451;
 }

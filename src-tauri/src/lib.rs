@@ -4,6 +4,8 @@ mod background;
 #[cfg(windows)]
 mod battery;
 #[cfg(windows)]
+mod memory;
+#[cfg(windows)]
 mod monitor;
 #[cfg(windows)]
 mod pc;
@@ -25,6 +27,10 @@ mod usage;
 mod window_aspect;
 
 use tauri::Manager;
+
+/// RAM cleaning runs in a separate, elevated start of the app (memory.rs; checked in main.rs).
+#[cfg(windows)]
+pub use memory::{clean_elevated as clean_memory_elevated, CLEAN_ARG as CLEAN_MEMORY_ARG};
 
 pub fn run() {
     #[cfg(windows)]
@@ -77,6 +83,8 @@ pub fn run() {
             autostart::set_autostart,
             #[cfg(windows)]
             battery::device_batteries,
+            #[cfg(windows)]
+            memory::clean_memory,
             #[cfg(windows)]
             pc::pc_status,
             #[cfg(windows)]

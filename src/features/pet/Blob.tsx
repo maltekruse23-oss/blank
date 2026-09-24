@@ -1,13 +1,16 @@
 import type { FigureProps } from './figures';
+import { HeadphonesBand, HeadphonesCups, Note } from './parts';
 
 const star = (x: number, y: number) =>
   `M${x} ${y - 7} L${x + 2} ${y - 2} L${x + 7} ${y} L${x + 2} ${y + 2} L${x} ${y + 7} L${x - 2} ${y + 2} L${x - 7} ${y} L${x - 2} ${y - 2} Z`;
 
-/** The first pet figure: a soft blob with shine, cheeks and star eyes when excited. */
+/** The first pet figure: a soft blob with shine, cheeks, star eyes when excited and headphones
+ *  while music plays. */
 export function Blob({ mood, blinking }: FigureProps) {
   return (
     <svg className={`pet-svg blob mood-${mood}`} viewBox="0 0 100 92" aria-hidden="true">
       <ellipse className="blob-ground" cx="50" cy="88" rx="30" ry="4" />
+      {mood === 'music' && <HeadphonesBand left={7} right={93} y={50} top={-12} />}
       <path
         className="blob-body"
         d="M50 10 C78 10 94 32 94 58 C94 78 76 86 50 86 C24 86 6 78 6 58 C6 32 22 10 50 10 Z"
@@ -68,6 +71,15 @@ export function Blob({ mood, blinking }: FigureProps) {
           <text className="blob-bang" x="84" y="22">
             !
           </text>
+        </>
+      )}
+      {mood === 'music' && (
+        <>
+          <path className="blob-line" d="M29 50 Q35 55 41 50" />
+          <path className="blob-line" d="M59 50 Q65 55 71 50" />
+          <path className="blob-line" d="M44 63 Q50 68 56 63" />
+          <HeadphonesCups left={7} right={93} y={50} />
+          <Note x={88} y={14} />
         </>
       )}
     </svg>

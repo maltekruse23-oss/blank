@@ -55,6 +55,20 @@ export const closeProgram = isTauri()
   ? (exe: string, force: boolean) => invoke<number>('close_program', { exe, force })
   : null;
 
+export type CleanedMemory = {
+  usedBefore: number;
+  usedAfter: number;
+  freedBytes: number;
+  /** Windows did not allow every step. */
+  incomplete: boolean;
+};
+
+/**
+ * RAM cleaning like Mem Reduct (src-tauri/src/memory.rs). Windows asks for administrator rights
+ * each time; rejects with a German message when declined or refused.
+ */
+export const cleanMemory = isTauri() ? () => invoke<CleanedMemory>('clean_memory') : null;
+
 /** Running processes of a program (0 = closed). */
 export const programRunning = isTauri()
   ? (exe: string) => invoke<number>('program_running', { exe })

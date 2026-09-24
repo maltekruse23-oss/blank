@@ -2,6 +2,7 @@
 const COMMANDS: &[&str] = &[
     "app_usage",
     "autostart_enabled",
+    "clean_memory",
     "close_program",
     "device_batteries",
     "set_autostart",

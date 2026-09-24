@@ -4,7 +4,7 @@
 //!   0x1004 "unified battery" or 0x1000 "battery status"). G HUB may run at the same time.
 //! - HyperX Cloud Alpha Wireless: vendor report 21 BB 0B → percent (as used by HeadsetControl).
 //!
-//! Verified on the user's PC with a Logitech "PRO X 2" (LIGHTSPEED) and a Cloud Alpha Wireless.
+//! Verified with a Logitech LIGHTSPEED mouse (receiver and cable) and a HyperX Cloud Alpha Wireless.
 use serde::Serialize;
 use std::{
     collections::HashMap,

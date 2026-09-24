@@ -5,6 +5,7 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/desktop.css';
 import './styles/pet.css';
+import './styles/arena.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

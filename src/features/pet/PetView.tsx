@@ -16,12 +16,15 @@ const BUBBLE_SIZE = { width: 240, height: 158 };
 const ACTION_BUBBLE_SIZE = { width: 250, height: 190 };
 /** How long the pet hops after a go-live; also the length of the CSS animation. */
 const HOP_MS = 1300;
+/** Short nod when a new track starts; also the length of the CSS animation. */
+const NOD_MS = 900;
 /** Movement that turns a press on the pet into dragging. */
 const DRAG_PX = 4;
 
 /**
  * The app as a small desktop pet. Sleeps while none of the channels is live, is awake while at
- * least one is, and hops with a short speech bubble (who is live) when a channel goes live.
+ * least one is, and hops with a short speech bubble (who is live) when a channel goes live. While a
+ * SoundCloud mix plays it wears headphones and nods briefly at each new track.
  * Click: back to the app. Drag: move it. No animation runs while nothing happens.
  */
 export function PetView({
@@ -33,6 +36,7 @@ export function PetView({
   quiet,
   warnings,
   dismissWarning,
+  musicTrack,
   onOpenApp,
 }: {
   twitch: TwitchData;
@@ -44,6 +48,8 @@ export function PetView({
   quiet: boolean;
   warnings: Warning[];
   dismissWarning: (id: number) => void;
+  /** Title of the playing track (or "Musik"); null while no mix plays. */
+  musicTrack: string | null;
   onOpenApp: (page?: Page) => void;
 }) {
   const { Figure } = petFigure(figure);
@@ -57,8 +63,17 @@ export function PetView({
       : undefined;
   const latest = warning ? undefined : newestAlert;
   const [hopping, setHopping] = useState(false);
+  const [nodding, setNodding] = useState(false);
   const [blinking, setBlinking] = useState(false);
-  const mood: Mood = warning ? 'worried' : latest ? 'excited' : live > 0 ? 'awake' : 'sleepy';
+  const mood: Mood = warning
+    ? 'worried'
+    : latest
+      ? 'excited'
+      : musicTrack
+        ? 'music'
+        : live > 0
+          ? 'awake'
+          : 'sleepy';
   const press = useRef<{ x: number; y: number } | null>(null);
 
   // Hop once per new go-live.
@@ -68,6 +83,14 @@ export function PetView({
     const timer = window.setTimeout(() => setHopping(false), HOP_MS);
     return () => window.clearTimeout(timer);
   }, [latest?.id, motion]);
+
+  // Nod once per new track.
+  useEffect(() => {
+    if (!musicTrack || !motion) return;
+    setNodding(true);
+    const timer = window.setTimeout(() => setNodding(false), NOD_MS);
+    return () => window.clearTimeout(timer);
+  }, [musicTrack, motion]);
 
   // Blink now and then while awake; a short class change, no running animation in between.
   useEffect(() => {
@@ -116,7 +139,7 @@ export function PetView({
   }
 
   const open = twitch.adapter.openChannel;
-  const title = `${live === 0 ? 'Niemand live' : live === 1 ? '1 Kanal live' : `${live} Kanäle live`} · Klicken: App öffnen · Ziehen: verschieben`;
+  const title = `${musicTrack ? `♪ ${musicTrack} · ` : ''}${live === 0 ? 'Niemand live' : live === 1 ? '1 Kanal live' : `${live} Kanäle live`} · Klicken: App öffnen · Ziehen: verschieben`;
   const warningInfo = warning && warningText(warning);
   const WarningIcon = warning?.kind === 'battery' ? BatteryLow : Gauge;
   return (
@@ -183,7 +206,7 @@ export function PetView({
         </div>
       )}
       <div
-        className={`pet-figure ${hopping ? 'hop' : ''}`}
+        className={`pet-figure ${hopping ? 'hop' : nodding ? 'nod' : ''}`}
         role="button"
         tabIndex={0}
         aria-label={`blank. öffnen (${live === 1 ? '1 Kanal' : `${live} Kanäle`} live)`}

@@ -1,6 +1,14 @@
-import type { ComponentType } from 'react';
-import { Cpu, CircuitBoard, MemoryStick, HardDrive, type LucideProps } from 'lucide-react';
+import { useEffect, useState, type ComponentType } from 'react';
 import {
+  Cpu,
+  CircuitBoard,
+  MemoryStick,
+  HardDrive,
+  Sparkles,
+  type LucideProps,
+} from 'lucide-react';
+import {
+  cleanMemory,
   formatGb,
   formatPercent,
   formatSize,
@@ -12,6 +20,8 @@ import type { PcState } from './usePcStatus';
 
 type Metric = {
   name: string;
+  /** Category colour of the icon tile (tokens --tone-1 … --tone-4). */
+  tone: 1 | 2 | 3 | 4;
   detail: string;
   Icon: ComponentType<LucideProps>;
   /** null: not measured (yet); shown as a dash, never as 0. */
@@ -38,6 +48,7 @@ export function pcMetrics({ specs, sample }: PcStatus): Metric[] {
   return [
     {
       name: 'CPU',
+      tone: 1,
       detail: 'Prozessorauslastung',
       Icon: Cpu,
       value: sample?.cpuPercent != null ? formatPercent(sample.cpuPercent) : null,
@@ -47,6 +58,7 @@ export function pcMetrics({ specs, sample }: PcStatus): Metric[] {
     },
     {
       name: 'GPU',
+      tone: 2,
       detail: 'Grafikauslastung',
       Icon: CircuitBoard,
       value: sample?.gpuPercent != null ? formatPercent(sample.gpuPercent) : null,
@@ -59,6 +71,7 @@ export function pcMetrics({ specs, sample }: PcStatus): Metric[] {
     },
     {
       name: 'RAM',
+      tone: 3,
       detail: 'Arbeitsspeicher',
       Icon: MemoryStick,
       value: sample ? formatGb(sample.memoryUsedBytes) : null,
@@ -68,6 +81,7 @@ export function pcMetrics({ specs, sample }: PcStatus): Metric[] {
     },
     {
       name: 'Speicher',
+      tone: 4,
       detail: sample ? `Laufwerk ${sample.diskName}` : 'Systemlaufwerk',
       Icon: HardDrive,
       value: sample?.diskUsedBytes != null ? formatGb(sample.diskUsedBytes) : null,
@@ -81,8 +95,43 @@ export function pcMetrics({ specs, sample }: PcStatus): Metric[] {
   ];
 }
 
+/** How long the result of a RAM cleaning stays in place of the usual line. */
+const CLEAN_RESULT_MS = 12_000;
+
+/** "Bereinigen" in the RAM card: Mem Reduct-style cleaning, only on click. */
+function useRamCleaner() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    if (!message || busy) return;
+    const timer = window.setTimeout(() => setMessage(null), CLEAN_RESULT_MS);
+    return () => window.clearTimeout(timer);
+  }, [message, busy]);
+  async function clean() {
+    if (!cleanMemory || busy) return;
+    setBusy(true);
+    setMessage('Bereinigt … Windows fragt nach Erlaubnis');
+    try {
+      const result = await cleanMemory();
+      const freed = result.freedBytes >= 50 * 1024 ** 2;
+      setMessage(
+        (freed
+          ? `${formatGb(result.freedBytes)} GB freigegeben`
+          : 'Nichts Nennenswertes freizugeben') +
+          (result.incomplete ? ' (nicht alles erlaubt)' : ''),
+      );
+    } catch (error) {
+      setMessage(typeof error === 'string' ? error : 'Bereinigen fehlgeschlagen.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return { available: cleanMemory !== null, busy, message, clean };
+}
+
 /** Real CPU, graphics card, memory and system drive, updated every 2 s while shown. */
 export function PcPage({ pc }: { pc: PcState }) {
+  const cleaner = useRamCleaner();
   if (pc.status === 'unavailable')
     return (
       <div className="empty-state">
@@ -106,23 +155,37 @@ export function PcPage({ pc }: { pc: PcState }) {
   return (
     <>
       <div className="pc-grid">
-        {pcMetrics(pc.pc).map(({ name, detail, Icon, value, unit, percent, sub }) => (
-          <Card key={name} title={name} eyebrow={detail}>
-            <Icon className="metric-icon" size={32} strokeWidth={1.3} />
-            <div className="metric-value">
-              {value ?? '—'}
-              <small>{unit}</small>
-            </div>
-            {percent !== null ? (
-              <Meter value={Math.min(100, percent)} label={`${name} Auslastung`} />
-            ) : (
-              <div className="meter" />
-            )}
-            <p className="metric-sub" title={sub}>
-              {sub}
-            </p>
-          </Card>
-        ))}
+        {pcMetrics(pc.pc).map(({ name, tone, detail, Icon, value, unit, percent, sub: usual }) => {
+          const ram = name === 'RAM';
+          const sub = ram && cleaner.message ? cleaner.message : usual;
+          return (
+            <Card key={name} title={name} eyebrow={detail}>
+              <Icon className={`metric-icon tone-${tone}`} size={32} strokeWidth={1.3} />
+              {ram && cleaner.available && (
+                <button
+                  className="ram-clean"
+                  disabled={cleaner.busy}
+                  title="Arbeitsspeicher bereinigen wie Mem Reduct (braucht Administratorrechte, Windows fragt)"
+                  onClick={() => void cleaner.clean()}
+                >
+                  <Sparkles size={13} /> {cleaner.busy ? 'Läuft …' : 'Bereinigen'}
+                </button>
+              )}
+              <div className="metric-value">
+                {value ?? '—'}
+                <small>{unit}</small>
+              </div>
+              {percent !== null ? (
+                <Meter value={Math.min(100, percent)} label={`${name} Auslastung`} />
+              ) : (
+                <div className="meter" />
+              )}
+              <p className="metric-sub" title={sub} role={ram ? 'status' : undefined}>
+                {sub}
+              </p>
+            </Card>
+          );
+        })}
       </div>
       <Card title="Systemübersicht">
         <div className="system-rows">

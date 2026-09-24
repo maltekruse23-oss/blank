@@ -293,3 +293,139 @@ html.pet-mode ::-webkit-scrollbar {
 .pet-bubble-action .close-program {
   margin-top: 0;
 }
+/* Shared parts: headphones and a note while music plays, marks next to the pet. */
+.pet-phones-rim,
+.pet-phones-band {
+  fill: none;
+  stroke-linecap: round;
+}
+.pet-phones-rim {
+  stroke: var(--accent);
+  stroke-width: 7.5;
+}
+.pet-phones-band {
+  stroke: var(--accent-ink);
+  stroke-width: 4.5;
+}
+.pet-phones-cup {
+  fill: var(--accent-ink);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.pet-note,
+.pet-mark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  fill: var(--accent);
+  stroke: var(--accent-ink);
+  stroke-width: 1;
+  paint-order: stroke;
+}
+.pet-note {
+  font-size: 18px;
+}
+.pet-mark {
+  font-size: 15px;
+}
+.pet-mark.small {
+  font-size: 10px;
+}
+.pet-mark.big {
+  font-size: 22px;
+}
+.pet-drop {
+  fill: color-mix(in srgb, var(--text) 80%, var(--accent));
+}
+/* Cat. */
+.cat-body {
+  fill: var(--accent);
+}
+.cat-ear-inner {
+  fill: color-mix(in srgb, var(--danger-text) 40%, var(--accent));
+}
+.cat-whisker {
+  fill: none;
+  stroke: var(--accent-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+.cat-eye,
+.cat-nose {
+  fill: var(--accent-ink);
+}
+.cat-glint {
+  fill: var(--text);
+}
+.cat-line {
+  fill: none;
+  stroke: var(--accent-ink);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cat-line.thin {
+  stroke-width: 2.5;
+}
+/* Robo: dark screen as face, eyes glow in the accent colour. */
+.robo-body {
+  fill: var(--accent);
+}
+.robo-side {
+  fill: color-mix(in srgb, var(--accent) 70%, var(--bg));
+}
+.robo-screen {
+  fill: var(--accent-ink);
+}
+.robo-glow {
+  fill: var(--accent);
+}
+.robo-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.robo-line.thin {
+  stroke-width: 2.5;
+}
+.robo-antenna {
+  stroke: var(--accent-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.robo-bulb {
+  fill: var(--accent);
+  stroke: var(--accent-ink);
+  stroke-width: 2;
+}
+.robo-bulb.dim {
+  fill: color-mix(in srgb, var(--accent) 45%, var(--bg));
+}
+.robo-bulb.lit {
+  fill: var(--text);
+}
+/* A short nod when a new track starts; only with animations switched on. */
+.pet-figure.nod .pet-svg {
+  animation: pet-nod 0.9s ease-in-out;
+  transform-origin: 50% 100%;
+}
+@keyframes pet-nod {
+  0%,
+  50%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pet-figure.nod .pet-svg {
+    animation: none;
+  }
+}

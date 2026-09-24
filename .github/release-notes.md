@@ -1,3 +1,10 @@
+## Neu in dieser Version
+
+- **Design „Arena“:** neues, wählbares Aussehen (Settings → Darstellung → Design). „Klassisch“ bleibt.
+- **RAM bereinigen** wie Mem Reduct: Knopf „Bereinigen“ in der RAM-Karte auf der PC-Seite. Windows fragt dabei jedes Mal nach Administratorrechten.
+- **Pet hört Musik mit:** Kopfhörer und Note, solange ein SoundCloud-Mix läuft.
+- **Zwei neue Pets:** Katze und Robo.
+
 ## So geht's
 
 1. Unten bei **Assets** auf **`blank.exe`** klicken. Die Datei landet in deinem Downloads-Ordner.

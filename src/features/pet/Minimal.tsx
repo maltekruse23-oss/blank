@@ -1,13 +1,15 @@
 import type { FigureProps } from './figures';
+import { HeadphonesBand, HeadphonesCups, Note } from './parts';
 
 /**
  * Plain, flat pet: one rounded shape in the accent colour and two simple eyes. Sleeping: eyes
  * are short lines; awake: upright pills that blink; excited: happy arcs; worried: wide eyes, a
- * wavy mouth and a drop of sweat.
+ * wavy mouth and a drop of sweat; music: headphones, eyes closed, a small smile.
  */
 export function Minimal({ mood, blinking }: FigureProps) {
   return (
     <svg className={`pet-svg minimal mood-${mood}`} viewBox="0 0 100 92" aria-hidden="true">
+      {mood === 'music' && <HeadphonesBand left={14} right={86} y={46} top={-6} />}
       <rect className="minimal-body" x="14" y="20" width="72" height="66" rx="30" />
       {mood === 'sleepy' && (
         <>
@@ -36,6 +38,15 @@ export function Minimal({ mood, blinking }: FigureProps) {
         <>
           <path className="minimal-arc" d="M31 55 Q37.5 45 44 55" />
           <path className="minimal-arc" d="M56 55 Q62.5 45 69 55" />
+        </>
+      )}
+      {mood === 'music' && (
+        <>
+          <path className="minimal-arc" d="M31 50 Q37.5 56 44 50" />
+          <path className="minimal-arc" d="M56 50 Q62.5 56 69 50" />
+          <path className="minimal-arc thin" d="M45 65 Q50 69 55 65" />
+          <HeadphonesCups left={14} right={86} y={46} />
+          <Note x={86} y={14} />
         </>
       )}
     </svg>

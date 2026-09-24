@@ -638,3 +638,122 @@ h2 {
   gap: 8px;
   margin-top: 10px;
 }
+/* PC page: "Bereinigen" next to the RAM card's icon (the card must not grow). */
+.ram-clean {
+  position: absolute;
+  top: 13px;
+  right: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-hover);
+  color: var(--text);
+  font-size: 11px;
+}
+.ram-clean:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+.ram-clean:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+/* Short line next to the page title: only the "Arena" design shows it (arena.css). */
+.page-tagline {
+  display: none;
+}
+/* Category colours of the PC metric icons (tokens; all accent in the classic design). */
+.metric-icon.tone-1 {
+  color: var(--tone-1);
+}
+.metric-icon.tone-2 {
+  color: var(--tone-2);
+}
+.metric-icon.tone-3 {
+  color: var(--tone-3);
+}
+.metric-icon.tone-4 {
+  color: var(--tone-4);
+}
+/* Settings → Design: two choices with a small preview in each design's colours. */
+.setting-row > .design-picker {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+.design-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 6px 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+}
+.design-choice[aria-pressed='true'] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.design-mini {
+  position: relative;
+  display: block;
+  width: 58px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--bg);
+}
+.design-mini i {
+  position: absolute;
+  left: 5px;
+  top: 7px;
+  width: 11px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow:
+    0 7px 0 var(--subtle),
+    0 14px 0 var(--subtle);
+}
+.design-mini b {
+  position: absolute;
+  left: 20px;
+  top: 4px;
+  right: 4px;
+  bottom: 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: var(--panel);
+}
+.design-mini b::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 5px;
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--text);
+}
+.design-mini b::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  height: 11px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+}
+.theme-swatch:disabled {
+  opacity: 0.3;
+  cursor: default;
+}

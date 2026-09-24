@@ -9,6 +9,7 @@ import { TransferCard } from './TransferCard';
 import type { Music } from '../music/useMusic';
 import { petFigure, petFigures } from '../pet/figures';
 import { themes } from './themes';
+import { designs } from './designs';
 import { defaultPreferences, type Preferences } from './preferences';
 function NotificationsCard({
   preferences,
@@ -157,13 +158,46 @@ export function SettingsPage({
   music: Music;
 }) {
   const planned = twitch.adapter.account ? [] : ['Twitch-Account'];
+  const arena = preferences.design === 'arena';
   return (
     <div className="settings-layout">
       <Card title="Darstellung">
         <div className="setting-row">
           <div>
+            <h3>Design</h3>
+            <p>{designs.find((d) => d.id === preferences.design)?.name}</p>
+          </div>
+          <div className="design-picker" role="group" aria-label="Design">
+            {designs.map((d) => (
+              <button
+                key={d.id}
+                className="design-choice"
+                aria-pressed={preferences.design === d.id}
+                onClick={() => update({ ...preferences, design: d.id })}
+              >
+                {/* Small preview in the design's colours (classic: in the chosen scheme). */}
+                <span
+                  className="design-mini"
+                  data-design-preview={d.id}
+                  data-theme={d.id === 'classic' ? preferences.theme : undefined}
+                  aria-hidden="true"
+                >
+                  <i />
+                  <b />
+                </span>
+                {d.name}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="setting-row">
+          <div>
             <h3>Farbe</h3>
-            <p>{themes.find((t) => t.id === preferences.theme)?.name}</p>
+            <p>
+              {arena
+                ? 'Arena hat eigene Farben'
+                : themes.find((t) => t.id === preferences.theme)?.name}
+            </p>
           </div>
           <div className="theme-picker" role="group" aria-label="Farbschema">
             {themes.map((t) => (
@@ -173,7 +207,8 @@ export function SettingsPage({
                 data-theme={t.id}
                 aria-label={t.name}
                 aria-pressed={preferences.theme === t.id}
-                title={t.name}
+                title={arena ? `${t.name} (nur im Design Klassisch)` : t.name}
+                disabled={arena}
                 onClick={() => update({ ...preferences, theme: t.id })}
               />
             ))}

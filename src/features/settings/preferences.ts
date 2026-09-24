@@ -1,4 +1,5 @@
 import { isPetFigureId, type PetFigureId } from '../pet/figures';
+import { isDesignId, type DesignId } from './designs';
 import { isThemeId, type ThemeId } from './themes';
 
 export type Preferences = {
@@ -8,6 +9,8 @@ export type Preferences = {
   /** Live sound volume, 0–100. */
   volume: number;
   theme: ThemeId;
+  /** Overall look; "arena" brings its own colours, the scheme applies to "classic". */
+  design: DesignId;
   /** Figure of the pet mode. */
   pet: PetFigureId;
   /** Do not disturb: no sound, the pet does not come to the front. Switched by hand. */
@@ -22,6 +25,7 @@ export const defaultPreferences: Preferences = {
   sound: true,
   volume: 70,
   theme: 'forest',
+  design: 'classic',
   pet: 'minimal',
   quiet: false,
   batteryWarning: true,
@@ -48,6 +52,7 @@ export function readPreferences(raw: unknown): Preferences | null {
         ? volume
         : defaultPreferences.volume,
     theme: isThemeId(data.theme) ? data.theme : defaultPreferences.theme,
+    design: isDesignId(data.design) ? data.design : defaultPreferences.design,
     pet: isPetFigureId(data.pet) ? data.pet : defaultPreferences.pet,
     quiet: flag('quiet'),
     batteryWarning: flag('batteryWarning'),

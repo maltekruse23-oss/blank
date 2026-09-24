@@ -28,6 +28,29 @@ Native Titelleiste und klassische Scrollbar ersetzt: `decorations: false`, eigen
 - Abweichung: tao meldet bei rahmenlosen Fenstern `WM_GETMINMAXINFO` ohne die unsichtbaren 8-px-Resize-Ränder. Effektive Client-Grenzen beim Ziehen daher ca. 704 × 511 bis 984 × 751 statt 720 × 520 bis 1000 × 760. Layout bleibt in diesem Bereich überlauffrei.
 - Nicht automatisiert geprüft: Ziehen des Fensters (Windows-Verschiebeschleife folgt der echten Maus), Schließen-Knopf. Manuell prüfen.
 
+## Neues Design „Arena“ (Benutzerauftrag)
+
+Vorlage: Screenshots einer Gaming-Begleit-App (nur Stil übernommen, keine Logos, Maskottchen oder Bilder). Zweites Design neben „Klassisch“, wählbar unter Settings → Darstellung → Design mit kleiner Vorschau je Design; bei Arena sind die Farbschema-Punkte deaktiviert („Arena hat eigene Farben“). Die Einstellung gehört zu den Präferenzen und wird mit exportiert/importiert.
+
+- Vorschau (860 × 640): Home mit großem Titel, Trennstrich und Kurzzeile, Kartentitel in Großbuchstaben mit Indigo-Balken, dunkles Blau-Schwarz; Settings mit Design-Auswahl (Klassisch in Wald, Arena in Indigo). PC-Seite mit Beispielwerten gerendert: Symbolkacheln orange/grün/lila/gold, kein Überlauf.
+- Nativ in Arena: Home, PC, Devices, Musik, Twitch ohne vertikalen oder horizontalen Überlauf. Bildschirmaufnahmen waren nicht möglich, weil ein anderes Fenster über der App lag (Aufnahmen verworfen); visuell geprüft wurde deshalb nur in der Vorschau.
+- Das Design des Benutzers steht danach auf „Arena“; zurück jederzeit in den Settings.
+
+## Pet reagiert auf Musik, zwei neue Figuren (Benutzerauftrag)
+
+Neue Stimmung „music“ für alle Figuren (Kopfhörer mit hellem Rand über dem Kopf, geschlossene Augen, Note), neue Figuren „Katze“ und „Robo“ mit allen fünf Stimmungen. Rangfolge: Warnung > Live-Meldung > Musik > wach/schlafend. Kurzes Nicken bei neuem Track nur mit eingeschalteten Animationen, keine Daueranimation.
+
+- Vorschau: alle 4 Figuren × 5 Stimmungen als Übersicht gezeichnet (Farbschemata Graphit und Wald, Musik zusätzlich auf hellem Hintergrund); daraufhin Kopfhörerbügel mit hellem Rand versehen (vorher auf dunklem Grund kaum sichtbar) und „besorgt“ bei Katze/Robo korrigiert (wirkte wütend). Settings: vier Figuren passen in die Zeile (208 px), Auswahl „Robo“ sofort gespeichert.
+- Nativ (Mix mit Lautstärke 0): Pet-Modus mit laufendem Mix → `mood-music`, Kopfhörer und Note vorhanden, Tooltip „♪ <Track> – <Uploader> · 1 Kanal live …“; Pause → `mood-awake`, Weiterspielen → `mood-music`. Bildschirmaufnahme des Pets auf dem Desktop: Kopfhörer gut sichtbar. Musik-Lautstärke danach zurückgesetzt.
+
+## RAM bereinigen wie Mem Reduct (Benutzerauftrag)
+
+Knopf „Bereinigen“ in der RAM-Karte der PC-Seite. Ablauf: Die App startet sich selbst mit `runas` (`blank.exe --clean-memory`, Windows-Nachfrage), der Prozess aktiviert `SeProfileSingleProcessPrivilege` und `SeIncreaseQuotaPrivilege`, leert per `NtSetSystemInformation(SystemMemoryListInformation)` die Arbeitsspeicher aller Prozesse, leert den Dateicache (`SetSystemFileCacheSize(-1, -1)`), schreibt die geänderten Seiten weg, leert die Standby-Liste ohne Priorität und beendet sich; fehlgeschlagene Schritte stehen als Bits im Exit-Code. Die App misst belegten RAM vorher und nachher.
+
+- Ohne Adminrechte gestartet (`blank.exe --clean-memory` direkt): endet nach ~1 s ohne Fenster und ohne App-Start, Exit-Code 23 (Rechte, Arbeitsspeicher, Dateicache, Standby abgelehnt; „geänderte Seiten wegschreiben“ geht auch ohne Rechte). Die Ablehnungsprüfung richtet sich deshalb nach fehlendem Recht plus Arbeitsspeicher.
+- Nativ: Knopf neben dem RAM-Symbol, überdeckt weder Symbol noch Titel, PC-Seite ohne Überlauf.
+- **Nicht automatisiert geprüft:** der eigentliche Lauf mit Adminrechten (die Windows-Nachfrage muss der Benutzer bestätigen), Abbrechen der Nachfrage („Abgebrochen – ohne Administratorrechte geht es nicht.“) und die angezeigte Menge.
+
 ## Download über GitHub (Benutzerauftrag)
 
 Öffentliches Repository `maltekruse23-oss/blank`; vor dem Hochladen persönliche Testdetails (Hardware, Geräte, laufende Programme, Musik-Accounts) aus VALIDATION.md entfernt und alle Dateien nach Tokens, E-Mail-Adresse und Benutzerpfaden durchsucht (nichts gefunden). Commits mit der anonymen GitHub-Adresse. Nur die EXE, kein Installer (Benutzerwahl).
