@@ -118,9 +118,10 @@ export function useTwitch(adapter: TwitchAdapter) {
     };
   }, [adapter, loginKey, revision, streamRevision]);
 
-  function update(next: WatchedChannel[]) {
+  /** Resolves once the selection is saved (or saving failed). */
+  function update(next: WatchedChannel[]): Promise<void> {
     setWatchlist(next);
-    adapter.saveWatchlist(next).then(
+    return adapter.saveWatchlist(next).then(
       () => setSaveFailed(false),
       () => setSaveFailed(true),
     );

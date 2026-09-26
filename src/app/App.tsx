@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { PetView, PET_SIZE } from '../features/pet/PetView';
-import { onShowApp, setPetWindow } from '../platform/window';
+import { useLayoutEffect, useState } from 'react';
+import { mirrorSettings } from '../platform/store';
 import {
   LayoutGrid,
   Radio,
@@ -8,6 +7,7 @@ import {
   Music as MusicIcon,
   Headphones,
   Cpu,
+  Package,
   Settings,
 } from 'lucide-react';
 import { ProsPage } from '../features/pros/ProsPage';
@@ -17,26 +17,35 @@ import { DevicesPage } from '../features/devices/DevicesPage';
 import { useBatteries } from '../features/devices/useBatteries';
 import { PcPage } from '../features/pc/PcPage';
 import { MusicPage } from '../features/music/MusicPage';
+import { AppsPage } from '../features/apps/AppsPage';
+import { useApps } from '../features/apps/useApps';
+import { settingsFileContent } from '../features/settings/settingsFile';
+import { cloud } from '../adapters/cloud';
+import { isFreshStart } from '../platform/store';
+import { RestoreDialog } from './RestoreDialog';
 import { useMusic } from '../features/music/useMusic';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import {
   defaultPreferences,
+  preferencesKey,
   readPreferences,
   type Preferences,
 } from '../features/settings/preferences';
 import { useTwitch } from '../features/twitch/useTwitch';
 import { useGoLiveAlerts } from '../features/twitch/useGoLiveAlerts';
 import { LiveToasts } from '../features/twitch/LiveToasts';
+import { usePopouts } from '../features/popouts/usePopouts';
 import { twitchAdapter } from '../adapters/twitchSource';
 import { version } from '../../package.json';
 import { SidebarAccount } from './SidebarAccount';
 import { TitleBar, dragWindow } from './TitleBar';
 import { useAppUsage } from './useAppUsage';
 import { useWarnings } from './useWarnings';
+import { useUpdate } from './useUpdate';
 import { usePcStatus } from '../features/pc/usePcStatus';
 import { readPcStatus } from '../adapters/pc';
-export type Page = 'home' | 'twitch' | 'pros' | 'music' | 'devices' | 'pc' | 'settings';
-// tagline: short line next to the page title, shown in the "Arena" design only.
+export type Page = 'home' | 'twitch' | 'pros' | 'music' | 'devices' | 'pc' | 'apps' | 'settings';
+// tagline: short line next to the page title, shown in the "Arena" and "HUD" designs only.
 const navigation = [
   {
     id: 'home',
@@ -69,6 +78,13 @@ const navigation = [
   },
   { id: 'pc', label: 'PC', icon: Cpu, section: 'System', tagline: 'Auslastung live von Windows' },
   {
+    id: 'apps',
+    label: 'Apps',
+    icon: Package,
+    section: 'System',
+    tagline: 'Programme für den nächsten Reset',
+  },
+  {
     id: 'settings',
     label: 'Settings',
     icon: Settings,
@@ -77,10 +93,9 @@ const navigation = [
   },
 ] as const;
 const sections = ['Übersicht', 'Live', 'System'] as const;
-const storageKey = 'blank.preferences.v1';
 function loadPreferences(): { preferences: Preferences; storageAvailable: boolean } {
   try {
-    const raw: unknown = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
+    const raw: unknown = JSON.parse(localStorage.getItem(preferencesKey) ?? 'null');
     return { preferences: readPreferences(raw) ?? defaultPreferences, storageAvailable: true };
   } catch {
     return { preferences: defaultPreferences, storageAvailable: false };
@@ -88,22 +103,36 @@ function loadPreferences(): { preferences: Preferences; storageAvailable: boolea
 }
 export function App() {
   const [page, setPage] = useState<Page>('home');
-  const [mode, setMode] = useState<'app' | 'pet'>('app');
+  // First start of a fresh installation: ask for the move code right away.
+  const [restore, setRestore] = useState<'fresh' | 'manual' | null>(() =>
+    cloud && isFreshStart() ? 'fresh' : null,
+  );
   const [settings, setSettings] = useState(loadPreferences);
   const twitch = useTwitch(twitchAdapter);
   const { sound, volume, theme, design, quiet } = settings.preferences;
-  // Do not disturb mutes the live sound; the notice itself still appears.
+  // Do not disturb mutes the live sound and holds back popouts; the notice in the app still appears.
   const liveAlerts = useGoLiveAlerts(twitch, sound && !quiet ? volume : 0);
   const warnings = useWarnings(
     settings.preferences.batteryWarning,
     settings.preferences.loadWarning,
     quiet ? 0 : volume,
   );
-  const pc = usePcStatus(mode !== 'app' ? 0 : page === 'pc' ? 2 : page === 'home' ? 5 : 0);
-  const usage = useAppUsage(mode === 'app');
   const music = useMusic();
+  usePopouts({
+    preferences: settings.preferences,
+    mix: music,
+    alerts: liveAlerts.alerts,
+    dismissAlert: liveAlerts.dismiss,
+    warnings: warnings.warnings,
+    dismissWarning: warnings.dismiss,
+    openPage: setPage,
+  });
+  const pc = usePcStatus(page === 'pc' ? 2 : page === 'home' ? 5 : 0);
+  const usage = useAppUsage();
+  const apps = useApps();
+  const updates = useUpdate(settings.preferences.updateCheck);
   // Battery levels are read only while a page shows them.
-  const batteries = useBatteries(mode === 'app' && (page === 'home' || page === 'devices'));
+  const batteries = useBatteries(page === 'home' || page === 'devices');
   // On <html>, so the page background and scrollbars follow the colour scheme too.
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -112,73 +141,14 @@ export function App() {
   function update(preferences: Preferences) {
     let storageAvailable = true;
     try {
-      localStorage.setItem(storageKey, JSON.stringify(preferences));
+      localStorage.setItem(preferencesKey, JSON.stringify(preferences));
     } catch {
       storageAvailable = false;
     }
+    mirrorSettings();
     setSettings({ preferences, storageAvailable });
   }
-  // Pet: the page turns transparent first, then the window shrinks. Back: the window is
-  // restored first, then the app is drawn, so it never shows squeezed into the small window.
-  function enterPet() {
-    document.documentElement.classList.add('pet-mode');
-    setMode('pet');
-    setPetWindow(true, PET_SIZE.width, PET_SIZE.height).catch((error: unknown) => {
-      console.error('Pet mode failed', error);
-      document.documentElement.classList.remove('pet-mode');
-      setMode('app');
-    });
-  }
-  const leaving = useRef(false);
-  function leavePet(target?: Page) {
-    if (leaving.current) return;
-    leaving.current = true;
-    setPetWindow(false, PET_SIZE.width, PET_SIZE.height)
-      .catch((error: unknown) => console.error('Leaving pet mode failed', error))
-      .finally(() => {
-        leaving.current = false;
-        document.documentElement.classList.remove('pet-mode');
-        if (target) setPage(target);
-        setMode('app');
-      });
-  }
-  // Taskbar button and tray icon: always the full app, never the pet. leavePet only uses refs
-  // and state setters, so the first render's copy stays valid.
-  useEffect(
-    () =>
-      onShowApp(() => {
-        if (document.documentElement.classList.contains('pet-mode')) leavePet();
-      }),
-    [],
-  );
   const toggleQuiet = () => update({ ...settings.preferences, quiet: !quiet });
-  // The music player sits next to the app or the pet, at the same place in both, so a mix plays
-  // on when the view changes.
-  if (mode === 'pet')
-    return (
-      <>
-        <PetView
-          key="pet"
-          twitch={twitch}
-          alerts={liveAlerts.alerts}
-          dismiss={liveAlerts.dismiss}
-          motion={settings.preferences.motion}
-          figure={settings.preferences.pet}
-          quiet={quiet}
-          warnings={warnings.warnings}
-          dismissWarning={warnings.dismiss}
-          musicTrack={
-            music.player.status === 'playing'
-              ? music.player.track
-                ? `${music.player.track.title}${music.player.track.artist ? ` – ${music.player.track.artist}` : ''}`
-                : 'Musik'
-              : null
-          }
-          onOpenApp={leavePet}
-        />
-        {music.frame}
-      </>
-    );
   const current = navigation.find((n) => n.id === page)!;
   const PageIcon = current.icon;
   const navButton = ({ id, label: name, icon: Icon }: (typeof navigation)[number]) => (
@@ -215,7 +185,7 @@ export function App() {
       <span className="badge active" title="Musik von SoundCloud">
         SoundCloud
       </span>
-    ) : page === 'settings' && twitch.adapter.source === 'twitch' ? null : (
+    ) : page === 'apps' || (page === 'settings' && twitch.adapter.source === 'twitch') ? null : (
       <span className="badge" title="Angezeigte Daten sind ganz oder teilweise simuliert">
         Mock
       </span>
@@ -223,7 +193,6 @@ export function App() {
   return (
     <>
       <div
-        key="app"
         className={`app ${settings.preferences.compact ? 'compact' : ''} ${settings.preferences.motion ? '' : 'no-motion'}`}
         onMouseDown={dragWindow}
       >
@@ -264,9 +233,10 @@ export function App() {
           <TitleBar
             status={status}
             usage={usage}
-            onPet={enterPet}
             quiet={quiet}
             onQuiet={toggleQuiet}
+            updateAvailable={updates.available}
+            onUpdate={() => setPage('settings')}
           />
           <div className="panel">
             <div className="scroll-area">
@@ -286,6 +256,20 @@ export function App() {
                 {page === 'music' && <MusicPage music={music} />}
                 {page === 'devices' && <DevicesPage batteries={batteries} />}
                 {page === 'pc' && <PcPage pc={pc} />}
+                {page === 'apps' && (
+                  <AppsPage
+                    apps={apps}
+                    navigate={setPage}
+                    content={() =>
+                      settingsFileContent(
+                        settings.preferences,
+                        { accounts: music.accounts, volume: music.volume },
+                        apps.selected,
+                      )
+                    }
+                    onRestore={() => setRestore('manual')}
+                  />
+                )}
                 {page === 'settings' && (
                   <SettingsPage
                     preferences={settings.preferences}
@@ -294,12 +278,28 @@ export function App() {
                     twitch={twitch}
                     usage={usage}
                     music={music}
+                    apps={apps}
+                    updates={updates}
                   />
                 )}
               </main>
             </div>
           </div>
         </div>
+        {restore && (
+          <RestoreDialog
+            fresh={restore === 'fresh'}
+            onClose={() => setRestore(null)}
+            onDone={() => {
+              setRestore(null);
+              setPage('apps');
+            }}
+            update={update}
+            music={music}
+            apps={apps}
+            twitch={twitch}
+          />
+        )}
         <LiveToasts
           twitch={twitch}
           alerts={liveAlerts.alerts}

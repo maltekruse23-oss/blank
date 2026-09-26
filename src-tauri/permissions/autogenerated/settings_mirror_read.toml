@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-settings-mirror-read"
+description = "Enables the settings_mirror_read command without any pre-configured scope."
+commands.allow = ["settings_mirror_read"]
+
+[[permission]]
+identifier = "deny-settings-mirror-read"
+description = "Denies the settings_mirror_read command without any pre-configured scope."
+commands.deny = ["settings_mirror_read"]

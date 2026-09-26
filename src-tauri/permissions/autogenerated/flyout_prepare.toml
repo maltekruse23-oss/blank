@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-flyout-prepare"
+description = "Enables the flyout_prepare command without any pre-configured scope."
+commands.allow = ["flyout_prepare"]
+
+[[permission]]
+identifier = "deny-flyout-prepare"
+description = "Denies the flyout_prepare command without any pre-configured scope."
+commands.deny = ["flyout_prepare"]

@@ -14,12 +14,26 @@ export type AppUsage = {
 
 export const readAppUsage = isTauri() ? () => invoke<AppUsage>('app_usage') : null;
 
+/** What Windows starts at sign-in, seen from this copy of the app (src-tauri/src/autostart.rs). */
+export type Autostart = {
+  /** Windows starts this file at sign-in. */
+  enabled: boolean;
+  /** The entry starts another file, e.g. an older blank.exe in Downloads. */
+  other: string | null;
+  /** That other file no longer exists. */
+  otherMissing: boolean;
+  /** The entry is switched off in Task Manager. */
+  disabled: boolean;
+  /** This file. */
+  path: string;
+};
+
 /** "Start with Windows" (own entry in the user's Run key). */
 export const autostart = isTauri()
   ? {
-      read: () => invoke<boolean>('autostart_enabled'),
-      /** Resolves to the state after the change. */
-      set: (enabled: boolean) => invoke<boolean>('set_autostart', { enabled }),
+      read: () => invoke<Autostart>('autostart_status'),
+      /** Resolves to the state after the change; on always means this file. */
+      set: (enabled: boolean) => invoke<Autostart>('set_autostart', { enabled }),
     }
   : null;
 

@@ -5,11 +5,14 @@ import {
   isPlaylist,
   lookupAccount,
   parsePath,
+  pendingAccount,
   playerSrc,
+  type LookupError,
   type PlayerEvent,
   type PlayerSound,
   type SoundCloudAccount,
 } from '../../adapters/soundcloud';
+import { mirrorSettings } from '../../platform/store';
 
 const STORAGE_KEY = 'blank.music.v1';
 const MAX_ACCOUNTS = 50;
@@ -21,6 +24,8 @@ const MAX_FAILURES = 3;
 /** Retries of "play" for a chosen track that does not start (see playRandom). */
 const START_RETRIES = 4;
 const START_RETRY_MS = 1500;
+/** Second check of an entry saved while SoundCloud did not answer. */
+const RECHECK_MS = 60_000;
 
 const freshMix = () => ({
   count: 0,
@@ -41,8 +46,25 @@ export type Track = {
 export type Player =
   | { status: 'idle' }
   | { status: 'loading'; account: SoundCloudAccount }
-  | { status: 'playing' | 'paused'; account: SoundCloudAccount; track: Track | null }
+  /** No internet: the mix starts or goes on by itself once it is back. */
+  | { status: 'offline'; account: SoundCloudAccount }
+  | {
+      status: 'playing' | 'paused';
+      account: SoundCloudAccount;
+      track: Track | null;
+      /** This track followed by itself after the one before finished (popouts: "Als Nächstes"). */
+      auto?: boolean;
+    }
   | { status: 'error'; account: SoundCloudAccount; message: string };
+
+/** Answers to "Hinzufügen" that SoundCloud gave for sure (no connection problem). */
+const ADD_ERRORS: Record<Exclude<LookupError, 'offline'>, string> = {
+  invalid: 'Kein SoundCloud-Profil oder Playlist-Link.',
+  'short-link':
+    'Kurzlink aus der SoundCloud-App: einmal im Browser öffnen und den Link aus der Adresszeile nehmen.',
+  'not-found': 'Auf SoundCloud nicht gefunden.',
+  private: 'Privat – mit dem Geheim-Link der Playlist (…/s-…) geht es.',
+};
 
 type Saved = { accounts: SoundCloudAccount[]; volume: number };
 
@@ -117,7 +139,7 @@ function PlayerFrame({
 /**
  * SoundCloud mixes: saved accounts and one player for the whole app. The player only exists while
  * a mix is active (nothing loads or runs before the first "Mix" or after "Stop"); it plays on
- * across pages, minimized and in pet mode. A mix plays the account's tracks in random order.
+ * across pages and while minimized. A mix plays the account's tracks in random order.
  */
 export function useMusic() {
   const [saved, setSaved] = useState(load);
@@ -131,6 +153,49 @@ export function useMusic() {
    *  actions, so a pending start retry knows it is no longer wanted. */
   const mix = useRef(freshMix());
   const sessions = useRef(0);
+  /** The running session is already the automatic second try. */
+  const retried = useRef(false);
+  /** What to do once the internet is back (start or continue the mix). */
+  const resume = useRef<(() => void) | null>(null);
+  const checking = useRef(false);
+  /** The track that starts next follows by itself (the one before finished). */
+  const byItself = useRef(false);
+
+  /** Asks SoundCloud again about entries it could not confirm yet; at start and when online. */
+  async function recheck() {
+    if (checking.current || !navigator.onLine) return;
+    checking.current = true;
+    try {
+      for (const account of latest.current.accounts.filter((a) => a.check === 'pending')) {
+        const result = await lookupAccount(account.url);
+        if (!result.ok && result.error === 'offline') return;
+        const next: SoundCloudAccount = result.ok
+          ? result.account
+          : { ...account, check: result.error === 'private' ? 'private' : 'not-found' };
+        save({
+          ...latest.current,
+          accounts: latest.current.accounts.map((a) =>
+            a.permalink === account.permalink ? next : a,
+          ),
+        });
+      }
+    } finally {
+      checking.current = false;
+    }
+  }
+
+  // Only refs and state setters are used, so the first render's functions stay valid.
+  useEffect(() => {
+    void recheck();
+    const online = () => {
+      void recheck();
+      const next = resume.current;
+      resume.current = null;
+      next?.();
+    };
+    window.addEventListener('online', online);
+    return () => window.removeEventListener('online', online);
+  }, []);
 
   function save(next: Saved) {
     try {
@@ -139,6 +204,7 @@ export function useMusic() {
     } catch {
       setSaveFailed(true);
     }
+    mirrorSettings();
     latest.current = next;
     setSaved(next);
   }
@@ -176,13 +242,31 @@ export function useMusic() {
     mix.current = freshMix();
     let ready = false;
     let started = false;
+    let playing = false;
     let failures = 0;
     const timer = window.setTimeout(() => {
-      if (!started)
-        fail(account, ready ? 'Wiedergabe startet nicht' : 'SoundCloud antwortet nicht');
+      if (started) return;
+      // No internet, or a load that got stuck: start again (once) instead of giving up.
+      if (!navigator.onLine || !retried.current) startMix(account, true);
+      else
+        fail(
+          account,
+          ready
+            ? 'Wiedergabe startet nicht – später nochmal versuchen'
+            : 'SoundCloud antwortet nicht – später nochmal versuchen',
+        );
     }, START_TIMEOUT_MS);
     const b = new PlayerBridge(frame, (event) => void handle(event));
     bridge.current = b;
+    /** The connection drops while a track plays: wait for it, then play on. */
+    const offline = () => {
+      if (!playing) return;
+      setPlayer({ status: 'offline', account });
+      resume.current = () => {
+        if (bridge.current === b) b.send('play');
+      };
+    };
+    window.addEventListener('offline', offline);
 
     async function handle(event: PlayerEvent) {
       if (event === 'ready') {
@@ -205,18 +289,30 @@ export function useMusic() {
         playRandom();
       } else if (event === 'play') {
         started = true;
+        playing = true;
         failures = 0;
         const sound = await b.get<PlayerSound>('getCurrentSound');
         if (bridge.current !== b) return;
-        setPlayer({ status: 'playing', account, track: toTrack(sound) });
+        const auto = byItself.current;
+        byItself.current = false;
+        setPlayer({ status: 'playing', account, track: toTrack(sound), auto });
         // Profiles load their track list bit by bit; later tracks join the mix.
         const sounds = await b.get<PlayerSound[]>('getSounds');
         if (bridge.current === b && sounds)
           mix.current.count = Math.max(mix.current.count, sounds.length);
       } else if (event === 'pause') {
+        playing = false;
         setPlayer((p) => (p.status === 'playing' ? { ...p, status: 'paused' } : p));
       } else if (event === 'finish') {
+        byItself.current = true;
         playRandom();
+      } else if (!navigator.onLine) {
+        // Tracks fail because the connection is gone: wait for it instead of skipping through.
+        playing = false;
+        setPlayer({ status: 'offline', account });
+        resume.current = () => {
+          if (bridge.current === b) playRandom();
+        };
       } else {
         // A track that cannot play (removed, blocked for embedding): try another one.
         failures += 1;
@@ -230,18 +326,30 @@ export function useMusic() {
 
     return () => {
       window.clearTimeout(timer);
+      window.removeEventListener('offline', offline);
       b.dispose();
       if (bridge.current === b) bridge.current = null;
     };
   }
 
-  function startMix(account: SoundCloudAccount) {
+  /** `retry`: automatic second try after a start that got no answer. */
+  function startMix(account: SoundCloudAccount, retry = false) {
+    resume.current = null;
+    void recheck();
+    if (!navigator.onLine) {
+      setSession(null);
+      setPlayer({ status: 'offline', account });
+      resume.current = () => startMix(account);
+      return;
+    }
+    retried.current = retry;
     sessions.current += 1;
     setSession({ id: sessions.current, account });
     setPlayer({ status: 'loading', account });
   }
 
   function stop() {
+    resume.current = null;
     setSession(null);
     setPlayer({ status: 'idle' });
   }
@@ -251,29 +359,42 @@ export function useMusic() {
     bridge.current?.send('setVolume', volume);
   }
 
-  /** Adds a profile or playlist (link or name); resolves to an error text or null. */
-  async function add(input: string): Promise<string | null> {
+  /**
+   * Adds a profile or playlist (link or name). When SoundCloud cannot be asked, a valid link is
+   * saved anyway and checked again later. `message`: shown under the field.
+   */
+  async function add(input: string): Promise<{ added: boolean; message: string | null }> {
     const permalink = parsePath(input);
     if (permalink && latest.current.accounts.some((a) => a.permalink === permalink))
-      return 'Ist schon in der Liste.';
-    if (latest.current.accounts.length >= MAX_ACCOUNTS) return `Maximal ${MAX_ACCOUNTS} Einträge.`;
+      return { added: false, message: 'Ist schon in der Liste.' };
+    if (latest.current.accounts.length >= MAX_ACCOUNTS)
+      return { added: false, message: `Maximal ${MAX_ACCOUNTS} Einträge.` };
     const result = await lookupAccount(input);
-    if (!result.ok)
-      return result.error === 'invalid'
-        ? 'Kein SoundCloud-Profil oder Playlist-Link.'
-        : result.error === 'not-found'
-          ? 'Auf SoundCloud nicht gefunden.'
-          : 'SoundCloud gerade nicht erreichbar.';
-    if (latest.current.accounts.some((a) => a.permalink === result.account.permalink))
-      return 'Ist schon in der Liste.';
-    save({ ...latest.current, accounts: [...latest.current.accounts, result.account] });
-    return null;
+    if (!result.ok && (result.error !== 'offline' || !permalink))
+      return {
+        added: false,
+        message: ADD_ERRORS[result.error === 'offline' ? 'invalid' : result.error],
+      };
+    const account = result.ok ? result.account : pendingAccount(permalink!);
+    if (latest.current.accounts.some((a) => a.permalink === account.permalink))
+      return { added: false, message: 'Ist schon in der Liste.' };
+    save({ ...latest.current, accounts: [...latest.current.accounts, account] });
+    if (result.ok) return { added: true, message: null };
+    // One later try in case only SoundCloud had a hiccup (then no "online" event comes).
+    window.setTimeout(() => void recheck(), RECHECK_MS);
+    return {
+      added: true,
+      message: navigator.onLine
+        ? 'Hinzugefügt. SoundCloud antwortet gerade nicht – Name und Bild kommen automatisch.'
+        : 'Hinzugefügt. Keine Internetverbindung – Name und Bild kommen automatisch.',
+    };
   }
 
   /** Settings import: replaces all accounts/playlists and the volume. */
   function replaceAll(next: Saved) {
     save({ accounts: next.accounts.slice(0, MAX_ACCOUNTS), volume: next.volume });
     bridge.current?.send('setVolume', next.volume);
+    void recheck();
   }
 
   function remove(permalink: string) {

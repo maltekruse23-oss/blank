@@ -10,16 +10,15 @@ export type UsageState =
   | { status: 'ready'; usage: AppUsage };
 
 /**
- * Live usage of the app, read every 2 s while the window is visible and `enabled` (not in pet
- * mode); paused when minimized.
+ * Live usage of the app, read every 2 s while the window is visible; paused when minimized.
  */
-export function useAppUsage(enabled: boolean): UsageState {
+export function useAppUsage(): UsageState {
   const [state, setState] = useState<UsageState>(
     readAppUsage ? { status: 'loading' } : { status: 'unavailable' },
   );
   useEffect(() => {
     const read = readAppUsage;
-    if (!read || !enabled) return;
+    if (!read) return;
     let active = true;
     let timer: number | undefined;
     const tick = () =>
@@ -44,7 +43,7 @@ export function useAppUsage(enabled: boolean): UsageState {
       stop();
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [enabled]);
+  }, []);
   return state;
 }
 

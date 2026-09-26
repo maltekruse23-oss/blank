@@ -1,7 +1,8 @@
 // Settings file for moving blank. to another PC (Settings → Übertragen). The web content writes
-// appearance, notifications and music; the desktop app adds the Twitch channel selection and
-// Client ID (src-tauri/src/settings_file.rs). Never included: the Twitch login (token) and
-// autostart (only switched by hand).
+// appearance, notifications, music and the programs to take along (page Apps); the desktop app
+// adds the Twitch channel selection and Client ID (src-tauri/src/settings_file.rs). Never
+// included: the Twitch login (token), autostart and the gaming optimisation (this PC only).
+import { isAppPackage, type AppPackage } from '../../adapters/apps';
 import { isAccount, type SoundCloudAccount } from '../../adapters/soundcloud';
 import type { GameRef, WatchedChannel } from '../../adapters/twitch';
 import { readPreferences, type Preferences } from './preferences';
@@ -10,6 +11,7 @@ export const SETTINGS_FORMAT = 1;
 const MAX_BYTES = 512 * 1024;
 const MAX_ACCOUNTS = 50;
 const MAX_CHANNELS = 100;
+const MAX_APPS = 100;
 const LOGIN = /^[a-z0-9_]{1,25}$/;
 const CLIENT_ID = /^[a-z0-9]{20,64}$/i;
 
@@ -22,16 +24,32 @@ export type ImportedSettings = {
   preferences: Preferences | null;
   music: MusicSettings | null;
   twitch: TwitchSettings | null;
+  /** Programs to install after a reset (page Apps). */
+  apps: AppPackage[] | null;
 };
 
-export function settingsFileContent(preferences: Preferences, music: MusicSettings) {
+export function settingsFileContent(
+  preferences: Preferences,
+  music: MusicSettings,
+  apps: AppPackage[],
+) {
   return JSON.stringify({
     app: 'blank.',
     format: SETTINGS_FORMAT,
     exportedAt: new Date().toISOString(),
     preferences,
     music,
+    apps,
   });
+}
+
+function readApps(raw: unknown): AppPackage[] | null {
+  if (!Array.isArray(raw)) return null;
+  const unique = new Map<string, AppPackage>();
+  for (const app of raw.filter(isAppPackage))
+    if (!unique.has(app.id.toLowerCase()))
+      unique.set(app.id.toLowerCase(), { id: app.id, name: app.name.slice(0, 100) });
+  return [...unique.values()].slice(0, MAX_APPS);
 }
 
 function readMusic(raw: unknown): MusicSettings | null {
@@ -105,8 +123,9 @@ export function parseSettingsFile(text: string): ImportedSettings | string {
     preferences: readPreferences(data.preferences),
     music: readMusic(data.music),
     twitch: readTwitch(data.twitch),
+    apps: readApps(data.apps),
   };
-  if (!imported.preferences && !imported.music && !imported.twitch)
+  if (!imported.preferences && !imported.music && !imported.twitch && !imported.apps)
     return 'Die Datei enthält keine Einstellungen.';
   return imported;
 }

@@ -3,30 +3,17 @@ import { Download, Upload } from 'lucide-react';
 import { Card } from '../../components/ui';
 import { saveSettingsFile } from '../../platform/system';
 import type { Music } from '../music/useMusic';
+import type { Apps } from '../apps/useApps';
 import type { TwitchData } from '../twitch/useTwitch';
 import type { Preferences } from './preferences';
 import { parseSettingsFile, settingsFileContent, type ImportedSettings } from './settingsFile';
+import { applySettings, describeSettings } from './applySettings';
 
 type Step =
   | { kind: 'idle' }
   | { kind: 'busy' }
   | { kind: 'check'; data: ImportedSettings }
   | { kind: 'message'; text: string };
-
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
-/** What a file contains, in a few words. */
-function contents(data: ImportedSettings) {
-  const parts: string[] = [];
-  if (data.preferences) parts.push('Darstellung, Pet und Benachrichtigungen');
-  if (data.music) parts.push(count(data.music.accounts.length, 'Musik-Eintrag', 'Musik-Einträge'));
-  if (data.twitch)
-    parts.push(
-      count(data.twitch.watchlist.length, 'Twitch-Kanal', 'Twitch-Kanäle') +
-        (data.twitch.clientId ? ' mit Client-ID' : ''),
-    );
-  return parts.join(' · ');
-}
 
 /**
  * Moves all settings to another PC: export writes one file, import checks a file, shows its
@@ -37,11 +24,13 @@ export function TransferCard({
   preferences,
   update,
   music,
+  apps,
   twitch,
 }: {
   preferences: Preferences;
   update: (next: Preferences) => void;
   music: Music;
+  apps: Apps;
   twitch: TwitchData;
 }) {
   const [exporting, setExporting] = useState<Step>({ kind: 'idle' });
@@ -51,10 +40,11 @@ export function TransferCard({
   async function exportNow() {
     setExporting({ kind: 'busy' });
     try {
-      const content = settingsFileContent(preferences, {
-        accounts: music.accounts,
-        volume: music.volume,
-      });
+      const content = settingsFileContent(
+        preferences,
+        { accounts: music.accounts, volume: music.volume },
+        apps.selected,
+      );
       const name = await saveSettingsFile(content);
       setExporting({ kind: 'message', text: `Gespeichert in Downloads: ${name}` });
     } catch (error) {
@@ -79,22 +69,10 @@ export function TransferCard({
 
   async function apply(data: ImportedSettings) {
     setImporting({ kind: 'busy' });
-    if (data.preferences) update(data.preferences);
-    if (data.music) music.replaceAll(data.music);
-    let twitchNote = '';
-    if (data.twitch) {
-      const account = twitch.adapter.account;
-      if (data.twitch.clientId && account) {
-        await account.setClientId(data.twitch.clientId).catch(() => {
-          twitchNote = ' Twitch-Client-ID wurde abgelehnt.';
-        });
-      }
-      twitch.update(data.twitch.watchlist);
-      twitch.refresh();
-    }
+    const twitchNote = await applySettings(data, { update, music, apps, twitch });
     setImporting({
       kind: 'message',
-      text: `Übernommen.${twitchNote} Twitch-Login und Autostart gehören nicht dazu.`,
+      text: `Übernommen.${twitchNote} Twitch-Login und Autostart gehören nicht dazu.${data.apps?.length ? ' Programme installieren: Seite Apps.' : ''}`,
     });
   }
 
@@ -147,7 +125,7 @@ export function TransferCard({
       {pending && (
         <div className="import-check" role="group" aria-label="Import prüfen">
           <p>
-            <b>{contents(pending)}</b>
+            <b>{describeSettings(pending)}</b>
             {date && !Number.isNaN(date.getTime()) && (
               <> · exportiert am {date.toLocaleDateString('de-DE')}</>
             )}

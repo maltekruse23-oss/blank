@@ -1,4 +1,5 @@
-//! Real PC status for the PC page and Home, plus a background watch for the pet's warnings.
+//! Real PC status for the PC page and Home, plus a background watch for warnings (notices in the
+//! app and popouts).
 //! CPU from GetSystemTimes, memory from GlobalMemoryStatusEx, graphics card from the Windows
 //! performance counters "GPU Engine" (the same source as Task Manager; assigned to the adapter with
 //! the most dedicated memory via DXGI), system drive from GetDiskFreeSpaceEx, and per program CPU,
@@ -491,8 +492,8 @@ fn session(pid: u32) -> Option<u32> {
     (unsafe { ProcessIdToSessionId(pid, &mut id) } != 0).then_some(id)
 }
 
-/// Visible top-level windows and their process ids.
-fn windows() -> Vec<(windows_sys::Win32::Foundation::HWND, u32)> {
+/// Visible top-level windows and their process ids (also for opening a player, media.rs).
+pub(crate) fn windows() -> Vec<(windows_sys::Win32::Foundation::HWND, u32)> {
     use windows_sys::{
         core::BOOL,
         Win32::{
@@ -533,7 +534,7 @@ fn closable(exes: &HashMap<u32, String>) -> HashSet<String> {
 }
 
 /// Processes of an executable in this session.
-fn program_pids(exe: &str) -> Vec<u32> {
+pub(crate) fn program_pids(exe: &str) -> Vec<u32> {
     use windows_sys::Win32::{
         Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
         System::Diagnostics::ToolHelp::{

@@ -5,56 +5,93 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 
 export type SoundCloudAccount = {
-  /** Path in lowercase: a profile ("forss") or a playlist ("david1v9/sets/1v9-league-of-legends"). */
+  /**
+   * Path: a profile ("forss") or a playlist ("david1v9/sets/1v9-league-of-legends"), lowercase; a
+   * private playlist keeps its secret code as given ("…/sets/mix/s-AbC123").
+   */
   permalink: string;
   name: string;
   /** Playlists only: name of the account that made it. */
   owner?: string;
   url: string;
   avatarUrl: string | null;
+  /**
+   * Not confirmed by SoundCloud yet: "pending" (it could not be asked; checked again
+   * automatically), "not-found" or "private" (answer of that later check).
+   */
+  check?: 'pending' | 'not-found' | 'private';
 };
 
+export type LookupError = 'invalid' | 'short-link' | 'not-found' | 'private' | 'offline';
 export type LookupResult =
-  | { ok: true; account: SoundCloudAccount }
-  | { ok: false; error: 'invalid' | 'not-found' | 'offline' };
+  { ok: true; account: SoundCloudAccount } | { ok: false; error: LookupError };
 
-const PATH = /^[a-z0-9_-]{1,64}(\/sets\/[a-z0-9_-]{1,100})?$/;
+const PATH = /^[a-z0-9_-]{1,64}(\/sets\/[a-z0-9_-]{1,100}(\/s-[A-Za-z0-9]{1,64})?)?$/;
 const PROFILE = 'https://soundcloud.com/';
 const IMAGE = /^https:\/\/[a-z0-9-]+\.sndcdn\.com\//;
+const CHECKS: readonly unknown[] = ['pending', 'not-found', 'private'];
 export const PLAYER_ORIGIN = 'https://w.soundcloud.com';
 
 export const isPlaylist = (account: SoundCloudAccount) => account.permalink.includes('/sets/');
 
 /**
- * Path from a link or a bare name: a playlist link ("…/name/sets/list") stays a playlist, any
- * other link (profile, track) becomes its profile. Tracking parameters are dropped.
+ * Path from a link or a bare name: a playlist link ("…/name/sets/list", also with the secret code
+ * of a private one) stays a playlist, any other link (profile, track) becomes its profile.
+ * Tracking parameters are dropped.
  */
 export function parsePath(input: string): string | null {
   const rest = input
     .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/^(www\.|m\.)?soundcloud\.com\//, '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/^(www\.|m\.)?soundcloud\.com\//i, '')
     .replace(/^@/, '')
     .split(/[?#]/)[0]!;
-  const [user = '', section, list] = rest.split('/');
-  const path = section === 'sets' && list ? `${user}/sets/${list}` : user;
+  const [user = '', section = '', list = '', secret = ''] = rest.split('/');
+  // The secret code is case-sensitive; everything else is not.
+  const code = /^s-[A-Za-z0-9]+$/.test(secret) ? `/${secret}` : '';
+  const path =
+    section.toLowerCase() === 'sets' && list
+      ? `${user.toLowerCase()}/sets/${list.toLowerCase()}${code}`
+      : user.toLowerCase();
   return PATH.test(path) ? path : null;
 }
 
-async function oembed(url: string): Promise<Record<string, unknown> | 'not-found' | 'offline'> {
-  let response: Response;
-  try {
-    response = await fetch(
-      `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(url)}`,
-    );
-  } catch {
-    return 'offline';
+/** Short links from the SoundCloud app; they only lead to the real link in a browser. */
+const isShortLink = (input: string) => /^(https?:\/\/)?on\.soundcloud\.com\//i.test(input.trim());
+
+/** Waiting times before each attempt: a short hiccup of the connection or of SoundCloud passes. */
+const ATTEMPTS_MS = [0, 1_000, 3_000];
+/** An answer that takes longer counts as failed (instead of "Prüft …" forever). */
+const REQUEST_TIMEOUT_MS = 8_000;
+
+type OEmbed = Record<string, unknown> | 'not-found' | 'private' | 'offline';
+
+async function oembed(url: string): Promise<OEmbed> {
+  for (const wait of ATTEMPTS_MS) {
+    if (wait) await new Promise((resolve) => window.setTimeout(resolve, wait));
+    // No network at all: asking again right away does not help (the caller checks later).
+    if (!navigator.onLine) return 'offline';
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(
+        `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(url)}`,
+        { signal: abort.signal },
+      );
+      if (response.status === 404) return 'not-found';
+      if (response.status === 401 || response.status === 403) return 'private';
+      if (response.ok) {
+        const data: unknown = await response.json().catch(() => null);
+        if (data && typeof data === 'object') return data as Record<string, unknown>;
+      }
+      // Server error, rate limit or an unreadable answer: try again.
+    } catch {
+      // Network error or timeout: try again.
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
-  if (response.status === 404) return 'not-found';
-  if (!response.ok) return 'offline';
-  const data: unknown = await response.json().catch(() => null);
-  return data && typeof data === 'object' ? (data as Record<string, unknown>) : 'offline';
+  return 'offline';
 }
 
 const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
@@ -62,6 +99,7 @@ const image = (value: unknown) => (typeof value === 'string' && IMAGE.test(value
 
 /** Checks a profile or playlist with SoundCloud (oEmbed) and returns its name and picture. */
 export async function lookupAccount(input: string): Promise<LookupResult> {
+  if (isShortLink(input)) return { ok: false, error: 'short-link' };
   const path = parsePath(input);
   if (!path) return { ok: false, error: 'invalid' };
   const url = PROFILE + path;
@@ -92,6 +130,22 @@ export async function lookupAccount(input: string): Promise<LookupResult> {
   };
 }
 
+/**
+ * Entry for a valid path SoundCloud could not be asked about: saved anyway, named after its path;
+ * name and picture follow with the next successful check.
+ */
+export function pendingAccount(path: string): SoundCloudAccount {
+  const [user = path, , list] = path.split('/');
+  return {
+    permalink: path,
+    name: list ?? user,
+    ...(list ? { owner: user } : {}),
+    url: PROFILE + path,
+    avatarUrl: null,
+    check: 'pending',
+  };
+}
+
 export function isAccount(value: unknown): value is SoundCloudAccount {
   if (!value || typeof value !== 'object') return false;
   const a = value as Record<string, unknown>;
@@ -101,7 +155,8 @@ export function isAccount(value: unknown): value is SoundCloudAccount {
     typeof a.name === 'string' &&
     (a.owner === undefined || typeof a.owner === 'string') &&
     a.url === PROFILE + a.permalink &&
-    (a.avatarUrl === null || (typeof a.avatarUrl === 'string' && IMAGE.test(a.avatarUrl)))
+    (a.avatarUrl === null || (typeof a.avatarUrl === 'string' && IMAGE.test(a.avatarUrl))) &&
+    (a.check === undefined || CHECKS.includes(a.check))
   );
 }
 

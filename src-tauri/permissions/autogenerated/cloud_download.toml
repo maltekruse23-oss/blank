@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cloud-download"
+description = "Enables the cloud_download command without any pre-configured scope."
+commands.allow = ["cloud_download"]
+
+[[permission]]
+identifier = "deny-cloud-download"
+description = "Denies the cloud_download command without any pre-configured scope."
+commands.deny = ["cloud_download"]

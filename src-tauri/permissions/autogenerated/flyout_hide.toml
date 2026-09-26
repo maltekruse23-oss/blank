@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-flyout-hide"
+description = "Enables the flyout_hide command without any pre-configured scope."
+commands.allow = ["flyout_hide"]
+
+[[permission]]
+identifier = "deny-flyout-hide"
+description = "Denies the flyout_hide command without any pre-configured scope."
+commands.deny = ["flyout_hide"]

@@ -1,5 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react';
-import { Activity, Bell, BellOff, Minus, PawPrint, X } from 'lucide-react';
+import { Activity, Bell, BellOff, Download, Minus, X } from 'lucide-react';
 import { closeWindow, hasNativeWindow, minimizeWindow, startWindowDrag } from '../platform/window';
 import { formatCpu, formatMemory, type UsageState } from './useAppUsage';
 
@@ -34,18 +34,30 @@ function UsageChip({ usage }: { usage: UsageState }) {
 export function TitleBar({
   status,
   usage,
-  onPet,
   quiet,
   onQuiet,
+  updateAvailable,
+  onUpdate,
 }: {
   status?: ReactNode;
   usage: UsageState;
-  onPet: () => void;
   quiet: boolean;
   onQuiet: () => void;
+  /** Newer version on GitHub, shown as a small chip that opens the settings. */
+  updateAvailable: string | null;
+  onUpdate: () => void;
 }) {
   return (
     <div className="titlebar" data-drag-region>
+      {updateAvailable && (
+        <button
+          className="update-chip"
+          title={`Version ${updateAvailable} verfügbar – in den Settings aktualisieren`}
+          onClick={onUpdate}
+        >
+          <Download size={12} /> Update
+        </button>
+      )}
       <UsageChip usage={usage} />
       {status}
       {hasNativeWindow && (
@@ -58,14 +70,6 @@ export function TitleBar({
             onClick={onQuiet}
           >
             {quiet ? <BellOff size={15} /> : <Bell size={15} />}
-          </button>
-          <button
-            className="window-button"
-            aria-label="In Pet verwandeln"
-            title="In Pet verwandeln"
-            onClick={onPet}
-          >
-            <PawPrint size={15} />
           </button>
           <button
             className="window-button"

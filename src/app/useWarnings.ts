@@ -16,7 +16,7 @@ const resourceLabel: Record<PcWarning['resource'], string> = {
   gpu: 'Grafikkarte',
 };
 
-/** Short texts for toasts and the pet's bubble, and the page a click opens. */
+/** Short texts for notices and popouts, and the page a click opens. */
 export function warningText(warning: Warning): { title: string; detail: string; page: Page } {
   if (warning.kind === 'battery') {
     const { device } = warning;

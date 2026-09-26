@@ -54,7 +54,7 @@
 }
 .nav-item:hover {
   filter: none;
-  background: #ffffff08;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
   color: var(--text);
 }
 .nav-item.current {
@@ -290,7 +290,7 @@ main {
   border-left: 3px solid var(--accent);
   border-radius: 10px;
   background: var(--surface);
-  box-shadow: 0 10px 28px #000a;
+  box-shadow: 0 10px 28px var(--shadow);
   pointer-events: auto;
   animation: toast-in 0.2s ease-out;
 }
@@ -421,7 +421,18 @@ h2 {
   column-gap: 28px;
 }
 .system-rows > div {
+  gap: 12px;
   padding: 9px 0;
+}
+/* Long values (CPU, graphics card) stay on one line; the full text is in their tooltip. */
+.system-rows > div > span:first-child {
+  flex: none;
+}
+.system-rows > div > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* Home: Twitch takes the left column, Setup and PC share the right one. */
 .home-twitch {
@@ -515,7 +526,7 @@ h2 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* "Close program" in overload warnings (toast and pet). */
+/* "Close program" in overload warnings (notice and popout). */
 .close-program {
   position: relative;
   z-index: 2;
@@ -661,7 +672,7 @@ h2 {
   opacity: 0.7;
   cursor: default;
 }
-/* Short line next to the page title: only the "Arena" design shows it (arena.css). */
+/* Short line next to the page title: only the "Arena" and "HUD" designs show it. */
 .page-tagline {
   display: none;
 }
@@ -678,7 +689,8 @@ h2 {
 .metric-icon.tone-4 {
   color: var(--tone-4);
 }
-/* Settings → Design: two choices with a small preview in each design's colours. */
+/* Settings → Design: one choice per design with a small preview in its colours and layout
+   (sidebar, tabs at the top or dock at the bottom). */
 .setting-row > .design-picker {
   flex: none;
   display: flex;
@@ -756,4 +768,319 @@ h2 {
 .theme-swatch:disabled {
   opacity: 0.3;
   cursor: default;
+}
+/* "Update" in the title bar when a newer version is on GitHub. */
+.update-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+.update-chip:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+}
+[data-design-preview='clear'] i,
+[data-design-preview='bento'] i {
+  left: 4px;
+  right: 4px;
+  width: auto;
+  height: 4px;
+  box-shadow: none;
+}
+[data-design-preview='clear'] i {
+  top: 4px;
+  background: linear-gradient(90deg, var(--text) 0 12px, transparent 12px 15px, var(--subtle) 15px);
+}
+[data-design-preview='clear'] b,
+[data-design-preview='bento'] b {
+  left: 4px;
+  top: 11px;
+  border: 0;
+  background: transparent;
+}
+[data-design-preview='bento'] i {
+  top: auto;
+  bottom: 3px;
+  left: 14px;
+  right: 14px;
+  border: 1px solid var(--ink);
+  background: var(--surface);
+}
+[data-design-preview='bento'] b {
+  top: 4px;
+  bottom: 11px;
+}
+[data-design-preview='bento'] b::after {
+  border: 1px solid var(--ink);
+  background: var(--tone-1);
+}
+[data-design-preview='hud'] b,
+[data-design-preview='hud'] b::before,
+[data-design-preview='hud'] b::after,
+[data-design-preview='hud'] i {
+  border-radius: 0;
+}
+[data-design-preview='hud'] b::after {
+  border-color: var(--accent-line);
+}
+/* Apps (reset helper): lists scroll; the install button sits under the chosen programs. */
+.apps-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.apps-layout .toolbar {
+  margin-bottom: 0;
+}
+.apps-install {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.apps-install .filter-button {
+  flex-shrink: 0;
+}
+.apps-install p {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--subtle);
+}
+.text-link.apps-all {
+  margin-bottom: 4px;
+}
+/* Online backup: steps and move code (Apps), code entry over the whole app. */
+.move-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.move-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+.move-steps li > span,
+.move-steps li > svg {
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: content-box;
+  width: 16px;
+  height: 16px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 10px;
+  color: var(--text);
+}
+.move-steps li.ok {
+  color: var(--text);
+}
+.move-steps li.ok > svg {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.move-code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.move-code {
+  padding: 8px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  font-size: 16px;
+  letter-spacing: 1px;
+  user-select: all;
+}
+.restore-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+}
+.restore-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 420px;
+  padding: 22px;
+  border: 1px solid var(--accent-line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 14px 40px var(--shadow);
+}
+.restore-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.restore-card h2 {
+  font-size: 17px;
+}
+.restore-card p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.restore-card .restore-note {
+  color: var(--muted);
+}
+.restore-card .search {
+  max-width: none;
+}
+.restore-card input {
+  font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  letter-spacing: 1px;
+}
+
+/* More than five designs: keep the picker compact inside the fixed 860 px canvas. */
+.setting-row > .design-picker {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 390px;
+}
+
+/* Popout position (Settings): a small screen with six places, like where popouts appear. */
+.setting-row > .place-picker {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(3, 24px);
+  grid-template-rows: repeat(2, 18px);
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.place-choice {
+  display: flex;
+  padding: 3px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+}
+.place-choice:nth-child(-n + 3) {
+  align-items: flex-start;
+}
+.place-choice:nth-child(n + 4) {
+  align-items: flex-end;
+}
+.place-choice:nth-child(3n + 1) {
+  justify-content: flex-start;
+}
+.place-choice:nth-child(3n + 2) {
+  justify-content: center;
+}
+.place-choice:nth-child(3n) {
+  justify-content: flex-end;
+}
+.place-choice span {
+  width: 12px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--subtle);
+}
+.place-choice:hover:not(:disabled) {
+  filter: none;
+  background: var(--surface-hover);
+}
+.place-choice[aria-pressed='true'] span {
+  background: var(--accent);
+}
+.place-choice:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+/* Settings → Popouts: sub-headings and the app filter list. */
+.setting-group {
+  margin-top: 18px;
+  padding-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.filter-apps {
+  padding: 10px 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.filter-app-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filter-app-list .section-note {
+  margin: 0;
+}
+.filter-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+}
+.filter-app button {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+}
+.filter-app-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.filter-app-add .search {
+  flex: 1;
+}
+.filter-apps .section-note {
+  margin: 8px 0 0;
+}
+/* Settings search: rows and cards that do not match are hidden. */
+.settings-layout [hidden] {
+  display: none !important;
+}
+.settings-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-search .search {
+  flex: 1;
+}
+/* Choices side by side (popout time, layout, screen). */
+.setting-row > .segment-picker {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 440px;
+  margin-left: auto;
+  display: flex;
+  flex: none;
+  gap: 4px;
 }

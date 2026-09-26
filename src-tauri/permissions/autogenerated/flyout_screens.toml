@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-flyout-screens"
+description = "Enables the flyout_screens command without any pre-configured scope."
+commands.allow = ["flyout_screens"]
+
+[[permission]]
+identifier = "deny-flyout-screens"
+description = "Denies the flyout_screens command without any pre-configured scope."
+commands.deny = ["flyout_screens"]

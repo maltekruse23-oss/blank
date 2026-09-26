@@ -84,15 +84,20 @@ fn reveal(path: &Path) {
     }
 }
 
+/// The whole settings file: the web content's part plus the Twitch channel selection.
+pub(crate) async fn complete(twitch: &Twitch, content: &str) -> Result<String, String> {
+    let mut settings = checked(content)?;
+    settings.insert("twitch".into(), twitch.export().await);
+    serde_json::to_string_pretty(&serde_json::Value::Object(settings))
+        .map_err(|error| error.to_string())
+}
+
 /// Saves the settings file; returns its file name.
 #[tauri::command]
 pub async fn settings_export(twitch: State<'_, Twitch>, content: String) -> Result<String, String> {
-    let mut settings = checked(&content)?;
-    settings.insert("twitch".into(), twitch.export().await);
+    let text = complete(&twitch, &content).await?;
     let dir = downloads().ok_or("Downloads-Ordner nicht gefunden")?;
     let path = free_path(&dir, Path::exists).ok_or("Kein freier Dateiname in Downloads")?;
-    let text = serde_json::to_string_pretty(&serde_json::Value::Object(settings))
-        .map_err(|error| error.to_string())?;
     std::fs::write(&path, text).map_err(|error| format!("Speichern fehlgeschlagen: {error}"))?;
     reveal(&path);
     Ok(path

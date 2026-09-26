@@ -1,0 +1,90 @@
+/*
+ * Design "Orbit": futuristic dark UI with a violet/blue signal, thin luminous edges and
+ * slightly more technical geometry. Colours come exclusively from tokens.css.
+ */
+[data-design='orbit'] .app {
+  background:
+    radial-gradient(
+      50% 60% at 100% 0%,
+      color-mix(in srgb, var(--accent) 13%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      45% 55% at 0% 100%,
+      color-mix(in srgb, var(--tone-2) 7%, transparent),
+      transparent 75%
+    ),
+    var(--bg);
+}
+[data-design='orbit'] .sidebar {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, var(--accent)), var(--bg));
+}
+[data-design='orbit'] .brand span {
+  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+[data-design='orbit'] .nav-item.current {
+  border: 1px solid var(--accent-line);
+  background: linear-gradient(
+    90deg,
+    var(--accent-soft),
+    color-mix(in srgb, var(--accent-soft) 35%, transparent)
+  );
+}
+[data-design='orbit'] .nav-item.current::before {
+  left: -10px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  box-shadow: 0 0 8px var(--accent);
+}
+[data-design='orbit'] .panel {
+  border-color: color-mix(in srgb, var(--accent-line) 55%, var(--panel-border));
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--panel) 96%, var(--accent)),
+    var(--panel) 42%
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 10%, transparent);
+}
+[data-design='orbit'] .page-icon {
+  border-color: var(--accent-line);
+  border-radius: 9px 4px 9px 4px;
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+[data-design='orbit'] .page-heading h1 {
+  font-weight: 680;
+  letter-spacing: -0.7px;
+}
+[data-design='orbit'] .card {
+  border-color: color-mix(in srgb, var(--border) 72%, var(--accent-line));
+  border-radius: 10px 4px 10px 4px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--surface) 95%, var(--accent)),
+    var(--surface)
+  );
+}
+[data-design='orbit'] .card-header h2 {
+  color: color-mix(in srgb, var(--text) 84%, var(--accent));
+}
+[data-design='orbit'] .metric-icon {
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 35%, var(--surface));
+  border-radius: 8px 3px 8px 3px;
+  background: color-mix(in srgb, currentColor 9%, var(--surface));
+}
+[data-design='orbit'] .filter-button,
+[data-design='orbit'] .secondary-button,
+[data-design='orbit'] .icon-button {
+  border-radius: 8px 3px 8px 3px;
+}
+[data-design='orbit'] .filter-button.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+[data-design='orbit'] .meter > span {
+  box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 42%, transparent);
+}

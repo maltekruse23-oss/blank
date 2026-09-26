@@ -4,6 +4,13 @@ import { isPlaylist, openSoundCloud } from '../../adapters/soundcloud';
 import { Card, ChannelAvatar } from '../../components/ui';
 import type { Music, Track } from './useMusic';
 
+/** Line under an entry SoundCloud has not confirmed yet. */
+const CHECK_TEXT = {
+  pending: 'Noch nicht geprüft – folgt automatisch',
+  'not-found': 'Auf SoundCloud nicht gefunden',
+  private: 'Privat – Geheim-Link (…/s-…) nötig',
+} as const;
+
 function clock(ms: number) {
   const total = Math.floor(ms / 1000);
   const [h, m, s] = [Math.floor(total / 3600), Math.floor(total / 60) % 60, total % 60];
@@ -67,6 +74,19 @@ function NowPlaying({ music }: { music: Music }) {
         <div className="now-playing">
           <p className="music-status" role="status">
             Mix von {player.account.name} lädt …
+          </p>
+          <button className="icon-button" aria-label="Stopp" title="Stopp" onClick={music.stop}>
+            <Square size={15} />
+          </button>
+        </div>
+      </Card>
+    );
+  if (player.status === 'offline')
+    return (
+      <Card title="Mix">
+        <div className="now-playing">
+          <p className="music-status" role="status">
+            Keine Internetverbindung – {player.account.name} geht weiter, sobald sie wieder da ist.
           </p>
           <button className="icon-button" aria-label="Stopp" title="Stopp" onClick={music.stop}>
             <Square size={15} />
@@ -177,10 +197,10 @@ function Accounts({ music }: { music: Music }) {
     event.preventDefault();
     if (!input.trim() || busy) return;
     setBusy(true);
-    const error = await music.add(input);
+    const result = await music.add(input);
     setBusy(false);
-    setMessage(error);
-    if (!error) setInput('');
+    setMessage(result.message);
+    if (result.added) setInput('');
   }
 
   return (
@@ -224,9 +244,11 @@ function Accounts({ music }: { music: Music }) {
               <b>{account.name}</b>
             </button>
             <small>
-              {isPlaylist(account)
-                ? `Playlist · ${account.owner ?? ''}`
-                : `soundcloud.com/${account.permalink}`}
+              {account.check
+                ? CHECK_TEXT[account.check]
+                : isPlaylist(account)
+                  ? `Playlist · ${account.owner ?? ''}`
+                  : `soundcloud.com/${account.permalink}`}
             </small>
           </div>
           <button

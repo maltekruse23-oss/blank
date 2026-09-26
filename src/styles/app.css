@@ -417,22 +417,22 @@ h1 > span {
   border-radius: 11px;
   font-size: 12px;
   flex-shrink: 0;
-  color: #d7e7cf;
+  color: var(--avatar-1-ink);
 }
 .forest {
-  background: #324831;
+  background: var(--avatar-1);
 }
 .violet {
-  background: #383042;
-  color: #d4c4e1;
+  background: var(--avatar-2);
+  color: var(--avatar-2-ink);
 }
 .blue {
-  background: #263e47;
-  color: #b9d9df;
+  background: var(--avatar-3);
+  color: var(--avatar-3-ink);
 }
 .neutral {
-  background: #2c322e;
-  color: #aab1ac;
+  background: var(--avatar-0);
+  color: var(--avatar-0-ink);
 }
 .row-copy {
   display: flex;
@@ -828,7 +828,7 @@ input {
 }
 .filter-button.refresh-failed {
   color: var(--danger-text);
-  border-color: #5a2f2b;
+  border-color: color-mix(in srgb, var(--danger-text) 35%, var(--border));
 }
 .refresh-done svg,
 .refresh-failed svg {
@@ -1104,23 +1104,6 @@ select {
 .switch[aria-checked='true'] > span {
   transform: translateX(15px);
   background: var(--accent);
-}
-.setting-row > .pet-picker {
-  flex: none;
-  display: flex;
-  gap: 8px;
-}
-.pet-choice {
-  width: 46px;
-  height: 42px;
-  padding: 5px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-}
-.pet-choice[aria-pressed='true'] {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
 }
 .setting-row > .theme-picker {
   flex: none;

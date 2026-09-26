@@ -1,0 +1,545 @@
+/* Axiom uses the shared markup. All rules are scoped; no continuous effects,
+   backdrop filters, external assets or changes to application behaviour. */
+[data-design='axiom'] .app {
+  --gap: 12px;
+  background: var(--bg);
+}
+[data-design='axiom'] .sidebar {
+  width: 100px;
+  padding: 19px 10px 10px;
+  background: var(--bg);
+  border-right: 1px solid var(--panel-border);
+}
+[data-design='axiom'] .brand {
+  padding: 0;
+  font-size: 23px;
+  text-align: center;
+  letter-spacing: -1.5px;
+}
+[data-design='axiom'] .brand-version {
+  padding: 7px 0 0;
+  text-align: center;
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+[data-design='axiom'] .sidebar nav {
+  margin-top: 12px;
+}
+[data-design='axiom'] .sidebar-caption {
+  margin: 9px 4px 6px;
+  padding: 0;
+  border: 0;
+  text-align: center;
+  font-size: 8px;
+  letter-spacing: 1.3px;
+}
+[data-design='axiom'] .nav-group {
+  gap: 3px;
+}
+[data-design='axiom'] .nav-item {
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-height: 45px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  font-size: 10px;
+  line-height: 1.1;
+}
+[data-design='axiom'] .nav-item.current {
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+  border-color: var(--accent-line);
+  color: var(--accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 15%, transparent);
+}
+[data-design='axiom'] .nav-item.current::before {
+  left: -11px;
+  top: 15px;
+  bottom: 15px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+[data-design='axiom'] .sidebar-account {
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 3px;
+  border-radius: 11px;
+  background: var(--panel);
+}
+[data-design='axiom'] .sidebar-account-text {
+  align-items: center;
+  max-width: 100%;
+}
+[data-design='axiom'] .sidebar-account-text b {
+  max-width: 100%;
+  font-size: 9px;
+}
+[data-design='axiom'] .sidebar-account-text small {
+  font-size: 8px;
+}
+[data-design='axiom'] .workspace {
+  margin-left: 100px;
+}
+[data-design='axiom'] .titlebar {
+  padding: 0 12px;
+  gap: 8px;
+}
+[data-design='axiom'] .window-controls {
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+[data-design='axiom'] .panel {
+  margin: 0 10px 10px;
+  border-radius: 19px;
+  background:
+    radial-gradient(
+      ellipse at 100% 0%,
+      color-mix(in srgb, var(--tone-2) 7%, transparent),
+      transparent 55%
+    ),
+    var(--panel);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent),
+    0 10px 24px var(--shadow);
+}
+[data-design='axiom'] main {
+  padding: 18px;
+}
+[data-design='axiom'] .page-heading {
+  min-height: 36px;
+  margin-bottom: 16px;
+  gap: 11px;
+}
+[data-design='axiom'] .page-heading::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  margin-left: 10px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+[data-design='axiom'] .page-icon {
+  width: 34px;
+  height: 34px;
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: 11px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent);
+}
+[data-design='axiom'] .page-heading h1 {
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -1px;
+}
+[data-design='axiom'] .card {
+  padding: 16px;
+  border-radius: 15px;
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--surface) 93%, var(--text)),
+    var(--surface) 52%
+  );
+  border-color: var(--border);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 5%, transparent),
+    0 6px 16px var(--shadow);
+}
+[data-design='axiom'] .card-header {
+  margin-bottom: 13px;
+  gap: 10px;
+}
+[data-design='axiom'] .card-header h2 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+[data-design='axiom'] .card-header .icon-button {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+[data-design='axiom'] .dashboard-grid {
+  grid-template-columns: 1.12fr 1fr;
+}
+[data-design='axiom'] .home-twitch {
+  background:
+    radial-gradient(
+      ellipse at 100% 0%,
+      color-mix(in srgb, var(--accent) 11%, transparent),
+      transparent 58%
+    ),
+    var(--surface);
+  border-top-color: var(--accent-line);
+}
+[data-design='axiom'] .home-twitch .card-summary {
+  position: relative;
+  padding: 8px 0 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+[data-design='axiom'] .card-summary strong {
+  font-family: var(--font-display);
+  font-size: 52px;
+  line-height: 1;
+  font-weight: 350;
+  letter-spacing: -3px;
+  font-variant-numeric: tabular-nums;
+}
+[data-design='axiom'] .card-summary strong span {
+  display: block;
+  margin: 9px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+}
+/* Static orbital engraving; decorative and excluded from pointer interaction. */
+[data-design='axiom'] .home-twitch .card-summary::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  top: 11px;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--accent-line);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--accent) 4%, transparent),
+    inset 0 0 0 9px var(--surface),
+    inset 0 0 0 10px var(--border);
+  pointer-events: none;
+}
+[data-design='axiom'] .list-row {
+  padding: 9px 0;
+  gap: 10px;
+}
+[data-design='axiom'] .avatar {
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+[data-design='axiom'] .home-twitch .list-row .avatar {
+  width: 30px;
+  height: 30px;
+}
+[data-design='axiom'] .list-row .row-copy {
+  min-width: 0;
+}
+[data-design='axiom'] .list-row .row-copy b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-design='axiom'] .mini-metrics {
+  gap: 16px;
+}
+[data-design='axiom'] .mini-metrics strong {
+  font-size: 23px;
+  font-weight: 450;
+  letter-spacing: -0.7px;
+  font-variant-numeric: tabular-nums;
+}
+[data-design='axiom'] .meter {
+  height: 4px;
+  background: var(--bg);
+  border-radius: 3px;
+}
+[data-design='axiom'] .meter > span {
+  background: linear-gradient(90deg, var(--accent-line), var(--accent));
+}
+[data-design='axiom'] .toolbar {
+  padding: 6px;
+  margin-bottom: 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+[data-design='axiom'] :is(.filter-button, .secondary-button, .icon-button) {
+  border-radius: 8px;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 5%, transparent);
+}
+[data-design='axiom'] :is(.filter-button.selected, .primary-button) {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 40%, transparent);
+}
+[data-design='axiom'] .filter-button.selected span {
+  color: var(--accent-ink);
+}
+[data-design='axiom'] button:hover {
+  filter: none;
+}
+[data-design='axiom']
+  :is(.filter-button, .secondary-button, .icon-button, .nav-item):hover:not(:disabled) {
+  border-color: var(--accent-line);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 12%, transparent);
+}
+[data-design='axiom'] button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+[data-design='axiom'] button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+[data-design='axiom'] :is(input:not([type='range']), select, .search) {
+  border-radius: 9px;
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+[data-design='axiom'] input::placeholder {
+  color: var(--subtle);
+}
+[data-design='axiom'] .search:focus-within {
+  border-color: var(--accent);
+}
+[data-design='axiom'] :is(button, a, input, select):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+[data-design='axiom'] .badge {
+  border-radius: 6px;
+  background: var(--panel);
+}
+[data-design='axiom'] .badge.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+[data-design='axiom'] .switch {
+  background: var(--bg);
+  border-color: var(--subtle);
+}
+[data-design='axiom'] .switch > span {
+  background: var(--muted);
+  box-shadow: 0 1px 3px var(--shadow);
+}
+[data-design='axiom'] .switch[aria-checked='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+[data-design='axiom'] .switch[aria-checked='true'] > span {
+  background: var(--accent-ink);
+}
+[data-design='axiom'] .card.stream-card {
+  padding: 0;
+  border-radius: 14px;
+}
+[data-design='axiom'] .stream-thumb {
+  border-bottom: 1px solid var(--border);
+}
+[data-design='axiom'] .thumb-pill {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+}
+[data-design='axiom'] .thumb-pill.live {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+[data-design='axiom'] .thumb-pill.live i {
+  background: var(--accent-ink);
+}
+[data-design='axiom'] .stream-body {
+  padding: 12px;
+  gap: 10px;
+}
+[data-design='axiom'] .stream-text h2 {
+  font-size: 14px;
+}
+[data-design='axiom'] .stream-text small {
+  color: var(--tone-2);
+}
+[data-design='axiom'] .stream-card:has(.channel-link:is(:hover, :focus-visible)) {
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px var(--shadow);
+}
+[data-design='axiom'] .offline-chip {
+  background: var(--panel);
+  border-color: var(--border);
+  border-radius: 9px;
+}
+[data-design='axiom'] .metric-value {
+  font-size: 37px;
+  font-weight: 350;
+  letter-spacing: -1.5px;
+  font-variant-numeric: tabular-nums;
+}
+[data-design='axiom'] .metric-icon {
+  box-sizing: content-box;
+  padding: 8px;
+  top: 12px;
+  right: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+[data-design='axiom'] .device-illustration {
+  background: radial-gradient(ellipse at center, var(--surface-hover), transparent 67%);
+}
+[data-design='axiom'] .device-illustration svg {
+  filter: drop-shadow(0 7px 5px var(--shadow));
+}
+[data-design='axiom'] .music-layout > .card:first-child {
+  border-top-color: var(--accent-line);
+}
+[data-design='axiom'] .now-playing {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+[data-design='axiom'] .notice {
+  background: var(--panel);
+  border-radius: 10px;
+  border-color: var(--border);
+}
+[data-design='axiom'] .empty-state {
+  border: 1px dashed var(--border);
+  border-radius: 15px;
+  background: var(--panel);
+}
+[data-design='axiom'] .setting-row {
+  padding: 14px 0;
+  border-color: var(--border);
+}
+[data-design='axiom'] .design-choice {
+  border-radius: 9px;
+  background: var(--panel);
+}
+[data-design='axiom'] .design-choice[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent-line);
+}
+[data-design='axiom'] :is(.restore-card, .toast) {
+  background: var(--surface);
+  border-color: var(--accent-line);
+  box-shadow: 0 16px 40px var(--shadow);
+}
+[data-design='axiom'] .compact main {
+  padding: 14px;
+}
+[data-design='axiom'] .compact .card:not(.stream-card) {
+  padding: 13px;
+}
+/* Preview uses the same palette and the rail / asymmetric panel composition. */
+[data-design-preview='axiom'] i {
+  left: 4px;
+  top: 6px;
+  width: 6px;
+  height: 5px;
+  border-radius: 2px;
+  box-shadow:
+    0 8px 0 var(--subtle),
+    0 16px 0 var(--subtle);
+}
+[data-design-preview='axiom'] b {
+  left: 14px;
+  border-radius: 5px;
+  background: var(--surface);
+}
+[data-design-preview='axiom'] b::before {
+  width: 10px;
+  height: 8px;
+  background: var(--accent);
+}
+[data-design-preview='axiom'] b::after {
+  left: 19px;
+  top: 5px;
+  bottom: 5px;
+  height: auto;
+  background: var(--panel);
+  border-color: var(--border);
+  box-shadow: -16px 12px 0 -2px var(--accent-soft);
+}
+/* Motion is opt-in and finite. Off also covers pseudo-elements. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-design='axiom']
+    .app:not(.no-motion)
+    :is(.nav-item, .icon-button, .filter-button, .secondary-button, .stream-card, .design-choice) {
+    transition:
+      background 140ms ease-out,
+      border-color 140ms ease-out,
+      box-shadow 140ms ease-out,
+      transform 140ms ease-out;
+  }
+}
+[data-design='axiom'] .no-motion *::before,
+[data-design='axiom'] .no-motion *::after {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-design='axiom'] *,
+  [data-design='axiom'] *::before,
+  [data-design='axiom'] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Dense native states: six Home streams, three devices and all PC metrics
+   still fit the 860 x 640 canvas. Long collections remain accessible inside
+   their list, while the page heading and controls stay in place. */
+[data-design='axiom'] .home-twitch .list-row {
+  padding: 7px 0;
+}
+[data-design='axiom'] .mini-metrics strong {
+  margin-bottom: 8px;
+}
+[data-design='axiom'] .pc-grid .card-header {
+  margin-bottom: 8px;
+}
+[data-design='axiom'] .pc-grid .metric-value {
+  margin: 5px 0 9px;
+}
+[data-design='axiom'] .pc-grid .card > p {
+  margin-top: 8px;
+}
+[data-design='axiom'] .device-card-top {
+  margin-bottom: 8px;
+}
+[data-design='axiom'] .device-card > p {
+  margin-top: 4px;
+}
+[data-design='axiom'] .device-illustration {
+  min-height: 56px;
+}
+[data-design='axiom'] .device-grid:has(> :nth-child(3)) .device-illustration svg {
+  width: 44px;
+  height: 44px;
+}
+[data-design='axiom'] .stream-grid:has(> :nth-child(3)) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+[data-design='axiom'] main:has(> .toolbar [aria-controls='watchlist']) {
+  flex: 1 1 0;
+  min-height: 0;
+}
+[data-design='axiom']
+  main:has(> .toolbar [aria-controls='watchlist'])
+  > :is(.page-heading, .toolbar, .offline-section, .notice) {
+  flex-shrink: 0;
+}
+[data-design='axiom'] main:has(> .toolbar [aria-controls='watchlist']) > .stream-grid {
+  min-height: 0;
+  overflow-y: auto;
+  grid-auto-rows: max-content;
+  padding: 2px;
+  margin: -2px;
+}
+[data-design='axiom'] main:has(> .toolbar [aria-controls='watchlist']) > .watchlist {
+  flex-shrink: 0;
+  max-height: 230px;
+  overflow-y: auto;
+}
+[data-design='axiom'] .ram-clean {
+  border-radius: 7px;
+  border-color: var(--border);
+  background: var(--panel);
+}
+[data-design='axiom'] .dashboard-grid .list-row {
+  padding: 7px 0;
+}

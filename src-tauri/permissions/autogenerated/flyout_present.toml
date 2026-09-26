@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-flyout-present"
+description = "Enables the flyout_present command without any pre-configured scope."
+commands.allow = ["flyout_present"]
+
+[[permission]]
+identifier = "deny-flyout-present"
+description = "Denies the flyout_present command without any pre-configured scope."
+commands.deny = ["flyout_present"]

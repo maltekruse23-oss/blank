@@ -1,4 +1,5 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Search } from 'lucide-react';
 import { Card, Badge } from '../../components/ui';
 import { playAlertSound } from '../../platform/sound';
 import { TwitchAccountCard } from '../twitch/TwitchAccountCard';
@@ -6,8 +7,11 @@ import type { TwitchData } from '../twitch/useTwitch';
 import type { UsageState } from '../../app/useAppUsage';
 import { SystemCard } from './SystemCard';
 import { TransferCard } from './TransferCard';
+import { GamingCard } from './GamingCard';
 import type { Music } from '../music/useMusic';
-import { petFigure, petFigures } from '../pet/figures';
+import type { Apps } from '../apps/useApps';
+import type { Updates } from '../../app/useUpdate';
+import { PopoutCard } from './PopoutCard';
 import { themes } from './themes';
 import { designs } from './designs';
 import { defaultPreferences, type Preferences } from './preferences';
@@ -82,7 +86,7 @@ function NotificationsCard({
       <div className="setting-row">
         <div>
           <h3>Nicht stören</h3>
-          <p>Kein Ton, das Pet bleibt im Hintergrund</p>
+          <p>Kein Ton, keine Popouts</p>
         </div>
         <button
           className="switch"
@@ -149,6 +153,8 @@ export function SettingsPage({
   twitch,
   usage,
   music,
+  apps,
+  updates,
 }: {
   preferences: Preferences;
   update: (next: Preferences) => void;
@@ -156,16 +162,64 @@ export function SettingsPage({
   twitch: TwitchData;
   usage: UsageState;
   music: Music;
+  apps: Apps;
+  updates: Updates;
 }) {
   const planned = twitch.adapter.account ? [] : ['Twitch-Account'];
-  const arena = preferences.design === 'arena';
+  const design = designs.find((d) => d.id === preferences.design) ?? designs[0];
+  const ownColours = design.id !== 'classic';
+
+  // Search: rows (and whole cards) whose text does not contain the words are hidden. Runs after
+  // every render, since cards change their rows themselves.
+  const [query, setQuery] = useState('');
+  const [found, setFound] = useState(true);
+  const layout = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = layout.current;
+    if (!root) return;
+    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = (element: Element) => {
+      const text = (element.textContent ?? '').toLowerCase();
+      return words.every((word) => text.includes(word));
+    };
+    let any = false;
+    for (const card of root.querySelectorAll<HTMLElement>(':scope > .card')) {
+      const whole = words.length > 0 && matches(card.querySelector('h2') ?? card);
+      let shown = false;
+      for (const row of card.querySelectorAll<HTMLElement>('.setting-row, .setting-group')) {
+        row.hidden = words.length > 0 && !whole && !matches(row);
+        if (!row.hidden && row.classList.contains('setting-row')) shown = true;
+      }
+      card.hidden = words.length > 0 && !whole && !shown;
+      any ||= !card.hidden;
+    }
+    setFound(any);
+  });
+
   return (
-    <div className="settings-layout">
+    <div className="settings-layout" ref={layout}>
+      <div className="settings-search">
+        <label className="search">
+          <Search size={15} />
+          <input
+            type="search"
+            value={query}
+            placeholder="Einstellungen durchsuchen"
+            aria-label="Einstellungen durchsuchen"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+      </div>
+      {!found && (
+        <p className="section-note" role="status">
+          Keine Einstellung passt zu „{query.trim()}“.
+        </p>
+      )}
       <Card title="Darstellung">
         <div className="setting-row">
           <div>
             <h3>Design</h3>
-            <p>{designs.find((d) => d.id === preferences.design)?.name}</p>
+            <p>{design.name}</p>
           </div>
           <div className="design-picker" role="group" aria-label="Design">
             {designs.map((d) => (
@@ -194,8 +248,8 @@ export function SettingsPage({
           <div>
             <h3>Farbe</h3>
             <p>
-              {arena
-                ? 'Arena hat eigene Farben'
+              {ownColours
+                ? `${design.name} hat eigene Farben`
                 : themes.find((t) => t.id === preferences.theme)?.name}
             </p>
           </div>
@@ -207,30 +261,10 @@ export function SettingsPage({
                 data-theme={t.id}
                 aria-label={t.name}
                 aria-pressed={preferences.theme === t.id}
-                title={arena ? `${t.name} (nur im Design Klassisch)` : t.name}
-                disabled={arena}
+                title={ownColours ? `${t.name} (nur im Design Klassisch)` : t.name}
+                disabled={ownColours}
                 onClick={() => update({ ...preferences, theme: t.id })}
               />
-            ))}
-          </div>
-        </div>
-        <div className="setting-row">
-          <div>
-            <h3>Pet</h3>
-            <p>{petFigure(preferences.pet).name}</p>
-          </div>
-          <div className="pet-picker" role="group" aria-label="Pet-Figur">
-            {petFigures.map(({ id, name, Figure }) => (
-              <button
-                key={id}
-                className="pet-choice"
-                aria-label={name}
-                aria-pressed={preferences.pet === id}
-                title={name}
-                onClick={() => update({ ...preferences, pet: id })}
-              >
-                <Figure mood="awake" blinking={false} />
-              </button>
             ))}
           </div>
         </div>
@@ -266,7 +300,14 @@ export function SettingsPage({
         <button
           className="secondary-button"
           onClick={() =>
-            update({ ...defaultPreferences, sound: preferences.sound, volume: preferences.volume })
+            // Only the look; notifications, popouts and system settings stay.
+            update({
+              ...preferences,
+              compact: defaultPreferences.compact,
+              motion: defaultPreferences.motion,
+              theme: defaultPreferences.theme,
+              design: defaultPreferences.design,
+            })
           }
         >
           Darstellung zurücksetzen
@@ -274,8 +315,21 @@ export function SettingsPage({
       </Card>
       <TwitchAccountCard twitch={twitch} />
       <NotificationsCard preferences={preferences} update={update} twitch={twitch} />
-      <SystemCard usage={usage} />
-      <TransferCard preferences={preferences} update={update} music={music} twitch={twitch} />
+      <PopoutCard preferences={preferences} update={update} />
+      <SystemCard
+        usage={usage}
+        updates={updates}
+        autoCheck={preferences.updateCheck}
+        setAutoCheck={(updateCheck) => update({ ...preferences, updateCheck })}
+      />
+      <GamingCard />
+      <TransferCard
+        preferences={preferences}
+        update={update}
+        music={music}
+        apps={apps}
+        twitch={twitch}
+      />
       {planned.length > 0 && (
         <Card title="Verbindungen">
           {planned.map((x) => (

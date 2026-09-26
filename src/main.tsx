@@ -1,14 +1,36 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './app/App';
+import { PopoutWindow } from './features/popouts/PopoutWindow';
+import { isPopoutWindow } from './platform/popout';
+import { restoreSettings } from './platform/store';
 import './styles/tokens.css';
 import './styles/app.css';
 import './styles/desktop.css';
-import './styles/pet.css';
+import './styles/popouts.css';
 import './styles/arena.css';
+import './styles/clear.css';
+import './styles/hud.css';
+import './styles/bento.css';
+import './styles/void.css';
+import './styles/orbit.css';
+import './styles/axiom.css';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+if (isPopoutWindow()) {
+  // A popout only reads the settings; the app window keeps them complete.
+  root.render(
+    <React.StrictMode>
+      <PopoutWindow />
+    </React.StrictMode>,
+  );
+} else {
+  // The saved settings must be complete before the app reads them on its first render.
+  void restoreSettings().finally(() =>
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>,
+    ),
+  );
+}

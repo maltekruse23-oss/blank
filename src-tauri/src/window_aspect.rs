@@ -1,6 +1,5 @@
 //! Fixed 860 : 640 aspect ratio for the main window. The web content is zoomed with the window,
 //! so the layout is always exactly 860 × 640 CSS pixels and never reflows.
-use std::sync::atomic::{AtomicBool, Ordering};
 use windows_sys::Win32::{
     Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM},
     UI::{
@@ -17,18 +16,9 @@ use windows_sys::Win32::{
 /// Logical client size the layout is designed for (keep in sync with tauri.conf.json).
 const BASE_WIDTH: f64 = 860.0;
 const BASE_HEIGHT: f64 = 640.0;
-pub const MIN_WIDTH: f64 = 720.0;
-pub const MAX_WIDTH: f64 = 1000.0;
-pub const MIN_HEIGHT: f64 = MIN_WIDTH * BASE_HEIGHT / BASE_WIDTH;
-pub const MAX_HEIGHT: f64 = MAX_WIDTH * BASE_HEIGHT / BASE_WIDTH;
+const MIN_WIDTH: f64 = 720.0;
+const MAX_WIDTH: f64 = 1000.0;
 const SUBCLASS_ID: usize = 0xB1A5;
-
-/// Pet mode (pet.rs): no fixed ratio, no size limits, no content zoom.
-static FREE: AtomicBool = AtomicBool::new(false);
-
-pub fn set_free(free: bool) {
-    FREE.store(free, Ordering::Relaxed);
-}
 
 /// Client size in physical pixels for a requested client width: clamped, at the fixed ratio.
 fn client_size(hwnd: HWND, width: i32) -> (i32, i32) {
@@ -69,9 +59,6 @@ unsafe extern "system" fn keep_ratio(
     _id: usize,
     _data: usize,
 ) -> LRESULT {
-    if FREE.load(Ordering::Relaxed) {
-        return DefSubclassProc(hwnd, msg, wparam, lparam);
-    }
     match msg {
         // Interactive resizing: the dragged edge drives, the opposite side follows.
         WM_SIZING => {
@@ -152,11 +139,7 @@ pub fn apply(window: &tauri::WebviewWindow) -> Result<(), Box<dyn std::error::Er
 }
 
 /// Zooms the web content so its viewport stays exactly BASE_WIDTH CSS pixels wide.
-pub fn fit_content(window: &tauri::WebviewWindow) {
-    if FREE.load(Ordering::Relaxed) {
-        let _ = window.set_zoom(1.0);
-        return;
-    }
+fn fit_content(window: &tauri::WebviewWindow) {
     let (Ok(size), Ok(scale)) = (window.inner_size(), window.scale_factor()) else {
         return;
     };

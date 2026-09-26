@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-tweaks-restore"
+description = "Enables the tweaks_restore command without any pre-configured scope."
+commands.allow = ["tweaks_restore"]
+
+[[permission]]
+identifier = "deny-tweaks-restore"
+description = "Denies the tweaks_restore command without any pre-configured scope."
+commands.deny = ["tweaks_restore"]

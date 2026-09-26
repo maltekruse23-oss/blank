@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-settings-mirror-write"
+description = "Enables the settings_mirror_write command without any pre-configured scope."
+commands.allow = ["settings_mirror_write"]
+
+[[permission]]
+identifier = "deny-settings-mirror-write"
+description = "Denies the settings_mirror_write command without any pre-configured scope."
+commands.deny = ["settings_mirror_write"]
