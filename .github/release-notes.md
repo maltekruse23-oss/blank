@@ -19,6 +19,7 @@ Die beiden Dateien **„Source code“** brauchst du nicht, das ist nur der Quel
 
 ## Gut zu wissen
 
+- **Von Version 0.3.0:** oben in der Titelleiste auf **Update** und dann auf **Jetzt aktualisieren** klicken (oder Settings → System). blank. startet neu und zeigt, was neu ist.
 - **Von Version 0.2.0 oder älter:** dieses eine Mal noch von Hand – blank. über das Symbol unten rechts in der Taskleiste beenden (Rechtsklick → Beenden), die alte `blank.exe` durch die neue ersetzen. Einstellungen bleiben erhalten. Ab jetzt geht es über Settings → System.
 - **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumente\blank`), bevor du in den Settings „Mit Windows starten“ einschaltest.
 - **Anderer PC:** am einfachsten mit „Online sichern“ (Seite Apps); oder Settings → Übertragen → Exportieren und auf dem anderen PC Importieren. Twitch danach einmal neu verbinden.
