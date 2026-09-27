@@ -27,7 +27,7 @@
         "shadow": true,
         "transparent": true,
         "resizable": true,
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu --in-process-gpu"
+        "create": false
       }
     ],
     "security": {

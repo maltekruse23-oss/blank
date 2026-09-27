@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { DownloadCloud } from 'lucide-react';
+import { motion } from 'motion/react';
+import { spring } from '../design/motion';
 import { cloud, parseCode } from '../adapters/cloud';
 import { flushMirror } from '../platform/store';
 import { applySettings, describeSettings } from '../features/settings/applySettings';
@@ -74,8 +76,22 @@ export function RestoreDialog({
 
   if (!cloud) return null;
   return (
-    <div className="restore-dialog" role="dialog" aria-modal="true" aria-labelledby="restore-title">
-      <div className="restore-card">
+    <motion.div
+      className="restore-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="restore-title"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: 0.2 } }}
+      exit={{ opacity: 0, transition: { duration: 0.16 } }}
+    >
+      {/* The card springs in from slightly below, a little small. */}
+      <motion.div
+        className="restore-card"
+        initial={{ opacity: 0, y: 18, scale: 0.92 }}
+        animate={{ opacity: 1, y: 0, scale: 1, transition: spring('bouncy') }}
+        exit={{ opacity: 0, y: 8, scale: 0.96, transition: { duration: 0.14 } }}
+      >
         <span className="page-icon">
           <DownloadCloud size={17} />
         </span>
@@ -144,7 +160,7 @@ export function RestoreDialog({
           </>
         )}
         {step.kind === 'applying' && <p role="status">Übernimmt …</p>}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

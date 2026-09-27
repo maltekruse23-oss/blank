@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Radio, Users } from 'lucide-react';
 import type { ChannelInfo, LiveStream } from '../../adapters/twitch';
 import { ChannelAvatar, channelTone } from '../../components/ui';
-import { ChannelLink } from './ChannelLink';
+import { ChannelLink, type CardAction } from './ChannelLink';
 import type { TwitchData } from './useTwitch';
 
 /** After a manual refresh, a new query forces the browser to fetch the current preview image. */
@@ -20,12 +20,15 @@ export function StreamCard({
   stream,
   subtitle,
   previewStamp,
+  action,
 }: {
   twitch: TwitchData;
   channel: ChannelInfo;
   stream: LiveStream;
   subtitle: ReactNode;
   previewStamp: number | null;
+  /** Instead of opening the channel on Twitch. */
+  action?: CardAction;
 }) {
   const mock = twitch.adapter.source === 'mock' ? ' · Mock' : '';
   return (
@@ -51,7 +54,7 @@ export function StreamCard({
           <small>{subtitle}</small>
         </div>
       </div>
-      <ChannelLink twitch={twitch} channel={channel} title={stream.title} />
+      <ChannelLink twitch={twitch} channel={channel} title={stream.title} action={action} />
     </article>
   );
 }

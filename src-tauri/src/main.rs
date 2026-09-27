@@ -9,8 +9,14 @@ fn main() {
     #[cfg(windows)]
     {
         let args: Vec<String> = std::env::args().collect();
-        if args.get(1).map(String::as_str) == Some(blank_lib::AFTER_UPDATE_ARG) {
+        // After an update or a restart for the graphics card: wait for the old process first.
+        let first = args.get(1).map(String::as_str);
+        if first == Some(blank_lib::AFTER_UPDATE_ARG) || first == Some(blank_lib::RESTART_ARG) {
             blank_lib::wait_for_old_version(args.get(2).map(String::as_str).unwrap_or(""));
+        }
+        // After an update the app shows what is new once.
+        if first == Some(blank_lib::AFTER_UPDATE_ARG) {
+            blank_lib::mark_updated();
         }
     }
     blank_lib::run()

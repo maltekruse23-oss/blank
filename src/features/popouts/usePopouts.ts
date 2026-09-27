@@ -83,7 +83,7 @@ export function usePopouts({
     const p = latest.current.preferences;
     return showPopout(item, {
       overFullScreen: explicit || p.popoutFullscreen,
-      acrylic: p.popoutAcrylic,
+      acrylic: p.popoutAcrylic && !p.popoutTaskbar,
     });
   };
 

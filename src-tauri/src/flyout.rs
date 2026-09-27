@@ -8,6 +8,7 @@
 //! uses for its own notifications).
 use crate::tray;
 use serde_json::Value;
+use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{
@@ -22,15 +23,18 @@ use webview2_com::Microsoft::Web::WebView2::Win32::{
 use windows_core::Interface;
 use windows_sys::Win32::{
     Foundation::HWND,
+    Graphics::Gdi::{CreateRectRgn, SetWindowRgn},
     UI::{
+        Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK},
         Shell::{
             SHQueryUserNotificationState, QUNS_BUSY, QUNS_PRESENTATION_MODE,
             QUNS_RUNNING_D3D_FULL_SCREEN,
         },
         WindowsAndMessaging::{
-            GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_EXSTYLE,
-            HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW, SW_HIDE,
-            SW_SHOWNOACTIVATE, WS_EX_TOOLWINDOW,
+            GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, ShowWindow,
+            EVENT_SYSTEM_FOREGROUND, GWL_EXSTYLE, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE,
+            SWP_NOSIZE, SWP_SHOWWINDOW, SW_HIDE, SW_SHOWNOACTIVATE, WINEVENT_OUTOFCONTEXT,
+            WS_EX_TOOLWINDOW,
         },
     },
 };
@@ -39,14 +43,17 @@ use windows_sys::Win32::{
 const WIDTH: f64 = 360.0;
 /// Gap between popout and the edges of the screen's work area, e.g. the taskbar (CSS pixels).
 const MARGIN: f64 = 12.0;
+/// Kept free at the right end of a taskbar without a readable notification area (its clock).
+const CLOCK_ROOM: f64 = 100.0;
 const MAX_ITEM_BYTES: usize = 16 * 1024;
 const MAX_PENDING: usize = 5;
 /// A hidden popout window is closed after this long without a new popout. Hidden, its WebView
 /// still holds about 50 MB; opening it again costs a fraction of a second once per popout.
 const CLOSE_AFTER: Duration = Duration::from_secs(30);
 /// "music": what plays in any app (media.rs); "mix": blank.'s own SoundCloud mix; "test": the
-/// sample from Settings → Popouts; "info": a short note (e.g. nothing plays).
-const KINDS: &[&str] = &["music", "mix", "live", "warning", "test", "info"];
+/// sample from Settings â†’ Popouts; "preview": the live preview while those settings change;
+/// "info": a short note (e.g. nothing plays).
+const KINDS: &[&str] = &["music", "mix", "live", "warning", "test", "preview", "info"];
 /// What a popout may ask of blank.'s own mix (useMusic in the app window).
 const MIX_ACTIONS: &[&str] = &["toggle", "next", "seek"];
 /// Where a popout may appear (src/features/popouts/placement.ts).
@@ -70,7 +77,7 @@ pub struct FlyoutState(Mutex<Inner>);
 
 #[derive(Default)]
 struct Inner {
-    /// Label of the popout window while it exists ("flyout-1", "flyout-2", …): a new window never
+    /// Label of the popout window while it exists ("flyout-1", "flyout-2", â€¦): a new window never
     /// has to wait for a closing one to be gone.
     label: Option<String>,
     /// Its web content has loaded and listens for items.
@@ -94,7 +101,7 @@ fn check(item: &Value) -> Result<(), String> {
     if kind.is_some_and(|kind| KINDS.contains(&kind)) && size <= MAX_ITEM_BYTES {
         Ok(())
     } else {
-        Err("Ungültige Meldung".into())
+        Err("UngÃ¼ltige Meldung".into())
     }
 }
 
@@ -142,13 +149,8 @@ fn set_visible(window: &WebviewWindow, visible: bool) {
 /// `acrylic`, Windows blurs what lies behind it instead (with its own frame and shadow; the blur
 /// itself appears at once).
 fn create(app: &AppHandle, label: &str, acrylic: bool) -> Result<(), String> {
-    // Must match the main window's arguments: both share one WebView2 environment.
-    let args = app
-        .config()
-        .app
-        .windows
-        .first()
-        .and_then(|window| window.additional_browser_args.clone());
+    // Must match the main window's arguments: all share one WebView2 environment (gpu.rs).
+    let args = crate::gpu::browser_args(app);
     let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .title("blank. Popout")
         .inner_size(WIDTH, 80.0)
@@ -162,9 +164,7 @@ fn create(app: &AppHandle, label: &str, acrylic: bool) -> Result<(), String> {
         .always_on_top(true)
         .focused(false)
         .visible(false);
-    if let Some(args) = args {
-        builder = builder.additional_browser_args(&args);
-    }
+    builder = builder.additional_browser_args(&args);
     let window = builder.build().map_err(failed)?;
     let handle = hwnd(&window)?;
     // SAFETY: valid top-level window of this process. Tool window: not in Alt+Tab. It appears
@@ -224,7 +224,11 @@ fn windows_frame(handle: HWND, acrylic: bool) {
         DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE,
         DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND, DWMWCP_ROUND,
     };
-    let corners = if acrylic { DWMWCP_ROUND } else { DWMWCP_DONOTROUND };
+    let corners = if acrylic {
+        DWMWCP_ROUND
+    } else {
+        DWMWCP_DONOTROUND
+    };
     // SAFETY: valid window handle; the values point to local integers of the right size.
     unsafe {
         DwmSetWindowAttribute(
@@ -402,6 +406,221 @@ fn target_monitor(window: &WebviewWindow, screen: &str) -> Result<tauri::Monitor
     }
 }
 
+/// A horizontal taskbar on a screen (physical pixels): the strip between the screen's edge and its
+/// work area. None when it hides itself, stands at a side, or this screen has none.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Taskbar {
+    top: bool,
+    x: i32,
+    y: i32,
+    height: i32,
+}
+
+fn taskbar_in(screen: Area, work: Area) -> Option<Taskbar> {
+    let (sx, sy, sw, sh) = screen;
+    let (wx, wy, ww, wh) = work;
+    if wx != sx || ww != sw {
+        return None;
+    }
+    if wy > sy {
+        Some(Taskbar {
+            top: true,
+            x: sx,
+            y: sy,
+            height: wy - sy,
+        })
+    } else if wy + wh < sy + sh {
+        Some(Taskbar {
+            top: false,
+            x: sx,
+            y: wy + wh,
+            height: sy + sh - (wy + wh),
+        })
+    } else {
+        None
+    }
+}
+
+/// Top-left corner of the window rect so that the card (`card` high, `inset` inside what is seen)
+/// sits in the taskbar like a part of it: centred in its height, `margin` from its left end, or,
+/// with `right`, `margin` left of that x (the notification area).
+fn in_taskbar(
+    bar: Taskbar,
+    seen: (i32, i32),
+    borders: (i32, i32, i32, i32),
+    card: i32,
+    inset: i32,
+    margin: i32,
+    right: Option<i32>,
+) -> (i32, i32) {
+    let (left, top, _, _) = borders;
+    let card_top = bar.y + (bar.height - card) / 2;
+    let column = match right {
+        Some(limit) => limit - margin + inset - seen.0,
+        None => bar.x + margin - inset,
+    };
+    let row = if bar.top {
+        card_top - inset
+    } else {
+        card_top + card + inset - seen.1
+    };
+    (column - left, row - top)
+}
+
+/// Taskbar icons on the left (Windows setting "Taskleistenausrichtung: Links"); read only.
+fn icons_on_the_left() -> bool {
+    // Missing: Windows 11's default, centred.
+    user_dword(
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+        "TaskbarAl",
+    ) == Some(0)
+}
+
+/// Windows (and so the taskbar) in light colours; read only.
+fn taskbar_light() -> bool {
+    user_dword(
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        "SystemUsesLightTheme",
+    ) == Some(1)
+}
+
+/// A number from the current user's registry (read only), if it is there.
+fn user_dword(key: &str, name: &str) -> Option<u32> {
+    use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_DWORD};
+    let key: Vec<u16> = key.encode_utf16().chain(Some(0)).collect();
+    let name: Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
+    let mut value: u32 = 0;
+    let mut size = std::mem::size_of::<u32>() as u32;
+    // SAFETY: reads one DWORD into a local integer of that size; both strings end with a zero.
+    let read = unsafe {
+        RegGetValueW(
+            HKEY_CURRENT_USER,
+            key.as_ptr(),
+            name.as_ptr(),
+            RRF_RT_REG_DWORD,
+            std::ptr::null_mut(),
+            (&mut value as *mut u32).cast(),
+            &mut size,
+        )
+    };
+    (read == 0).then_some(value)
+}
+
+/// Left edge of the notification area (clock, icons) of the main taskbar if it is on this taskbar
+/// strip; Windows tells it only for the main one (read only).
+fn notification_area_left(bar: Taskbar, width: i32) -> Option<i32> {
+    use windows_sys::Win32::{
+        Foundation::RECT,
+        UI::WindowsAndMessaging::{FindWindowExW, FindWindowW, GetWindowRect},
+    };
+    let tray: Vec<u16> = "Shell_TrayWnd\0".encode_utf16().collect();
+    let notify: Vec<u16> = "TrayNotifyWnd\0".encode_utf16().collect();
+    let mut rect = RECT {
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+    };
+    // SAFETY: looks up two windows by class and reads one rectangle into a local.
+    let found = unsafe {
+        let tray = FindWindowW(tray.as_ptr(), std::ptr::null());
+        if tray.is_null() {
+            return None;
+        }
+        let area = FindWindowExW(
+            tray,
+            std::ptr::null_mut(),
+            notify.as_ptr(),
+            std::ptr::null(),
+        );
+        !area.is_null() && GetWindowRect(area, &mut rect) != 0
+    };
+    let on_this = rect.top >= bar.y - 1
+        && rect.bottom <= bar.y + bar.height + 1
+        && rect.left > bar.x
+        && rect.left < bar.x + width;
+    (found && on_this).then_some(rect.left)
+}
+
+/// The popout window kept above the taskbar while it sits in it (0: none), and the hook for that.
+static IN_TASKBAR: AtomicIsize = AtomicIsize::new(0);
+static FOREGROUND_HOOK: AtomicIsize = AtomicIsize::new(0);
+
+/// SAFETY (callers): `handle` is a window handle; SetWindowPos only reorders it.
+unsafe fn raise(handle: HWND) {
+    SetWindowPos(
+        handle,
+        HWND_TOPMOST,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE,
+    );
+}
+
+/// Another window became the active one, e.g. the taskbar after a click on it: it then lies above
+/// the popout in its taskbar. Brings the popout back up at once and once more shortly after (the
+/// taskbar comes up a moment after it becomes active). Only a notice of Windows (no hook into
+/// other programs, nothing about the window is read or kept).
+unsafe extern "system" fn foreground_changed(
+    _hook: HWINEVENTHOOK,
+    _event: u32,
+    _window: HWND,
+    _object: i32,
+    _child: i32,
+    _thread: u32,
+    _time: u32,
+) {
+    let popout = IN_TASKBAR.load(Ordering::Relaxed);
+    if popout == 0 {
+        return;
+    }
+    raise(popout as HWND);
+    std::thread::spawn(|| {
+        for ms in [80, 250] {
+            std::thread::sleep(Duration::from_millis(ms));
+            let popout = IN_TASKBAR.load(Ordering::Relaxed);
+            if popout != 0 {
+                // SAFETY: the popout window's handle, set while it is shown.
+                unsafe { raise(popout as HWND) };
+            }
+        }
+    });
+}
+
+/// While a popout sits in the taskbar, notice when another window becomes active (see above).
+fn keep_above_taskbar(window: &WebviewWindow, on: bool) {
+    let handle = if on {
+        hwnd(window).map_or(0, |h| h as isize)
+    } else {
+        0
+    };
+    IN_TASKBAR.store(handle, Ordering::Relaxed);
+    // The hook must be set and removed on the thread with the message loop.
+    let _ = window.run_on_main_thread(move || {
+        let installed = FOREGROUND_HOOK.load(Ordering::Relaxed);
+        // SAFETY: an out-of-context event hook with a plain callback; removed on the same thread.
+        unsafe {
+            if on && installed == 0 {
+                let hook = SetWinEventHook(
+                    EVENT_SYSTEM_FOREGROUND,
+                    EVENT_SYSTEM_FOREGROUND,
+                    std::ptr::null_mut(),
+                    Some(foreground_changed),
+                    0,
+                    0,
+                    WINEVENT_OUTOFCONTEXT,
+                );
+                FOREGROUND_HOOK.store(hook as isize, Ordering::Relaxed);
+            } else if !on && installed != 0 {
+                FOREGROUND_HOOK.store(0, Ordering::Relaxed);
+                UnhookWinEvent(installed as HWINEVENTHOOK);
+            }
+        }
+    });
+}
+
 /// Top-left corner of the window rect so that what is seen (`seen`: width, height, inside the
 /// invisible `borders` left, top, right, bottom) sits at `place` in `area`, `margin` from its edges.
 fn corner(
@@ -428,11 +647,14 @@ fn corner(
     (column - left, row - top)
 }
 
-/// Shows the popout (`width` × `height` in CSS pixels) at `place` on `screen` (src/features/
+/// Shows the popout (`width` Ã— `height` in CSS pixels) at `place` on `screen` (src/features/
 /// popouts/placement.ts), on top of other windows but without taking the focus. `inset`: the
 /// transparent edge the page keeps around the popout for its own shadow; it counts towards the
-/// gap to the screen's edge.
+/// gap to the screen's edge. `taskbar`: the card's height (CSS pixels) to place it in the taskbar
+/// like a part of it (a setting); returns which edge that taskbar is at ("bottom"/"top"), or none
+/// if this screen has no taskbar there (then the popout goes to `place` as usual).
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn flyout_present(
     window: WebviewWindow,
     state: State<'_, FlyoutState>,
@@ -441,7 +663,8 @@ pub async fn flyout_present(
     place: String,
     screen: String,
     inset: Option<f64>,
-) -> Result<(), String> {
+    taskbar: Option<f64>,
+) -> Result<Option<TaskbarPlace>, String> {
     if !PLACES.contains(&place.as_str()) || !SCREENS.contains(&screen.as_str()) {
         return Err("Unbekannte Position".into());
     }
@@ -455,15 +678,49 @@ pub async fn flyout_present(
         area.size.width as i32,
         area.size.height as i32,
     );
+    let whole = (
+        monitor.position().x,
+        monitor.position().y,
+        monitor.size().width as i32,
+        monitor.size().height as i32,
+    );
+    let bar = taskbar.and_then(|card| {
+        taskbar_in(whole, area).map(|bar| (bar, (card.clamp(20.0, 200.0) * scale).round() as i32))
+    });
+    // Icons on the left: the popout goes to the free right end, left of the clock and icons of the
+    // notification area (on other screens only a clock: its room is kept free). Centred icons:
+    // the left end is free.
+    let right_end = bar.and_then(|(bar, _)| {
+        icons_on_the_left().then(|| {
+            notification_area_left(bar, whole.2)
+                .unwrap_or(whole.0 + whole.2 - (CLOCK_ROOM * scale).round() as i32)
+        })
+    });
     let size = PhysicalSize::new(
         (width.clamp(240.0, 600.0) * scale).round() as u32,
         (height.clamp(40.0, 460.0) * scale).round() as u32,
     );
+    // A new size shows the whole window again; a compact popout then limits it (flyout_region).
+    // SAFETY: valid window handle; no region means the whole window.
+    unsafe { SetWindowRgn(hwnd(&window)?, std::ptr::null_mut(), 1) };
     let inset = inset.unwrap_or(0.0).clamp(0.0, MARGIN);
     let margin = ((MARGIN - inset) * scale).round() as i32;
+    let inset_px = (inset * scale).round() as i32;
+    let at = |seen: (i32, i32), borders: (i32, i32, i32, i32)| match bar {
+        Some((bar, card)) => in_taskbar(
+            bar,
+            seen,
+            borders,
+            card,
+            inset_px,
+            margin + inset_px,
+            right_end,
+        ),
+        None => corner(&place, area, seen, borders, margin),
+    };
     // Near the place first: moving to a screen with another scaling may resize the window.
     let seen = (size.width as i32, size.height as i32);
-    let (x, y) = corner(&place, area, seen, (0, 0, 0, 0), margin);
+    let (x, y) = at(seen, (0, 0, 0, 0));
     window
         .set_position(PhysicalPosition::new(x, y))
         .map_err(failed)?;
@@ -482,10 +739,11 @@ pub async fn flyout_present(
         outer.width as i32 - left - right,
         outer.height as i32 - top - bottom,
     );
-    let (x, y) = corner(&place, area, seen, borders, margin);
+    let (x, y) = at(seen, borders);
     window
         .set_position(PhysicalPosition::new(x, y))
         .map_err(failed)?;
+    keep_above_taskbar(&window, bar.is_some());
     // SAFETY: valid window handle; shows and raises it without activating it.
     unsafe {
         ShowWindow(handle, SW_SHOWNOACTIVATE);
@@ -499,6 +757,54 @@ pub async fn flyout_present(
             SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
         );
     }
+    Ok(bar.map(|(bar, _)| TaskbarPlace {
+        edge: if bar.top { "top" } else { "bottom" },
+        side: if right_end.is_some() { "right" } else { "left" },
+        light: taskbar_light(),
+    }))
+}
+
+/// Where a popout in the taskbar ended up: the taskbar's edge and the end it keeps to.
+#[derive(serde::Serialize)]
+pub struct TaskbarPlace {
+    edge: &'static str,
+    side: &'static str,
+    /// Windows in light colours: the taskbar is light too.
+    light: bool,
+}
+
+/// Only this part of the popout window is shown and takes the mouse; the rest is room for a compact
+/// popout to open into without resizing the window (a resize briefly showed the old picture at the
+/// wrong place). `rect`: x, y, width, height in CSS pixels of the page; none: the whole window.
+#[tauri::command]
+pub async fn flyout_region(window: WebviewWindow, rect: Option<[f64; 4]>) -> Result<(), String> {
+    let handle = hwnd(&window)?;
+    let region = match rect {
+        None => std::ptr::null_mut(),
+        Some(values) => {
+            if !values.iter().all(|v| v.is_finite()) {
+                return Err("UngÃ¼ltiger Bereich".into());
+            }
+            let [x, y, width, height] = values.map(|v| v.clamp(0.0, 2000.0));
+            let scale = window.scale_factor().map_err(failed)?;
+            // The region is relative to the window rectangle, which may have invisible borders.
+            let inner = window.inner_position().map_err(failed)?;
+            let outer = window.outer_position().map_err(failed)?;
+            let px = |v: f64| (v * scale).round() as i32;
+            let (dx, dy) = (inner.x - outer.x, inner.y - outer.y);
+            // SAFETY: plain GDI region; SetWindowRgn below takes ownership of it.
+            unsafe {
+                CreateRectRgn(
+                    dx + px(x),
+                    dy + px(y),
+                    dx + px(x + width),
+                    dy + px(y + height),
+                )
+            }
+        }
+    };
+    // SAFETY: valid window handle; the system owns the region from now on.
+    unsafe { SetWindowRgn(handle, region, 1) };
     Ok(())
 }
 
@@ -510,6 +816,7 @@ pub async fn flyout_hide(
 ) -> Result<(), String> {
     // SAFETY: valid window handle.
     unsafe { ShowWindow(hwnd(&window)?, SW_HIDE) };
+    keep_above_taskbar(&window, false);
     set_visible(&window, false);
     let serial = {
         let mut inner = state.0.lock().map_err(failed)?;
@@ -542,7 +849,7 @@ pub async fn flyout_hide(
 #[tauri::command]
 pub async fn flyout_done(app: AppHandle, kind: String, id: u64) -> Result<(), String> {
     if !KINDS.contains(&kind.as_str()) {
-        return Err("Ungültige Meldung".into());
+        return Err("UngÃ¼ltige Meldung".into());
     }
     app.emit_to(
         "main",
@@ -598,6 +905,75 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn finds_the_taskbar_from_screen_and_work_area() {
+        let screen = (0, 0, 1920, 1080);
+        // Bottom, 48 px high.
+        assert_eq!(
+            taskbar_in(screen, (0, 0, 1920, 1032)),
+            Some(Taskbar {
+                top: false,
+                x: 0,
+                y: 1032,
+                height: 48
+            })
+        );
+        // Top.
+        assert_eq!(
+            taskbar_in(screen, (0, 48, 1920, 1032)),
+            Some(Taskbar {
+                top: true,
+                x: 0,
+                y: 0,
+                height: 48
+            })
+        );
+        // Hidden (work area = screen), at the side: none.
+        assert_eq!(taskbar_in(screen, screen), None);
+        assert_eq!(taskbar_in(screen, (62, 0, 1858, 1080)), None);
+        // A second screen left of the main one.
+        assert_eq!(
+            taskbar_in((-1920, 0, 1920, 1080), (-1920, 0, 1920, 1032)),
+            Some(Taskbar {
+                top: false,
+                x: -1920,
+                y: 1032,
+                height: 48
+            })
+        );
+    }
+
+    #[test]
+    fn centres_the_card_in_the_taskbar() {
+        let bottom = Taskbar {
+            top: false,
+            x: -1920,
+            y: 1032,
+            height: 48,
+        };
+        // Window 320 Ã— 60 (card 40 + inset 10 above and below), no invisible borders.
+        let (x, y) = in_taskbar(bottom, (320, 60), (0, 0, 0, 0), 40, 10, 12, None);
+        assert_eq!(x, -1920 + 12 - 10);
+        // Card from 1036 to 1076: 4 px space above and below in the 48 px taskbar.
+        assert_eq!(y + 10, 1036);
+        assert_eq!(y + 60 - 10, 1076);
+        // With room above to open into (window 190 high), the card stays at the same place.
+        let (_, y) = in_taskbar(bottom, (320, 190), (0, 0, 0, 0), 40, 10, 12, None);
+        assert_eq!(y + 190 - 10 - 40, 1036);
+        // Icons on the left: the card ends 12 px left of the notification area (x -100).
+        let (x, _) = in_taskbar(bottom, (320, 60), (0, 0, 0, 0), 40, 10, 12, Some(-100));
+        assert_eq!(x + 320 - 10, -100 - 12);
+        // Top taskbar: the card hangs from the top, room below.
+        let top = Taskbar {
+            top: true,
+            x: 0,
+            y: 0,
+            height: 48,
+        };
+        let (_, y) = in_taskbar(top, (320, 190), (0, 0, 0, 0), 40, 10, 12, None);
+        assert_eq!(y + 10, 4);
+    }
+
+    #[test]
     fn only_known_small_items_are_shown() {
         assert!(check(&json!({ "kind": "music", "id": 1 })).is_ok());
         assert!(check(&json!({ "kind": "live", "id": 2, "login": "someone" })).is_ok());
@@ -610,8 +986,8 @@ mod tests {
 
     #[test]
     fn what_is_seen_sits_at_the_chosen_place() {
-        // Measured on a 1920 × 1080 screen with the taskbar at the bottom (work area 1032 high):
-        // the popout is seen 362 × 98 inside invisible borders of 7 px left, right and bottom.
+        // Measured on a 1920 Ã— 1080 screen with the taskbar at the bottom (work area 1032 high):
+        // the popout is seen 362 Ã— 98 inside invisible borders of 7 px left, right and bottom.
         let (area, seen, borders) = ((0, 0, 1920, 1032), (362, 98), (7, 0, 7, 7));
         assert_eq!(corner("bottom-center", area, seen, borders, 12), (772, 922));
         assert_eq!(corner("bottom-left", area, seen, borders, 12), (5, 922));

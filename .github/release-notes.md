@@ -1,13 +1,13 @@
 ## Neu in dieser Version
 
-- **Popouts wie FluentFlyout:** Ist blank. im Hintergrund, zeigt ein kleines Popout über der Taskleiste, was gerade läuft (Spotify, YouTube, Browser oder der eigene SoundCloud-Mix) – mit Cover, Pause, Weiter und Fortschritt –, wer live geht und Warnungen. Leicht durchsichtig, gleitet sanft herein. Alles einstellbar unter Settings → Popouts (Stelle, Bildschirm, Dauer, Aussehen und mehr).
-- **Das Pet ist weg:** Es wurde durch die Popouts ersetzt.
-- **Seite „Apps“:** Nach dem Neuaufsetzen des PCs deine Programme mit einem Klick installieren – direkt vom Hersteller, nur mit gültiger Signatur.
-- **Online sichern ohne Konto:** Auf der Seite Apps „Online sichern“ klicken und den Umzugs-Code aufheben. Nach dem Neuaufsetzen fragt blank. danach und holt alle Einstellungen zurück (verschlüsselt, ohne Konto).
-- **Updates in der App:** Ab dieser Version meldet sich blank. selbst, wenn es eine neue Version gibt (Settings → System → Jetzt aktualisieren).
-- **Gaming-Optimierung:** ein paar Windows-Einstellungen für Spiele, nur auf Klick und jederzeit genau rückgängig (Settings → Gaming-Optimierung).
-- **Sechs neue Designs:** Klar, HUD, Bento, Void, Orbit und Axiom (Settings → Darstellung → Design).
-- **Zuverlässiger:** „Mit Windows starten“ setzt jetzt auch die Freigabe, ohne die Windows blank. bei der Anmeldung übersprungen hat, und die Settings zeigen, welche Datei eingetragen ist; Einstellungen haben eine zusätzliche Sicherungskopie; SoundCloud-Mixes warten bei fehlendem Internet und laufen danach weiter.
+- **Zusammen schauen:** Mit Freunden gleichzeitig Twitch schauen und gemeinsam den Kanal wechseln – einfach den Raum-Code teilen, ohne Konto (Seite Twitch → Zusammen).
+- **Neuer Startbildschirm:** Beim Start setzt sich „blank.“ aus Lichtpartikeln zusammen und öffnet sich wie ein Portal zur App. Ein Klick überspringt ihn.
+- **Lebendige Animationen:** Seiten, Menü, Karten, Zahlen und Knöpfe bewegen sich mit Federschwung, mit der Grafikkarte flüssig. Settings → Darstellung → Animationen schaltet alles an oder aus.
+- **Popouts:** wachsen wie eine Insel aus der Bildschirmkante, zeigen unten die Restzeit und klappen beim Überfahren ohne Wackeln auf.
+- **Popouts in der Taskleiste:** Neu unter Settings → Popouts: Die Popouts sitzen als schmale Leiste direkt in der Taskleiste, Musik öffnet beim Überfahren darüber ein Panel wie bei Windows.
+- **Darstellung zum Einstellen:** Stile (Standard, Sparsam, Schlicht und eigene), Akzentfarbe, Dichte und Rundung – alles sofort zu sehen. Es gibt nur noch das Design „Klassisch“ mit sechs Farbschemata.
+- **Settings aufgeräumt:** sieben Reiter und eine Suche über alles.
+- **Neuigkeiten nach Updates:** Nach einem Update zeigt blank. einmal, was neu ist (jederzeit wieder unter Settings → System → Neuigkeiten).
 
 ## So geht's
 

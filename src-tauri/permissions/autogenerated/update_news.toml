@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-news"
+description = "Enables the update_news command without any pre-configured scope."
+commands.allow = ["update_news"]
+
+[[permission]]
+identifier = "deny-update-news"
+description = "Denies the update_news command without any pre-configured scope."
+commands.deny = ["update_news"]

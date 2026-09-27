@@ -1,3 +1,4 @@
+import { Reveal } from '../../components/Reveal';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import type { GameRef, TwitchAdapter } from '../../adapters/twitch';
@@ -197,7 +198,7 @@ export function WatchlistPanel({ twitch }: { twitch: TwitchData }) {
               >
                 <Trash2 size={15} />
               </button>
-              {picking === channel.login && (
+              <Reveal show={picking === channel.login} className="game-picker-reveal">
                 <GamePicker
                   adapter={adapter}
                   channelName={channel.displayName}
@@ -205,7 +206,7 @@ export function WatchlistPanel({ twitch }: { twitch: TwitchData }) {
                   onPick={(game) => setGames([...channel.games, game])}
                   onClose={() => setPicking(null)}
                 />
-              )}
+              </Reveal>
             </div>
           );
         })}

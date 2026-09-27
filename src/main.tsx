@@ -8,13 +8,6 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/desktop.css';
 import './styles/popouts.css';
-import './styles/arena.css';
-import './styles/clear.css';
-import './styles/hud.css';
-import './styles/bento.css';
-import './styles/void.css';
-import './styles/orbit.css';
-import './styles/axiom.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 if (isPopoutWindow()) {

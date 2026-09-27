@@ -19,6 +19,19 @@ const MAX_BYTES: u64 = 100 * 1024 * 1024;
 /// Command-line switch of the new EXE, followed by the process id of the old one (main.rs).
 pub const AFTER_UPDATE_ARG: &str = "--after-update";
 
+/// This start came right after an update (main.rs): the app shows what is new, once.
+static JUST_UPDATED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn mark_updated() {
+    JUST_UPDATED.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// True once after an update, so the app shows what is new (then false).
+#[tauri::command]
+pub fn update_news() -> bool {
+    JUST_UPDATED.swap(false, std::sync::atomic::Ordering::Relaxed)
+}
+
 /// The release asset found by the last check; only this one can be installed.
 #[derive(Default)]
 pub struct UpdateState(Mutex<Option<Asset>>);

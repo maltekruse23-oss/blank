@@ -3,9 +3,8 @@
 // only in the move code (PBKDF2, 600 000 rounds). The paste service only ever sees encrypted text.
 // Desktop app only.
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import { ALPHABET, checkChars, crockford, fromBase64, randomSecret, toBase64 } from './codes';
 
-/** Crockford base32: no I, L, O or U, so the secret can hardly be misread. */
-const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const SECRET_LENGTH = 10;
 const ROUNDS = 600_000;
 const PREFIX = 'blank1:';
@@ -13,28 +12,6 @@ const PREFIX = 'blank1:';
 export type Provider = 'D' | 'C';
 /** secret: the key's source; provider and id: where the encrypted text lies. */
 export type MoveCode = { secret: string; provider: Provider; id: string };
-
-function randomSecret() {
-  // 256 is a multiple of 32, so every letter is equally likely.
-  const bytes = crypto.getRandomValues(new Uint8Array(SECRET_LENGTH));
-  return [...bytes].map((b) => ALPHABET[b % 32]).join('');
-}
-
-const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-/**
- * Two check characters over the code. The weighted sum is taken modulo the prime 1021: with
- * values up to 36 and weights up to 30, no single wrong character and no swap of two neighbours
- * can leave it unchanged, so every such typo is caught.
- */
-function checkChars(raw: string) {
-  let sum = 0;
-  for (let i = 0; i < raw.length; i++) sum = (sum + (i + 1) * (CHARS.indexOf(raw[i]!) + 1)) % 1021;
-  return ALPHABET[Math.floor(sum / 32)]! + ALPHABET[sum % 32]!;
-}
-
-/** Crockford reading: O means 0, I and L mean 1. */
-const crockford = (text: string) => text.replace(/O/g, '0').replace(/[IL]/g, '1');
 
 /** Groups of five, e.g. "7F3K9-2QDXW-D9EAJ-DWRAG-4M": secret, service, id, check characters. */
 export function formatCode(code: MoveCode) {
@@ -60,15 +37,6 @@ export function parseCode(input: string): MoveCode | 'typo' | null {
   if (provider === 'C' && id.length === 6) return { secret, provider, id };
   return 'typo';
 }
-
-function toBase64(bytes: Uint8Array) {
-  let text = '';
-  for (let i = 0; i < bytes.length; i += 0x8000)
-    text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(text);
-}
-
-const fromBase64 = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
 
 async function keyFrom(secret: string, salt: Uint8Array) {
   const base = await crypto.subtle.importKey(
@@ -124,7 +92,7 @@ export const cloud = isTauri()
       /** Encrypts and stores all settings (content: the web part); resolves to the move code. */
       async backup(content: string): Promise<MoveCode> {
         const full = await invoke<string>('settings_complete', { content });
-        const secret = randomSecret();
+        const secret = randomSecret(SECRET_LENGTH);
         const stored = await invoke<{ provider: Provider; id: string }>('cloud_upload', {
           text: await encrypt(full, secret),
         });

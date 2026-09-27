@@ -32,6 +32,11 @@ export type PopoutItem =
   | MixItem
   /** Sample from the settings, to see the chosen place and look. */
   | { kind: 'test'; id: number }
+  /**
+   * Live preview while popout settings change: a sample track or notice, updated in place (same
+   * id) with every change; `stamp` restarts its time.
+   */
+  | { kind: 'preview'; id: number; topic: 'music' | 'notice'; stamp: number }
   /** A short note, e.g. that nothing plays. */
   | { kind: 'info'; id: number; title: string; detail: string }
   | {
@@ -116,14 +121,33 @@ export const onPopoutUpdate = (handler: (item: PopoutItem) => void) =>
   subscribe('flyout-update', handler);
 export const takePendingPopouts = () => invoke<PopoutItem[]>('flyout_pending');
 export const preparePopout = () => invoke<void>('flyout_prepare');
-/** Size of the whole window in CSS pixels; `inset`: transparent edge kept for the own shadow. */
+/**
+ * Size of the whole window in CSS pixels; `inset`: transparent edge kept for the own shadow;
+ * `taskbar`: the card's height to place it in the taskbar (a setting). Resolves to the taskbar's
+ * edge and the end it keeps to, or null if it went to `place` (no taskbar there).
+ */
 export const presentPopout = (
   width: number,
   height: number,
   place: PopoutPlace,
   screen: PopoutScreen,
   inset: number,
-) => invoke<void>('flyout_present', { width, height, place, screen, inset });
+  taskbar: number | null = null,
+) =>
+  invoke<{ edge: 'top' | 'bottom'; side: 'left' | 'right'; light: boolean } | null>(
+    'flyout_present',
+    {
+      width,
+      height,
+      place,
+      screen,
+      inset,
+      taskbar,
+    },
+  );
+/** Shows only this part of the popout window (x, y, width, height in CSS px); null: all of it. */
+export const setPopoutRegion = (rect: [number, number, number, number] | null) =>
+  invoke<void>('flyout_region', { rect });
 export const hidePopout = () => invoke<void>('flyout_hide');
 export const popoutDone = (kind: PopoutItem['kind'], id: number) =>
   invoke<void>('flyout_done', { kind, id });

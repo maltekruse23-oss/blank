@@ -1,5 +1,6 @@
+import { Reveal } from '../../components/Reveal';
 import { useState } from 'react';
-import { Radio, SlidersHorizontal } from 'lucide-react';
+import { Radio, SlidersHorizontal, Users } from 'lucide-react';
 import { ChannelAvatar } from '../../components/ui';
 import { ChannelLink } from './ChannelLink';
 import { RefreshButton } from './RefreshButton';
@@ -7,10 +8,40 @@ import { StreamCard } from './StreamCard';
 import { TwitchAccountCard } from './TwitchAccountCard';
 import type { TwitchData } from './useTwitch';
 import { WatchlistPanel } from './WatchlistPanel';
+import { WatchPanel } from './WatchPanel';
+import type { WatchData } from './useWatch';
 
-export function TwitchPage({ twitch }: { twitch: TwitchData }) {
+export function TwitchPage({
+  twitch,
+  watch,
+  watchName,
+}: {
+  twitch: TwitchData;
+  /** Watch together; null in the browser preview. */
+  watch: WatchData | null;
+  watchName: string;
+}) {
   const [onlyLive, setOnlyLive] = useState(false);
   const [managing, setManaging] = useState(false);
+  // In a room, its panel is open when the page opens.
+  const [watching, setWatching] = useState(!!watch?.room);
+  const watchButton = watch && (
+    <button
+      className={`filter-button ${watching || watch.room ? 'selected' : ''}`}
+      aria-expanded={watching}
+      aria-controls="watch"
+      title="Mit Freunden gleichzeitig schauen"
+      onClick={() => setWatching(!watching)}
+    >
+      <Users size={16} /> Zusammen
+      {watch.room && <span>{watch.members.length + 1}</span>}
+    </button>
+  );
+  const watchPanel = watch && (
+    <Reveal show={watching}>
+      <WatchPanel watch={watch} twitch={twitch} name={watchName} />
+    </Reveal>
+  );
   const { entries, streams, loaded } = twitch;
   const mock = twitch.adapter.source === 'mock' ? ' · Mock' : '';
   // Channels that are live with a game outside their rule stay hidden.
@@ -23,11 +54,19 @@ export function TwitchPage({ twitch }: { twitch: TwitchData }) {
     )
     .sort((a, b) => b.stream.viewers - a.stream.viewers);
   const rest = filtered.filter((e) => e.status.kind !== 'live');
+  // Friends without their own Twitch setup can still join a room.
   if (twitch.needsLogin || (twitch.accountFailed && !twitch.account))
-    return <TwitchAccountCard twitch={twitch} />;
+    return (
+      <>
+        {watch && <div className="toolbar">{watchButton}</div>}
+        {watchPanel}
+        <TwitchAccountCard twitch={twitch} />
+      </>
+    );
   return (
     <>
       <div className="toolbar">
+        {watchButton}
         <button
           className={`filter-button ${onlyLive ? 'selected' : ''}`}
           aria-pressed={onlyLive}
@@ -45,7 +84,10 @@ export function TwitchPage({ twitch }: { twitch: TwitchData }) {
         </button>
         <RefreshButton data={twitch} result={twitch.streams} />
       </div>
-      {managing && <WatchlistPanel twitch={twitch} />}
+      {watchPanel}
+      <Reveal show={managing}>
+        <WatchlistPanel twitch={twitch} />
+      </Reveal>
       {streams.status === 'ready' && streams.staleBecause && (
         <div className="notice" role="status">
           Aktualisierung fehlgeschlagen · Stand{' '}
@@ -72,9 +114,22 @@ export function TwitchPage({ twitch }: { twitch: TwitchData }) {
               stream={stream}
               subtitle={stream.game.name}
               previewStamp={twitch.previewStamp}
+              action={
+                watch?.room
+                  ? {
+                      label: `${channel.displayName} für alle einschalten`,
+                      run: () => watch.switchTo(channel.login, channel.displayName),
+                    }
+                  : undefined
+              }
             />
           ))}
         </div>
+      )}
+      {streams.status === 'ready' && !onlyLive && live.length === 0 && rest.length > 0 && (
+        <p className="section-note twitch-none-live" role="status">
+          Gerade ist keiner deiner Kanäle live.
+        </p>
       )}
       {rest.length > 0 && (
         <section className="offline-section" aria-label="Offline">

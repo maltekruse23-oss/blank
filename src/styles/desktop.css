@@ -2,7 +2,6 @@
    and zooms the content with the window (src-tauri/src/window_aspect.rs), so this layout is
    what every window size shows. Overview pages fill the canvas exactly; lists scroll. */
 .app {
-  --gap: 12px;
   background: radial-gradient(90% 55% at 0% 100%, var(--glow) 0%, transparent 62%), var(--bg);
 }
 /* Sidebar on the dark frame: sections with small captions, profile block at the bottom. */
@@ -49,7 +48,7 @@
   padding: 9px 10px;
   gap: 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: calc(8px * var(--radius-scale));
   font-size: 12.5px;
 }
 .nav-item:hover {
@@ -58,21 +57,12 @@
   color: var(--text);
 }
 .nav-item.current {
-  background: var(--surface);
+  /* The gliding highlight (.nav-current) paints the background. */
+  background: transparent;
   color: var(--text);
 }
 .nav-item.current svg {
   color: var(--accent);
-}
-.nav-item.current::before {
-  content: '';
-  position: absolute;
-  left: -10px;
-  top: 8px;
-  bottom: 8px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--accent);
 }
 .sidebar-footer {
   display: flex;
@@ -85,7 +75,7 @@
   gap: 9px;
   padding: 7px 8px;
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: calc(10px * var(--radius-scale));
   background: color-mix(in srgb, var(--panel) 80%, transparent);
   text-align: left;
 }
@@ -96,7 +86,7 @@
 .sidebar-account .avatar {
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: calc(8px * var(--radius-scale));
   font-size: 10px;
 }
 .sidebar-account-text {
@@ -182,7 +172,7 @@ main {
   overflow: hidden;
   background: var(--panel);
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: calc(14px * var(--radius-scale));
 }
 .scroll-area {
   flex: 1;
@@ -194,6 +184,16 @@ main {
 main {
   flex: 1 0 auto;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* The page inside main (it enters on page changes) passes the column layout on. main clips what an
+   entering page moves beyond it, so a page that just fits never shows a scrollbar while it moves. */
+main {
+  overflow: clip;
+}
+.page {
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
 }
@@ -214,7 +214,7 @@ main {
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 7px;
+  border-radius: calc(7px * var(--radius-scale));
   background: transparent;
   color: var(--muted);
 }
@@ -242,7 +242,7 @@ main {
   background: var(--scrollbar);
   background-clip: padding-box;
   border: 3px solid transparent;
-  border-radius: 10px;
+  border-radius: calc(10px * var(--radius-scale));
 }
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--scrollbar-hover);
@@ -258,7 +258,7 @@ main {
   width: 30px;
   height: 30px;
   border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--bg));
-  border-radius: 8px;
+  border-radius: calc(8px * var(--radius-scale));
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -288,11 +288,10 @@ main {
   padding: 10px 10px 10px 12px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  border-radius: 10px;
+  border-radius: calc(10px * var(--radius-scale));
   background: var(--surface);
-  box-shadow: 0 10px 28px var(--shadow);
+  box-shadow: var(--shadow-floating);
   pointer-events: auto;
-  animation: toast-in 0.2s ease-out;
 }
 .toast:has(.channel-link:hover) {
   border-color: var(--accent-line);
@@ -301,7 +300,7 @@ main {
 .toast .avatar {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: calc(8px * var(--radius-scale));
   font-size: 10px;
 }
 .toast-text {
@@ -328,7 +327,7 @@ main {
   place-items: center;
   padding: 3px;
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(5px * var(--radius-scale));
   background: none;
   color: var(--muted);
 }
@@ -336,12 +335,6 @@ main {
   filter: none;
   background: var(--surface-hover);
   color: var(--text);
-}
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
 }
 /* Empty states: icon in a small framed tile, bold title, muted text. */
 .empty-state {
@@ -353,7 +346,7 @@ main {
   height: 18px;
   padding: 9px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: calc(9px * var(--radius-scale));
   background: var(--surface);
   color: var(--text);
 }
@@ -363,8 +356,8 @@ main {
   color: var(--text);
 }
 .card {
-  padding: 16px;
-  border-radius: 12px;
+  padding: var(--space-card);
+  border-radius: var(--radius-card);
 }
 .card.stream-card {
   padding: 0;
@@ -376,7 +369,7 @@ h2 {
   font-size: 14px;
 }
 .list-row {
-  padding: 9px 0;
+  padding: var(--space-row) 0;
 }
 .dashboard-grid,
 .device-grid,
@@ -403,8 +396,8 @@ h2 {
 }
 .metric-icon {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: var(--space-card);
+  right: var(--space-card);
   width: 22px;
   height: 22px;
 }
@@ -463,7 +456,8 @@ h2 {
   margin-right: 4px;
 }
 .setting-row {
-  padding: 13px 0;
+  /* 13 px at normal density; settings scroll, so here "Luftig" has room. */
+  padding: calc(var(--space-row) + 4px) 0;
 }
 @media (max-width: 780px) {
   .sidebar {
@@ -480,7 +474,7 @@ h2 {
   .nav-item {
     padding: 12px 8px;
   }
-  .nav-item.current::before {
+  .nav-current::before {
     left: -6px;
   }
   .sidebar-caption,
@@ -517,7 +511,7 @@ h2 {
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: calc(9px * var(--radius-scale));
   background: var(--accent-soft);
   color: var(--danger-text);
 }
@@ -537,7 +531,7 @@ h2 {
   margin-top: 6px;
   padding: 4px 9px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: calc(7px * var(--radius-scale));
   background: var(--surface-hover);
   color: var(--text);
   font-size: 11px;
@@ -636,7 +630,7 @@ h2 {
   margin-top: 12px;
   padding: 12px 14px;
   border: 1px solid var(--accent-line);
-  border-radius: 10px;
+  border-radius: calc(10px * var(--radius-scale));
   background: var(--accent-soft);
   font-size: 12px;
 }
@@ -659,7 +653,7 @@ h2 {
   gap: 5px;
   padding: 4px 9px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: calc(7px * var(--radius-scale));
   background: var(--surface-hover);
   color: var(--text);
   font-size: 11px;
@@ -671,10 +665,6 @@ h2 {
 .ram-clean:disabled {
   opacity: 0.7;
   cursor: default;
-}
-/* Short line next to the page title: only the "Arena" and "HUD" designs show it. */
-.page-tagline {
-  display: none;
 }
 /* Category colours of the PC metric icons (tokens; all accent in the classic design). */
 .metric-icon.tone-1 {
@@ -689,86 +679,6 @@ h2 {
 .metric-icon.tone-4 {
   color: var(--tone-4);
 }
-/* Settings → Design: one choice per design with a small preview in its colours and layout
-   (sidebar, tabs at the top or dock at the bottom). */
-.setting-row > .design-picker {
-  flex: none;
-  display: flex;
-  gap: 8px;
-}
-.design-choice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 6px 5px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 10px;
-}
-.design-choice[aria-pressed='true'] {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
-  color: var(--text);
-}
-.design-mini {
-  position: relative;
-  display: block;
-  width: 58px;
-  height: 36px;
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--bg);
-}
-.design-mini i {
-  position: absolute;
-  left: 5px;
-  top: 7px;
-  width: 11px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--accent);
-  box-shadow:
-    0 7px 0 var(--subtle),
-    0 14px 0 var(--subtle);
-}
-.design-mini b {
-  position: absolute;
-  left: 20px;
-  top: 4px;
-  right: 4px;
-  bottom: 4px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: var(--panel);
-}
-.design-mini b::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 5px;
-  width: 16px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--text);
-}
-.design-mini b::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  bottom: 4px;
-  height: 11px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--surface);
-}
-.theme-swatch:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
 /* "Update" in the title bar when a newer version is on GitHub. */
 .update-chip {
   display: inline-flex;
@@ -776,7 +686,7 @@ h2 {
   gap: 5px;
   padding: 3px 8px;
   border: 1px solid var(--accent-line);
-  border-radius: 6px;
+  border-radius: calc(6px * var(--radius-scale));
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 10px;
@@ -785,50 +695,6 @@ h2 {
 .update-chip:hover {
   filter: none;
   background: color-mix(in srgb, var(--accent) 22%, var(--surface));
-}
-[data-design-preview='clear'] i,
-[data-design-preview='bento'] i {
-  left: 4px;
-  right: 4px;
-  width: auto;
-  height: 4px;
-  box-shadow: none;
-}
-[data-design-preview='clear'] i {
-  top: 4px;
-  background: linear-gradient(90deg, var(--text) 0 12px, transparent 12px 15px, var(--subtle) 15px);
-}
-[data-design-preview='clear'] b,
-[data-design-preview='bento'] b {
-  left: 4px;
-  top: 11px;
-  border: 0;
-  background: transparent;
-}
-[data-design-preview='bento'] i {
-  top: auto;
-  bottom: 3px;
-  left: 14px;
-  right: 14px;
-  border: 1px solid var(--ink);
-  background: var(--surface);
-}
-[data-design-preview='bento'] b {
-  top: 4px;
-  bottom: 11px;
-}
-[data-design-preview='bento'] b::after {
-  border: 1px solid var(--ink);
-  background: var(--tone-1);
-}
-[data-design-preview='hud'] b,
-[data-design-preview='hud'] b::before,
-[data-design-preview='hud'] b::after,
-[data-design-preview='hud'] i {
-  border-radius: 0;
-}
-[data-design-preview='hud'] b::after {
-  border-color: var(--accent-line);
 }
 /* Apps (reset helper): lists scroll; the install button sits under the chosen programs. */
 .apps-layout {
@@ -901,7 +767,7 @@ h2 {
 .move-code {
   padding: 8px 12px;
   border: 1px solid var(--accent-line);
-  border-radius: 8px;
+  border-radius: calc(8px * var(--radius-scale));
   background: var(--accent-soft);
   color: var(--text);
   font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
@@ -924,9 +790,9 @@ h2 {
   width: 420px;
   padding: 22px;
   border: 1px solid var(--accent-line);
-  border-radius: 14px;
+  border-radius: calc(14px * var(--radius-scale));
   background: var(--surface);
-  box-shadow: 0 14px 40px var(--shadow);
+  box-shadow: var(--shadow-overlay);
 }
 .restore-card form {
   display: flex;
@@ -952,13 +818,6 @@ h2 {
   letter-spacing: 1px;
 }
 
-/* More than five designs: keep the picker compact inside the fixed 860 px canvas. */
-.setting-row > .design-picker {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  max-width: 390px;
-}
-
 /* Popout position (Settings): a small screen with six places, like where popouts appear. */
 .setting-row > .place-picker {
   display: grid;
@@ -968,14 +827,14 @@ h2 {
   gap: 2px;
   padding: 4px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: calc(8px * var(--radius-scale));
   background: var(--bg);
 }
 .place-choice {
   display: flex;
   padding: 3px;
   border: 0;
-  border-radius: 4px;
+  border-radius: calc(4px * var(--radius-scale));
   background: none;
 }
 .place-choice:nth-child(-n + 3) {
@@ -996,7 +855,7 @@ h2 {
 .place-choice span {
   width: 12px;
   height: 5px;
-  border-radius: 2px;
+  border-radius: calc(2px * var(--radius-scale));
   background: var(--subtle);
 }
 .place-choice:hover:not(:disabled) {
@@ -1083,4 +942,525 @@ h2 {
   display: flex;
   flex: none;
   gap: 4px;
+}
+/* Watch together (features/twitch/WatchPanel.tsx): code, who is there, what runs. */
+.watch-join {
+  margin-top: 10px;
+}
+.watch-room-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.room-code {
+  margin-right: 4px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+.watch-leave {
+  margin-left: auto;
+}
+.watch-members {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0;
+}
+.watch-members .chip {
+  padding: 3px 8px;
+}
+.watch-members small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.watch-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 11px 0;
+  margin-bottom: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.watch-now .row-copy {
+  flex: 1;
+  min-width: 160px;
+}
+/* Settings in sections (SettingsPage) and the four parts of Popouts: one row of choices. */
+.settings-tabs,
+.settings-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.settings-parts {
+  margin-bottom: 4px;
+}
+/* Slimmer than other buttons, so all seven fit in one row. */
+.settings-tabs {
+  gap: 5px;
+}
+.settings-tabs .filter-button {
+  padding: 8px 11px;
+}
+/* "Mehr Einstellungen (n)": rarely used rows, folded (More.tsx). */
+.more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+.more-toggle:hover {
+  filter: none;
+  color: var(--text);
+}
+.more-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.setting-input {
+  max-width: 220px;
+}
+.setting-input input {
+  padding: 9px 0;
+}
+/* Home and Twitch: none of the own channels live – a short line (Home: then the biggest live pros). */
+.home-none-live {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--muted);
+}
+.home-pros-title {
+  display: block;
+  margin-bottom: 2px;
+}
+.twitch-none-live {
+  margin: 0 0 14px;
+}
+/* Watch together: the last room, offered to join again. */
+.watch-last {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.watch-last .row-copy {
+  flex: 1;
+}
+.watch-last small {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+/* Settings → Darstellung (features/settings/LookCard.tsx). Rows with many choices may wrap. */
+.setting-row-wide {
+  flex-wrap: wrap;
+}
+.setting-row-wide > .segment-picker {
+  max-width: 100%;
+}
+.preset-own {
+  display: inline-flex;
+}
+.preset-own .filter-button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.preset-own .filter-button + .filter-button {
+  padding-inline: 7px;
+  border-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.segment-picker .preset-add {
+  gap: 5px;
+}
+.setting-undo {
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  border: 0;
+  border-radius: calc(6px * var(--radius-scale));
+  background: none;
+  color: var(--muted);
+}
+.setting-undo:hover {
+  filter: none;
+  color: var(--text);
+  background: var(--surface-hover);
+}
+/* Accent swatches show their own colour through the same variables as the scheme swatches. */
+.accent-swatch,
+.accent-custom[data-on='true'] {
+  --accent: var(--swatch);
+  --accent-soft: color-mix(in srgb, var(--swatch) 18%, var(--surface));
+}
+.accent-custom {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--muted);
+  cursor: pointer;
+}
+.accent-custom[data-on='false'] {
+  border: 1px dashed var(--muted);
+  background: none;
+}
+.accent-custom[data-on='true'] {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px var(--accent);
+}
+.accent-custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.accent-custom:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+/*
+ * Motion (design system, src/design; user's wish: bold, can be switched off). Motion (the library)
+ * moves pages, tabs, highlights, panels, notices and the dialog with springs (App.tsx,
+ * components/TabMotion.tsx, components/Reveal.tsx, LiveToasts.tsx); CSS does what needs no script,
+ * with the bouncy spring as easing (--ease-spring over --motion-spring). html[data-motion='off']
+ * stops all of it.
+ */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes app-in {
+  from {
+    opacity: 0;
+    transform: scale(calc(1 - 0.015 * var(--motion-travel)));
+  }
+}
+@keyframes app-out {
+  to {
+    opacity: 0;
+    transform: scale(calc(1 - 0.015 * var(--motion-travel)));
+  }
+}
+.app.enter {
+  animation: app-in var(--motion-normal) var(--ease-enter) both;
+}
+.app.leave {
+  animation: app-out var(--motion-fast) var(--ease-exit) both;
+}
+/* A page or tab that leaves is taken out of the flow meanwhile (popLayout): place it here. */
+main,
+.settings-layout,
+.card {
+  position: relative;
+}
+.settings-layout > .tab-enter {
+  display: grid;
+  gap: var(--gap);
+}
+
+/* The first cards of a page spring in one after another (App.tsx sets data-stagger and --i). */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(18px * var(--motion-travel)))
+      scale(calc(1 - 0.04 * var(--motion-travel)));
+  }
+}
+.page .card[data-stagger] {
+  animation: card-in var(--motion-spring) var(--ease-spring) backwards;
+  animation-delay: calc(60ms + var(--i, 0) * 45ms);
+}
+
+/* The highlight of the chosen navigation entry glides between entries (layoutId in App.tsx). */
+.nav-item {
+  isolation: isolate;
+}
+.nav-current {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--surface);
+}
+.nav-current::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 calc(3px * var(--radius-scale)) calc(3px * var(--radius-scale)) 0;
+  background: var(--accent);
+}
+
+/* Tabs: the frame of the chosen tab glides to the next one (components/TabMotion.tsx). */
+.settings-tabs .filter-button,
+.settings-parts .filter-button {
+  position: relative;
+  isolation: isolate;
+}
+.settings-tabs .filter-button.selected,
+.settings-parts .filter-button.selected {
+  border-color: var(--border);
+}
+.tab-pill {
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border: 1px solid var(--accent);
+  border-radius: inherit;
+  background: var(--accent-soft);
+}
+.filter-button .tab-label {
+  font-size: inherit;
+}
+
+/* Opening below a button (components/Reveal.tsx animates the height). */
+.reveal {
+  overflow: hidden;
+}
+.game-picker-reveal {
+  flex-basis: 100%;
+}
+
+/* Overview and stream cards lean towards the mouse and a soft light follows it (useTilt.ts). */
+.dashboard-grid > .card,
+.device-grid > .card,
+.pc-grid > .card,
+.stream-card {
+  transition:
+    transform var(--motion-spring) var(--ease-spring),
+    box-shadow var(--motion-normal) ease;
+}
+.dashboard-grid > .card::after,
+.device-grid > .card::after,
+.pc-grid > .card::after,
+.stream-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--accent) 14%, transparent),
+    transparent 65%
+  );
+  transition: opacity var(--motion-normal) ease;
+}
+.tilting {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-3px);
+  box-shadow: var(--shadow-floating);
+}
+.dashboard-grid > .card.tilting,
+.device-grid > .card.tilting,
+.pc-grid > .card.tilting,
+.stream-card.tilting {
+  transition:
+    transform 90ms linear,
+    box-shadow var(--motion-normal) ease;
+}
+.tilting::after {
+  opacity: 1;
+}
+
+/* Bars grow in with a spring and follow new values the same way. */
+@keyframes meter-in {
+  from {
+    width: 0;
+  }
+}
+.meter > span {
+  transition: width var(--motion-spring) var(--ease-spring);
+  animation: meter-in var(--motion-spring) var(--ease-spring) 120ms backwards;
+}
+
+/* Buttons give way a little under the click and spring back. */
+:is(
+  .filter-button,
+  .primary-button,
+  .secondary-button,
+  .icon-button,
+  .nav-item,
+  .window-button,
+  .game-add,
+  .theme-swatch,
+  .place-choice,
+  .more-toggle,
+  .setting-undo
+) {
+  transition:
+    transform 260ms var(--ease-spring),
+    background calc(var(--motion-normal) * 0.8),
+    border-color calc(var(--motion-normal) * 0.8),
+    color calc(var(--motion-normal) * 0.8);
+}
+:is(
+    .filter-button,
+    .primary-button,
+    .secondary-button,
+    .icon-button,
+    .nav-item,
+    .window-button,
+    .game-add,
+    .theme-swatch,
+    .place-choice,
+    .more-toggle,
+    .setting-undo
+  ):active:not(:disabled) {
+  transform: scale(0.95);
+  transition-duration: 70ms;
+}
+
+/* The switch knob springs over and stretches while pressed. */
+.switch > span {
+  transition:
+    transform var(--motion-spring) var(--ease-spring),
+    width 160ms var(--ease-standard),
+    background calc(var(--motion-normal) * 0.8);
+}
+.switch:active:not(:disabled) > span {
+  width: 19px;
+}
+.switch[aria-checked='true']:active:not(:disabled) > span {
+  transform: translateX(10px);
+}
+
+/* The dialog blurs what lies behind it. */
+.restore-dialog {
+  backdrop-filter: blur(6px);
+}
+/* Start screen (app/StartScreen.tsx): above everything while blank. starts; colours from tokens. */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background:
+    radial-gradient(
+      55% 45% at 50% 46%,
+      color-mix(in srgb, var(--accent) 13%, transparent) 0%,
+      transparent 70%
+    ),
+    var(--bg);
+}
+.start-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      color-mix(in srgb, var(--text) 10%, transparent) 1px,
+      transparent 1.6px
+    )
+    0 0 / 22px 22px;
+  mask-image: radial-gradient(60% 55% at 50% 47%, #000 0%, transparent 100%);
+}
+.start-screen canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* The dot opens like a portal: a growing hole shows the app underneath. */
+.start-screen.opening {
+  mask-image: radial-gradient(
+    circle at var(--hx) var(--hy),
+    transparent var(--hole, 0px),
+    #000 calc(var(--hole, 0px) + 1px)
+  );
+}
+.start-status {
+  position: absolute;
+  top: var(--status-top, 62%);
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  transform: translateX(-50%);
+  animation: fade-in 400ms ease-out both;
+  animation-delay: var(--status-delay, 0ms);
+}
+.start-bar {
+  width: 180px;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+.start-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 300ms ease-out;
+}
+.start-sources {
+  display: flex;
+  gap: 14px;
+  color: var(--subtle);
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+.start-sources > span::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+.start-sources > [data-ready='true'] {
+  color: var(--text);
+}
+.start-sources > [data-ready='true']::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.start-screen.opening .start-status {
+  opacity: 0;
+  transition: opacity 150ms;
+}
+/* What is new (app/PatchNotes.tsx): the dialog of the move code, a little wider, with a list. */
+.restore-card.patch-notes {
+  width: 520px;
+}
+.patch-notes ul {
+  display: grid;
+  gap: 8px;
+  max-height: 340px;
+  margin: 4px 0 0;
+  padding-left: 18px;
+  overflow-y: auto;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.patch-notes li b {
+  color: var(--text);
+}
+.patch-notes .primary-button {
+  align-self: flex-end;
+  margin-top: 8px;
 }

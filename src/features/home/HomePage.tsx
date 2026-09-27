@@ -1,14 +1,18 @@
+import { Ticker } from '../../components/Ticker';
 import { Card, ChannelAvatar, DeviceIcon, Meter } from '../../components/ui';
 import { pcMetrics } from '../pc/PcPage';
 import type { PcState } from '../pc/usePcStatus';
 import { batteryText, LOW_BATTERY } from '../devices/DevicesPage';
 import type { Batteries } from '../devices/useBatteries';
 import type { Page } from '../../app/App';
+import { usePros } from '../pros/usePros';
 import { ChannelLink } from '../twitch/ChannelLink';
 import type { TwitchData } from '../twitch/useTwitch';
 
 /** Live channels listed on Home; the Twitch card is two rows high. */
 const LIVE_ROWS = 6;
+/** When none of the own channels is live: the biggest live pros instead. */
+const PRO_ROWS = 3;
 
 export function HomePage({
   navigate,
@@ -26,15 +30,23 @@ export function HomePage({
   const live = twitch.entries.flatMap(({ channel, status }) =>
     status.kind === 'live' ? [{ channel, stream: status.stream }] : [],
   );
+  // None of the own channels live: the card shows live pros instead of staying empty. Asked only
+  // then, and only while Home is open (like the Pros page, once a minute).
+  const noneLive = streams.status === 'ready' && !twitch.needsLogin && live.length === 0;
+  const pros = usePros(twitch.adapter, twitch.adapter.source === 'twitch' && noneLive);
   return (
     <>
       <div className="dashboard-grid">
         <Card title="Twitch Live" action={() => navigate('twitch')} className="home-twitch">
           <div className="card-summary">
             <strong>
-              {streams.status === 'ready' && !twitch.needsLogin
-                ? String(live.length).padStart(2, '0')
-                : '—'}{' '}
+              <Ticker
+                text={
+                  streams.status === 'ready' && !twitch.needsLogin
+                    ? String(live.length).padStart(2, '0')
+                    : '—'
+                }
+              />{' '}
               <span>Streams online</span>
             </strong>
           </div>
@@ -65,6 +77,31 @@ export function HomePage({
           ))}
           {live.length > LIVE_ROWS && (
             <small className="more-note">+{live.length - LIVE_ROWS} weitere live</small>
+          )}
+          {noneLive && (
+            <>
+              <small className="home-none-live">Keiner deiner Kanäle ist live</small>
+              {pros.live.length > 0 && <span className="eyebrow home-pros-title">Pros live</span>}
+              {pros.live.slice(0, PRO_ROWS).map(({ channel, stream, pro }) => (
+                <div className="list-row" key={channel.login}>
+                  <ChannelAvatar login={channel.login} imageUrl={channel.profileImageUrl} />
+                  <div className="row-copy">
+                    <b>{channel.displayName}</b>
+                    <small>
+                      {pro.lane} · {pro.label}
+                    </small>
+                  </div>
+                  <span className="live-dot" title="Live auf Twitch" />
+                  <small>{stream.viewers.toLocaleString('de-DE')}</small>
+                  <ChannelLink twitch={twitch} channel={channel} title={stream.title} />
+                </div>
+              ))}
+              {pros.live.length > PRO_ROWS && (
+                <button className="text-link more-note" onClick={() => navigate('pros')}>
+                  Alle {pros.live.length} Pros live ansehen
+                </button>
+              )}
+            </>
           )}
         </Card>
         <Card title="Dein Setup" action={() => navigate('devices')}>
@@ -104,7 +141,7 @@ export function HomePage({
                 <div key={m.name}>
                   <span>{m.name}</span>
                   <strong>
-                    {m.value ?? '—'}
+                    <Ticker text={m.value ?? '—'} />
                     <small> {m.unit}</small>
                   </strong>
                   {m.percent !== null ? (

@@ -20,9 +20,23 @@ export function usePcStatus(seconds: number): PcState {
     if (!read || seconds === 0) return;
     let active = true;
     let timer: number | undefined;
+    let soon: number | undefined;
+    // Right after the start CPU (two readings) and GPU (its counters open a moment later) may be
+    // missing: ask again every half second until both are there, at most 5 s (a PC without GPU
+    // counters stays at "—"), instead of waiting a whole interval.
+    let retries = 10;
     const tick = () =>
       read(seconds).then(
-        (pc) => active && setState({ status: 'ready', pc }),
+        (pc) => {
+          if (!active) return;
+          setState({ status: 'ready', pc });
+          const missing = pc.sample?.cpuPercent == null || pc.sample?.gpuPercent == null;
+          if (missing && retries > 0) {
+            retries -= 1;
+            window.clearTimeout(soon);
+            soon = window.setTimeout(() => void tick(), 500);
+          }
+        },
         () => active && setState({ status: 'error' }),
       );
     const start = () => {
@@ -39,6 +53,7 @@ export function usePcStatus(seconds: number): PcState {
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       active = false;
+      window.clearTimeout(soon);
       stop();
       document.removeEventListener('visibilitychange', onVisibility);
     };

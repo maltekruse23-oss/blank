@@ -38,6 +38,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      - run: pnpm test
       - name: Rust tests
         working-directory: src-tauri
         run: cargo test --locked

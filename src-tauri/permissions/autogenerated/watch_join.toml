@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-watch-join"
+description = "Enables the watch_join command without any pre-configured scope."
+commands.allow = ["watch_join"]
+
+[[permission]]
+identifier = "deny-watch-join"
+description = "Denies the watch_join command without any pre-configured scope."
+commands.deny = ["watch_join"]

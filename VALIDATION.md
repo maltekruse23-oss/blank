@@ -38,6 +38,144 @@ Prüfen über die GitHub-API (neuestes Release), Installieren nur auf Klick: Dow
 - Deine App danach wieder regulär als 0.2.0 gebaut und gestartet.
 - **Hinweis:** Wer noch v0.1.0 oder v0.2.0 hat, muss die erste Version mit Updater einmal von Hand laden; ab dann geht es per Knopf.
 
+## Neuigkeiten nach einem Update (Benutzerwunsch)
+
+Nach einem Update zeigt blank. einmal „Neu in Version …“ mit dem Abschnitt „Neu in dieser Version“ aus `.github/release-notes.md` (in die App eingebaut, passt immer zur installierten Version, kein Internet). Rust merkt sich den Start mit `--after-update` (`update_news` liefert es genau einmal), die App zeigt den Dialog nach dem Startbildschirm; Settings → System → „Neuigkeiten“ öffnet ihn jederzeit.
+
+- Release-EXE mit `--after-update 0` gestartet (wie nach einem Update): Dialog erscheint über der App, acht Punkte, fett gesetzte Stichworte, „Alles klar“ hat den Fokus. Esc schließt, Klick daneben schließt. Über Settings → System → Neuigkeiten erneut geöffnet: gleiche acht Punkte. Normaler Start ohne `--after-update`: kein Dialog.
+- `pnpm test` 27 (zwei neue: der echte Release-Text liefert mindestens fünf Punkte im Muster „**Stichwort:** Text“, das Auslesen hört beim nächsten Abschnitt auf), `cargo test` 40, `pnpm build`, `pnpm format:check`, `cargo fmt`, `pnpm desktop:build` ohne Warnungen. Einstellungen des Benutzers gesichert und zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+- Hinweis: Den Dialog sieht man zum ersten Mal nach dem Update auf die nächste veröffentlichte Version; die Versionsnummer darin ist die der installierten App.
+
+## Panel über der Taskleiste (Benutzerwunsch)
+
+Rückmeldung: „bleibt da“ (Klick auf die Taskleiste verdeckt das Popout nicht – vom Benutzer geprüft), aber „das Ausklappen sieht nicht passend zur Taskleiste aus“. Jetzt öffnet Musik beim Hovern ein Panel über der Zeile wie die Flyouts von Windows; die Zeile bleibt und wird hervorgehoben.
+
+- Bildschirmaufnahme bei gehaltener Maus: Panel 380 × 162 px, 16 px über der Zeile, dunkel-neutral (Windows dunkel), feiner Rand, runde Ecken, Cover, Titel, Knöpfe und Fortschritt; Zeile darunter hervorgehoben. Nach dem Wegfahren gehört die Fläche darüber wieder dem Desktop (WindowFromPoint: „Program Manager“).
+- Fehler gefunden (mit vorübergehender Mitschrift in der App, danach entfernt): der Umriss wurde beim Hovern richtig freigegeben (`null`, von Windows bestätigt), das Panel blieb auf dem Bildschirm trotzdem unsichtbar, bis der Umriss nach dem Zeichnen noch einmal gesetzt wurde. Jetzt: das ganze Fenster als ausdrückliches Rechteck und ein zweites Setzen zwei Bilder später – Panel sofort sichtbar. (Eine Test-Mitschrift über `__TAURI_INTERNALS__.invoke` griff nicht, weil die Funktion nicht überschreibbar ist; ein Mitlesen per Fenstertitel traf teils ein altes, verstecktes Popout-Fenster.)
+- `cargo test` 40, `pnpm test` 25, `tsc`, `pnpm build`, `pnpm format:check`, `cargo fmt` grün. Einstellungen des Benutzers gesichert und zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## Popouts in der Taskleiste (Benutzerauftrag)
+
+Auftrag: „versuche eine Anordnung der Popups in der Taskleiste, als wären die Popups Teil der Taskleiste“ (mit Bild eines Taskleisten-Players). Einstellung „In der Taskleiste“ (Popouts → Allgemein).
+
+- Nativ auf dem zweiten Bildschirm (Taskleiste unten, 48 px): Karte 300 × 41 px, senkrecht mittig, ohne eigenen Hintergrund – die Taskleiste scheint durch. Erster Versuch links lag auf den Programm-Symbolen, weil die Taskleiste des Benutzers linksbündig ist (`TaskbarAl` = 0); jetzt bei linksbündigen Symbolen am rechten Ende, links neben der Uhr (dort kein lesbarer Infobereich → 100 px frei für die Uhr), bei mittigen am linken Ende. Bildschirmaufnahme: Zeile mit Cover, Titel, Künstler, Zurück/Pause/Weiter zwischen Symbolen und Uhr, Restzeit-Strich darunter.
+- Hover: der volle Player (380 × 162) wächst aus der Taskleiste nach oben, mit Kartenhintergrund; zurück zur Zeile beim Verlassen.
+- Unit-Tests (`cargo test` 40): Taskleiste unten/oben/ausgeblendet/seitlich/zweiter Bildschirm aus Bildschirm und Arbeitsbereich; Karte mittig in der Taskleiste, mit Platz zum Aufklappen, links bzw. 12 px vor dem Infobereich, Taskleiste oben.
+- Nicht automatisch geprüft: dass ein Klick auf die Taskleiste das Popout nicht verdeckt (`EVENT_SYSTEM_FOREGROUND` holt es zurück) – dafür hätte der Test die Taskleiste aktivieren müssen, während der Benutzer spielte. Bitte von Hand prüfen.
+- Kein Visualizer (tanzende Balken): echt bräuchte er eine laufende Auswertung des gesamten Tons, vorgetäuscht wäre er gegen die Regeln.
+- `tsc`, `pnpm build`, `pnpm format:check`, `pnpm test` (25), `cargo fmt` grün. Einstellungen des Benutzers gesichert und zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## Popout-Animationen (Benutzerauftrag)
+
+Auftrag: „mache noch coole Animationen für die Pop-ups“. Umsetzung nach der Insel aus dem Beispiel-Video (`src/styles/popouts.css`, `PopoutWindow.tsx`).
+
+- Nativ mit fünffach verlangsamten Animationen (CDP `Animation.setPlaybackRate`) aufgenommen: Musik-Popout und Meldung erscheinen als kleine Pille an der Unterkante, werden breiter, dann höher und schwingen beim Einrasten leicht über; danach federn Cover bzw. Kanalbild, Titel, Knöpfe und „Live:“ nacheinander herein. Bildschirmaufnahme in Echtzeit (380 Bilder) bestätigt den Ablauf über dem echten Hintergrund.
+- Restzeit-Balken: läuft beim Vorschau-Popout über 6 s ab (`--stay` 6000 ms, gemessen bei 64 %), verschwindet unter der Maus und startet danach mit der kürzeren Restzeit neu.
+- Das Hover-Aufklappen bleibt unverändert (Fenster 400 × 220, Karte 70 → 162 px in 170 ms, zurück aus der Mitte des Zuklappens ohne Sprung).
+- Das Popout-Fenster trägt jetzt `data-motion` (normal/off) nach seiner eigenen Einstellung; die allgemeine Media-Query für reduzierte Bewegung greift dort nicht mehr.
+- `tsc`, `pnpm build`, `pnpm format:check`, `pnpm test` (25) grün. Einstellungen des Benutzers gesichert und zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## Mutige Animationen mit Grafikkarte und Motion (Benutzerauftrag)
+
+Auftrag: „nicht zufrieden mit den Animationen außer der Startanimation“; Grafikkarte und eine Animations-Bibliothek erlaubt („man kann Animationen ja eh ausschalten“). Neu: `motion` 13.4.4 (MIT), `src-tauri/src/gpu.rs`, `components/Reveal.tsx`, `components/Ticker.tsx`, `components/TabMotion.tsx`, `design/useTilt.ts`.
+
+- Grafikkarte folgt „Animationen“: nativ mit Grafikkarte eigener GPU-Prozess, kein `--disable-gpu`; `gpu.json` fehlt → an. Vergleich gleicher Ablauf (7 Seitenwechsel): mit Grafikkarte 220 MB privater Speicher aller Prozesse, 3,0 s CPU-Zeit, Bildzeiten Median 4,2 ms / p95 4,3 ms (volle 240 Hz; beim ersten Durchlauf einzelne Hänger bis 92 ms beim Aufbau schwerer Seiten, im zweiten p99 4,3 ms, schlechtestes 21 ms); ohne Grafikkarte 177 MB, 4,7 s CPU-Zeit, p95 8,3 ms (oft nur jedes zweite Bild). In Ruhe kaum Unterschied (0,22 s bzw. 0,19 s CPU in 5 s).
+- Neustart: Settings → Darstellung zeigt „Grafikkarte: wird beim nächsten Start eingeschaltet“ + „Jetzt neu starten“, wenn Wahl und laufender Stand abweichen; Klick → alte Instanz beendet, genau eine neue, danach `active: true`.
+- Chrome ohne Fenster: Seitenwechsel lassen genau eine Seite zurück, „Kanäle“ klappt auf 351 px auf und vollständig zu, keine Fehler; Bildfolgen zeigen Seite aus Unschärfe, gleitendes Feld in Seitenleiste und Reitern. Nativ: PC-Seite mit gestaffelt federnden Karten, hochzählenden Werten, Karte neigt sich unter der Maus.
+- Stilvergleich (in Ruhe, 1,4 s nach dem Wechsel): Home, Twitch, Pros bis auf den Menüeintrag unverändert (sein Hintergrund liegt jetzt im gleitenden Feld, sichtbar gleich). Gefunden und behoben: eine alte Regel `.nav-item.current` in `app.css` schimmerte durch; die Regel `.card-summary strong span` verkleinerte die Zahl „Streams online“ (Zahlen jetzt als `<data>`).
+- Die ausgeblendete Browser-Vorschau zeichnet nicht (`requestAnimationFrame` steht) – dort hängen Motion-Animationen; geprüft wird im Chrome ohne Fenster und nativ.
+- `cargo fmt`, `cargo test` 38 grün (neu: strenges Lesen von `gpu.json`), `tsc`, `pnpm build`, `pnpm format:check`, `pnpm test` (25) grün. Einstellungen des Benutzers gesichert und zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## Startbildschirm, Animationen nur an/aus, Popout-Wackeln behoben (Benutzeraufträge)
+
+Aufträge: „einen coolen Loading Screen beim Start, er kann sehr, sehr, sehr ausgefallen sein“ (statt des GPU-Schalters, der nicht begonnen war); „lösche die mehreren Einstellungen bei den Animationen, nur an oder aus“; „beim Hovern über das Popout … buggt der Text manchmal unter das Popout, es wackelt hin und her“.
+
+- Startbildschirm (`src/app/StartScreen.tsx`): im Browser als Bildfolge aufgenommen (Wirbel → Schriftzug aus Partikeln → Punkt mit Druckwelle und Funken → Schimmer → Wort zerstiebt, Portal öffnet die App). Nativ bei 240 Hz: 229 Bilder/s, Median 4,2 ms, schlechtestes Bild 8 ms, keines über 20 ms; CPU in den 2,3 s etwa ein Kern (nur beim Start). Ladestand echt: Twitch, PC, Geräte melden „fertig“ aus ihren Zuständen. Klick und Taste überspringen (Portal nach 0,65 s). Mit Animationen aus: kein Startbildschirm, „Ansehen“ ausgegraut.
+- Animationen: nur noch ein Schalter. Die gespeicherte Stufe des Benutzers („Kräftig“) und alle anderen früheren Stufen werden als „an“ gelesen (Test); „Sparsam“ schaltet Animationen jetzt aus, „Schlicht“ ändert sie nicht mehr. Tempo, Stufen und Vorschau-Zeile entfernt.
+- Popout-Wackeln, Ursache mit echter Bildschirmaufnahme gefunden (Bildschirmbereich alle ~6 ms, 611 Bilder): (1) beim Aufklappen wurde das Fenster nach oben vergrößert und Windows zeigte ein Bild lang den alten Inhalt oben – die Karte sprang ~80 px hoch und zurück; (2) während des Übergangs hing der Inhalt an der Oberkante der Karte und rutschte mit (beim Zuklappen nach unten, beim Aufklappen kam er unter der Kante hervor). Behebung: Fenster mit Platz zum Aufklappen und Fensterumriss nur um die Karte (`flyout_region`), Inhalt während des Übergangs an der Bildschirmkante. Danach (620 Bilder): kein Sprungbild mehr, Unterkante der Karte die ganze Zeit exakt gleich, Oberkante gleichmäßig; Fenster bleibt 400 × 220 beim Auf- und Zuklappen; über der kompakten Karte bekommt das Fenster dahinter die Maus (WindowFromPoint), auf der Karte das Popout.
+- `cargo fmt` (zwei ältere Stellen nachformatiert), `cargo test` 37 grün, `tsc`, `pnpm build`, `pnpm format:check`, `pnpm test` (25) grün. Neues Windows-Feature `Win32_Graphics_Gdi` der vorhandenen `windows-sys` (keine neue Abhängigkeit); neuer Befehl nur in `build.rs` und `capabilities/flyout.json`. Einstellungen des Benutzers vor jedem Test gesichert, danach per Base64 zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## Animationen nach den Video-Vorlagen (Benutzerauftrag)
+
+Auftrag: „ja“ zur Etappe Animationen (Seitenwechsel mit Ursprung, fließendes Aufklappen des Musik-Popouts, weiches Minimieren). Liste der Bewegungen in `src/design/README.md`.
+
+- Popout nativ, jedes Bild gemessen (240 Hz, Vorschau-Popout mit den Einstellungen des Benutzers, kompakt): Maus drauf → Umschalten nach 9 ms, Fenster groß nach 16 ms, Karte 70 → 162 px (50 % nach ~40 ms, 90 % nach ~90 ms, fertig nach 170 ms). Maus weg → 250 ms Pause (wie bisher), Karte schrumpft in ~160 ms, Fenster danach klein (445 ms). Maus zurück während des Zuklappens (bei 102 px) → wächst von dort weiter, kein Sprung. Bilder mitten im Morph (verlangsamt aufgenommen): Karte wächst aus der unteren Kante, neuer Inhalt blendet ein.
+- Fenster nativ (Ereignisprotokoll): Minimieren-Knopf → `app-out` 119 ms, dann versteckt (134 ms); zweiter Start holt die App → sichtbar, `app-in` startet 11 ms später, 195 ms. Ohne Sichtbarwerden käme der Inhalt nach 1,5 s von selbst zurück.
+- Seitenwechsel nativ (Animationen „Normal“, jedes Bild): keine Scrollleiste durch die Bewegung (`main` mit `overflow: clip`). Ein einzelnes Bild mit Scrollleiste beim Wechsel Home → PC gibt es auch mit Animationen „Aus“ – kommt vom ersten Aufbau der PC-Seite, war schon vorher so (4 ms).
+- Fehler gefunden: `desktop.css` setzte `--gap` auf `.app` fest auf 12 px, der Kartenabstand der Dichte wirkte nie (die Messung „Luftig 24/17/12“ oben galt deshalb nur für die Karten). Jetzt ist 12 px der Token; Dichte neu gemessen: Kompakt 8/12/6, Normal 12/16/9, Luftig 14/17/12 px (16 px Kartenabstand: PC 4 px zu hoch). Home, Devices, PC, Musik scrollen in keiner Stufe. Settings-Zeilen folgen jetzt auch der Dichte (normal unverändert 13 px).
+- Nur die ersten sechs Karten einer Seite werden gestaffelt eingeblendet; die Pros-Seite (über 200 Karten) animiert nicht jede Karte.
+- Stilvergleich bei normaler Dichte: Home, Twitch und Pros weiterhin ohne Unterschied (auch Kartenhöhen, also Seiten füllen die Fläche wie vorher). Vorschau: alle Seiten ohne Fehler; Seiten, Reiter, Kanäle-Bereich animieren mit der richtigen Richtung.
+- `tsc`, `pnpm build`, `pnpm format:check`, `pnpm test` (25) grün. Einstellungen des Benutzers vorher gesichert, danach per Base64 zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## Design-System, Etappe „Darstellung & Bewegung“ (Benutzerauftrag)
+
+Auftrag: Einstellungen für Darstellung und Bewegung mit Live-Vorschau, Stilen, Akzentfarbe, Rundung, Tempo und Dichte in drei Stufen; dazu die Beispiel-Videos des Benutzers ansehen und Passendes einbauen. Von den sechs Dateien waren drei leer (0 Bytes) und zwei gleich; angesehen: ein Video zu einer Windows-App mit „Dynamic Island“ und Dock, eines zu Windhawk „Windows Animations“. Übernommen: Aufbau der Settings (Gruppen-Überschriften, Zeile mit Titel, kurzer Zeile und Bedienelement, Regler mit Wert), Grundsätze für die nächste Etappe (Bewegung mit Ursprung, Morphen statt Umschalten). Nicht übernommen: dauerhafte Insel-/Dock-Fenster, Animationen fremder Fenster (bräuchte Eingriffe in andere Programme).
+
+- CSS auf Tokens umgestellt: 43 feste Radien → `calc(Npx * var(--radius-scale))` bzw. `var(--radius-card)`, zwei Schatten → `var(--shadow-floating/overlay)`, Dauern → `var(--motion-normal)` (Vielfache für 160 und 250 ms), Wege × `var(--motion-travel)`, Kartenabstände → `--space-card`/`--space-row`; `html[data-motion]` statt `.no-motion`, die Media-Query gilt nur noch ohne `data-motion` (Popout-Fenster). Entfernt: ungenutzter Code einer früheren Startseite (`.hero`, `.orbit`, mit festen Farben) und die alten `.compact`-Regeln.
+- Stilvergleich gegen den Stand vor dem Design-System (48 Zustände): **Home, Twitch und Pros ohne Unterschied** in allen sechs Farbschemata bei normaler Dichte. Unterschiede nur, wo gewollt: Settings → Darstellung ist neu (länger, die Seite scrollt; Breite deshalb 668 → 658 px) und „Kompakt“ ist jetzt wirklich kompakter (Karten 17 → 12 px, Zeilen 9 → 6 px; vorher waren Karten kompakt sogar 1 px größer als normal).
+- Dichte nativ mit echten Daten: Home, Devices und PC scrollen in keiner Stufe. „Luftig“ zuerst mit 20 px in Karten: PC 14 px und Home 2 px zu hoch; ausgemessen (8 Kombinationen) → 24/17/12 px passt überall.
+- `pnpm test`: 25 Tests (neu: Dichte, Rundung, Reduziert/Aus, lesbare Akzentfarbe, Stil wählen, speichern/löschen ohne Änderung des Aussehens, Namen mit Umlauten/doppelt/leer/höchstens 20).
+- Vorschau im Browser: Akzent „Himmel“, Stil „Schlicht“, Rundung 0 → ganze App sofort blau und eckig; „Speichern“ legt „Blau eckig“ an (`base: minimal`, keine eigenen Änderungen mehr), Zurück-Knopf erscheint nur an geänderten Zeilen. Überlappung „Mehr Einstellungen“/„Darstellung zurücksetzen“ gefunden und behoben.
+- `tsc`, `pnpm build`, `pnpm format:check` grün, Release-Build nativ gestartet. Einstellungen des Benutzers vorher gesichert, danach per Base64 zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## Design-System, Etappe „Fundament“ (Benutzerauftrag)
+
+Auftrag: Überarbeitung von Design, Bewegung und Anpassung; Wahl des Benutzers „Fundament zuerst“ (erst Tokens, Themes, Anpassung, Auflösung ohne sichtbare Änderung), GPU-Effekte als Schalter mit Neustart, entfernte Designs weglassen, Fenster fest mit Dichte. Neu: `src/design/` (siehe `src/design/README.md`), Vitest als einzige neue Entwicklungs-Abhängigkeit.
+
+- `pnpm test`: 18 Tests grün – jeder Token hat in allen sechs Farbschemata einen Wert; die Auflösung gleicht `tokens.css` Variable für Variable (über 180 Vergleiche, der Test schlägt fehl, wenn er nichts vergleicht); helle Popout-Farben gleich; Vererbung und Schleifenschutz; Übernahme der früheren Schalter „Kompakte Ansicht“/„Animationen“ und danach nur eine Quelle; ungültige Werte fallen weg, Zahlen werden begrenzt, kaputte Eingaben ergeben die Standardwerte, neuere Versionen werden gelesen; eigene Presets geprüft (höchstens 20); Herkunft je Wert; Zurücksetzen je Kategorie; Bewegungsstufen und Tempo; Export/Import hin und zurück; gespeicherte Einstellungen bleiben beim erneuten Lesen gleich.
+- Keine sichtbare Änderung: berechnete Stile von bis zu 35 Elementarten je Seite (18 Eigenschaften, u. a. Farben, Rahmen, Radius, Schatten, Schrift, Abstände, Größe) auf Home, Twitch, Pros und Settings in allen sechs Farbschemata, normal und kompakt (48 Zustände, 900 Elemente) in Chrome ohne Fenster bei 860 × 640 – vor und nach dem Design-System aufgenommen: **0 Unterschiede**. Gegenprobe: kompakt unterscheidet sich von normal in 4 Elementen, Ozean von Wald im Panel.
+- Nativ (Release-Build): „Kompakte Ansicht“ an → `--gap` 12 px, `data-density="compact"`, gespeichert `overrides: {density: 'compact'}`; „Animationen“ aus → `motionLevel: 'off'`, Klasse `no-motion`, `--motion-normal` 0 ms; nach Neuladen unverändert; beide zurück → `overrides: {}`, `compact: false`, `motion: true`. Die Kopie `settings.json` enthält die Anpassung. Vorschau-Popout erscheint unverändert (Farbschema, Deckkraft). Einstellungen ohne Anpassung (von v0.3.0) werden ohne Änderung übernommen.
+- „Wie Windows“: Umschalten von „Bewegung reduzieren“ (in Chrome nachgestellt) ändert `--motion-normal` sofort 200 → 120 → 200 ms, ohne Neuladen und ohne Abfrage (Ereignis).
+- `tsc`, `pnpm build`, `pnpm format:check` grün; `pnpm test` läuft zusätzlich im Release-Ablauf. Rust unverändert (kein erneutes `cargo test`). Einstellungen des Benutzers vorher gesichert, danach per Base64 zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## Verbesserungen nach dem Rundgang (Benutzerauftrag)
+
+Auftrag: „geh die App nochmal durch und verbessere selbst Sachen, sag vorher, was du ändern willst“. Rundgang über alle acht Seiten mit echten Daten (nur gelesen), zehn Vorschläge; umgesetzt alle außer 5 (Threads-Angabe verschieben) und 7 („Alles mischen“) – Wunsch des Benutzers.
+
+- 1 CPU nach dem Start: vorher bis zu 10 s „—“ (zweite Messung erst nach dem Intervall, und die Grafikkarten-Zähler brauchten beim Öffnen 1–2 s vor der ersten Messung). Jetzt: erste CPU-Zeiten sofort, erste Messung nach 0,25 s, GPU-Zähler danach; die Seite fragt, solange CPU oder GPU fehlen, alle 0,5 s nach (höchstens 5 s). Gemessen in drei Starts: CPU und GPU nach 634–680 ms ab Seitenstart (Zwischenstände 5,2 s → 2,2–2,8 s → 0,74 s). Schnelle Wiederholungen in Rust höchstens 3-mal (sollte Windows keine Zeiten liefern).
+- 2 Popout zuklappen: zusätzlich `mouseleave` des ganzen Popout-Fensters. Zwei Läufe (auf, zu nach 250 ms, wieder auf, ganz raus → zu): richtig.
+- 3 Home ohne Live-Kanäle: „Keiner deiner Kanäle ist live“, darunter Jensen, ismaaalol, DawidSSonek und „Alle 8 Pros live ansehen“.
+- 4 Twitch-Seite: „Gerade ist keiner deiner Kanäle live.“ über den Offline-Kanälen.
+- 6 „Nicht stören“ im Menü des Symbols im Infobereich (Haken, `set_tray_quiet`): Setzen des Hakens aus der App geprüft; den Klick im Windows-Menü selbst konnte der Test nicht auslösen (Menü des Infobereichs) – nicht geprüft.
+- 8 Titelleiste „Im Raum · 1“ → öffnet die Twitch-Seite mit offenem Raum; nach „Verlassen“ weg.
+- 9 Letzter Raum: nach „Verlassen“ zeigt das Panel „Letzter Raum“ mit demselben Code, „Wieder beitreten“ betritt ihn wieder; gespeichert als `watchLastRoom` (strenge Form-Prüfung, mit Export/Import und Online-Sichern).
+- 10 Veraltete Regel „Popouts sind ein eigenes, deckendes Fenster“ in CLAUDE.md berichtigt.
+- `cargo test` 37 grün, `tsc`, `pnpm build`, `pnpm format:check` grün. Einstellungen des Benutzers vorher gesichert, danach per Base64 zeichengleich zurück, `settings.json` zurückkopiert (der Raum-Test hatte Name und Raum-Code gespeichert).
+
+## Nur noch das Design „Klassisch“ (Benutzerwunsch)
+
+Wunsch: „entferne alle Designs außer Klassisch“.
+
+- Entfernt: `arena.css`, `clear.css`, `hud.css`, `bento.css`, `void.css`, `orbit.css`, `axiom.css`, `designs.ts`, ihre Farbblöcke in `tokens.css`, die Design-Auswahl in Settings → Darstellung mit ihren Vorschaubildern, die Kurzzeile neben dem Seitentitel (zeigten nur Arena und HUD) und die Einstellung `design`. CSS der App 85 → 44 KB.
+- Geblieben: die sechs Farbschemata; die hellen Farben von „Klar“ nur noch für die Popout-Farbe „hell“ (`data-popout-look`), sonst hätte diese vom Benutzer gewünschte Wahl (FluentFlyout-Liste) nicht mehr funktioniert.
+- Alte Einstellungen: ein gespeichertes `design: 'hud'` wird ignoriert, das Farbschema (z. B. Ozean) bleibt (in der Vorschau mit den echten Modulen geprüft); Export/Import unverändert (unbekannte Felder werden übergangen).
+- `tsc`, `pnpm build`, `pnpm format:check` grün; keine Reste im Code (Suche nach Design-Namen, `data-design`, `tagline`). Vorschau: Settings → Darstellung zeigt Farbe, kompakte Ansicht, Animationen, Zurücksetzen; Home unverändert. Nativ: Popout-Farbe „hell“ kurz eingestellt → Vorschau-Popout hell mit blauem Akzent; Einstellungen danach per Base64 zeichengleich zurück, `settings.json` zurückkopiert.
+
+## Settings neu, Popouts ohne Verzögerung (Benutzerwunsch)
+
+Wunsch: „neues Konzept für die Einstellungen, die sind zu unübersichtlich“ (Entwurf gezeigt, dann „ja, alles umsetzen“), „alle Sachen müssen live umstellbar sein, man soll live alles sehen“, Popouts „instant Feedback, kein Delay beim Hovern; im Kompakt-Modus beim Hovern ausklappen in den anderen Modus, wo man vorspulen kann“.
+
+- Settings: sieben Reiter, Popouts mit vier Unterbereichen, „Mehr Einstellungen“ (Popouts Allgemein 3, Musik 8, Aussehen 4). Vorschau (860 × 640): Suche über alle Reiter („lautstärke“ → eine Zeile, „name“ → „Dein Name im Raum“, Unsinn → Hinweis), Reiter während der Suche ausgeblendet; jeder Reiter zeigt nur seine Karten (nur „Meldungen“ ≈ 34 px länger als die Fläche). Reiter in allen 8 Designs in einer Zeile (HUD nach dem Verschmälern mit 52 px Luft; vorher rutschte „Daten“ in HUD in eine zweite Zeile). Keine Konsolenfehler.
+- Nativ, Live-Vorschau: „Fortschrittsbalken“ bzw. „Warnungen“ aus und wieder an (danach unverändert) → Vorschau-Popout mit Beispiel-Titel (kompakt, unscharfes Cover) bzw. Beispiel-Meldung erscheint, weitere Änderungen ersetzen es an Ort und Stelle.
+- Nativ, Hovern über dem kompakten Popout (echte Mauseingabe per CDP in die Popout-Seite): Karte aufgeklappt nach ≈ 2 ms, Fenster in neuer Größe (400 × 90 → 400 × 182) nach 8,7–10,9 ms, also innerhalb eines Bildes; Unterkante bleibt (y 1030), wächst nach oben; Fortschrittsbalken da. Maus weg → nach 263 ms wieder kompakt; erneut drauf → auf; ganz aus dem Fenster → zu. Einmal blieb es im ersten Versuch offen; in vier Wiederholungen nicht mehr nachzustellen.
+- Nativ, Knopf-Rückmeldung (erfundenes Mix-Popout, kein Mix läuft, daher keine Rückmeldung): Klick auf Pause → Knopf zeigt „Abspielen“ nach 2,2 ms, nach 3,0 s ohne Rückmeldung wieder „Pause“. „Weiter“ bewusst nicht geklickt (hätte einen echten Mix gestartet).
+- Erscheinen eines Popouts, wenn sein Fenster erst entstehen muss: einmal 116 ms gemessen; die übrigen Vorher-Messungen waren durch das laufende Musik-Popout des Benutzers verfälscht und sind nicht verwertbar. Einstellungen des Benutzers vorher gesichert, danach per Base64 zeichengleich zurück, `settings.json` zurückkopiert; sein Musik-Popout (YouTube in Chrome) wurde nicht geschlossen und nichts pausiert.
+- `cargo test` 37 grün, `pnpm build`, `pnpm format:check` grün.
+- Nicht geprüft: Hovern mit echter Maus durch den Benutzer, Spulen im aufgeklappten Popout bei einem echten Player, Knopf-Annahme mit einem echten Player (die Rückmeldung sollte sie sofort bestätigen).
+
+## Zusammen schauen auf Twitch (Benutzerwunsch)
+
+Wunsch: „watch together Twitch, wo man zusammen synchron guckt und auch Channel switchen kann“. Wahl des Benutzers: Verbindung ohne Konto, alle dürfen umschalten.
+
+- Vorab geprüft: Twitchs offizieller Player lässt sich in blank. nicht einbetten – `player.twitch.tv` antwortet mit `Content-Security-Policy: frame-ancestors https://tauri.localhost`, blank. läuft unter `http://` (Sperr-Symbol im Rahmen). Umstellen auf `https` hätte den WebView-Speicher (Einstellungen) an eine neue Herkunft gebunden, daher eigenes Fenster: als Seite selbst geladen spielt der Player (720p, 0 verworfene Bilder, ≈ 2,5 % CPU des PCs mit `--disable-gpu`).
+- Vermittler geprüft (Probe mit Wegwerf-Topics, danach geleert): HiveMQ, EMQX und Mosquitto – alle verbinden in ≈ 0,5 s, Nachrichten in 25–45 ms, aufbewahrte Nachricht kommt beim Nachzügler an. Gewählt HiveMQ + Mosquitto (beide Europa), gleichzeitig.
+- `cargo test`: 37 grün (neu: MQTT-Pakete bauen und lesen, auch zerstückelt und mit 2-Byte-Länge; kaputte Länge wird abgelehnt statt ewig zu warten; nur Raum-Topics, Base64 ≤ 2 KB, gültige Kanäle; Player bleibt auf `player.twitch.tv`, Kanal auch in der von Twitch umsortierten Adresse). Clippy ohne Hinweise in `watch.rs`. `pnpm build`, `pnpm format:check` grün.
+- Codes (Vorschau, echte Module): Raum-Code 200 zufällige Codes zurückgelesen (klein, mit Leerzeichen, O statt 0), 153 462 Tippfehler-Varianten (falsch, fehlend, zusätzlich, vertauscht) – keine als gültig angenommen, unvollständige als „noch nicht vollständig“. Umzugs-Code nach dem Verschieben der Hilfen nach `codes.ts` unverändert: 4/4 zurück, 5 006 Varianten, keine angenommen. Schlüssel ≈ 40 ms.
+- Nativ, zwei Teilnehmer (App + Testskript mit derselben Verschlüsselung direkt an beiden Vermittlern; offline Kanäle, damit kein Ton lief; Einstellungen vorher gesichert und danach per Base64 zeichengleich zurück, `settings.json` zurückkopiert): Raum starten → „Verbunden“ (erst 1, dann 2 von 2); Freund tritt bei → „Du, Freund“, er bekommt das Hallo der App sofort; Freund schaltet um → App zeigt den Kanal „umgeschaltet von Freund“, Player-Fenster öffnet sich mit dem Kanal; App schaltet per eingefügtem Link um → Freund empfängt es (Nummer 2, Anzeigename von Twitch), Player wechselt; „Neu synchronisieren“ → Freund empfängt es, eigener Player lädt neu; Lebenszeichen nach 1 min; Freund geht → nur noch „Du“; „Player schließen“ → „Player öffnen“; „Verlassen“ als Letzter → auf beiden Vermittlern nichts mehr gespeichert, keine offene Verbindung mehr. Player-Fenster: neues Fenster abgelehnt, Sprung auf fremde Seite blockiert. Öffnet mittig auf dem Bildschirm von blank.
+- Fehler beim ersten Durchlauf gefunden und behoben: Die Fenster-Befehle waren synchron – unter Windows blieb das Player-Fenster bei `about:blank`, ein zweiter Aufruf hing (die App selbst reagierte weiter). Jetzt `async` wie beim Popout-Fenster. Außerdem: Twitch sortiert die Adresse um, „derselbe Kanal?“ vergleicht nun nur den Kanal.
+- Panel in Klassisch, Klar, HUD und Bento aufgenommen (Design nur vorübergehend umgeschaltet): nichts läuft über.
+- Nicht geprüft: zwei echte PCs mit Ton, der tatsächliche Versatz zwischen zwei Zuschauern bei Live, ein Ausfall eines Vermittlers mitten im Raum, Twitchs Vollbild-Knopf im Player-Fenster.
+
 ## Pet entfernt, Popouts wie FluentFlyout (Benutzerwunsch)
 
 Wunsch: „entferne pet aus der app und mache so popouts wie fluent flyout wenn zum beispiel ich musik anhaben und minimiere etc“.

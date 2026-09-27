@@ -1,3 +1,4 @@
+import { Reveal } from '../../components/Reveal';
 import { useState } from 'react';
 import { ListFilter, Trophy } from 'lucide-react';
 import { proStreamers } from '../../data/proStreamers';
@@ -48,7 +49,9 @@ export function ProsPage({ twitch }: { twitch: TwitchData }) {
         </button>
         <RefreshButton data={pros} result={pros.streams} />
       </div>
-      {filterOpen && <ProFilter live={live} value={filter} onChange={setFilter} />}
+      <Reveal show={filterOpen}>
+        <ProFilter live={live} value={filter} onChange={setFilter} />
+      </Reveal>
       {streams.status === 'ready' && streams.staleBecause && (
         <div className="notice" role="status">
           Aktualisierung fehlgeschlagen · Stand{' '}

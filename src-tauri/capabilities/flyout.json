@@ -9,6 +9,7 @@
     "allow-flyout-pending",
     "allow-flyout-prepare",
     "allow-flyout-present",
+    "allow-flyout-region",
     "allow-flyout-hide",
     "allow-flyout-done",
     "allow-show-app",

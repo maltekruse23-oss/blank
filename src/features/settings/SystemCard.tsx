@@ -65,11 +65,14 @@ export function SystemCard({
   updates,
   autoCheck,
   setAutoCheck,
+  showNews,
 }: {
   usage: UsageState;
   updates: Updates;
   autoCheck: boolean;
   setAutoCheck: (enabled: boolean) => void;
+  /** What is new in this version. */
+  showNews: () => void;
 }) {
   const update = updateText(updates);
   const [start, setStart] = useState<AutostartState>({ status: 'loading' });
@@ -108,6 +111,9 @@ export function SystemCard({
           <h3>Version {version}</h3>
           <p role="status">{update.text}</p>
         </div>
+        <button className="text-link" onClick={showNews}>
+          Neuigkeiten
+        </button>
         {update.action === 'install' ? (
           <button className="filter-button selected" onClick={() => void updates.install()}>
             Jetzt aktualisieren

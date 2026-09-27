@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Search } from 'lucide-react';
 import { Card, Badge } from '../../components/ui';
 import { playAlertSound } from '../../platform/sound';
 import { TwitchAccountCard } from '../twitch/TwitchAccountCard';
 import type { TwitchData } from '../twitch/useTwitch';
 import type { UsageState } from '../../app/useAppUsage';
+import type { Page } from '../../app/App';
 import { SystemCard } from './SystemCard';
 import { TransferCard } from './TransferCard';
 import { GamingCard } from './GamingCard';
@@ -12,18 +13,56 @@ import type { Music } from '../music/useMusic';
 import type { Apps } from '../apps/useApps';
 import type { Updates } from '../../app/useUpdate';
 import { PopoutCard } from './PopoutCard';
-import { themes } from './themes';
-import { designs } from './designs';
-import { defaultPreferences, type Preferences } from './preferences';
-function NotificationsCard({
-  preferences,
-  update,
-  twitch,
-}: {
+import { Searching } from './More';
+import { LookCard } from './LookCard';
+import { TabContent, TabPill } from '../../components/TabMotion';
+import type { Preferences } from './preferences';
+
+/** Settings in sections (user's wish: the one long page had become too much). */
+export type SettingsSection =
+  'look' | 'alerts' | 'popouts' | 'twitch' | 'gaming' | 'system' | 'data';
+export const settingsSections: { id: SettingsSection; name: string }[] = [
+  { id: 'look', name: 'Darstellung' },
+  { id: 'alerts', name: 'Meldungen' },
+  { id: 'popouts', name: 'Popouts' },
+  { id: 'twitch', name: 'Twitch' },
+  { id: 'gaming', name: 'Gaming' },
+  { id: 'system', name: 'System' },
+  { id: 'data', name: 'Daten' },
+];
+
+type Props = {
   preferences: Preferences;
   update: (next: Preferences) => void;
-  twitch: TwitchData;
+};
+
+function Switch({
+  label,
+  on,
+  onToggle,
+  disabled = false,
+}: {
+  label: string;
+  on: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
 }) {
+  return (
+    <button
+      className="switch"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onToggle}
+    >
+      <span />
+    </button>
+  );
+}
+
+/** Sound, do not disturb and warnings; switching a sound on plays it, so it can be heard at once. */
+function AlertsCard({ preferences, update, twitch }: Props & { twitch: TwitchData }) {
   const pushStatus = twitch.adapter.pushStatus;
   const [push, setPush] = useState<{ connected: boolean; watched: number } | null>(null);
   useEffect(() => {
@@ -43,28 +82,40 @@ function NotificationsCard({
   }, [pushStatus]);
 
   const channels = twitch.entries.length;
+  const { volume } = preferences;
   return (
-    <Card title="Benachrichtigungen">
+    <Card title="Meldungen">
+      <div className="setting-row">
+        <div>
+          <h3>Nicht stören</h3>
+          <p>Kein Ton, keine Popouts</p>
+        </div>
+        <Switch
+          label="Nicht stören"
+          on={preferences.quiet}
+          onToggle={() => update({ ...preferences, quiet: !preferences.quiet })}
+        />
+      </div>
       <div className="setting-row">
         <div>
           <h3>Ton bei Live-Start</h3>
         </div>
-        <button className="text-link" onClick={() => playAlertSound(preferences.volume)}>
+        <button className="text-link" onClick={() => playAlertSound(volume)}>
           Testen
         </button>
-        <button
-          className="switch"
-          role="switch"
-          aria-checked={preferences.sound}
-          aria-label="Ton bei Live-Start"
-          onClick={() => update({ ...preferences, sound: !preferences.sound })}
-        >
-          <span />
-        </button>
+        <Switch
+          label="Ton bei Live-Start"
+          on={preferences.sound}
+          onToggle={() => {
+            update({ ...preferences, sound: !preferences.sound });
+            if (!preferences.sound) playAlertSound(volume);
+          }}
+        />
       </div>
       <div className="setting-row">
         <div>
           <h3>Lautstärke</h3>
+          <p>Beim Loslassen zum Hören</p>
         </div>
         <input
           type="range"
@@ -72,61 +123,47 @@ function NotificationsCard({
           min={0}
           max={100}
           step={5}
-          value={preferences.volume}
+          value={volume}
           disabled={!preferences.sound}
           aria-label="Lautstärke"
-          aria-valuetext={`${preferences.volume} %`}
-          style={{ '--value': `${preferences.volume}%` } as CSSProperties}
+          aria-valuetext={`${volume} %`}
+          style={{ '--value': `${volume}%` } as CSSProperties}
           onChange={(event) => update({ ...preferences, volume: Number(event.target.value) })}
+          onPointerUp={(event) => playAlertSound(Number(event.currentTarget.value))}
+          onKeyUp={(event) => playAlertSound(Number(event.currentTarget.value))}
         />
         <span className="volume-value" aria-hidden>
-          {preferences.volume} %
+          {volume} %
         </span>
-      </div>
-      <div className="setting-row">
-        <div>
-          <h3>Nicht stören</h3>
-          <p>Kein Ton, keine Popouts</p>
-        </div>
-        <button
-          className="switch"
-          role="switch"
-          aria-checked={preferences.quiet}
-          aria-label="Nicht stören"
-          onClick={() => update({ ...preferences, quiet: !preferences.quiet })}
-        >
-          <span />
-        </button>
       </div>
       <div className="setting-row">
         <div>
           <h3>Akku-Warnung</h3>
           <p>Ab 15 %</p>
         </div>
-        <button
-          className="switch"
-          role="switch"
-          aria-checked={preferences.batteryWarning}
-          aria-label="Akku-Warnung"
-          onClick={() => update({ ...preferences, batteryWarning: !preferences.batteryWarning })}
-        >
-          <span />
-        </button>
+        <Switch
+          label="Akku-Warnung"
+          on={preferences.batteryWarning}
+          onToggle={() => {
+            update({ ...preferences, batteryWarning: !preferences.batteryWarning });
+            if (!preferences.batteryWarning && !preferences.quiet)
+              playAlertSound(volume, 'warning');
+          }}
+        />
       </div>
       <div className="setting-row">
         <div>
           <h3>Warnung bei Überlastung</h3>
           <p>CPU und RAM ab 90 %, Grafikkarte ab 95 %, mit Ursache</p>
         </div>
-        <button
-          className="switch"
-          role="switch"
-          aria-checked={preferences.loadWarning}
-          aria-label="Warnung bei Überlastung"
-          onClick={() => update({ ...preferences, loadWarning: !preferences.loadWarning })}
-        >
-          <span />
-        </button>
+        <Switch
+          label="Warnung bei Überlastung"
+          on={preferences.loadWarning}
+          onToggle={() => {
+            update({ ...preferences, loadWarning: !preferences.loadWarning });
+            if (!preferences.loadWarning && !preferences.quiet) playAlertSound(volume, 'warning');
+          }}
+        />
       </div>
       <div className="setting-row">
         <div>
@@ -146,6 +183,59 @@ function NotificationsCard({
     </Card>
   );
 }
+
+/** The name others see in a watch-together room (empty: the Twitch name). */
+function WatchNameCard({ preferences, update, twitch }: Props & { twitch: TwitchData }) {
+  const [name, setName] = useState(preferences.watchName);
+  useEffect(() => setName(preferences.watchName), [preferences.watchName]);
+  const save = () => {
+    const clean = name
+      .replace(/\p{Cc}/gu, '')
+      .trim()
+      .slice(0, 24)
+      .trim();
+    setName(clean);
+    if (clean !== preferences.watchName) update({ ...preferences, watchName: clean });
+  };
+  return (
+    <Card title="Zusammen schauen">
+      <div className="setting-row">
+        <div>
+          <h3>Dein Name im Raum</h3>
+          <p>Leer: dein Twitch-Name</p>
+        </div>
+        <label className="search setting-input">
+          <input
+            aria-label="Dein Name im Raum"
+            placeholder={twitch.account?.login ?? 'Name'}
+            maxLength={24}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onBlur={save}
+            onKeyDown={(event) => event.key === 'Enter' && save()}
+          />
+        </label>
+      </div>
+    </Card>
+  );
+}
+
+function BackupCard({ openPage }: { openPage: (page: Page) => void }) {
+  return (
+    <Card title="Online sichern">
+      <div className="setting-row">
+        <div>
+          <h3>Mit Umzugs-Code, ohne Konto</h3>
+          <p>Alles verschlüsselt sichern und auf dem neuen PC zurückholen</p>
+        </div>
+        <button className="secondary-button" onClick={() => openPage('apps')}>
+          Zur Seite Apps
+        </button>
+      </div>
+    </Card>
+  );
+}
+
 export function SettingsPage({
   preferences,
   update,
@@ -155,24 +245,44 @@ export function SettingsPage({
   music,
   apps,
   updates,
-}: {
-  preferences: Preferences;
-  update: (next: Preferences) => void;
+  section,
+  setSection,
+  openPage,
+  replayStart,
+  restartForGpu,
+  showNews,
+}: Props & {
   storageAvailable: boolean;
   twitch: TwitchData;
   usage: UsageState;
   music: Music;
   apps: Apps;
   updates: Updates;
+  /** The open section (kept by the app, so links can open one: update → System). */
+  section: SettingsSection;
+  setSection: (section: SettingsSection) => void;
+  openPage: (page: Page) => void;
+  /** Shows the start screen once more (Darstellung). */
+  replayStart: () => void;
+  /** Set when the graphics card choice changed and needs a restart (gpu.rs). */
+  restartForGpu?: () => void;
+  /** Opens "what is new" (Settings → System). */
+  showNews: () => void;
 }) {
   const planned = twitch.adapter.account ? [] : ['Twitch-Account'];
-  const design = designs.find((d) => d.id === preferences.design) ?? designs[0];
-  const ownColours = design.id !== 'classic';
+  // A new section enters from the side of its tab.
+  const lastSection = useRef(section);
+  const sectionIndex = (id: SettingsSection) => settingsSections.findIndex((s) => s.id === id);
+  const dir = sectionIndex(section) < sectionIndex(lastSection.current) ? -1 : 1;
+  useEffect(() => {
+    lastSection.current = section;
+  }, [section]);
 
-  // Search: rows (and whole cards) whose text does not contain the words are hidden. Runs after
-  // every render, since cards change their rows themselves.
+  // Search: across all sections; rows (and whole cards) whose text does not contain the words
+  // are hidden. Runs after every render, since cards change their rows themselves.
   const [query, setQuery] = useState('');
   const [found, setFound] = useState(true);
+  const searching = query.trim().length > 0;
   const layout = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const root = layout.current;
@@ -196,152 +306,104 @@ export function SettingsPage({
     setFound(any);
   });
 
-  return (
-    <div className="settings-layout" ref={layout}>
-      <div className="settings-search">
-        <label className="search">
-          <Search size={15} />
-          <input
-            type="search"
-            value={query}
-            placeholder="Einstellungen durchsuchen"
-            aria-label="Einstellungen durchsuchen"
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-      </div>
-      {!found && (
-        <p className="section-note" role="status">
-          Keine Einstellung passt zu „{query.trim()}“.
-        </p>
-      )}
-      <Card title="Darstellung">
-        <div className="setting-row">
-          <div>
-            <h3>Design</h3>
-            <p>{design.name}</p>
-          </div>
-          <div className="design-picker" role="group" aria-label="Design">
-            {designs.map((d) => (
-              <button
-                key={d.id}
-                className="design-choice"
-                aria-pressed={preferences.design === d.id}
-                onClick={() => update({ ...preferences, design: d.id })}
-              >
-                {/* Small preview in the design's colours (classic: in the chosen scheme). */}
-                <span
-                  className="design-mini"
-                  data-design-preview={d.id}
-                  data-theme={d.id === 'classic' ? preferences.theme : undefined}
-                  aria-hidden="true"
-                >
-                  <i />
-                  <b />
-                </span>
-                {d.name}
-              </button>
+  const cards: Record<SettingsSection, ReactNode> = {
+    look: (
+      <LookCard
+        preferences={preferences}
+        update={update}
+        storageAvailable={storageAvailable}
+        replayStart={replayStart}
+        restartForGpu={restartForGpu}
+      />
+    ),
+    alerts: <AlertsCard preferences={preferences} update={update} twitch={twitch} />,
+    popouts: <PopoutCard preferences={preferences} update={update} />,
+    twitch: (
+      <>
+        <TwitchAccountCard twitch={twitch} />
+        <WatchNameCard preferences={preferences} update={update} twitch={twitch} />
+        {planned.length > 0 && (
+          <Card title="Verbindungen">
+            {planned.map((x) => (
+              <div className="setting-row" key={x}>
+                <div>
+                  <h3>{x}</h3>
+                </div>
+                <Badge>{x === 'Twitch-Account' ? 'Nur in der Desktop-App' : 'Geplant'}</Badge>
+              </div>
             ))}
-          </div>
-        </div>
-        <div className="setting-row">
-          <div>
-            <h3>Farbe</h3>
-            <p>
-              {ownColours
-                ? `${design.name} hat eigene Farben`
-                : themes.find((t) => t.id === preferences.theme)?.name}
-            </p>
-          </div>
-          <div className="theme-picker" role="group" aria-label="Farbschema">
-            {themes.map((t) => (
-              <button
-                key={t.id}
-                className="theme-swatch"
-                data-theme={t.id}
-                aria-label={t.name}
-                aria-pressed={preferences.theme === t.id}
-                title={ownColours ? `${t.name} (nur im Design Klassisch)` : t.name}
-                disabled={ownColours}
-                onClick={() => update({ ...preferences, theme: t.id })}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="setting-row">
-          <div>
-            <h3>Kompakte Ansicht</h3>
-          </div>
-          <button
-            className="switch"
-            role="switch"
-            aria-checked={preferences.compact}
-            aria-label="Kompakte Ansicht"
-            onClick={() => update({ ...preferences, compact: !preferences.compact })}
-          >
-            <span />
-          </button>
-        </div>
-        <div className="setting-row">
-          <div>
-            <h3>Animationen</h3>
-          </div>
-          <button
-            className="switch"
-            role="switch"
-            aria-checked={preferences.motion}
-            aria-label="Animationen"
-            onClick={() => update({ ...preferences, motion: !preferences.motion })}
-          >
-            <span />
-          </button>
-        </div>
-        {!storageAvailable && <p role="status">Speichern nicht verfügbar.</p>}
-        <button
-          className="secondary-button"
-          onClick={() =>
-            // Only the look; notifications, popouts and system settings stay.
-            update({
-              ...preferences,
-              compact: defaultPreferences.compact,
-              motion: defaultPreferences.motion,
-              theme: defaultPreferences.theme,
-              design: defaultPreferences.design,
-            })
-          }
-        >
-          Darstellung zurücksetzen
-        </button>
-      </Card>
-      <TwitchAccountCard twitch={twitch} />
-      <NotificationsCard preferences={preferences} update={update} twitch={twitch} />
-      <PopoutCard preferences={preferences} update={update} />
+          </Card>
+        )}
+      </>
+    ),
+    gaming: <GamingCard />,
+    system: (
       <SystemCard
         usage={usage}
         updates={updates}
         autoCheck={preferences.updateCheck}
         setAutoCheck={(updateCheck) => update({ ...preferences, updateCheck })}
+        showNews={showNews}
       />
-      <GamingCard />
-      <TransferCard
-        preferences={preferences}
-        update={update}
-        music={music}
-        apps={apps}
-        twitch={twitch}
-      />
-      {planned.length > 0 && (
-        <Card title="Verbindungen">
-          {planned.map((x) => (
-            <div className="setting-row" key={x}>
-              <div>
-                <h3>{x}</h3>
-              </div>
-              <Badge>{x === 'Twitch-Account' ? 'Nur in der Desktop-App' : 'Geplant'}</Badge>
-            </div>
-          ))}
-        </Card>
-      )}
-    </div>
+    ),
+    data: (
+      <>
+        <TransferCard
+          preferences={preferences}
+          update={update}
+          music={music}
+          apps={apps}
+          twitch={twitch}
+        />
+        <BackupCard openPage={openPage} />
+      </>
+    ),
+  };
+
+  return (
+    <Searching.Provider value={searching}>
+      <div className="settings-layout" ref={layout}>
+        <div className="settings-search">
+          <label className="search">
+            <Search size={15} />
+            <input
+              type="search"
+              value={query}
+              placeholder="Einstellungen durchsuchen"
+              aria-label="Einstellungen durchsuchen"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+        </div>
+        {!searching && (
+          <div className="settings-tabs" role="tablist" aria-label="Bereiche der Settings">
+            {settingsSections.map((s) => (
+              <button
+                key={s.id}
+                role="tab"
+                aria-selected={section === s.id}
+                className={`filter-button ${section === s.id ? 'selected' : ''}`}
+                onClick={() => setSection(s.id)}
+              >
+                {section === s.id && <TabPill group="settings-tab" />}
+                <span className="tab-label">{s.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {searching && !found && (
+          <p className="section-note" role="status">
+            Keine Einstellung passt zu „{query.trim()}“.
+          </p>
+        )}
+        {searching ? (
+          settingsSections.map((s) => <Fragment key={s.id}>{cards[s.id]}</Fragment>)
+        ) : (
+          <TabContent id={section} dir={dir} className="tab-enter">
+            {cards[section]}
+          </TabContent>
+        )}
+      </div>
+    </Searching.Provider>
   );
 }

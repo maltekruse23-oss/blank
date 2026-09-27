@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-watch-send"
+description = "Enables the watch_send command without any pre-configured scope."
+commands.allow = ["watch_send"]
+
+[[permission]]
+identifier = "deny-watch-send"
+description = "Denies the watch_send command without any pre-configured scope."
+commands.deny = ["watch_send"]

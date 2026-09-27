@@ -1,3 +1,4 @@
+import { Ticker } from '../../components/Ticker';
 import { useEffect, useState, type ComponentType } from 'react';
 import {
   Cpu,
@@ -172,7 +173,7 @@ export function PcPage({ pc }: { pc: PcState }) {
                 </button>
               )}
               <div className="metric-value">
-                {value ?? '—'}
+                <Ticker text={value ?? '—'} />
                 <small>{unit}</small>
               </div>
               {percent !== null ? (

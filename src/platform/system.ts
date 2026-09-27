@@ -14,6 +14,18 @@ export type AppUsage = {
 
 export const readAppUsage = isTauri() ? () => invoke<AppUsage>('app_usage') : null;
 
+/** True once right after an update (src-tauri/src/update.rs): show what is new. */
+export const updateNews = isTauri() ? () => invoke<boolean>('update_news') : null;
+
+/** Graphics card for the WebView (src-tauri/src/gpu.rs): follows "Animationen", after a restart. */
+export const gpu = isTauri()
+  ? {
+      read: () => invoke<{ active: boolean; wanted: boolean }>('gpu_state'),
+      set: (on: boolean) => invoke<void>('set_gpu', { on }),
+      restart: () => invoke<void>('restart_app'),
+    }
+  : null;
+
 /** What Windows starts at sign-in, seen from this copy of the app (src-tauri/src/autostart.rs). */
 export type Autostart = {
   /** Windows starts this file at sign-in. */

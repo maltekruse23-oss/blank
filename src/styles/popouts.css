@@ -4,7 +4,7 @@
  * buttons, the playing app in small print, below the progress with times. The whole popout window
  * shows one notice, 360 CSS pixels wide and as high as its content, with a transparent edge for
  * its own shadow (with Acrylic, Windows draws frame and shadow instead). Windows' own font;
- * colours only from the tokens of the chosen design.
+ * colours only from the tokens (colour scheme, or the light popout colours).
  */
 html.popout-mode,
 html.popout-mode body {
@@ -16,6 +16,32 @@ html.popout-mode body {
 }
 html.popout-mode body {
   padding: var(--inset, 0);
+}
+/* The card keeps to the screen's edge (bottom places: at the bottom; left, centre or right). When
+   it grows – a compact popout opening under the mouse – it grows away from that edge, and for the
+   moment before the window has its new size nothing jumps. */
+html.popout-mode,
+html.popout-mode body,
+html.popout-mode #root {
+  height: 100%;
+}
+html.popout-mode #root {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+html.popout-mode.top #root {
+  justify-content: flex-start;
+}
+html.popout-mode[data-side='left'] #root {
+  align-items: flex-start;
+}
+html.popout-mode[data-side='right'] #root {
+  align-items: flex-end;
+}
+.popout {
+  flex: none;
 }
 .popout {
   position: relative;
@@ -67,29 +93,178 @@ html.acrylic .popout {
   opacity: 0.38;
 }
 
-/* Sliding in and out (setting: speed and curve). The classes are only set while the settings want
-   it, so they win over the general "no animations" rule for reduced motion (app.css): by default
-   the popout slides even with Windows' animation effects off (setting). It waits invisibly until
-   its window is on screen, so the whole slide can be seen. */
+/* Coming and going (setting: speed and curve), like an island out of the screen's edge (user's
+   example video): the card slides and fades in as set while it grows with a spring from a small
+   pill at the edge; its parts follow one after another. Leaving, it shrinks back into the edge.
+   The classes are only set while the popout settings want motion; the popout window then carries
+   data-motion="normal" (PopoutWindow.tsx), so Windows' animation effects do not stop it. It waits
+   invisibly until its window is on screen, so the whole entrance can be seen. */
+html.popout-mode .popout {
+  transform-origin: center bottom;
+}
+html.popout-mode.top .popout {
+  transform-origin: center top;
+}
 html.popout-mode .popout.waiting {
   opacity: 0;
 }
 html.popout-mode .popout.enter {
-  animation: popout-in var(--fade) var(--ease) both !important;
+  animation:
+    popout-in var(--fade) var(--ease) both,
+    popout-grow var(--grow) var(--ease-spring) both !important;
 }
 html.popout-mode .popout.leave {
-  animation: popout-out var(--fade) var(--ease) both !important;
+  animation:
+    popout-out var(--fade) var(--ease) both,
+    popout-shrink var(--fade) cubic-bezier(0.5, 0, 0.9, 0.6) both !important;
 }
 @keyframes popout-in {
   from {
     opacity: 0;
-    transform: translateY(var(--rise));
+    translate: 0 var(--rise);
   }
 }
 @keyframes popout-out {
   to {
     opacity: 0;
-    transform: translateY(var(--rise));
+    translate: 0 var(--rise);
+  }
+}
+@keyframes popout-grow {
+  from {
+    scale: 0.6 0.4;
+    border-radius: 34px;
+  }
+}
+@keyframes popout-shrink {
+  to {
+    scale: 0.7 0.5;
+    border-radius: 34px;
+  }
+}
+
+/* The parts of a popout follow the card one after another (cover, title, buttons, progress). */
+@keyframes popout-part-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.96;
+  }
+}
+@keyframes popout-cover-in {
+  from {
+    opacity: 0;
+    scale: 0.55;
+    rotate: -8deg;
+  }
+}
+html.popout-motion .popout.enter .popout-cover {
+  animation: popout-cover-in var(--grow) var(--ease-spring) calc(var(--fade) * 0.18) both;
+}
+html.popout-motion .popout.enter :is(.popout-now, .popout-row > .popout-text) {
+  animation: popout-part-in var(--grow) var(--ease-spring) calc(var(--fade) * 0.28) both;
+}
+html.popout-motion .popout.enter :is(.popout-controls, .popout-row > .popout-label) {
+  animation: popout-part-in var(--grow) var(--ease-spring) calc(var(--fade) * 0.38) both;
+}
+html.popout-motion .popout.enter .popout-seek {
+  animation: popout-part-in var(--grow) var(--ease-spring) calc(var(--fade) * 0.48) both;
+}
+html.popout-motion .popout.enter .popout-row > :is(.avatar, .popout-icon) {
+  animation: popout-cover-in var(--grow) var(--ease-spring) calc(var(--fade) * 0.18) both;
+}
+/* Leaving, the parts go first. */
+html.popout-motion .popout.leave > :not(.popout-close, .popout-more, .popout-timer) {
+  animation: popout-part-out calc(var(--fade) * 0.5) ease-in both;
+}
+@keyframes popout-part-out {
+  to {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+/* Live: one pulse around the channel. Warning: a short shake for attention. */
+@keyframes popout-pulse {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 65%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+html.popout-motion .popout.live.enter .avatar {
+  animation:
+    popout-cover-in var(--grow) var(--ease-spring) calc(var(--fade) * 0.18) both,
+    popout-pulse 900ms ease-out calc(var(--fade) * 0.7) 2;
+}
+@keyframes popout-shake {
+  20% {
+    rotate: -12deg;
+  }
+  40% {
+    rotate: 10deg;
+  }
+  60% {
+    rotate: -6deg;
+  }
+  80% {
+    rotate: 4deg;
+  }
+}
+html.popout-motion .popout.warning.enter .popout-icon {
+  animation:
+    popout-cover-in var(--grow) var(--ease-spring) calc(var(--fade) * 0.18) both,
+    popout-shake 600ms ease-in-out calc(var(--fade) * 0.8);
+}
+
+/* Play and pause: the new symbol springs in with a small turn. */
+@keyframes popout-icon-in {
+  from {
+    opacity: 0;
+    scale: 0.4;
+    rotate: -40deg;
+  }
+}
+html.popout-motion .popout-button.play svg {
+  animation: popout-icon-in 420ms var(--ease-spring) both;
+}
+/* Buttons give way under the click and spring back; close turns on hover. */
+html.popout-motion .popout-button {
+  transition:
+    transform 260ms var(--ease-spring),
+    background 120ms;
+}
+html.popout-motion .popout-button:active:not(:disabled) {
+  transition-duration: 70ms;
+}
+html.popout-motion .popout-close svg {
+  transition: rotate 320ms var(--ease-spring);
+}
+html.popout-motion .popout-close:hover svg {
+  rotate: 90deg;
+}
+
+/* How long the popout stays: a thin line along the bottom that runs out; it starts again after the
+   mouse was on it (PopoutWindow.tsx renders it only while the time runs). */
+.popout > .popout-timer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 2px;
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+  transform-origin: left;
+  pointer-events: none;
+  animation: popout-timer var(--stay) linear both;
+}
+@keyframes popout-timer {
+  from {
+    scale: 1 1;
+  }
+  to {
+    scale: 0 1;
   }
 }
 
@@ -173,6 +348,10 @@ html.popout-mode .popout.leave {
 .popout-button:disabled {
   opacity: 0.35;
   cursor: default;
+}
+/* Feedback on the press itself, before the player answers. */
+.popout-button:active:not(:disabled) {
+  transform: scale(0.92);
 }
 /* Repeat and shuffle while switched on. */
 .popout-button.on {
@@ -421,8 +600,8 @@ html.popout-mode .popout.leave {
   background: none;
   color: var(--muted);
   opacity: 0;
-  transition: opacity 0.12s;
 }
+/* Appears the moment the mouse is on the popout (no fade: instant feedback). */
 .popout:hover .popout-close,
 .popout-close:focus-visible {
   opacity: 1;
@@ -432,18 +611,110 @@ html.popout-mode .popout.leave {
   background: color-mix(in srgb, var(--text) 9%, transparent);
   color: var(--text);
 }
-.popout.no-motion .popout-close {
-  transition: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .popout-close {
-    transition: none;
-  }
-}
 .popout-more {
   position: absolute;
   right: 10px;
   bottom: 6px;
   color: var(--subtle);
   font-size: 10px;
+}
+/* While a compact popout opens or folds, its content keeps to the screen's edge (only the card's
+   edge moves), so no text slides under the edge. */
+.popout.morphing {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+html.top .popout.morphing {
+  justify-content: flex-start;
+}
+
+/* In the taskbar (setting, user's wish "as if the popups were part of the taskbar"): no card of
+   its own, the taskbar shows through; a slim row at its left end, centred in its height (flyout.rs).
+   Music, hovered, grows up out of the taskbar into the full card, which then gets its background. */
+html.in-taskbar .popout.taskbar {
+  transition:
+    background 160ms,
+    border-color 160ms,
+    box-shadow 160ms,
+    border-radius 160ms;
+}
+html.in-taskbar .popout.taskbar:not(.opened) {
+  padding: 4px 10px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+}
+html.in-taskbar .popout.taskbar:not(.opened):hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+html.in-taskbar .popout.taskbar:not(.opened)::before,
+html.in-taskbar .popout.taskbar:not(.opened) .popout-more {
+  display: none;
+}
+html.in-taskbar .popout.taskbar:not(.opened) .popout-cover {
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  box-shadow: none;
+}
+html.in-taskbar .popout.taskbar .popout-media.compact {
+  gap: 10px;
+  padding-right: 0;
+}
+html.in-taskbar .popout.taskbar .popout-media.compact .popout-now > b {
+  font-size: 12.5px;
+}
+html.in-taskbar .popout.taskbar .popout-media.compact .popout-now > span {
+  font-size: 11px;
+}
+html.in-taskbar .popout.taskbar .popout-media.compact .popout-button {
+  width: 28px;
+  height: 28px;
+}
+html.in-taskbar .popout.taskbar .popout-media.compact .popout-button.play {
+  width: 30px;
+  height: 28px;
+}
+/* Notices and "up next" as the same slim row. */
+html.in-taskbar .popout.taskbar:not(.opened) .popout-row {
+  gap: 8px;
+  padding-right: 24px;
+}
+html.in-taskbar .popout.taskbar:not(.opened) .popout-row > :is(.avatar, .popout-icon) {
+  width: 30px;
+  height: 30px;
+  font-size: 10px;
+}
+html.in-taskbar .popout.taskbar:not(.opened) .popout-label {
+  font-size: 11px;
+}
+html.in-taskbar .popout.taskbar:not(.opened) .popout-text b {
+  font-size: 12.5px;
+}
+html.in-taskbar .popout.taskbar:not(.opened) .popout-text small {
+  font-size: 11px;
+}
+html.in-taskbar .popout.taskbar:not(.opened) .popout-close {
+  top: 50%;
+  translate: 0 -50%;
+}
+/* The row while its panel is open: highlighted like a pressed taskbar button. */
+html.in-taskbar .popout.taskbar.active {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+/* Hovered music in the taskbar opens a panel above the row, like Windows' own flyouts (calendar,
+   quick settings): an almost opaque, calm surface in the taskbar's colours, a fine border, round
+   corners and a soft shadow, 12 px above the taskbar (16 px above the row). */
+html.in-taskbar .popout.taskbar-panel {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+  box-shadow: 0 10px 32px var(--shadow);
+}
+html.in-taskbar.top .popout.taskbar-panel {
+  margin: 16px 0 0;
 }

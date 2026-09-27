@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactNode } from 'react';
-import { Activity, Bell, BellOff, Download, Minus, X } from 'lucide-react';
-import { closeWindow, hasNativeWindow, minimizeWindow, startWindowDrag } from '../platform/window';
+import { Activity, Bell, BellOff, Download, Minus, Users, X } from 'lucide-react';
+import { hasNativeWindow, startWindowDrag } from '../platform/window';
 import { formatCpu, formatMemory, type UsageState } from './useAppUsage';
 
 // Drag the frameless window from elements marked with data-drag-region.
@@ -38,6 +38,10 @@ export function TitleBar({
   onQuiet,
   updateAvailable,
   onUpdate,
+  room,
+  onRoom,
+  onMinimize,
+  onClose,
 }: {
   status?: ReactNode;
   usage: UsageState;
@@ -46,9 +50,24 @@ export function TitleBar({
   /** Newer version on GitHub, shown as a small chip that opens the settings. */
   updateAvailable: string | null;
   onUpdate: () => void;
+  /** In a watch-together room: how many are in it (with oneself); the chip opens the room. */
+  room: number | null;
+  onRoom: () => void;
+  /** Minimize and close (the app fades its content out first). */
+  onMinimize: () => void;
+  onClose: () => void;
 }) {
   return (
     <div className="titlebar" data-drag-region>
+      {room !== null && (
+        <button
+          className="update-chip"
+          title="Du bist in einem Raum „Zusammen schauen“ – öffnen"
+          onClick={onRoom}
+        >
+          <Users size={12} /> Im Raum · {room}
+        </button>
+      )}
       {updateAvailable && (
         <button
           className="update-chip"
@@ -75,7 +94,7 @@ export function TitleBar({
             className="window-button"
             aria-label="Minimieren"
             title="Minimieren"
-            onClick={minimizeWindow}
+            onClick={onMinimize}
           >
             <Minus size={15} />
           </button>
@@ -83,7 +102,7 @@ export function TitleBar({
             className="window-button close"
             aria-label="Schließen"
             title="Schließen"
-            onClick={closeWindow}
+            onClick={onClose}
           >
             <X size={15} />
           </button>

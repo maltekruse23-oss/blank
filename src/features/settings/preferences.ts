@@ -1,4 +1,9 @@
-import { isDesignId, type DesignId } from './designs';
+import {
+  defaultCustomization,
+  readCustomization,
+  resolveSettings,
+  type Customization,
+} from '../../design/customization';
 import { isThemeId, type ThemeId } from './themes';
 import {
   isPopoutBackground,
@@ -25,20 +30,25 @@ import {
 export const preferencesKey = 'blank.preferences.v1';
 
 export type Preferences = {
+  /** Derived from the design customization (density "compact"); change it with withDesign. */
   compact: boolean;
+  /** Derived from the design customization (animations not "off"); change it with withDesign. */
   motion: boolean;
+  /** Design system: preset, own changes, own presets (src/design/customization.ts). */
+  customization: Customization;
   sound: boolean;
   /** Live sound volume, 0–100. */
   volume: number;
+  /** Colour scheme of the one design, "Klassisch" (the other designs were removed, user's wish). */
   theme: ThemeId;
-  /** Overall look; "arena" brings its own colours, the scheme applies to "classic". */
-  design: DesignId;
   /** Do not disturb: no sound and no popouts. Switched by hand. */
   quiet: boolean;
   batteryWarning: boolean;
   loadWarning: boolean;
   /** Looks for a new version on GitHub once a day; installing is always a click. */
   updateCheck: boolean;
+  /** The start screen when blank. starts (src/app/StartScreen.tsx); a click skips it. */
+  startScreen: boolean;
   /** Popouts (src/features/popouts/) while blank. is not the active window; all switches below. */
   popouts: boolean;
   /** Music from any player and the own mix: each new track. */
@@ -87,23 +97,30 @@ export type Preferences = {
   popoutFullscreen: boolean;
   /** Also while blank. itself is the active window. */
   popoutInFront: boolean;
+  /** In the taskbar, like a part of it (user's wish): at its left end, a slim row. */
+  popoutTaskbar: boolean;
   popoutPlace: PopoutPlace;
   popoutScreen: PopoutScreen;
   /** Left click on the icon in the notification area. */
   trayClick: TrayClick;
+  /** Name the others see in a watch-together room (empty: the Twitch name, else asked). */
+  watchName: string;
+  /** Code of the last watch-together room, offered as "Wieder beitreten" (never joined by itself). */
+  watchLastRoom: string;
 };
 
 export const defaultPreferences: Preferences = {
   compact: false,
   motion: true,
+  customization: defaultCustomization,
   sound: true,
   volume: 70,
   theme: 'forest',
-  design: 'classic',
   quiet: false,
   batteryWarning: true,
   loadWarning: true,
   updateCheck: true,
+  startScreen: true,
   popouts: true,
   popoutMusic: true,
   popoutMusicToggle: true,
@@ -135,10 +152,28 @@ export const defaultPreferences: Preferences = {
   popoutMotionAlways: true,
   popoutFullscreen: false,
   popoutInFront: false,
+  popoutTaskbar: false,
   popoutPlace: 'bottom-center',
   popoutScreen: 'primary',
   trayClick: 'app',
+  watchName: '',
+  watchLastRoom: '',
 };
+
+/** "Kompakte Ansicht" and "Animationen" as the rest of the app reads them. */
+function derivedLook(customization: Customization) {
+  const { settings } = resolveSettings(customization);
+  return { compact: settings.density === 'compact', motion: settings.motionLevel !== 'off' };
+}
+
+/** Preferences with a changed design customization (the derived switches follow). */
+export function withDesign(
+  preferences: Preferences,
+  change: (customization: Customization) => Customization,
+): Preferences {
+  const customization = change(preferences.customization);
+  return { ...preferences, ...derivedLook(customization), customization };
+}
 
 type Flag = {
   [K in keyof Preferences]: Preferences[K] extends boolean ? K : never;
@@ -147,7 +182,7 @@ type Flag = {
 /**
  * Preferences from stored or imported data; null when it is not a preferences object. Fields
  * added later (or invalid ones) fall back to the defaults, so older data stays usable; fields
- * that no longer exist (the former pet figure) are ignored.
+ * that no longer exist (the former pet figure, the removed designs) are ignored.
  */
 export function readPreferences(raw: unknown): Preferences | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -174,21 +209,27 @@ export function readPreferences(raw: unknown): Preferences | null {
     valid(value) ? value : fallback;
   const volume = data.volume;
   const opacity = data.popoutOpacity;
+  const watchName = data.watchName;
   const d = defaultPreferences;
-  return {
+  // The design customization; stored before it existed: the former switches are taken over.
+  const customization = readCustomization(data.customization, {
     compact: data.compact,
     motion: data.motion,
+  });
+  return {
+    ...derivedLook(customization),
+    customization,
     sound: flag('sound'),
     volume:
       typeof volume === 'number' && Number.isInteger(volume) && volume >= 0 && volume <= 100
         ? volume
         : d.volume,
     theme: pick(data.theme, isThemeId, d.theme),
-    design: pick(data.design, isDesignId, d.design),
     quiet: flag('quiet'),
     batteryWarning: flag('batteryWarning'),
     loadWarning: flag('loadWarning'),
     updateCheck: flag('updateCheck'),
+    startScreen: flag('startScreen'),
     popouts: flag('popouts'),
     popoutMusic: flag('popoutMusic'),
     popoutMusicToggle: flag('popoutMusicToggle'),
@@ -222,8 +263,23 @@ export function readPreferences(raw: unknown): Preferences | null {
     popoutMotionAlways: flag('popoutMotionAlways'),
     popoutFullscreen: flag('popoutFullscreen'),
     popoutInFront: flag('popoutInFront'),
+    popoutTaskbar: flag('popoutTaskbar'),
     popoutPlace: pick(data.popoutPlace, isPopoutPlace, d.popoutPlace),
     popoutScreen: pick(data.popoutScreen, isPopoutScreen, d.popoutScreen),
     trayClick: pick(data.trayClick, isTrayClick, d.trayClick),
+    // Same rule as in the room (src/adapters/watch.ts): trimmed, 24 characters, no control ones.
+    watchName:
+      typeof watchName === 'string' &&
+      watchName.length <= 24 &&
+      watchName.trim() === watchName &&
+      !/\p{Cc}/u.test(watchName)
+        ? watchName
+        : d.watchName,
+    // A room code as the app writes it (src/adapters/watch.ts): three groups of four.
+    watchLastRoom:
+      typeof data.watchLastRoom === 'string' &&
+      /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(data.watchLastRoom)
+        ? data.watchLastRoom
+        : d.watchLastRoom,
   };
 }

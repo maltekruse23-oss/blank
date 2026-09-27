@@ -10,6 +10,8 @@ mod cloud;
 #[cfg(windows)]
 mod flyout;
 #[cfg(windows)]
+mod gpu;
+#[cfg(windows)]
 mod media;
 #[cfg(windows)]
 mod memory;
@@ -33,16 +35,21 @@ mod twitch;
 mod update;
 mod usage;
 #[cfg(windows)]
+mod watch;
+#[cfg(windows)]
 mod window_aspect;
 
 use tauri::Manager;
 
+/// Start after a restart for the graphics card (gpu.rs; checked in main.rs).
+#[cfg(windows)]
+pub use gpu::RESTART_ARG;
 /// RAM cleaning runs in a separate, elevated start of the app (memory.rs; checked in main.rs).
 #[cfg(windows)]
 pub use memory::{clean_elevated as clean_memory_elevated, CLEAN_ARG as CLEAN_MEMORY_ARG};
 /// Start of a freshly updated EXE (update.rs; checked in main.rs).
 #[cfg(windows)]
-pub use update::{wait_for_old as wait_for_old_version, AFTER_UPDATE_ARG};
+pub use update::{mark_updated, wait_for_old as wait_for_old_version, AFTER_UPDATE_ARG};
 
 pub fn run() {
     #[cfg(windows)]
@@ -51,6 +58,19 @@ pub fn run() {
     }
     tauri::Builder::default()
         .setup(|app| {
+            // The app window, created here so WebView2 gets this run's arguments (gpu.rs).
+            let config = app
+                .config()
+                .app
+                .windows
+                .iter()
+                .find(|window| window.label == "main")
+                .cloned()
+                .ok_or("Main window config missing")?;
+            let builder = tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?;
+            #[cfg(windows)]
+            let builder = builder.additional_browser_args(&gpu::browser_args(app.handle()));
+            builder.build()?;
             app.manage(twitch::Twitch::new(app.handle())?);
             app.manage(usage::UsageState::default());
             app.manage(store::StoreFile::new(app.handle())?);
@@ -58,6 +78,8 @@ pub fn run() {
             app.manage(battery::Batteries::default());
             #[cfg(windows)]
             app.manage(flyout::FlyoutState::default());
+            #[cfg(windows)]
+            app.manage(watch::WatchState::default());
             #[cfg(windows)]
             app.manage(tweaks::TweakFile::new(app.handle())?);
             #[cfg(windows)]
@@ -141,6 +163,14 @@ pub fn run() {
             #[cfg(windows)]
             flyout::flyout_present,
             #[cfg(windows)]
+            gpu::gpu_state,
+            #[cfg(windows)]
+            gpu::set_gpu,
+            #[cfg(windows)]
+            gpu::restart_app,
+            #[cfg(windows)]
+            flyout::flyout_region,
+            #[cfg(windows)]
             flyout::flyout_hide,
             #[cfg(windows)]
             flyout::flyout_done,
@@ -167,6 +197,8 @@ pub fn run() {
             #[cfg(windows)]
             tray::set_tray_click,
             #[cfg(windows)]
+            tray::set_tray_quiet,
+            #[cfg(windows)]
             settings_file::settings_export,
             sound::play_alert_sound,
             store::settings_mirror_read,
@@ -183,6 +215,18 @@ pub fn run() {
             update::update_check,
             #[cfg(windows)]
             update::update_install,
+            #[cfg(windows)]
+            update::update_news,
+            #[cfg(windows)]
+            watch::watch_join,
+            #[cfg(windows)]
+            watch::watch_send,
+            #[cfg(windows)]
+            watch::watch_leave,
+            #[cfg(windows)]
+            watch::watch_player,
+            #[cfg(windows)]
+            watch::watch_player_close,
             twitch::twitch_account,
             twitch::twitch_eventsub_status,
             twitch::twitch_set_client_id,

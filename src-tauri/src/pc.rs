@@ -23,6 +23,11 @@ use std::{
 use tauri::{AppHandle, Emitter};
 
 const IDLE_INTERVAL: Duration = Duration::from_secs(10);
+/// After a reading without CPU share (the very first one), the next one comes this soon; not
+/// earlier, even if a page asks (a second reading right away has no share either).
+const FIRST_AGAIN: Duration = Duration::from_millis(700);
+/// Between the first CPU times and the first reading at the start (long enough for a share).
+const FIRST_READING: Duration = Duration::from_millis(250);
 /// How long a page request keeps its interval (a little more than two of its requests).
 const LIVE_FOR: Duration = Duration::from_secs(12);
 const BATTERY_EVERY: Duration = Duration::from_secs(600);
@@ -123,11 +128,23 @@ pub fn pc_status(state: tauri::State<'_, PcState>, seconds: u64) -> Result<PcSta
 
 pub fn start(app: AppHandle, state: PcState) {
     std::thread::spawn(move || {
+        // Pages show values almost at once after the start: CPU (it needs two readings), memory
+        // and disk first; the graphics counters take a second or two to open (Windows lists every
+        // GPU engine), so the GPU follows with the next reading.
         let mut sampler = Sampler::new();
+        sampler.cpu_and_memory(&mut Sample::default());
+        std::thread::sleep(FIRST_READING);
+        let first = sampler.sample();
+        if let Ok(mut shared) = state.0 .0.lock() {
+            shared.specs = specs(None);
+            shared.latest = Some(first);
+        }
+        sampler.gpu = Gpu::open();
         if let Ok(mut shared) = state.0 .0.lock() {
             shared.specs = specs(sampler.gpu.as_ref().and_then(|g| g.adapter.clone()));
         }
         let mut watch = Watch::default();
+        let mut quick = 3;
         loop {
             let sample = sampler.sample();
             watch.check(&app, &sample, sampler.elapsed);
@@ -135,6 +152,16 @@ pub fn start(app: AppHandle, state: PcState) {
             let Ok(mut shared) = lock.lock() else {
                 return;
             };
+            // The CPU share needs two readings: right after the start the second one comes after
+            // FIRST_AGAIN (undisturbed), so pages show it almost at once instead of "—" for up to
+            // 10 s. Only a few times, should Windows not give the times at all.
+            if sample.cpu_percent.is_none() && quick > 0 {
+                quick -= 1;
+                shared.latest = Some(sample);
+                drop(shared);
+                std::thread::sleep(FIRST_AGAIN);
+                continue;
+            }
             shared.latest = Some(sample);
             let interval = shared
                 .live
@@ -253,7 +280,8 @@ impl Sampler {
             last_at: Instant::now(),
             elapsed: Duration::ZERO,
             names: HashMap::new(),
-            gpu: Gpu::open(),
+            // Opened after the first reading (start).
+            gpu: None,
             threads: std::thread::available_parallelism().map_or(1, |n| n.get()) as f64,
             disk: wide(&format!("{drive}\\")),
             disk_name: drive,
