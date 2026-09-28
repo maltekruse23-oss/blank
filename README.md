@@ -1,6 +1,6 @@
 # blank.
 
-Kleine Windows-App für nebenbei: zeigt, wer auf Twitch live ist (mit Sofort-Meldung), welche League-Pros gerade streamen, spielt SoundCloud-Mixes, zeigt die Akkustände von Maus und Headset und die Auslastung deines PCs, räumt auf Wunsch den RAM auf und stellt Windows für Spiele ein (jederzeit rückgängig). Mit Freunden Twitch zusammen schauen: ein Raum per Code, wer umschaltet, schaltet für alle um. Ein Design in dunklem Grün/Schwarz mit sechs Farbschemata; ist blank. im Hintergrund, zeigen kleine Popouts über der Taskleiste, was gerade läuft, wer live geht und Warnungen.
+Kleine Windows-App für nebenbei: zeigt, wer auf Twitch live ist (mit Sofort-Meldung), welche League-Pros gerade streamen, spielt SoundCloud-Mixes, zeigt die Akkustände von Maus und Headset und die Auslastung deines PCs, räumt auf Wunsch den RAM auf und stellt Windows für Spiele ein (jederzeit rückgängig). Eine ARAM-Mayhem-Rangliste für dich und drei Freunde mit den besten Spielen. Mit Freunden Twitch zusammen schauen: ein Raum per Code, wer umschaltet, schaltet für alle um. Ein Design in dunklem Grün/Schwarz mit sechs Farbschemata; ist blank. im Hintergrund, zeigen kleine Popouts über der Taskleiste, was gerade läuft, wer live geht und Warnungen.
 
 ## Download
 
@@ -14,12 +14,14 @@ Mehr brauchst du nicht. Die Ordner auf dieser Seite und die „Source code“-Da
 
 **Gut zu wissen**
 
+- **Schließen:** Das X versteckt blank. nur im Infobereich (Pfeil unten rechts in der Taskleiste), damit Meldungen und Popouts weiterlaufen. Ganz beenden: Rechtsklick auf das Symbol → **Beenden**. Zurück holst du blank. mit einem Klick aufs Symbol oder indem du es einfach noch mal startest.
 - **Neue Version:** blank. meldet sich selbst („Update“ oben in der Titelleiste). Settings → System → **Jetzt aktualisieren** lädt die neue Version, prüft sie und startet neu; Einstellungen bleiben erhalten. Danach zeigt blank. einmal, was neu ist (jederzeit wieder unter Settings → System → Neuigkeiten). Von Hand geht es auch: blank. über das Symbol unten rechts beenden (Rechtsklick → Beenden), den Link oben erneut benutzen und die alte `blank.exe` ersetzen.
 - **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumente\blank`), bevor du in den Settings „Mit Windows starten“ einschaltest.
 - **Gaming-Optimierung:** Settings → Gaming-Optimierung ändert ein paar Windows-Einstellungen für Spiele, nur auf Klick. Vorher merkt sich blank. die alten Werte; „Rückgängig“ oder „Alles zurücksetzen“ stellt genau diese wieder her. Keine Adminrechte, kein Neustart, nichts an Virenschutz oder Updates.
 - **PC neu aufsetzen:** Vorher in blank. auf der Seite **Apps** „Online sichern“ klicken und den Umzugs-Code abfotografieren, aufschreiben oder dir selbst schicken. Nach dem Zurücksetzen blank. über den Link oben herunterladen und starten: blank. fragt nach dem Code, holt alle Einstellungen zurück und zeigt „Programme installieren“ – ein Klick, fertig.
 - **Anderer PC:** Einstellungen dort unter Settings → Übertragen → Exportieren speichern, hier unter Settings → Übertragen → Importieren übernehmen. Twitch danach einmal neu verbinden.
 - **Twitch:** braucht einmalig eine eigene, kostenlose Client-ID; Anleitung unten unter „Twitch einrichten“.
+- **ARAM-Rangliste:** Seite **ARAM** → **Spieler**: bis zu neun Freunde aus deiner League-Freundesliste hinzufügen (der League-Client muss dafür offen sein). blank. holt eure ARAM-Mayhem-Spiele aus dem League-Client auf deinem PC und behält sie für immer: Rangliste als Kategorien mit Balken (Höchster Schaden, Pentakills, AP- und AD-Schaden, Meiste Kills, Größter Tank; weitere wie Siege, KDA, Heilung, CC oder Gold über „Kategorien wählen“) und die besten Spiele. Deine Freunde brauchen dafür nichts. Plätze in Gold, Silber und Bronze; **Spieler** → **Rangliste neu starten** fängt von vorn an (nur Spiele ab dann zählen). Nach jedem Spiel holt blank. es von selbst (der League-Client merkt sich nur die letzten 20 Spiele je Spieler, also am besten blank. laufen lassen) und zeigt kurz danach dein Ergebnis als Karte: Schaden, Stats, Augments und Items bauen sich animiert auf, bei Top-Schaden, Bestleistung, Rekord oder Platz 1 mit Extra-Effekt. Abschaltbar unter Settings → Popouts → Meldungen → ARAM-Ergebnis; „Ansehen“ bei „Beste Spiele“ zeigt jedes Spiel so. Live-Schaden während des Spiels gibt Riot nicht heraus.
 - **Zusammen schauen:** Twitch → **Zusammen** → **Raum starten**, den Code an deine Freunde schicken; sie tippen ihn bei sich unter **Beitreten** ein. Klick auf einen Live-Kanal (oder Kanal eintippen) schaltet für alle um, jeder sieht den Stream im eigenen Player-Fenster. Deine Freunde brauchen blank., aber keine eigene Twitch-Einrichtung.
 - Voraussetzung: Windows 10 oder 11 (64 Bit). Alle Versionen: [Releases](https://github.com/maltekruse23-oss/blank/releases).
 
@@ -100,7 +102,7 @@ src/
   data/mock.ts            Zentrale, statische Beispieldaten
   design/                 Design-System: Tokens, Themes, Bewegung, Anpassung, Auflösung (siehe design/README.md)
   features/
-    home/ twitch/ pros/ music/ devices/ pc/ apps/ settings/ popouts/
+    home/ twitch/ pros/ aram/ music/ devices/ pc/ apps/ settings/ popouts/
   features/settings/preferences.ts   Einstellungen: Typ, Standardwerte, Prüfung (gespeichert und importiert)
   features/settings/settingsFile.ts  Übertragen: Dateiformat und strenge Prüfung beim Import
   styles/tokens.css       Erster Bildaufbau: Farben, Abstände, Radien, Schrift (gleich mit design/themes.ts)
@@ -126,6 +128,7 @@ src-tauri/
   src/apps.rs             Reset-Helfer: installierte Programme lesen, gewählte direkt vom Hersteller installieren (Signatur geprüft)
   src/tweaks.rs           Gaming-Optimierung: feste Liste von Benutzer-Einstellungen, Sicherung + Rückgängig
   src/update.rs           Updates aus den eigenen GitHub-Releases (Prüfsumme, Austausch, Neustart)
+  src/aram.rs             ARAM-Mayhem-Rangliste: Spiele aus dem League-Client (nur lesend, 127.0.0.1), gespeichert in aram.json
   src/watch.rs            Zusammen schauen: Raum über zwei öffentliche MQTT-Vermittler (nur verschlüsselter Text), Twitch-Player-Fenster
   build.rs                App-Manifest: nur freigegebene Befehle aufrufbar
   capabilities/           Fenster ziehen/minimieren/schließen, Ereignisse + einzeln freigegebene eigene Befehle

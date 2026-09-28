@@ -45,15 +45,18 @@ const WIDTH: f64 = 360.0;
 const MARGIN: f64 = 12.0;
 /// Kept free at the right end of a taskbar without a readable notification area (its clock).
 const CLOCK_ROOM: f64 = 100.0;
-const MAX_ITEM_BYTES: usize = 16 * 1024;
+/// The ARAM card carries its augment icons (a few small PNGs as data URLs).
+const MAX_ITEM_BYTES: usize = 64 * 1024;
 const MAX_PENDING: usize = 5;
 /// A hidden popout window is closed after this long without a new popout. Hidden, its WebView
 /// still holds about 50 MB; opening it again costs a fraction of a second once per popout.
 const CLOSE_AFTER: Duration = Duration::from_secs(30);
 /// "music": what plays in any app (media.rs); "mix": blank.'s own SoundCloud mix; "test": the
 /// sample from Settings â†’ Popouts; "preview": the live preview while those settings change;
-/// "info": a short note (e.g. nothing plays).
-const KINDS: &[&str] = &["music", "mix", "live", "warning", "test", "preview", "info"];
+/// "info": a short note (e.g. nothing plays); "aram": the card after an ARAM Mayhem game (aram.rs).
+const KINDS: &[&str] = &[
+    "music", "mix", "live", "warning", "test", "preview", "info", "aram",
+];
 /// What a popout may ask of blank.'s own mix (useMusic in the app window).
 const MIX_ACTIONS: &[&str] = &["toggle", "next", "seek"];
 /// Where a popout may appear (src/features/popouts/placement.ts).
@@ -69,7 +72,7 @@ const PLACES: &[&str] = &[
 const SCREENS: &[&str] = &["primary", "second", "cursor", "focus"];
 /// Pages a popout may open in the app (App.tsx).
 const PAGES: &[&str] = &[
-    "home", "twitch", "pros", "music", "devices", "pc", "apps", "settings",
+    "home", "twitch", "pros", "aram", "music", "devices", "pc", "apps", "settings",
 ];
 
 #[derive(Default)]

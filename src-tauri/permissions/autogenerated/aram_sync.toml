@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-aram-sync"
+description = "Enables the aram_sync command without any pre-configured scope."
+commands.allow = ["aram_sync"]
+
+[[permission]]
+identifier = "deny-aram-sync"
+description = "Denies the aram_sync command without any pre-configured scope."
+commands.deny = ["aram_sync"]

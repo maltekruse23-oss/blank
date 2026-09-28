@@ -101,7 +101,7 @@ export function TitleBar({
           <button
             className="window-button close"
             aria-label="Schließen"
-            title="Schließen"
+            title="Schließen – blank. läuft im Infobereich weiter (Beenden: Symbol unten rechts)"
             onClick={onClose}
           >
             <X size={15} />

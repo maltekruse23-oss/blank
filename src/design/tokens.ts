@@ -42,6 +42,16 @@ export const tokenDefs = {
   'color.avatar.2Ink': { css: '--avatar-2-ink', kind: 'color' },
   'color.avatar.3': { css: '--avatar-3', kind: 'color' },
   'color.avatar.3Ink': { css: '--avatar-3-ink', kind: 'color' },
+  // ARAM leaderboard: medal colours of the places, and a colour per kind of category.
+  'color.rank.1': { css: '--rank-1', kind: 'color' },
+  'color.rank.2': { css: '--rank-2', kind: 'color' },
+  'color.rank.3': { css: '--rank-3', kind: 'color' },
+  'color.rank.rest': { css: '--rank-rest', kind: 'color' },
+  'color.game.fire': { css: '--game-fire', kind: 'color' },
+  'color.game.magic': { css: '--game-magic', kind: 'color' },
+  'color.game.physical': { css: '--game-physical', kind: 'color' },
+  'color.game.gold': { css: '--game-gold', kind: 'color' },
+  'color.game.guard': { css: '--game-guard', kind: 'color' },
 
   // Spacing: a 4 px grid; "section" (gap between cards), "card" (inside a card) and "row" (above and
   // below a list row) follow the density.

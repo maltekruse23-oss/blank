@@ -1464,3 +1464,781 @@ main,
   align-self: flex-end;
   margin-top: 8px;
 }
+
+/* ARAM Mayhem leaderboard (features/aram/): tabs, table, records, best games, players. */
+.aram-toolbar {
+  align-items: center;
+}
+.aram-tabs {
+  display: flex;
+  gap: 5px;
+  margin-right: auto;
+}
+.aram-toolbar .toolbar-count {
+  margin-right: 0;
+}
+.aram-tabs .filter-button {
+  position: relative;
+  isolation: isolate;
+  padding: 8px 11px;
+}
+.aram-tabs .filter-button.selected {
+  border-color: var(--border);
+}
+.aram-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.aram-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.aram-person {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.aram-person .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: calc(8px * var(--radius-scale));
+  font-size: 10px;
+}
+.aram-person b {
+  color: var(--text);
+  font-weight: 600;
+}
+.aram-person small,
+.aram-game-who small {
+  margin-left: 2px;
+  color: var(--subtle);
+  font-size: 11px;
+}
+.aram-you {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.aram-best {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* A game of the collection: the champion's splash art from Data Dragon fades in from the right. */
+.aram-game {
+  position: relative;
+  isolation: isolate;
+  min-height: 172px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.aram-splash {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: 64%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  /* Only the mask's opacity counts, not its colour. */
+  mask-image: linear-gradient(to right, transparent, var(--text) 50%);
+}
+.aram-game-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-width: 72%;
+  padding: 14px 18px;
+}
+.aram-game-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.aram-game-place {
+  color: var(--subtle);
+}
+.aram-game.win .aram-outcome {
+  color: var(--accent);
+}
+.aram-game.loss .aram-outcome {
+  color: var(--danger-text);
+}
+.aram-game-head .badge {
+  letter-spacing: 0;
+  text-transform: none;
+}
+.aram-game-who {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.aram-game-who b {
+  color: var(--text);
+}
+.aram-game-who span::before {
+  content: '·';
+  margin: 0 6px;
+  color: var(--subtle);
+}
+.aram-game-damage {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+}
+.aram-game-damage strong {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-style: italic;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.aram-game-damage span {
+  color: var(--muted);
+  font-size: 15px;
+  font-style: italic;
+}
+.aram-game-stats {
+  display: flex;
+  gap: 18px;
+  margin: 2px 0 0;
+}
+.aram-game-stats div {
+  display: flex;
+  flex-direction: column;
+}
+.aram-game-stats dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.aram-game-stats dt {
+  order: 1;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.aram-items {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.aram-items img {
+  border: 1px solid var(--border);
+  border-radius: calc(5px * var(--radius-scale));
+}
+.aram-players {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+  align-items: start;
+}
+.aram-players .card-header {
+  margin-bottom: 10px;
+}
+.aram-players .card-note {
+  color: var(--subtle);
+  font-size: 11.5px;
+}
+.aram-people {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-person {
+  padding: 6px 2px;
+  font-size: 12.5px;
+}
+.aram-person.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+.aram-person-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-person .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+}
+.aram-choose .search {
+  max-width: none;
+  margin-bottom: 8px;
+}
+.aram-choose .search input {
+  padding: 9px 0;
+}
+.aram-friend-list {
+  max-height: 330px;
+  overflow-y: auto;
+}
+.aram-players.full {
+  grid-template-columns: 1fr;
+}
+/* Augments (from the League client) and items in a row, like the game shows them. */
+.aram-loadout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 2px;
+}
+.aram-loadout .aram-items {
+  margin-top: 0;
+}
+.aram-augments {
+  display: flex;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-augments li {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 9px;
+  overflow: hidden;
+}
+.aram-augments li.prismatic {
+  border-color: var(--accent);
+}
+.aram-augments li.gold {
+  border-color: var(--accent-line);
+}
+.aram-augments img {
+  display: block;
+}
+
+/* The card after an ARAM Mayhem game (features/aram/AramResult.tsx): popout and dialog. */
+.aram-result {
+  position: relative;
+  isolation: isolate;
+  width: 560px;
+  height: 232px;
+  overflow: hidden;
+  border-radius: calc(12px * var(--radius-scale));
+  color: var(--text);
+  font-family: var(--font);
+}
+.aram-result-splash {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -2;
+  width: 68%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  /* Only the mask's opacity counts, not its colour. */
+  mask-image: linear-gradient(to right, transparent, var(--text) 48%);
+}
+/* Keeps the numbers readable over bright splash art. */
+.aram-result::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--panel) 70%, transparent) 30%,
+    transparent 75%
+  );
+  pointer-events: none;
+}
+.aram-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  height: 100%;
+  padding: 18px 22px;
+}
+.aram-result-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.aram-result-head svg {
+  color: var(--accent);
+}
+.aram-result-head i {
+  color: var(--subtle);
+  font-style: normal;
+}
+.aram-result.win .aram-result-outcome {
+  color: var(--accent);
+}
+.aram-result.loss .aram-result-outcome {
+  color: var(--danger-text);
+}
+.aram-result-time {
+  color: var(--muted);
+}
+.aram-result-who {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.aram-result-who b {
+  color: var(--text);
+}
+.aram-result-who small {
+  margin-left: 1px;
+  color: var(--subtle);
+  font-size: 11px;
+}
+.aram-result-who span::before {
+  content: '·';
+  margin: 0 6px;
+  color: var(--subtle);
+}
+.aram-result-damage {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 4px;
+}
+.aram-result-damage strong {
+  display: inline-block;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 12px color-mix(in srgb, var(--panel) 80%, transparent);
+  transform-origin: left center;
+}
+.aram-result.tier-top .aram-result-damage strong,
+.aram-result.tier-legend .aram-result-damage strong {
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 2px 12px color-mix(in srgb, var(--panel) 80%, transparent);
+}
+.aram-result-damage > span {
+  color: var(--muted);
+  font-size: 16px;
+  font-style: italic;
+}
+.aram-result-stats {
+  display: flex;
+  gap: 17px;
+  margin: 2px 0 0;
+}
+.aram-result-stat {
+  display: flex;
+  flex-direction: column;
+}
+.aram-result-stat {
+  text-shadow: 0 1px 8px var(--panel);
+}
+.aram-result-stat dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-result-stat dt {
+  order: 1;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.aram-result-loadout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+}
+.aram-result-loadout .aram-items {
+  margin-top: 0;
+}
+.aram-result-badge {
+  position: absolute;
+  top: 14px;
+  right: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.aram-result-crown {
+  display: inline-flex;
+}
+/* Under the badge, over the splash art: the row of augments and items below stays free. */
+.aram-result-lines {
+  position: absolute;
+  top: 50px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  max-width: 44%;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: right;
+  text-shadow: 0 1px 6px var(--panel);
+}
+.aram-result-lines span {
+  padding: 2px 8px;
+  border-radius: calc(6px * var(--radius-scale));
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+}
+.aram-result-lines span:first-child {
+  color: var(--accent);
+}
+/* A shine sweeping once over a special game, and its glowing frame. */
+.aram-result-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    color-mix(in srgb, var(--text) 26%, transparent) 50%,
+    transparent 65%
+  );
+  pointer-events: none;
+}
+.aram-result-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid var(--accent);
+  border-radius: inherit;
+  box-shadow: inset 0 0 36px color-mix(in srgb, var(--accent) 30%, transparent);
+  pointer-events: none;
+}
+.aram-result-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.aram-result-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  color: var(--muted);
+}
+.aram-result-close:hover {
+  color: var(--text);
+}
+/* In the popout window the popout itself draws background and frame; nearly opaque whatever the
+   "Deckkraft" setting, so the numbers stay readable over the windows behind. */
+.popout.aram {
+  padding: 0;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+}
+.aram-result.clickable {
+  cursor: pointer;
+}
+/* In the app: larger, over the dimmed window. */
+.aram-result-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.aram-result-zoom {
+  width: calc(560px * 1.3);
+  height: calc(232px * 1.3);
+}
+.aram-result-zoom .aram-result {
+  transform: scale(1.3);
+  transform-origin: top left;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow-overlay);
+}
+.aram-result-actions {
+  display: flex;
+  justify-content: center;
+}
+/* "Ansehen" on a game of the collection. */
+.aram-game-show {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  color: var(--text);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.aram-game-show:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Leaderboard as categories with bars (features/aram/AramRanking.tsx, user's wish). */
+.aram-categories {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap);
+}
+.aram-category {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  border-color: color-mix(in srgb, var(--hue) 26%, var(--border));
+  background:
+    radial-gradient(
+      120% 70% at 0% 0%,
+      color-mix(in srgb, var(--hue) 14%, transparent),
+      transparent 70%
+    ),
+    var(--surface);
+}
+.aram-category-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.aram-category-head h2 {
+  margin: 0;
+  font-size: 13px;
+}
+.aram-category-head small {
+  display: block;
+  overflow: hidden;
+  color: var(--subtle);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-category-head > span:last-child {
+  min-width: 0;
+}
+.aram-category-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: calc(8px * var(--radius-scale));
+  background: color-mix(in srgb, var(--hue) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue) 35%, transparent);
+  color: var(--hue);
+}
+.aram-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-bar-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+/* The place as a small medal (user's wish, classic colours): gold, silver, bronze, then neutral. */
+.aram-bar-place {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--place) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--place) 55%, transparent);
+  color: var(--place);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-bars li.lead .aram-bar-place {
+  background: var(--place);
+  color: var(--panel);
+}
+.aram-bar-line .avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--place) 70%, transparent);
+  width: 18px;
+  height: 18px;
+  border-radius: calc(5px * var(--radius-scale));
+  font-size: 8px;
+}
+.aram-bar-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-bars li.me .aram-bar-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.aram-bar-champion {
+  flex-shrink: 0;
+  border-radius: calc(4px * var(--radius-scale));
+}
+.aram-bar-value {
+  flex-shrink: 0;
+  color: var(--text);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.aram-bar-track {
+  height: 6px;
+  margin: 4px 0 0 20px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-hover);
+}
+.aram-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--place) 45%, transparent),
+    var(--place)
+  );
+  opacity: 0.8;
+  transform-origin: left center;
+}
+.aram-bars li.lead .aram-bar-fill {
+  opacity: 1;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--place) 60%, transparent);
+}
+.aram-bars li.lead .aram-bar-value {
+  color: var(--place);
+}
+/* The choice of categories below the toolbar. */
+.aram-choice-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+.aram-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.aram-choice .filter-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+}
+.aram-choice-panel .text-link {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+/* Closing to and opening from the notification area (app/windowFx.ts): drawn over everything. */
+.window-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* Starting the leaderboard anew (Spieler), with a question first. */
+.aram-reset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--subtle);
+  font-size: 12px;
+}
+.aram-reset > span {
+  margin-right: auto;
+}
+.aram-reset p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--text);
+}
+.aram-reset .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+}
+.aram-reset .secondary-button.danger {
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--border));
+  color: var(--danger-text);
+}
+.aram-reset .text-link {
+  font-size: 12px;
+}

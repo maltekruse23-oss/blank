@@ -74,6 +74,9 @@ pub struct Sample {
     top_cpu: Vec<AppLoad>,
     top_memory: Vec<AppLoad>,
     top_gpu: Vec<AppLoad>,
+    /// League game and client running (aram.rs follows the end of games); not shown.
+    #[serde(skip)]
+    league: (bool, bool),
 }
 
 #[derive(Serialize, Clone)]
@@ -148,6 +151,7 @@ pub fn start(app: AppHandle, state: PcState) {
         loop {
             let sample = sampler.sample();
             watch.check(&app, &sample, sampler.elapsed);
+            crate::aram::league_seen(&app, sample.league.0, sample.league.1);
             let (lock, wake) = &*state.0;
             let Ok(mut shared) = lock.lock() else {
                 return;
@@ -269,6 +273,8 @@ struct Sampler {
     threads: f64,
     disk: Vec<u16>,
     disk_name: String,
+    /// League game and client seen in the last process list.
+    league: (bool, bool),
 }
 
 impl Sampler {
@@ -285,6 +291,7 @@ impl Sampler {
             threads: std::thread::available_parallelism().map_or(1, |n| n.get()) as f64,
             disk: wide(&format!("{drive}\\")),
             disk_name: drive,
+            league: (false, false),
         }
     }
 
@@ -298,6 +305,7 @@ impl Sampler {
         };
         self.cpu_and_memory(&mut sample);
         let (exes, cpu, memory) = self.processes();
+        sample.league = self.league;
         let closable = closable(&exes);
         sample.top_cpu = self.top(cpu, 0.5, &closable);
         sample.top_memory = self.top(memory, 50.0 * 1024.0 * 1024.0, &closable);
@@ -400,6 +408,7 @@ impl Sampler {
         let mut cpu: HashMap<String, f64> = HashMap::new();
         let mut memory: HashMap<String, f64> = HashMap::new();
         let mut current = HashMap::new();
+        self.league = (false, false);
         let window = self.elapsed.as_secs_f64() * 10_000_000.0 * self.threads;
         // SAFETY: snapshot and process handles are checked and closed; out-structs are sized.
         unsafe {
@@ -416,6 +425,12 @@ impl Sampler {
                 more = Process32NextW(snapshot, &mut entry) != 0;
                 if pid == 0 {
                     continue;
+                }
+                // Before opening it: the game may not let itself be opened.
+                if exe == crate::aram::GAME_EXE_LOWER {
+                    self.league.0 = true;
+                } else if exe == crate::aram::CLIENT_EXE_LOWER {
+                    self.league.1 = true;
                 }
                 let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
                 if handle.is_null() {

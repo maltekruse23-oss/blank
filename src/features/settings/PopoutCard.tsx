@@ -444,6 +444,7 @@ export function PopoutCard({
           <>
             {toggle('popoutLive', 'Live-Meldungen', 'Wer auf Twitch live geht')}
             {toggle('popoutWarnings', 'Warnungen', 'Akku und Überlastung')}
+            {toggle('popoutAram', 'ARAM-Ergebnis', 'Karte nach jedem ARAM-Mayhem-Spiel')}
             {toggle('popoutNoticeAlways', 'Immer anzeigen', 'Bleibt, bis du schließt')}
             {slider(
               'popoutNoticeSeconds',

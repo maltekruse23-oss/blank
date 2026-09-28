@@ -38,6 +38,59 @@ Prüfen über die GitHub-API (neuestes Release), Installieren nur auf Klick: Dow
 - Deine App danach wieder regulär als 0.2.0 gebaut und gestartet.
 - **Hinweis:** Wer noch v0.1.0 oder v0.2.0 hat, muss die erste Version mit Updater einmal von Hand laden; ab dann geht es per Knopf.
 
+## Rangliste neu gestartet, mehr Spieler, Medaillenfarben (Benutzerwunsch)
+
+- Neustart der echten Rangliste (Wunsch des Benutzers, über den neuen Knopf mit Rückfrage): vorher 30 Spiele (inzwischen im Hintergrund gesammelt), danach „0 Spiele · seit 28.09.26“; ein Abgleich direkt danach holte keins der letzten 20 Spiele aus dem Client zurück. 146 Augment-Symbole blieben. Die alte Sammlung liegt als Kopie außerhalb des Repos.
+- Bis zu neun Freunde: in der Vorschau fünf hinzugefügt („5 von 9 Freunden“), alle Kategorien zeigen sechs Balken.
+- Farben: zuerst je Spieler eine eigene Farbe gebaut, auf Wunsch des Benutzers („die klassischen Farben, 1 Gold usw.“) ersetzt durch Gold, Silber, Bronze für die Plätze, neutral danach und für 0 bzw. keinen Wert; jede Kategorie mit dezentem Farbton ihrer Art. Neue Tokens in `tokens.ts`, `themes.ts` und `tokens.css` (Design-Tests grün).
+- `pnpm test` 37, `cargo test` 46 (neu: Neustart-Zeitpunkt übersteht Speichern/Laden, alte Sammlung ohne ihn liest sich als nie neu gestartet), `tsc`, `pnpm desktop:build` ohne Warnungen. Einstellungen des Benutzers gesichert und zeichengleich zurück.
+
+## Animation beim X und beim Zurückholen (Benutzerwunsch)
+
+Beim X: die App leuchtet auf, klappt zu einer Linie zusammen, wird zum glühenden Punkt, der mit Funkenschweif nach unten rechts (zum Symbol) schießt; dann versteckt sich das Fenster. Beim Zurückholen die Gegenrichtung mit Schockwelle und Funkenregen, die App federt auf.
+
+- Nativ vom Bildschirm gefilmt (178 bzw. 215 Bilder, Kontaktbögen): Schließen ~0,78 s, Öffnen ~0,95 s, alle Phasen sichtbar; das Fenster bleibt dabei deckend (nur der eigene dunkle Hintergrund um die Linie).
+- Danach an `.app` keine Transformation, kein Filter, keine laufende Animation; Klicks kommen an (Seitenwechsel geprüft).
+- Nicht einzeln geprüft: X mit „Animationen“ aus (dann wie vorher sofort, ein einfacher Zweig im Code).
+- `pnpm test` 37, `cargo test` 46, `tsc`, `pnpm desktop:build` ohne Warnungen. Einstellungen des Benutzers gesichert und zeichengleich zurück.
+
+## X versteckt in den Infobereich (Benutzerwunsch)
+
+Das X beendet blank. nicht mehr, sondern versteckt es im Infobereich; nur „Beenden“ im Menü des Symbols beendet (wie andere Apps).
+
+- Nativ: nach dem X Fenster unsichtbar, Prozess läuft, Seite `document.hidden = true` (spart wie minimiert). Zweiter Start holt das Fenster zurück (149 ms, Seite wieder sichtbar), dreimal im Wechsel mit dem X.
+- Fehler gefunden und behoben: zuerst blendete der zweite Start das Fenster von außen ein – danach tat das nächste X nichts, weil die App ihr Fenster noch für versteckt hielt. Jetzt bittet der zweite Start die laufende App über ein benanntes Ereignis, sich selbst zu zeigen (ein wartender Faden, kein Abfragen).
+- Beenden über `app.exit` (derselbe Weg wie „Beenden“ im Menü, getestet über den Neustart für die Grafikkarte): alter Prozess endet, das X-Verhalten hält es nicht auf. Das Menü des Symbols selbst ließ sich nicht automatisch anklicken.
+- Hinweis: Der erste Start einer frisch gebauten EXE kann einige Sekunden dauern (Prüfung durch Windows), bis sie die laufende App erreicht.
+- `cargo test` 46, `pnpm test` 37, `pnpm desktop:build` ohne Warnungen. Einstellungen des Benutzers gesichert und zeichengleich zurück.
+
+## Rangliste als Kategorien mit Balken (Benutzerwunsch)
+
+Statt Tabelle und Rekord-Kacheln: je Kategorie eine Karte mit einem Balken pro Spieler. Hauptkategorien nach Wunsch des Benutzers; „maximales Leben“ steht nicht in den Spieldaten (alle Felder eines echten Spiels geprüft: nur Schaden, Heilung, Eingesteckt, Abgewehrt, Multikills, Krit, CC, Gold, Türme u. Ä.) – dafür „Größter Tank“.
+
+- Echter Client: alle Felder eines Spiels gelesen (`magicDamageDealtToChampions`, `physicalDamageDealtToChampions`, `trueDamageDealtToChampions`, `timeCCingOthers` usw.). Beim ersten Abgleich mit der neuen Version bekamen alle 19 gespeicherten Spiele ihre neuen Werte (Version 2, 19 von 19 mit Details). Die Rangliste zeigt AP- und AD-Schaden getrennt je bestes Spiel.
+- Browser-Vorschau mit vier fiktiven Spielern: sechs Karten füllen die Seite ohne Scrollen (594/594), Balken wachsen gestaffelt, Gleichstand = gleicher Platz, Auswahl der Kategorien (21) bleibt gespeichert, mehr als sechs Kategorien machen die Seite zur scrollenden Liste.
+- `pnpm test` 37 (neu: Bestwert mit Spiel, Summen/Schnitte/Quoten, fehlende AP/AD-Werte nie als 0, Auswahl streng geprüft, Pentakill legendär, Rekord in anderer Kategorie), `cargo test` 46 (Details kommen mit), `tsc`, `pnpm desktop:build` ohne Warnungen. Einstellungen des Benutzers gesichert und zeichengleich zurück.
+
+## Karte nach dem ARAM-Spiel (Benutzerwunsch)
+
+Nach einem ARAM-Mayhem-Spiel erscheint eine Karte nach dem Vorbild des Bildes des Benutzers (eigene Gestaltung, kein fremdes Logo): Splash von Data Dragon, Schaden zählt hoch, Stats, Augments und Items bauen sich gestaffelt auf; besondere Spiele bekommen Abzeichen, Glanz und Leuchtrahmen, ein Rekord oder Platz 1 zusätzlich Krone und Funken.
+
+- Browser-Vorschau (Chrome ohne Fenster, Einzelbilder bei 0,25/0,7/1,15/1,75/2,1/3,6 s): Schaden zählt hoch (25.291 → 88.777 → 94.843 → 95.120), Abzeichen, Hinweise und Glanz erst nach dem Aufbau (ein erster Fehler – eigene Deckkraft-Übergänge ohne Verzögerung ließen Abzeichen und Hinweise sofort erscheinen – behoben), Funken bei „Neuer Rekord“, Stufen „Rekord“, „Top-Schaden“, „Bestleistung“ richtig. Hinweiszeilen über dem Bild auf eigenem dunklem Grund, weil sie sonst mit 4 Augments + 7 Items zusammenstießen.
+- Nativ mit echten Daten: in der App über „Ansehen“ (Dialog, 1,3-fach) und als Popout auf dem gewählten Bildschirm (580 × 254 px samt Rand); Bildschirmaufnahme zeigt den Aufbau (Schaden bei 65.282 im Zählen) und den Endzustand mit 4 Augments und 7 Items. Mit der eingestellten Popout-Deckkraft des Benutzers schien der Hintergrund zu stark durch – die Karte ist jetzt fast deckend (96 %).
+- Nicht geprüft: die Meldung nach einem echten Spielende (kein Spiel während der Prüfung). Sie nutzt denselben Abgleich wie oben, erst nach dem Ende von `League of Legends.exe` und nur bei Queue 2400.
+- `pnpm test` 35 (neu: Stufen der Karte – Rekord und Platz 1 legendär, Top-Schaden ohne Rekord, erstes Spiel ohne erfundenen Rekord, Bestleistung und Platz unter den besten Spielen), `cargo test` 46, `tsc`, `pnpm build`, `pnpm desktop:build` ohne Warnungen. Einstellungen des Benutzers gesichert und zeichengleich zurück, `settings.json` zeichengleich zurückkopiert.
+
+## ARAM-Mayhem-Rangliste (Benutzerwunsch)
+
+Wunsch zuerst: Live-Tracker mit Live-Schaden. Geprüft und abgelehnt, weil es keinen erlaubten Weg gibt: Riots Live Client Data (Port 2999) hat keinen Schaden, die Live-Events-Schnittstelle lief nur beim Zuschauen und ist seit Patch 14.1 abgeschaltet, Riots Web-API liefert ARAM Mayhem (Queue 2400) nicht (403) und bräuchte einen Schlüssel; Speicherlesen im Spiel kommt wegen Vanguard nie in Frage. Stattdessen (Wahl des Benutzers): Rangliste und Sammlung der besten Spiele für ihn und drei Freunde, nur ARAM Mayhem, für immer, Freunde aus der Freundesliste.
+
+- Datenaufbau vorher nur lesend geprüft (Skript, ohne Namen auszugeben): aktueller Beschwörer mit 36-stelliger PUUID; Spielverlauf 20 Spiele, davon 18 in Queue 2400 (Modus „KIWI“); `begIndex`/`endIndex` werden übergangen (0–5, 5–10, 19–39 liefern dieselben 20) – deshalb der Abgleich nach jedem Spiel; Spiel-Details mit allen zehn Spielern, `totalDamageDealtToChampions`, `playerAugment1–6` (vier belegt), Dauer in Sekunden, Version „16.19.…“; Freundesliste 31 Einträge, Spielverlauf eines Freundes lesbar (200, 21 Spiele); Augment-Namen und -Symbole aus `cherry-augments.json` (auch die Mayhem-Augments, Symbol ~1,5 KB PNG).
+- Nativ mit echtem Client: Seite ARAM gleicht in 2,0 s ab: 19 Spiele, 56 Augments (alle mit Symbol, 160 KB in `aram.json`, 173 KB gesamt). Der höchste Schaden stimmt genau mit der Blitz-Karte aus dem Bild des Benutzers überein. „Beste Spiele“: 12 Karten mit Splash, Augments und Items (76 von 83 Item-Bildern bei Data Dragon vorhanden, fehlende werden ausgeblendet). Rangliste und Rekorde richtig, Freundesliste zeigt 31 Freunde (keine ausgewählt – das macht der Benutzer).
+- Abgleich im Hintergrund: App bei offenem Client gestartet (18:22:35), Seite gleicht ab (18:22:43), 45 s nach Start noch einmal von selbst (18:23:21), die offene Seite übernimmt es (Stand 18:23). Nicht geprüft: der Abgleich nach einem Spielende (kein Spiel während der Prüfung); er nutzt denselben Weg, ausgelöst vom Ende des Prozesses `League of Legends.exe`.
+- Ohne Client: „League-Client geschlossen“, Freundesliste mit Hinweis, keine Fehler. Browser-Vorschau mit fiktiven Spielern (Mock-Badge): Rangliste, Beste Spiele, Spieler hinzufügen und entfernen, kein Scrollen der Rangliste bei 860 × 640.
+- `cargo test` 46 (neu: lockfile nur gültig mit Port/Passwort, nur Spieler der Liste mit Platz und Team-Anteil, unbekannter Champion harmlos, PUUID-Prüfung, nur PNG-Pfade der Spieldaten, Base64, Speichern und Laden samt beschädigter Datei), `pnpm test` 31 (neu: Rangliste ohne Spiele nie 0, Sortierung, Rekorde, strenge Prüfung der gespeicherten Freunde), `tsc`, `pnpm build`, `pnpm format:check`, `cargo fmt`, `pnpm desktop:build` ohne Warnungen. Einstellungen des Benutzers gesichert und zeichengleich zurück, `settings.json` zeichengleich zurückkopiert; `aram.json` mit den eigenen Spielen bleibt (Beginn der Sammlung).
+
 ## Neuigkeiten nach einem Update (Benutzerwunsch)
 
 Nach einem Update zeigt blank. einmal „Neu in Version …“ mit dem Abschnitt „Neu in dieser Version“ aus `.github/release-notes.md` (in die App eingebaut, passt immer zur installierten Version, kein Internet). Rust merkt sich den Start mit `--after-update` (`update_news` liefert es genau einmal), die App zeigt den Dialog nach dem Startbildschirm; Settings → System → „Neuigkeiten“ öffnet ihn jederzeit.

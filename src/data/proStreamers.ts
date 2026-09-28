@@ -13,7 +13,7 @@
 export const LEAGUE_GAME_ID = '21779';
 
 /** Data Dragon version of the champion icons (ddragon.leagueoflegends.com, allowed in the CSP). */
-const DDRAGON_VERSION = '16.18.1';
+export const DDRAGON_VERSION = '16.18.1';
 
 export const LANES = ['Top', 'Jungle', 'Mid', 'ADC', 'Support'] as const;
 export type Lane = (typeof LANES)[number];

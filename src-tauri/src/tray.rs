@@ -11,6 +11,12 @@ use tauri::{
 
 /// A left click on the icon shows the music popout instead of the app (set by the app window).
 static CLICK_SHOWS_MUSIC: AtomicBool = AtomicBool::new(false);
+/// The icon exists: the X may hide blank. into it (lib.rs).
+static READY: AtomicBool = AtomicBool::new(false);
+
+pub fn is_ready() -> bool {
+    READY.load(Ordering::Relaxed)
+}
 
 /// The "Nicht stören" entry of the menu, so the app can set its tick.
 pub struct QuietItem(CheckMenuItem<Wry>);
@@ -43,6 +49,8 @@ pub fn show_app(app: &AppHandle) {
     };
     let _ = window.unminimize();
     let _ = window.show();
+    // Hidden by the X: the page draws again (background.rs).
+    crate::background::set_hidden(&window, false);
     let _ = window.set_focus();
 }
 
@@ -82,5 +90,6 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         tray = tray.icon(icon.clone());
     }
     tray.build(app)?;
+    READY.store(true, Ordering::Relaxed);
     Ok(())
 }

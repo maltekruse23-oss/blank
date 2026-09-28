@@ -5,6 +5,8 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import type { AppLoad } from '../adapters/pc';
 import type { Page } from '../app/App';
+import type { AramAugment, AramEntry } from '../adapters/aram';
+import type { AramHighlight } from '../features/aram/aramHighlight';
 import type { PopoutPlace, PopoutScreen } from '../features/popouts/placement';
 
 /** blank.'s own SoundCloud mix; positions in ms, `at`: when `position` was true. */
@@ -39,6 +41,14 @@ export type PopoutItem =
   | { kind: 'preview'; id: number; topic: 'music' | 'notice'; stamp: number }
   /** A short note, e.g. that nothing plays. */
   | { kind: 'info'; id: number; title: string; detail: string }
+  /** The card after an ARAM Mayhem game (features/aram/AramResult.tsx), with its augments' icons. */
+  | {
+      kind: 'aram';
+      id: number;
+      entry: AramEntry;
+      augments: Record<string, AramAugment>;
+      highlight: AramHighlight;
+    }
   | {
       kind: 'live';
       id: number;

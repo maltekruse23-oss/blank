@@ -4,6 +4,8 @@ import {
   resolveSettings,
   type Customization,
 } from '../../design/customization';
+import { readAramFriends, type AramPlayer } from '../../adapters/aram';
+import { defaultCategories, readAramCategories, type CategoryId } from '../aram/aramCategories';
 import { isThemeId, type ThemeId } from './themes';
 import {
   isPopoutBackground,
@@ -78,6 +80,8 @@ export type Preferences = {
   popoutApps: string[];
   popoutLive: boolean;
   popoutWarnings: boolean;
+  /** The card after each ARAM Mayhem game (page ARAM). */
+  popoutAram: boolean;
   /** Seconds a live notice, warning or note stays (1–30), unless it always stays. */
   popoutNoticeSeconds: number;
   popoutNoticeAlways: boolean;
@@ -107,6 +111,10 @@ export type Preferences = {
   watchName: string;
   /** Code of the last watch-together room, offered as "Wieder beitreten" (never joined by itself). */
   watchLastRoom: string;
+  /** Up to three League friends in the ARAM Mayhem leaderboard (page ARAM). */
+  aramFriends: AramPlayer[];
+  /** Categories of the ARAM leaderboard, in their fixed order. */
+  aramCategories: CategoryId[];
 };
 
 export const defaultPreferences: Preferences = {
@@ -139,6 +147,7 @@ export const defaultPreferences: Preferences = {
   popoutApps: [],
   popoutLive: true,
   popoutWarnings: true,
+  popoutAram: true,
   popoutNoticeSeconds: 10,
   popoutNoticeAlways: false,
   popoutTheme: 'app',
@@ -158,6 +167,8 @@ export const defaultPreferences: Preferences = {
   trayClick: 'app',
   watchName: '',
   watchLastRoom: '',
+  aramFriends: [],
+  aramCategories: defaultCategories,
 };
 
 /** "Kompakte Ansicht" and "Animationen" as the rest of the app reads them. */
@@ -248,6 +259,7 @@ export function readPreferences(raw: unknown): Preferences | null {
     popoutApps: readFilterApps(data.popoutApps),
     popoutLive: flag('popoutLive'),
     popoutWarnings: flag('popoutWarnings'),
+    popoutAram: flag('popoutAram'),
     popoutNoticeSeconds: seconds('popoutNoticeSeconds'),
     popoutNoticeAlways: always('popoutNoticeAlways'),
     popoutTheme: pick(data.popoutTheme, isPopoutTheme, d.popoutTheme),
@@ -281,5 +293,7 @@ export function readPreferences(raw: unknown): Preferences | null {
       /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(data.watchLastRoom)
         ? data.watchLastRoom
         : d.watchLastRoom,
+    aramFriends: readAramFriends(data.aramFriends),
+    aramCategories: readAramCategories(data.aramCategories),
   };
 }

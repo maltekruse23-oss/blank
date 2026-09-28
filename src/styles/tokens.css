@@ -32,6 +32,17 @@
   --avatar-3-ink: #b9d9df;
   --avatar-0: #2c322e;
   --avatar-0-ink: #aab1ac;
+  /* ARAM leaderboard: medal colours of the places (1 gold, 2 silver, 3 bronze, the rest) and a
+     colour per kind of category; the same in every scheme. */
+  --rank-1: #f5c84c;
+  --rank-2: #c9d1dc;
+  --rank-3: #d99a62;
+  --rank-rest: #6f7d86;
+  --game-fire: #ff7a45;
+  --game-magic: #b085ff;
+  --game-physical: #ff5d6c;
+  --game-gold: #f5c84c;
+  --game-guard: #4fc9d9;
   /* Drop shadow of floating notices. */
   --shadow: #000a;
 }

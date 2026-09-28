@@ -1,5 +1,7 @@
 #[cfg(windows)]
 mod apps;
+#[cfg(windows)]
+mod aram;
 mod autostart;
 #[cfg(windows)]
 mod background;
@@ -83,6 +85,8 @@ pub fn run() {
             #[cfg(windows)]
             app.manage(tweaks::TweakFile::new(app.handle())?);
             #[cfg(windows)]
+            app.manage(aram::AramState::new(app.handle())?);
+            #[cfg(windows)]
             {
                 app.manage(update::UpdateState::default());
                 update::clean_up();
@@ -108,6 +112,8 @@ pub fn run() {
                 if let Err(error) = tray::create(app.handle()) {
                     eprintln!("Tray icon unavailable: {error}");
                 }
+                // A second start shows this window (single_instance.rs).
+                single_instance::listen(app.handle().clone());
                 // A missing or changed monitor setup must not stop the app from opening.
                 let _ = monitor::place_on_second(&window);
                 window.show()?;
@@ -121,10 +127,29 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|_window, _event| {
-            #[cfg(windows)]
             // Only the app window; popouts handle their visibility themselves (flyout.rs).
-            if let (tauri::WindowEvent::Resized(_), "main") = (_event, _window.label()) {
-                background::sync(_window);
+            #[cfg(windows)]
+            if _window.label() == "main" {
+                match _event {
+                    tauri::WindowEvent::Resized(_) => background::sync(_window),
+                    // The X (and Alt+F4) hides blank. into the notification area (user's wish,
+                    // like other apps); "Beenden" in the icon's menu ends it. Without the icon
+                    // (it could not be created) the X still ends it, or blank. would be unreachable.
+                    tauri::WindowEvent::CloseRequested { api, .. } if tray::is_ready() => {
+                        api.prevent_close();
+                        let _ = _window.hide();
+                        if let Some(webview) = _window.get_webview_window("main") {
+                            background::set_hidden(&webview, true);
+                        }
+                    }
+                    // Shown again (icon, popout, a second start): the page draws again.
+                    tauri::WindowEvent::Focused(true) => {
+                        if let Some(webview) = _window.get_webview_window("main") {
+                            background::set_hidden(&webview, false);
+                        }
+                    }
+                    _ => {}
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -134,6 +159,14 @@ pub fn run() {
             apps::apps_install,
             #[cfg(windows)]
             apps::apps_cancel,
+            #[cfg(windows)]
+            aram::aram_data,
+            #[cfg(windows)]
+            aram::aram_sync,
+            #[cfg(windows)]
+            aram::aram_friends,
+            #[cfg(windows)]
+            aram::aram_reset,
             autostart::autostart_status,
             #[cfg(windows)]
             cloud::settings_complete,

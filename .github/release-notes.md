@@ -1,13 +1,12 @@
 ## Neu in dieser Version
 
-- **Zusammen schauen:** Mit Freunden gleichzeitig Twitch schauen und gemeinsam den Kanal wechseln – einfach den Raum-Code teilen, ohne Konto (Seite Twitch → Zusammen).
-- **Neuer Startbildschirm:** Beim Start setzt sich „blank.“ aus Lichtpartikeln zusammen und öffnet sich wie ein Portal zur App. Ein Klick überspringt ihn.
-- **Lebendige Animationen:** Seiten, Menü, Karten, Zahlen und Knöpfe bewegen sich mit Federschwung, mit der Grafikkarte flüssig. Settings → Darstellung → Animationen schaltet alles an oder aus.
-- **Popouts:** wachsen wie eine Insel aus der Bildschirmkante, zeigen unten die Restzeit und klappen beim Überfahren ohne Wackeln auf.
-- **Popouts in der Taskleiste:** Neu unter Settings → Popouts: Die Popouts sitzen als schmale Leiste direkt in der Taskleiste, Musik öffnet beim Überfahren darüber ein Panel wie bei Windows.
-- **Darstellung zum Einstellen:** Stile (Standard, Sparsam, Schlicht und eigene), Akzentfarbe, Dichte und Rundung – alles sofort zu sehen. Es gibt nur noch das Design „Klassisch“ mit sechs Farbschemata.
-- **Settings aufgeräumt:** sieben Reiter und eine Suche über alles.
-- **Neuigkeiten nach Updates:** Nach einem Update zeigt blank. einmal, was neu ist (jederzeit wieder unter Settings → System → Neuigkeiten).
+- **ARAM-Rangliste:** Neue Seite ARAM: du und bis zu neun Freunde aus deiner League-Freundesliste im Vergleich – nur ARAM Mayhem, direkt aus deinem League-Client, ohne Schlüssel. Deine Freunde brauchen dafür nichts.
+- **Kategorien mit Balken:** Höchster Schaden, Pentakills, AP- und AD-Schaden, Meiste Kills und Größter Tank – dazu 15 weitere zum Auswählen. Die Plätze in Gold, Silber und Bronze.
+- **Karte nach dem Spiel:** Nach jedem ARAM-Mayhem-Spiel baut sich dein Ergebnis animiert auf: Schaden, Stats, Augments und Items. Bei Pentakill, Rekord oder Top-Schaden mit Extra-Effekt.
+- **Beste Spiele:** Die Sammlung eurer besten Runden, jede mit „Ansehen“ als Karte.
+- **Neu starten:** ARAM → Spieler → Rangliste neu starten zählt ab dann von vorn.
+- **X versteckt nur:** Das X schickt blank. in den Infobereich (Pfeil unten rechts), damit Meldungen und Popouts weiterlaufen. Ganz beenden: Rechtsklick auf das Symbol → Beenden.
+- **Animation beim Schließen und Öffnen:** blank. klappt wie ein alter Fernseher zu einem Lichtpunkt zusammen, der zum Symbol fliegt – und springt beim Öffnen mit Schockwelle wieder auf.
 
 ## So geht's
 
@@ -19,8 +18,9 @@ Die beiden Dateien **„Source code“** brauchst du nicht, das ist nur der Quel
 
 ## Gut zu wissen
 
-- **Von Version 0.3.0:** oben in der Titelleiste auf **Update** und dann auf **Jetzt aktualisieren** klicken (oder Settings → System). blank. startet neu und zeigt, was neu ist.
+- **Von Version 0.3.0 oder neuer:** oben in der Titelleiste auf **Update** und dann auf **Jetzt aktualisieren** klicken (oder Settings → System). blank. startet neu und zeigt, was neu ist.
 - **Von Version 0.2.0 oder älter:** dieses eine Mal noch von Hand – blank. über das Symbol unten rechts in der Taskleiste beenden (Rechtsklick → Beenden), die alte `blank.exe` durch die neue ersetzen. Einstellungen bleiben erhalten. Ab jetzt geht es über Settings → System.
+- **ARAM:** Der League-Client muss ab und zu offen sein, am besten läuft blank. im Hintergrund mit (der Client merkt sich nur die letzten 20 Spiele je Spieler). blank. liest nur, ändert nichts und fasst das Spiel nie an.
 - **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumente\blank`), bevor du in den Settings „Mit Windows starten“ einschaltest.
 - **Anderer PC:** am einfachsten mit „Online sichern“ (Seite Apps); oder Settings → Übertragen → Exportieren und auf dem anderen PC Importieren. Twitch danach einmal neu verbinden.
 - **Twitch:** braucht einmalig eine eigene, kostenlose Client-ID (Anleitung in der README unter „Twitch einrichten“).

@@ -59,6 +59,7 @@ import {
   type Preferences,
 } from '../settings/preferences';
 import { popoutEasings, popoutPlaces, popoutScreens } from './placement';
+import { AramResultCard } from '../aram/AramResult';
 
 /** After the mouse leaves a popout (or a click in it), it stays at least this long. */
 const AFTER_HOVER_MS = 3_000;
@@ -72,7 +73,17 @@ const INSET = 10;
 /** How far a popout slides while it fades in and out (CSS pixels). */
 const SLIDE = 18;
 /** Widths in CSS pixels; each extra button (repeat, shuffle) adds one step. */
-const WIDTH = { normal: 360, button: 38, compact: 380, upNext: 330, notice: 360, taskbar: 300 };
+const WIDTH = {
+  normal: 360,
+  button: 38,
+  compact: 380,
+  upNext: 330,
+  notice: 360,
+  taskbar: 300,
+  aram: 560,
+};
+/** The ARAM card builds up for about 2.5 s; it stays at least this long (unless "Immer"). */
+const ARAM_SECONDS = 12;
 
 /** The settings, shared with the app window; read again whenever they change there. */
 function readLook(): Preferences {
@@ -745,6 +756,7 @@ export function PopoutWindow() {
   const coverColor = useCoverColor(playing?.cover ?? null);
 
   const widthOf = (item: PopoutItem) => {
+    if (item.kind === 'aram') return WIDTH.aram;
     if (isUpNext(item)) return inTaskbar ? WIDTH.taskbar : WIDTH.upNext;
     if (!showsMusic(item)) return inTaskbar ? WIDTH.taskbar : WIDTH.notice;
     if (compactNow) return inTaskbar ? WIDTH.taskbar : WIDTH.compact;
@@ -764,6 +776,8 @@ export function PopoutWindow() {
     !isUpNext(current) &&
     (current.kind === 'mix' ? !!current.duration : current.kind === 'preview' || !!timeline);
   const width = current ? widthOf(current) : WIDTH.notice;
+  // The ARAM card is too large for the taskbar: at that end, above it, like a normal popout.
+  const taskbarCard = inTaskbar && current?.kind !== 'aram';
   // A compact music popout can open under the mouse. Its window has room to open into and a
   // region shows only the card, so opening and folding never resize the window: a resize briefly
   // showed the old picture at the wrong place (the card jumped; user's report "wackelt").
@@ -896,9 +910,9 @@ export function PopoutWindow() {
           popoutPlace,
           popoutScreen,
           inset,
-          inTaskbar ? size.height : null,
+          taskbarCard ? size.height : null,
         );
-        if (inTaskbar) setTaskbarPlace(edge);
+        if (taskbarCard) setTaskbarPlace(edge);
         return done();
       }
       const r = room.current;
@@ -949,6 +963,7 @@ export function PopoutWindow() {
     roomy,
     openWidth,
     inTaskbar,
+    taskbarCard,
   ]);
   if (current) lastShown.current = current;
 
@@ -962,7 +977,7 @@ export function PopoutWindow() {
     roomy,
     regionOf,
     wholeWindow,
-    inTaskbar,
+    inTaskbar: taskbarCard,
   });
   placement.current = {
     width,
@@ -972,7 +987,7 @@ export function PopoutWindow() {
     roomy,
     regionOf,
     wholeWindow,
-    inTaskbar,
+    inTaskbar: taskbarCard,
   };
   useEffect(() => {
     const element = card.current;
@@ -1039,7 +1054,9 @@ export function PopoutWindow() {
             : look.popoutMusicSeconds
           : look.popoutNoticeAlways
             ? 0
-            : look.popoutNoticeSeconds;
+            : current.kind === 'aram'
+              ? Math.max(ARAM_SECONDS, look.popoutNoticeSeconds)
+              : look.popoutNoticeSeconds;
   // Every change in the settings starts the preview's time again.
   const stamp = current?.kind === 'preview' ? current.stamp : 0;
   useEffect(() => {
@@ -1086,7 +1103,7 @@ export function PopoutWindow() {
     expanded && !inTaskbar ? 'opened' : '',
     expanded && inTaskbar && playing && !isUpNext(item) ? 'active' : '',
     isUpNext(item) ? 'small' : '',
-    inTaskbar ? 'taskbar' : '',
+    inTaskbar && item.kind !== 'aram' ? 'taskbar' : '',
     playing && !isUpNext(item) && look.popoutBackground !== 'none'
       ? `bg-${look.popoutBackground}`
       : '',
@@ -1276,6 +1293,19 @@ export function PopoutWindow() {
           </span>
           <CloseButton onClick={() => close(item)} />
         </div>
+      )}
+      {item.kind === 'aram' && (
+        <AramResultCard
+          entry={item.entry}
+          augments={item.augments}
+          highlight={item.highlight}
+          run={fadeMs === 0 ? 'off' : presented === `${item.kind}-${item.id}` ? 'play' : 'wait'}
+          onClose={next}
+          onOpen={() => {
+            void openApp('aram');
+            next();
+          }}
+        />
       )}
       {queue.length > 1 && <span className="popout-more">+{queue.length - 1}</span>}
     </div>

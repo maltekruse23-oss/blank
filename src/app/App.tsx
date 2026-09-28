@@ -8,6 +8,7 @@ import { AnimatePresence, MotionConfig, motion, type Variants } from 'motion/rea
 import { gpu, updateNews } from '../platform/system';
 import { PatchNotes } from './PatchNotes';
 import { closeWindow, minimizeWindow } from '../platform/window';
+import { playClose, playOpen, resetWindowFx } from './windowFx';
 import {
   LayoutGrid,
   Radio,
@@ -17,8 +18,14 @@ import {
   Cpu,
   Package,
   Settings,
+  Swords,
 } from 'lucide-react';
 import { ProsPage } from '../features/pros/ProsPage';
+import { AramPage } from '../features/aram/AramPage';
+import { useAram } from '../features/aram/useAram';
+import { useAramResult } from '../features/aram/useAramResult';
+import { AramResultDialog } from '../features/aram/AramResultDialog';
+import { aramAdapter } from '../adapters/aram';
 import { HomePage } from '../features/home/HomePage';
 import { TwitchPage } from '../features/twitch/TwitchPage';
 import { DevicesPage } from '../features/devices/DevicesPage';
@@ -55,11 +62,13 @@ import { useWarnings } from './useWarnings';
 import { useUpdate } from './useUpdate';
 import { usePcStatus } from '../features/pc/usePcStatus';
 import { readPcStatus } from '../adapters/pc';
-export type Page = 'home' | 'twitch' | 'pros' | 'music' | 'devices' | 'pc' | 'apps' | 'settings';
+export type Page =
+  'home' | 'twitch' | 'pros' | 'aram' | 'music' | 'devices' | 'pc' | 'apps' | 'settings';
 const navigation = [
   { id: 'home', label: 'Home', icon: LayoutGrid, section: 'Übersicht' },
   { id: 'twitch', label: 'Twitch', icon: Radio, section: 'Live' },
   { id: 'pros', label: 'Pros', icon: Trophy, section: 'Live' },
+  { id: 'aram', label: 'ARAM', icon: Swords, section: 'Live' },
   { id: 'music', label: 'Musik', icon: MusicIcon, section: 'Live' },
   { id: 'devices', label: 'Devices', icon: Headphones, section: 'System' },
   { id: 'pc', label: 'PC', icon: Cpu, section: 'System' },
@@ -156,6 +165,14 @@ export function App() {
   const usage = useAppUsage();
   const apps = useApps();
   const updates = useUpdate(settings.preferences.updateCheck);
+  // ARAM Mayhem games from the League client, only while the page is open.
+  const aram = useAram(
+    aramAdapter,
+    page === 'aram',
+    settings.preferences.aramFriends.map((f) => f.puuid),
+  );
+  // The card after an ARAM Mayhem game: a popout in the background, otherwise here.
+  const aramResult = useAramResult(aramAdapter, settings.preferences);
   // Battery levels are read only while a page shows them.
   const batteries = useBatteries(page === 'home' || page === 'devices');
   // On <html>, so the page background and scrollbars follow the colour scheme too (tokens.css;
@@ -245,6 +262,35 @@ export function App() {
       window.clearTimeout(timer);
     };
   }, [windowMotion]);
+  // The X hides blank. into the notification area (lib.rs) with its own animation, and coming
+  // back plays the opening one (windowFx.ts; user's wish). Without motion: at once, as before.
+  const appElement = useRef<HTMLDivElement>(null);
+  const fxCanvas = useRef<HTMLCanvasElement>(null);
+  const hiddenByX = useRef(false);
+  const closeToTray = () => {
+    const app = appElement.current;
+    const canvas = fxCanvas.current;
+    if (!getMotion().enabled || !app || !canvas) return closeWindow();
+    hiddenByX.current = true;
+    void playClose(app, canvas).then(closeWindow);
+  };
+  useEffect(() => {
+    const back = () => {
+      if (document.hidden || !hiddenByX.current) return;
+      hiddenByX.current = false;
+      const app = appElement.current;
+      const canvas = fxCanvas.current;
+      if (!app) return;
+      if (getMotion().enabled && canvas) void playOpen(app, canvas);
+      else resetWindowFx(app);
+    };
+    document.addEventListener('visibilitychange', back);
+    window.addEventListener('focus', back);
+    return () => {
+      document.removeEventListener('visibilitychange', back);
+      window.removeEventListener('focus', back);
+    };
+  }, []);
   function update(preferences: Preferences) {
     let storageAvailable = true;
     try {
@@ -298,6 +344,10 @@ export function App() {
       <span className="badge active" title="Twitch, Akkustände und PC-Werte direkt von der Quelle">
         Live
       </span>
+    ) : page === 'aram' && aramAdapter.source === 'league' ? (
+      <span className="badge active" title="Spiele aus dem League-Client auf diesem PC">
+        League
+      </span>
     ) : page === 'music' ? (
       <span className="badge active" title="Musik von SoundCloud">
         SoundCloud
@@ -309,7 +359,7 @@ export function App() {
     );
   return (
     <MotionConfig reducedMotion={motionOn ? 'never' : 'always'}>
-      <div className={`app ${windowMotion}`} onMouseDown={dragWindow}>
+      <div ref={appElement} className={`app ${windowMotion}`} onMouseDown={dragWindow}>
         <a className="skip-link" href="#main">
           Zum Inhalt
         </a>
@@ -354,7 +404,7 @@ export function App() {
             room={watch?.room ? watch.members.length + 1 : null}
             onRoom={() => setPage('twitch')}
             onMinimize={() => leaveThen(minimizeWindow)}
-            onClose={() => leaveThen(closeWindow)}
+            onClose={closeToTray}
           />
           <div className="panel">
             <div className="scroll-area">
@@ -383,6 +433,21 @@ export function App() {
                       <TwitchPage twitch={twitch} watch={watch} watchName={watchName} />
                     )}
                     {page === 'pros' && <ProsPage twitch={twitch} />}
+                    {page === 'aram' && (
+                      <AramPage
+                        aram={aram}
+                        adapter={aramAdapter}
+                        friends={settings.preferences.aramFriends}
+                        setFriends={(aramFriends) =>
+                          update({ ...settings.preferences, aramFriends })
+                        }
+                        chosen={settings.preferences.aramCategories}
+                        setChosen={(aramCategories) =>
+                          update({ ...settings.preferences, aramCategories })
+                        }
+                        onShow={aramResult.show}
+                      />
+                    )}
                     {page === 'music' && <MusicPage music={music} />}
                     {page === 'devices' && <DevicesPage batteries={batteries} />}
                     {page === 'pc' && <PcPage pc={pc} />}
@@ -428,6 +493,18 @@ export function App() {
         </div>
         <AnimatePresence>
           {news && <PatchNotes key="news" onClose={() => setNews(false)} />}
+          {aramResult.view && (
+            <AramResultDialog
+              key="aram-result"
+              view={aramResult.view}
+              motionOn={motionOn}
+              onClose={aramResult.close}
+              onRanking={() => {
+                aramResult.close();
+                setPage('aram');
+              }}
+            />
+          )}
           {restore && (
             <RestoreDialog
               fresh={restore === 'fresh'}
@@ -460,6 +537,7 @@ export function App() {
           openPage={setPage}
         />
       </div>
+      <canvas ref={fxCanvas} className="window-fx" aria-hidden />
       {music.frame}
     </MotionConfig>
   );
