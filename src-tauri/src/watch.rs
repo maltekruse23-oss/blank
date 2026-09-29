@@ -23,7 +23,7 @@ use tokio_tungstenite::{
 };
 
 /// Public brokers (tested 2026-09-27: both answer in about 30 ms and keep retained messages).
-const BROKERS: [(&str, &str); 2] = [
+pub(crate) const BROKERS: [(&str, &str); 2] = [
     ("hivemq", "wss://broker.hivemq.com:8884/mqtt"),
     ("mosquitto", "wss://test.mosquitto.org:8081/mqtt"),
 ];
@@ -31,10 +31,10 @@ const TOPIC_PREFIX: &str = "blank-watch/";
 /// Encrypted messages are small (channel, name); anything larger is refused.
 const MAX_PAYLOAD: usize = 2048;
 const KEEP_ALIVE: Duration = Duration::from_secs(60);
-const PING_EVERY: Duration = Duration::from_secs(45);
-const CONNECT_WITHIN: Duration = Duration::from_secs(10);
+pub(crate) const PING_EVERY: Duration = Duration::from_secs(45);
+pub(crate) const CONNECT_WITHIN: Duration = Duration::from_secs(10);
 /// Pauses before reconnecting after a lost connection.
-const RETRY: [u64; 5] = [2, 5, 10, 30, 60];
+pub(crate) const RETRY: [u64; 5] = [2, 5, 10, 30, 60];
 const PLAYER: &str = "watch";
 /// Frontend events; keep in sync with `src/adapters/watch.ts`.
 const MESSAGE_EVENT: &str = "watch-message";
@@ -94,7 +94,7 @@ fn packet(first: u8, body: Vec<u8>) -> Vec<u8> {
     out
 }
 
-fn connect_packet(client: &str) -> Vec<u8> {
+pub(crate) fn connect_packet(client: &str) -> Vec<u8> {
     let mut body = string("MQTT");
     // Level 4 (3.1.1), clean session, keep alive.
     body.extend([4, 0x02]);
@@ -103,23 +103,23 @@ fn connect_packet(client: &str) -> Vec<u8> {
     packet(0x10, body)
 }
 
-fn subscribe_packet(topic: &str) -> Vec<u8> {
+pub(crate) fn subscribe_packet(topic: &str) -> Vec<u8> {
     let mut body = vec![0, 1];
     body.extend(string(topic));
     body.push(0);
     packet(0x82, body)
 }
 
-fn publish_packet(topic: &str, payload: &str, retain: bool) -> Vec<u8> {
+pub(crate) fn publish_packet(topic: &str, payload: &str, retain: bool) -> Vec<u8> {
     let mut body = string(topic);
     body.extend_from_slice(payload.as_bytes());
     packet(0x30 | u8::from(retain), body)
 }
 
-const PING: [u8; 2] = [0xC0, 0];
-const DISCONNECT: [u8; 2] = [0xE0, 0];
+pub(crate) const PING: [u8; 2] = [0xC0, 0];
+pub(crate) const DISCONNECT: [u8; 2] = [0xE0, 0];
 
-enum Incoming {
+pub(crate) enum Incoming {
     ConnAck(u8),
     Publish { topic: String, payload: Vec<u8> },
     Other,
@@ -127,7 +127,7 @@ enum Incoming {
 
 /// Takes one whole packet from the front of `buffer` (a WebSocket message may hold several or
 /// part of one); None until it is complete.
-fn next_packet(buffer: &mut Vec<u8>) -> Option<Result<Incoming, &'static str>> {
+pub(crate) fn next_packet(buffer: &mut Vec<u8>) -> Option<Result<Incoming, &'static str>> {
     let mut length = 0usize;
     let mut i = 1;
     loop {
@@ -180,7 +180,7 @@ fn is_topic(topic: &str) -> bool {
     })
 }
 
-fn is_client(client: &str) -> bool {
+pub(crate) fn is_client(client: &str) -> bool {
     (8..=16).contains(&client.len())
         && client
             .bytes()

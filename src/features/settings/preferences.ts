@@ -5,6 +5,16 @@ import {
   type Customization,
 } from '../../design/customization';
 import { readAramFriends, type AramPlayer } from '../../adapters/aram';
+import { isGroupCode } from '../../adapters/aramGroup';
+import type { Page } from '../../app/App';
+import {
+  defaultLayout,
+  readHomeLayout,
+  readNavHidden,
+  readNavOrder,
+  navPages,
+  type Tile,
+} from '../edit/layout';
 import { defaultCategories, readAramCategories, type CategoryId } from '../aram/aramCategories';
 import { isThemeId, type ThemeId } from './themes';
 import {
@@ -111,10 +121,17 @@ export type Preferences = {
   watchName: string;
   /** Code of the last watch-together room, offered as "Wieder beitreten" (never joined by itself). */
   watchLastRoom: string;
-  /** Up to three League friends in the ARAM Mayhem leaderboard (page ARAM). */
+  /** Up to nine League friends in the ARAM Mayhem leaderboard (page ARAM), without a group. */
   aramFriends: AramPlayer[];
+  /** Code of the ARAM group (empty: none): the same leaderboard for every member. */
+  aramGroup: string;
   /** Categories of the ARAM leaderboard, in their fixed order. */
   aramCategories: CategoryId[];
+  /** Home as a grid of widgets, arranged in the edit mode (features/edit/). */
+  homeLayout: Tile[];
+  /** Order of the pages in the sidebar (within their sections) and the hidden ones. */
+  navOrder: Page[];
+  navHidden: Page[];
 };
 
 export const defaultPreferences: Preferences = {
@@ -168,7 +185,11 @@ export const defaultPreferences: Preferences = {
   watchName: '',
   watchLastRoom: '',
   aramFriends: [],
+  aramGroup: '',
   aramCategories: defaultCategories,
+  homeLayout: defaultLayout,
+  navOrder: navPages,
+  navHidden: [],
 };
 
 /** "Kompakte Ansicht" and "Animationen" as the rest of the app reads them. */
@@ -294,6 +315,13 @@ export function readPreferences(raw: unknown): Preferences | null {
         ? data.watchLastRoom
         : d.watchLastRoom,
     aramFriends: readAramFriends(data.aramFriends),
+    aramGroup:
+      typeof data.aramGroup === 'string' && isGroupCode(data.aramGroup)
+        ? data.aramGroup
+        : d.aramGroup,
     aramCategories: readAramCategories(data.aramCategories),
+    homeLayout: readHomeLayout(data.homeLayout),
+    navOrder: readNavOrder(data.navOrder),
+    navHidden: readNavHidden(data.navHidden),
   };
 }

@@ -38,6 +38,49 @@ Prüfen über die GitHub-API (neuestes Release), Installieren nur auf Klick: Dow
 - Deine App danach wieder regulär als 0.2.0 gebaut und gestartet.
 - **Hinweis:** Wer noch v0.1.0 oder v0.2.0 hat, muss die erste Version mit Updater einmal von Hand laden; ab dann geht es per Knopf.
 
+## ARAM: Gruppe mit Code, Karte nach jedem Spiel, Rangliste zählt hoch (Benutzerwünsche)
+
+- Ursache fehlender Karten: `record_eog` gab „keine Karte“, sobald das Spiel schon gespeichert war – holte ein anderer Abgleich (Seite, Zurückkehren, Client-Start) das Spiel zuerst, fiel die Karte weg; ein alter Endbildschirm eines früheren Spiels beendete den Blick. Jetzt `carded` (Rust-Tests: genau eine Karte je Spiel, übersteht Speichern/Laden), Nachholen frischer Spiele (`catch_up`).
+- Gruppe nativ mit echtem Vermittler (Release-EXE, CDP): „Gruppe erstellen“ → verbunden, Code angezeigt; ein Testskript als zweites Mitglied (gleiche Ableitung aus dem Code, eigenes MQTT über WSS zu HiveMQ) fand beim Vermittler den Start und das Mitglied der App (verschlüsselt), trat bei und schickte ein Spiel → in der App: Mitglied „Testfreund“, Spiel in `aram.json` (streng geprüft übernommen), Rangliste mit ihm. Die App reichte das Spiel des Testfreunds, das nur bei HiveMQ lag, selbst bei Mosquitto nach (Auffüllen je Vermittler). „Verlassen“ entfernte den eigenen Mitglieds-Eintrag beim Vermittler. Danach alle Test-Nachrichten bei beiden Vermittlern gelöscht, Einstellungen, `settings.json` und `aram.json` zeichengleich zurück.
+- Rangliste in der Vorschau: erster Blick zählt von 0 hoch (mitten im Lauf Zwischenwerte, am Ende exakt), Kronen „Kiro 3 · Nova 2 · Pax 1“; ein älterer gesehener Stand mit anderem Ersten → Hochzählen mit Überholen, „Neue Nr. 1“, „+1“ bei Pentakills. Ein verdecktes Fenster (keine Bilder) hielt das Rennen an – daher beginnt es jetzt erst mit dem ersten sichtbaren Bild.
+- Tests: `aramGroup.test.ts` (6: Code-Prüfung, Nachrichten nur passend zum Unter-Topic und mit echten Zeiten, bessere Fassung, gleiche Rangliste unabhängig von der Reihenfolge der Daten, nur Spiele ab Start, Hochzählen), `aram_group.rs` (2: Unter-Topics, Topics/Nutzlast), `aram.rs` (+3: Karte einmal, Prüfung fremder Spiele, beste Fassung). `pnpm test` 52, `cargo test` 57, `tsc`, `pnpm desktop:build`.
+- **Nicht geprüft:** ein echtes Spiel mit echten Freunden in der Gruppe (braucht die neue Version bei allen); das echte Format des Endbildschirms eines Mayhem-Spiels (wie zuvor).
+
+## Aufgeräumt: ein Einstieg, nichts doppelt (Benutzerwunsch „zweimal Settings“)
+
+- Entfernt: Settings-Knopf in der Seitenleiste, „Fertig“ im Dock (bleibt oben), Reiter „Aussehen“ (seine Zeilen nur noch in der Suche), Taskleisten-Schalter und Stellen-Knöpfe unter Popouts (dafür „Platz · Hinziehen“ zum Popout-Werkzeug; der alte Text „Links auf der Taskleiste“ stimmte nicht mehr), totes CSS der Stellen-Auswahl, tote Bedingung für die frühere Settings-Seite. „Mehr“ im Dock heißt jetzt „Einstellungen“. Neu: Hinweis mit „Einschalten“ im Popout-Werkzeug, wenn Popouts aus sind. Dock mittig über dem Inhalt (verdeckte vorher den Kontoblock).
+- Vorschau (`settings-flow2`): kein Settings-Knopf, ein „Bearbeiten“, ein „Fertig“; Dock → Einstellungen öffnet bei Meldungen über dem Dock, „Fertig“ oben erreichbar; kein Reiter „Aussehen“, Reiter in einer Zeile; Suche „akzent“ → Farben → Werkzeug; Esc-Reihenfolge; Konto → Twitch. „Hinziehen“ nur nativ (Popout-Einstellungen gibt es nur in der Desktop-App): Zeile „Platz“ da, „Hinziehen“ öffnet das Popout-Werkzeug, Einstellungen unverändert. **Nicht beobachtbar:** das Zuklappen der Schublade dabei – das Test-Fenster lag verdeckt hinter einem anderen Fenster (`visibilityState` hidden, WebView zeichnet nicht, Ausblend-Animationen warten); derselbe Weg (Suche → Farben → Bearbeiten) schließt sie in der Vorschau.
+
+## Popout-Platz: echtes Popout springt beim Ziehen sofort mit (Benutzerwunsch „instant“)
+
+- Vorher kam das echte Popout erst nach dem Loslassen (und musste dann evtl. erst sein Fenster bauen). Jetzt: beim Öffnen des Werkzeugs sichtbar (~160 ms bis zum fertigen Fenster), jede neu eingerastete Stelle wird sofort übernommen.
+- Nativ gemessen (Fensterlage alle 5 ms): Das Popout-Fenster stand an der neuen Stelle, bevor der Test die geänderte Einstellung überhaupt auslesen konnte (unter ~25 ms); Taskleiste → oben rechts → zurück in die Taskleiste folgt jeweils sofort (die Seite des Popouts wechselt dabei in die Taskleisten-Zeile und zurück). Vorschau: „schon beim Ziehen übernommen (vor dem Loslassen)“ bestanden. Einstellungen danach zeichengleich zurück.
+
+## Popouts und Vollbild je Bildschirm (Benutzerwunsch)
+
+- Vorher: eine Abfrage beim Anzeigen, für alle Bildschirme zusammen; ein sichtbares Popout blieb stehen, wenn danach ein Video in den Vollbildmodus ging.
+- Nativ (Release-EXE, zwei Bildschirme mit unterschiedlicher Skalierung): Test-Popout auf dem Popout-Bildschirm, dann ein randloses Fenster, das diesen Bildschirm ganz deckt und vorne ist → Popout nach ~520 ms weg (gemessen ab dem Start des Test-Programms, samt dessen Aufbau); währenddessen `flyout_show` = `false`; danach wieder `true` und sichtbar. Gegentest: Vollbild auf dem anderen Bildschirm → Popout bleibt, ein neues ist erlaubt. Ein Fenster, das den skalierten Bildschirm nur zu zwei Dritteln deckte (Test-Programm ohne Skalierungs-Bewusstsein), galt richtig nicht als Vollbild.
+- `fullscreen.rs`: 5 Unit-Tests (vorderstes Fenster deckt den Bildschirm; nur dieser Bildschirm; normales Fenster davor beendet es; kleines Immer-oben-Fenster davor nicht; maximiert ist nie Vollbild). `cargo check`/`clippy` ohne neue Warnungen. Einstellungen gesichert und zeichengleich zurück, `aram.json` unverändert.
+
+## Einstellungen und Bearbeiten-Modus zusammen, Popout ziehen mit Magnet (Benutzermeldungen „buggt“)
+
+- Gefundene Fehler: Schublade verdeckte „Fertig“, Esc beendete den Modus auch bei offenem Dialog/Schublade, im Modus kein Seitenwechsel, Entf/Rücktaste auf einem Knopf im Widget löschte das Widget, Dock verdeckte das Seitenende. Popout-Miniatur „bewegt sich ganz komisch“: `layout`-Animation von motion lief bei jeder Mausbewegung neu gegen das Ziehen; ihre Schalter blockierten das Greifen.
+- Headless-Chrome (Vorschau, 860 × 640): 16 Prüfungen zu Schublade/Modus/Esc/Suche/Seitenleiste/Tasten (`settings-flow`), alle bestanden. Popout-Bühne (`stage-drag`): Knopfzeile entfernt, Miniatur folgt der Maus (größte Abweichung 0,02 px, auch neben der Mitte gegriffen), Ziel-Punkt und Umriss leuchten beim Ziehen, rastet oben links genau auf dem Punkt ein und bleibt im Bildschirm, Taskleiste leuchtet und rastet ein, Klick ohne Bewegung ändert den Platz nicht.
+- `pnpm test` 46, `pnpm format:check`, `tsc`.
+
+## Bearbeiten-Modus statt Settings-Seite (Benutzerauftrag)
+
+- Headless-Chrome gegen die Vorschau (860 × 640, Mock): PC-Status auf Twitch gezogen → beide tauschen Platz und Größe; Widget entfernt und aus der Bibliothek wieder hinzugefügt; Rückgängig nimmt das Hinzufügen zurück; Farben, Popout-Bühne (Mini-Bildschirm, sechs Stellen, Taskleiste), „Mehr“ als Schublade, „Fertig“ ohne Rahmen und Griffe – per Bildschirmfotos geprüft. Home scrollt nicht.
+- `layout.test.ts` (9): Einrasten, Tauschen (auch verschieden große), passt nicht → unverändert, Mindestgröße, freier Platz, strenge Prüfung, Reihenfolge und Ausblenden der Seitenleiste.
+- `pnpm test` 46, `cargo test` 47, `pnpm format:check`, `cargo fmt --check`, `pnpm desktop:build` ohne Warnungen.
+- Nativ (Release-EXE, WebView2 über CDP, echte Daten): „Bearbeiten“ auf Home, Ziehen tauscht die Widgets, Rückgängig/Wiederholen, Popout-Bühne mit zwei Bildschirmen (Taskleisten-Popout an der Seite, die Windows nimmt: `taskbar_icons_left`, nur gelesen), Schublade „Mehr“, „Fertig“ ohne Rahmen; Home scrollt nicht. Einstellungen vorher gesichert und zeichengleich zurück, `aram.json` unverändert.
+
+## ARAM-Karte direkt nach Spielende, Vergleich mit Freunden (Benutzermeldung)
+
+- Vorher kam die Karte erst, wenn der Spielverlauf das Spiel kannte (bis gut 2 min). Jetzt: Warten auf das Ende des Spielprozesses, dann die EoG-Werte des Clients (einmal pro Sekunde, höchstens 60 s), Karte sofort; die vorläufigen Einträge ersetzt der Abgleich nach 150 s durch die Werte aus dem Spielverlauf. Unit-Test: EoG-Werte werden vorläufige Einträge mit Platz im Schaden, Team-Anteil und Freunden im Spiel.
+- Karte mit Freunden: in der Vorschau (Mock mit zwei Freunden) Balken in Gold/Silber/Bronze, K/D/A, Hinweis bei eigenem Höchstwert; Höhe der Karte wächst mit (bis zu vier Freunde).
+- **Nicht geprüft:** das echte Format der EoG-Werte in einem Mayhem-Spiel (erst beim nächsten echten Spiel; fehlen sie oder sind sie leer, greift der bisherige Weg über den Spielverlauf).
+
 ## Rangliste neu gestartet, mehr Spieler, Medaillenfarben (Benutzerwunsch)
 
 - Neustart der echten Rangliste (Wunsch des Benutzers, über den neuen Knopf mit Rückfrage): vorher 30 Spiele (inzwischen im Hintergrund gesammelt), danach „0 Spiele · seit 28.09.26“; ein Abgleich direkt danach holte keins der letzten 20 Spiele aus dem Client zurück. 146 Augment-Symbole blieben. Die alte Sammlung liegt als Kopie außerhalb des Repos.

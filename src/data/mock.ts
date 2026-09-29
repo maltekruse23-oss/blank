@@ -387,6 +387,34 @@ export const mockAramData: AramData = {
       teamShare,
       multikill: kills > 20 ? 5 : kills > 14 ? 4 : 2,
       pentas: kills > 20 ? 1 : 0,
+      // The first game with two fictional friends in it (comparison on the card).
+      with:
+        i === 0
+          ? [
+              {
+                puuid: kiro.puuid,
+                name: kiro.name,
+                champion: 'Brand',
+                championName: 'Brand',
+                damage: 71_400,
+                kills: 13,
+                deaths: 9,
+                assists: 30,
+                sameTeam: true,
+              },
+              {
+                puuid: lumen.puuid,
+                name: lumen.name,
+                champion: 'Sona',
+                championName: 'Sona',
+                damage: 28_900,
+                kills: 3,
+                deaths: 7,
+                assists: 41,
+                sameTeam: true,
+              },
+            ]
+          : [],
       details: {
         magic: Math.round(damage * (i % 3 === 0 ? 0.2 : 0.75)),
         physical: Math.round(damage * (i % 3 === 0 ? 0.72 : 0.18)),

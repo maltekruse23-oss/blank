@@ -9,6 +9,7 @@ import type {
 import { hasPopouts, showPopout } from '../../platform/popout';
 import type { Preferences } from '../settings/preferences';
 import { aramHighlight, type AramHighlight } from './aramHighlight';
+import { sinceGames } from './aramStats';
 
 export type AramResultView = {
   /** New for every showing, so the card builds up again. */
@@ -36,7 +37,13 @@ export function resultView(
     const augment = data.augments[String(id)];
     if (augment) augments[String(id)] = augment;
   }
-  return { id: ++serial, entry, augments, highlight: aramHighlight(entry, data.games, players) };
+  return {
+    id: ++serial,
+    entry,
+    augments,
+    // Records only against the games that count (since the group's start).
+    highlight: aramHighlight(entry, sinceGames(data.games, data.since), players),
+  };
 }
 
 /**
@@ -45,10 +52,17 @@ export function resultView(
  * popout settings, "Nicht stören" and full screen as for every popout – otherwise in the app.
  * Also on request for any game of the collection ("Ansehen").
  */
-export function useAramResult(adapter: AramAdapter, preferences: Preferences) {
+export function useAramResult(
+  adapter: AramAdapter,
+  preferences: Preferences,
+  /** The players of the leaderboard (the group's members, else the chosen friends). */
+  players: AramPlayer[],
+) {
   const [view, setView] = useState<AramResultView | null>(null);
   const latest = useRef(preferences);
   latest.current = preferences;
+  const latestPlayers = useRef(players);
+  latestPlayers.current = players;
 
   useEffect(
     () =>
@@ -60,7 +74,7 @@ export function useAramResult(adapter: AramAdapter, preferences: Preferences) {
           );
           if (!data || !entry) return;
           const p = latest.current;
-          const next = resultView(entry, data, p.aramFriends);
+          const next = resultView(entry, data, latestPlayers.current);
           const popout =
             hasPopouts &&
             p.popouts &&
@@ -71,7 +85,11 @@ export function useAramResult(adapter: AramAdapter, preferences: Preferences) {
             popout &&
             (await showPopout(
               { kind: 'aram', ...next },
-              { overFullScreen: p.popoutFullscreen, acrylic: p.popoutAcrylic && !p.popoutTaskbar },
+              {
+                overFullScreen: p.popoutFullscreen,
+                acrylic: p.popoutAcrylic && !p.popoutTaskbar,
+                screen: p.popoutScreen,
+              },
             ))
           )
             return;

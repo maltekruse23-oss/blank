@@ -50,6 +50,7 @@ const game = (who: AramPlayer, change: Partial<AramEntry>): AramEntry => ({
   multikill: 1,
   pentas: 0,
   details: null,
+  with: [],
   ...change,
 });
 const details = (magic: number, physical: number): AramDetails => ({

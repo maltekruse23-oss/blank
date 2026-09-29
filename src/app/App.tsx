@@ -17,16 +17,21 @@ import {
   Headphones,
   Cpu,
   Package,
-  Settings,
   Swords,
+  X,
 } from 'lucide-react';
 import { ProsPage } from '../features/pros/ProsPage';
 import { AramPage } from '../features/aram/AramPage';
 import { useAram } from '../features/aram/useAram';
 import { useAramResult } from '../features/aram/useAramResult';
+import { useAramGroup } from '../features/aram/useAramGroup';
 import { AramResultDialog } from '../features/aram/AramResultDialog';
 import { aramAdapter } from '../adapters/aram';
-import { HomePage } from '../features/home/HomePage';
+import { HomeGrid } from '../features/edit/HomeGrid';
+import { EditDock, type EditTool } from '../features/edit/EditDock';
+import { NavEditor } from '../features/edit/NavEditor';
+import { changeSettings } from '../design/customization';
+import { withDesign } from '../features/settings/preferences';
 import { TwitchPage } from '../features/twitch/TwitchPage';
 import { DevicesPage } from '../features/devices/DevicesPage';
 import { useBatteries } from '../features/devices/useBatteries';
@@ -73,7 +78,6 @@ const navigation = [
   { id: 'devices', label: 'Devices', icon: Headphones, section: 'System' },
   { id: 'pc', label: 'PC', icon: Cpu, section: 'System' },
   { id: 'apps', label: 'Apps', icon: Package, section: 'System' },
-  { id: 'settings', label: 'Settings', icon: Settings, section: null },
 ] as const;
 const sections = ['Übersicht', 'Live', 'System'] as const;
 /**
@@ -114,11 +118,25 @@ function loadPreferences(): { preferences: Preferences; storageAvailable: boolea
 export function App() {
   const [page, setPage] = useState<Page>('home');
   // The open settings section stays while the app runs; links open the fitting one.
-  const [settingsSection, setSettingsSection] = useState<SettingsSection>('look');
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('alerts');
+  // The settings that are not edited in place live in a side panel (user's wish: edit mode).
+  const [drawer, setDrawer] = useState(false);
+  const drawerElement = useRef<HTMLElement>(null);
+  // The open tool of the edit mode's dock; it and the side panel never cover each other.
+  const [editTool, setEditTool] = useState<EditTool | null>(null);
   const openSettings = (section: SettingsSection) => {
     setSettingsSection(section);
-    setPage('settings');
+    setEditTool(null);
+    setDrawer(true);
   };
+  const chooseTool = (tool: EditTool | null) => {
+    setEditTool(tool);
+    if (tool) setDrawer(false);
+  };
+  /** Pages, also from popouts; "settings" is the side panel now. */
+  const go = (target: Page) => (target === 'settings' ? openSettings('alerts') : setPage(target));
+  // The edit mode (user's wish: direct manipulation, WYSIWYG): the app is its own preview.
+  const [editing, setEditing] = useState(false);
   // First start of a fresh installation: ask for the move code right away.
   const [restore, setRestore] = useState<'fresh' | 'manual' | null>(() =>
     cloud && isFreshStart() ? 'fresh' : null,
@@ -159,20 +177,26 @@ export function App() {
     dismissAlert: liveAlerts.dismiss,
     warnings: warnings.warnings,
     dismissWarning: warnings.dismiss,
-    openPage: setPage,
+    openPage: go,
   });
   const pc = usePcStatus(page === 'pc' ? 2 : page === 'home' ? 5 : 0);
   const usage = useAppUsage();
   const apps = useApps();
   const updates = useUpdate(settings.preferences.updateCheck);
+  // The ARAM group (the same leaderboard for every member), exchanged for the whole app.
+  const aramGroup = useAramGroup(aramAdapter, settings.preferences.aramGroup, (aramGroup) =>
+    update({ ...settings.preferences, aramGroup }),
+  );
+  /** Players of the leaderboard: the group's members, else the chosen friends. */
+  const aramPlayers = aramGroup.view?.members ?? settings.preferences.aramFriends;
   // ARAM Mayhem games from the League client, only while the page is open.
   const aram = useAram(
     aramAdapter,
     page === 'aram',
-    settings.preferences.aramFriends.map((f) => f.puuid),
+    aramPlayers.map((f) => f.puuid),
   );
   // The card after an ARAM Mayhem game: a popout in the background, otherwise here.
-  const aramResult = useAramResult(aramAdapter, settings.preferences);
+  const aramResult = useAramResult(aramAdapter, settings.preferences, aramPlayers);
   // Battery levels are read only while a page shows them.
   const batteries = useBatteries(page === 'home' || page === 'devices');
   // On <html>, so the page background and scrollbars follow the colour scheme too (tokens.css;
@@ -291,7 +315,79 @@ export function App() {
       window.removeEventListener('focus', back);
     };
   }, []);
+  // Undo and redo while editing: every change is saved at once as always; quick changes (a slider,
+  // a drag) count as one step.
+  const history = useRef<{ past: Preferences[]; future: Preferences[]; at: number }>({
+    past: [],
+    future: [],
+    at: 0,
+  });
+  const [, setHistoryTick] = useState(0);
   function update(preferences: Preferences) {
+    if (editing) {
+      const h = history.current;
+      if (Date.now() - h.at > 600) h.past = [...h.past.slice(-49), settings.preferences];
+      h.at = Date.now();
+      h.future = [];
+      setHistoryTick((n) => n + 1);
+    }
+    save(preferences);
+  }
+  const undo = () => {
+    const h = history.current;
+    const previous = h.past.at(-1);
+    if (!previous) return;
+    h.past = h.past.slice(0, -1);
+    h.future = [settings.preferences, ...h.future];
+    h.at = 0;
+    setHistoryTick((n) => n + 1);
+    save(previous);
+  };
+  const redo = () => {
+    const h = history.current;
+    const next = h.future[0];
+    if (!next) return;
+    h.future = h.future.slice(1);
+    h.past = [...h.past, settings.preferences];
+    h.at = 0;
+    setHistoryTick((n) => n + 1);
+    save(next);
+  };
+  const toggleEditing = () => {
+    history.current = { past: [], future: [], at: 0 };
+    setEditTool(null);
+    setEditing((e) => !e);
+  };
+  /** From the settings ("Aussehen"): into the edit mode at a tool; Home for the widgets. */
+  const editAt = (tool: EditTool | null, home = false) => {
+    if (!editing) history.current = { past: [], future: [], at: 0 };
+    setDrawer(false);
+    if (home) setPage('home');
+    setEditing(true);
+    setEditTool(tool);
+  };
+  // Escape closes what is on top: dialogs close themselves; then the open tool, the settings, the
+  // edit mode. A filled text field keeps it (the search clears itself first).
+  useEffect(() => {
+    if (!editTool && !drawer && !editing) return;
+    const key = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
+      const field = (event.target as HTMLElement | null)?.closest('input, textarea');
+      if (field instanceof HTMLInputElement && field.type !== 'range' && field.value) return;
+      if (field instanceof HTMLTextAreaElement && field.value) return;
+      if (editTool) setEditTool(null);
+      else if (drawer) setDrawer(false);
+      else toggleEditing();
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [editTool, drawer, editing]);
+  // The opened settings take the keyboard focus (tabs, search).
+  useEffect(() => {
+    if (drawer) drawerElement.current?.focus();
+  }, [drawer]);
+  function save(preferences: Preferences) {
     let storageAvailable = true;
     try {
       localStorage.setItem(preferencesKey, JSON.stringify(preferences));
@@ -308,7 +404,13 @@ export function App() {
   latestToggle.current = toggleQuiet;
   useEffect(() => onTrayQuiet(() => latestToggle.current()), []);
   useEffect(() => void setTrayQuiet?.(quiet), [quiet]);
-  const current = navigation.find((n) => n.id === page)!;
+  const current = navigation.find((n) => n.id === page) ?? navigation[0];
+  // The sidebar as arranged (edit mode): order within each section, hidden pages left out.
+  const { navOrder, navHidden } = settings.preferences;
+  const shownNav = (section: string) =>
+    navigation
+      .filter((n) => n.section === section && !navHidden.includes(n.id))
+      .sort((a, b) => navOrder.indexOf(a.id) - navOrder.indexOf(b.id));
   const PageIcon = current.icon;
   const navButton = ({ id, label: name, icon: Icon }: (typeof navigation)[number]) => (
     <button
@@ -352,7 +454,7 @@ export function App() {
       <span className="badge active" title="Musik von SoundCloud">
         SoundCloud
       </span>
-    ) : page === 'apps' || (page === 'settings' && twitch.adapter.source === 'twitch') ? null : (
+    ) : page === 'apps' ? null : (
       <span className="badge" title="Angezeigte Daten sind ganz oder teilweise simuliert">
         Mock
       </span>
@@ -378,19 +480,32 @@ export function App() {
           <span className="brand-version" data-drag-region>
             App v{version}
           </span>
-          <nav aria-label="Hauptnavigation" data-drag-region>
-            {sections.map((section) => (
-              <div className="nav-group" key={section} data-drag-region>
-                <span className="sidebar-caption" data-drag-region>
-                  {section}
-                </span>
-                {navigation.filter((n) => n.section === section).map(navButton)}
-              </div>
-            ))}
-          </nav>
+          {editing ? (
+            <NavEditor
+              entries={navigation}
+              sections={sections}
+              order={navOrder}
+              hidden={navHidden}
+              current={page}
+              onOpen={setPage}
+              onChange={(order, hidden) =>
+                update({ ...settings.preferences, navOrder: order, navHidden: hidden })
+              }
+            />
+          ) : (
+            <nav aria-label="Hauptnavigation" data-drag-region>
+              {sections.map((section) => (
+                <div className="nav-group" key={section} data-drag-region>
+                  <span className="sidebar-caption" data-drag-region>
+                    {section}
+                  </span>
+                  {shownNav(section).map(navButton)}
+                </div>
+              ))}
+            </nav>
+          )}
           <div className="sidebar-footer">
             <SidebarAccount twitch={twitch} onOpen={() => openSettings('twitch')} />
-            {navigation.filter((n) => n.section === null).map(navButton)}
           </div>
         </aside>
         <div className="workspace">
@@ -405,8 +520,10 @@ export function App() {
             onRoom={() => setPage('twitch')}
             onMinimize={() => leaveThen(minimizeWindow)}
             onClose={closeToTray}
+            editing={editing}
+            onEdit={toggleEditing}
           />
-          <div className="panel">
+          <div className={`panel ${editing ? 'editing' : ''}`}>
             <div className="scroll-area">
               <main id="main" tabIndex={-1} ref={main}>
                 <AnimatePresence mode="popLayout" initial={false} custom={dir}>
@@ -427,7 +544,29 @@ export function App() {
                       <h1>{current.label}</h1>
                     </div>
                     {page === 'home' && (
-                      <HomePage navigate={setPage} twitch={twitch} batteries={batteries} pc={pc} />
+                      <HomeGrid
+                        layout={settings.preferences.homeLayout}
+                        editing={editing}
+                        context={{
+                          navigate: setPage,
+                          twitch,
+                          batteries,
+                          pc,
+                          music,
+                          aramFriends: aramPlayers,
+                        }}
+                        onChange={(homeLayout) => update({ ...settings.preferences, homeLayout })}
+                        radiusScale={
+                          resolveSettings(settings.preferences.customization).settings.radiusScale
+                        }
+                        onRadius={(radiusScale) =>
+                          update(
+                            withDesign(settings.preferences, (c) =>
+                              changeSettings(c, { radiusScale }),
+                            ),
+                          )
+                        }
+                      />
                     )}
                     {page === 'twitch' && (
                       <TwitchPage twitch={twitch} watch={watch} watchName={watchName} />
@@ -446,6 +585,7 @@ export function App() {
                           update({ ...settings.preferences, aramCategories })
                         }
                         onShow={aramResult.show}
+                        group={aramGroup}
                       />
                     )}
                     {page === 'music' && <MusicPage music={music} />}
@@ -467,24 +607,6 @@ export function App() {
                         onRestore={() => setRestore('manual')}
                       />
                     )}
-                    {page === 'settings' && (
-                      <SettingsPage
-                        preferences={settings.preferences}
-                        update={update}
-                        storageAvailable={settings.storageAvailable}
-                        twitch={twitch}
-                        usage={usage}
-                        music={music}
-                        apps={apps}
-                        updates={updates}
-                        section={settingsSection}
-                        setSection={setSettingsSection}
-                        openPage={setPage}
-                        replayStart={replayStart}
-                        restartForGpu={restartForGpu}
-                        showNews={() => setNews(true)}
-                      />
-                    )}
                   </motion.div>
                 </AnimatePresence>
               </main>
@@ -492,6 +614,64 @@ export function App() {
           </div>
         </div>
         <AnimatePresence>
+          {editing && (
+            <EditDock
+              key="edit-dock"
+              tool={editTool}
+              setTool={chooseTool}
+              preferences={settings.preferences}
+              update={update}
+              storageAvailable={settings.storageAvailable}
+              replayStart={replayStart}
+              restartForGpu={restartForGpu}
+              undo={history.current.past.length > 0 ? undo : null}
+              redo={history.current.future.length > 0 ? redo : null}
+              openMore={(popouts) => openSettings(popouts ? 'popouts' : settingsSection)}
+              goHome={() => setPage('home')}
+            />
+          )}
+          {drawer && (
+            <motion.aside
+              key="settings-drawer"
+              ref={drawerElement}
+              tabIndex={-1}
+              className={`settings-drawer ${editing ? 'over-dock' : ''}`}
+              aria-label="Einstellungen"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0, transition: spring('snappy') }}
+              exit={{ opacity: 0, x: 40, transition: { duration: 0.14 } }}
+            >
+              <header className="settings-drawer-head">
+                <h2>Einstellungen</h2>
+                <button
+                  className="icon-button"
+                  aria-label="Einstellungen schließen"
+                  onClick={() => setDrawer(false)}
+                >
+                  <X size={17} />
+                </button>
+              </header>
+              <div className="settings-drawer-body">
+                <SettingsPage
+                  preferences={settings.preferences}
+                  update={update}
+                  twitch={twitch}
+                  usage={usage}
+                  music={music}
+                  apps={apps}
+                  updates={updates}
+                  section={settingsSection}
+                  setSection={setSettingsSection}
+                  openPage={(target) => {
+                    setDrawer(false);
+                    go(target);
+                  }}
+                  showNews={() => setNews(true)}
+                  onEdit={editAt}
+                />
+              </div>
+            </motion.aside>
+          )}
           {news && <PatchNotes key="news" onClose={() => setNews(false)} />}
           {aramResult.view && (
             <AramResultDialog

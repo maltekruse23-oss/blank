@@ -1,12 +1,11 @@
 ## Neu in dieser Version
 
-- **ARAM-Rangliste:** Neue Seite ARAM: du und bis zu neun Freunde aus deiner League-Freundesliste im Vergleich – nur ARAM Mayhem, direkt aus deinem League-Client, ohne Schlüssel. Deine Freunde brauchen dafür nichts.
-- **Kategorien mit Balken:** Höchster Schaden, Pentakills, AP- und AD-Schaden, Meiste Kills und Größter Tank – dazu 15 weitere zum Auswählen. Die Plätze in Gold, Silber und Bronze.
-- **Karte nach dem Spiel:** Nach jedem ARAM-Mayhem-Spiel baut sich dein Ergebnis animiert auf: Schaden, Stats, Augments und Items. Bei Pentakill, Rekord oder Top-Schaden mit Extra-Effekt.
-- **Beste Spiele:** Die Sammlung eurer besten Runden, jede mit „Ansehen“ als Karte.
-- **Neu starten:** ARAM → Spieler → Rangliste neu starten zählt ab dann von vorn.
-- **X versteckt nur:** Das X schickt blank. in den Infobereich (Pfeil unten rechts), damit Meldungen und Popouts weiterlaufen. Ganz beenden: Rechtsklick auf das Symbol → Beenden.
-- **Animation beim Schließen und Öffnen:** blank. klappt wie ein alter Fernseher zu einem Lichtpunkt zusammen, der zum Symbol fliegt – und springt beim Öffnen mit Schockwelle wieder auf.
+- **ARAM-Gruppe:** ARAM → Spieler → Gruppe erstellen und den Code an deine Freunde schicken. Eure Apps tauschen die Spiele verschlüsselt aus – bei allen steht dieselbe Rangliste, ab demselben Start, auch mit Spielen, die ihr getrennt spielt.
+- **Rangliste zum Mitfiebern:** Nach jedem neuen Spiel zählen die Werte langsam hoch, Plätze überholen sich live, am Ende landet die Krone – bei einem Führungswechsel mit „Neue Nr. 1“. Oben steht, wer die meisten Kronen hat.
+- **Karte nach jedem Spiel:** Die Karte kommt jetzt wirklich nach jedem ARAM-Mayhem-Spiel, direkt bei Spielende – mit Vergleich mit den Freunden, die mit dir im Spiel waren.
+- **Bearbeiten:** Oben auf „Bearbeiten“ – Karten auf Home ziehen, vergrößern, umbenennen und hinzufügen, die Seitenleiste sortieren, Farben und Stil direkt ändern, alles mit Rückgängig. Die übrigen Einstellungen unten im Dock.
+- **Popout hinziehen:** Das Popout auf einem kleinen Bildschirm an seinen Platz ziehen – es rastet ein, und das echte Popout springt sofort mit.
+- **Vollbild stört nicht:** Geht auf dem Bildschirm eines Popouts ein Video oder Spiel in den Vollbildmodus, verschwindet es sofort. Vollbild auf dem anderen Bildschirm hält Popouts nicht mehr auf.
 
 ## So geht's
 
@@ -20,7 +19,7 @@ Die beiden Dateien **„Source code“** brauchst du nicht, das ist nur der Quel
 
 - **Von Version 0.3.0 oder neuer:** oben in der Titelleiste auf **Update** und dann auf **Jetzt aktualisieren** klicken (oder Settings → System). blank. startet neu und zeigt, was neu ist.
 - **Von Version 0.2.0 oder älter:** dieses eine Mal noch von Hand – blank. über das Symbol unten rechts in der Taskleiste beenden (Rechtsklick → Beenden), die alte `blank.exe` durch die neue ersetzen. Einstellungen bleiben erhalten. Ab jetzt geht es über Settings → System.
-- **ARAM:** Der League-Client muss ab und zu offen sein, am besten läuft blank. im Hintergrund mit (der Client merkt sich nur die letzten 20 Spiele je Spieler). blank. liest nur, ändert nichts und fasst das Spiel nie an.
+- **ARAM:** Der League-Client muss ab und zu offen sein, am besten läuft blank. im Hintergrund mit (der Client merkt sich nur die letzten 20 Spiele je Spieler). blank. liest nur, ändert nichts und fasst das Spiel nie an. Für die Gruppe brauchen alle Freunde Version 0.6.0; die Rangliste der Gruppe zählt ab ihrer Erstellung.
 - **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumente\blank`), bevor du in den Settings „Mit Windows starten“ einschaltest.
 - **Anderer PC:** am einfachsten mit „Online sichern“ (Seite Apps); oder Settings → Übertragen → Exportieren und auf dem anderen PC Importieren. Twitch danach einmal neu verbinden.
 - **Twitch:** braucht einmalig eine eigene, kostenlose Client-ID (Anleitung in der README unter „Twitch einrichten“).

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Search } from 'lucide-react';
+import { Pencil, Search } from 'lucide-react';
 import { Card, Badge } from '../../components/ui';
 import { playAlertSound } from '../../platform/sound';
 import { TwitchAccountCard } from '../twitch/TwitchAccountCard';
@@ -14,15 +14,16 @@ import type { Apps } from '../apps/useApps';
 import type { Updates } from '../../app/useUpdate';
 import { PopoutCard } from './PopoutCard';
 import { Searching } from './More';
-import { LookCard } from './LookCard';
 import { TabContent, TabPill } from '../../components/TabMotion';
 import type { Preferences } from './preferences';
+import type { EditTool } from '../edit/EditDock';
 
-/** Settings in sections (user's wish: the one long page had become too much). */
-export type SettingsSection =
-  'look' | 'alerts' | 'popouts' | 'twitch' | 'gaming' | 'system' | 'data';
+/**
+ * Settings in sections (user's wish: the one long page had become too much), in a side panel; the
+ * look is edited in place (edit mode, features/edit/).
+ */
+export type SettingsSection = 'alerts' | 'popouts' | 'twitch' | 'gaming' | 'system' | 'data';
 export const settingsSections: { id: SettingsSection; name: string }[] = [
-  { id: 'look', name: 'Darstellung' },
   { id: 'alerts', name: 'Meldungen' },
   { id: 'popouts', name: 'Popouts' },
   { id: 'twitch', name: 'Twitch' },
@@ -58,6 +59,40 @@ function Switch({
     >
       <span />
     </button>
+  );
+}
+
+/** What is changed in place (edit mode): only in the search, each row opens its tool there. */
+const lookRows: { title: string; text: string; tool: EditTool | null; home?: boolean }[] = [
+  { title: 'Stil', text: 'Standard, Sparsam, Schlicht oder ein eigener', tool: 'style' },
+  { title: 'Farben', text: 'Farbschema und Akzentfarbe', tool: 'color' },
+  { title: 'Form', text: 'Dichte und Rundung', tool: 'layout' },
+  { title: 'Bewegung', text: 'Animationen, Grafikkarte, Startbildschirm', tool: 'motion' },
+  {
+    title: 'Home',
+    text: 'Widgets anordnen, vergrößern, umbenennen, hinzufügen',
+    tool: 'widgets',
+    home: true,
+  },
+  { title: 'Seitenleiste', text: 'Seiten sortieren und ausblenden', tool: null },
+  { title: 'Popout-Platz', text: 'Stelle, Bildschirm, Taskleiste, Deckkraft', tool: 'popout' },
+];
+
+function LookEntryCard({ onEdit }: { onEdit: (tool: EditTool | null, home?: boolean) => void }) {
+  return (
+    <Card title="Direkt in der App">
+      {lookRows.map((row) => (
+        <div className="setting-row" key={row.title}>
+          <div>
+            <h3>{row.title}</h3>
+            <p>{row.text}</p>
+          </div>
+          <button className="filter-button" onClick={() => onEdit(row.tool, row.home)}>
+            <Pencil size={13} /> Bearbeiten
+          </button>
+        </div>
+      ))}
+    </Card>
   );
 }
 
@@ -239,7 +274,6 @@ function BackupCard({ openPage }: { openPage: (page: Page) => void }) {
 export function SettingsPage({
   preferences,
   update,
-  storageAvailable,
   twitch,
   usage,
   music,
@@ -248,11 +282,9 @@ export function SettingsPage({
   section,
   setSection,
   openPage,
-  replayStart,
-  restartForGpu,
   showNews,
+  onEdit,
 }: Props & {
-  storageAvailable: boolean;
   twitch: TwitchData;
   usage: UsageState;
   music: Music;
@@ -262,12 +294,10 @@ export function SettingsPage({
   section: SettingsSection;
   setSection: (section: SettingsSection) => void;
   openPage: (page: Page) => void;
-  /** Shows the start screen once more (Darstellung). */
-  replayStart: () => void;
-  /** Set when the graphics card choice changed and needs a restart (gpu.rs). */
-  restartForGpu?: () => void;
   /** Opens "what is new" (Settings → System). */
   showNews: () => void;
+  /** Into the edit mode, at a tool (the look is changed in place). */
+  onEdit: (tool: EditTool | null, home?: boolean) => void;
 }) {
   const planned = twitch.adapter.account ? [] : ['Twitch-Account'];
   // A new section enters from the side of its tab.
@@ -307,17 +337,10 @@ export function SettingsPage({
   });
 
   const cards: Record<SettingsSection, ReactNode> = {
-    look: (
-      <LookCard
-        preferences={preferences}
-        update={update}
-        storageAvailable={storageAvailable}
-        replayStart={replayStart}
-        restartForGpu={restartForGpu}
-      />
-    ),
     alerts: <AlertsCard preferences={preferences} update={update} twitch={twitch} />,
-    popouts: <PopoutCard preferences={preferences} update={update} />,
+    popouts: (
+      <PopoutCard preferences={preferences} update={update} onPlace={() => onEdit('popout')} />
+    ),
     twitch: (
       <>
         <TwitchAccountCard twitch={twitch} />
@@ -397,7 +420,12 @@ export function SettingsPage({
           </p>
         )}
         {searching ? (
-          settingsSections.map((s) => <Fragment key={s.id}>{cards[s.id]}</Fragment>)
+          <>
+            <LookEntryCard onEdit={onEdit} />
+            {settingsSections.map((s) => (
+              <Fragment key={s.id}>{cards[s.id]}</Fragment>
+            ))}
+          </>
         ) : (
           <TabContent id={section} dir={dir} className="tab-enter">
             {cards[section]}

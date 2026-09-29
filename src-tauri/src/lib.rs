@@ -2,6 +2,7 @@
 mod apps;
 #[cfg(windows)]
 mod aram;
+mod aram_group;
 mod autostart;
 #[cfg(windows)]
 mod background;
@@ -11,6 +12,7 @@ mod battery;
 mod cloud;
 #[cfg(windows)]
 mod flyout;
+mod fullscreen;
 #[cfg(windows)]
 mod gpu;
 #[cfg(windows)]
@@ -82,6 +84,7 @@ pub fn run() {
             app.manage(flyout::FlyoutState::default());
             #[cfg(windows)]
             app.manage(watch::WatchState::default());
+            app.manage(aram_group::GroupState::default());
             #[cfg(windows)]
             app.manage(tweaks::TweakFile::new(app.handle())?);
             #[cfg(windows)]
@@ -167,6 +170,11 @@ pub fn run() {
             aram::aram_friends,
             #[cfg(windows)]
             aram::aram_reset,
+            aram::aram_set_since,
+            aram::aram_merge,
+            aram_group::aram_group_open,
+            aram_group::aram_group_send,
+            aram_group::aram_group_close,
             autostart::autostart_status,
             #[cfg(windows)]
             cloud::settings_complete,
@@ -209,6 +217,7 @@ pub fn run() {
             flyout::flyout_done,
             #[cfg(windows)]
             flyout::flyout_screens,
+            flyout::taskbar_icons_left,
             #[cfg(windows)]
             flyout::flyout_mix,
             #[cfg(windows)]

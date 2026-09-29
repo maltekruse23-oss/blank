@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { animate } from 'motion';
 import { motion, type Transition } from 'motion/react';
 import { Crown, Swords, X } from 'lucide-react';
 import {
   championSplash,
+  championSquare,
   itemIcon,
   splitRiotId,
   type AramAugment,
@@ -185,6 +186,95 @@ function Part({
  * after another. A special game (most damage, a record, first place) gets a badge stamped on, a
  * shine and a glow; a record or first place also a burst of sparks. Everything happens once.
  */
+/** Height of the card (CSS px): the result, plus the friends in the game below it. */
+const BASE_HEIGHT = 232;
+const MATES_HEAD = 34;
+const MATE_ROW = 27;
+const MAX_MATES = 4;
+export const resultHeight = (entry: AramEntry) =>
+  BASE_HEIGHT +
+  (entry.with.length > 0
+    ? MATES_HEAD + MATE_ROW * (1 + Math.min(MAX_MATES, entry.with.length))
+    : 0);
+
+/**
+ * The friends of the user in the same game next to the user (user's wish: compare with the friends
+ * from the lobby): damage as bars in the classic colours, K/D/A; the bars grow after the card.
+ */
+function Mates({ entry, run }: { entry: AramEntry; run: ResultMotion }) {
+  const rows = [
+    {
+      key: entry.puuid,
+      name: 'Du',
+      champion: entry.champion,
+      championName: entry.championName,
+      damage: entry.damage,
+      kda: `${entry.kills} / ${entry.deaths} / ${entry.assists}`,
+      me: true,
+      foe: false,
+    },
+    ...[...entry.with]
+      .sort((a, b) => b.damage - a.damage)
+      .slice(0, MAX_MATES)
+      .map((m) => ({
+        key: m.puuid,
+        name: splitRiotId(m.name).name,
+        champion: m.champion,
+        championName: m.championName,
+        damage: m.damage,
+        kda: `${m.kills} / ${m.deaths} / ${m.assists}`,
+        me: false,
+        foe: !m.sameTeam,
+      })),
+  ].sort((a, b) => b.damage - a.damage);
+  const top = Math.max(1, ...rows.map((row) => row.damage));
+  const best = rows[0]?.me && rows.length > 1;
+  return (
+    <div className="aram-result-mates">
+      <p className="aram-result-mates-head">
+        <span>Mit Freunden im Spiel</span>
+        {best && <b>Du hattest den meisten Schaden</b>}
+      </p>
+      <ol>
+        {rows.map((row, i) => {
+          const icon = championSquare(row.champion);
+          return (
+            <li
+              key={row.key}
+              className={row.me ? 'me' : ''}
+              style={
+                { '--place': i < 3 ? `var(--rank-${i + 1})` : 'var(--rank-rest)' } as CSSProperties
+              }
+            >
+              <span className="aram-bar-place">{i + 1}</span>
+              {icon ? (
+                <img src={icon} alt="" width={18} height={18} title={row.championName} />
+              ) : (
+                <span className="aram-mate-icon" aria-hidden />
+              )}
+              <span className="aram-mate-name">
+                {row.name}
+                {row.foe && <small>Gegner</small>}
+              </span>
+              <span className="aram-mate-track" aria-hidden>
+                <motion.span
+                  className="aram-mate-fill"
+                  style={{ width: `${(row.damage / top) * 100}%` }}
+                  initial={run === 'off' ? false : { scaleX: 0 }}
+                  animate={run === 'wait' ? { scaleX: 0 } : { scaleX: 1 }}
+                  transition={{ ...spring('default'), delay: T.lines + 0.1 + i * 0.08 }}
+                />
+              </span>
+              <b className="aram-mate-damage">{number(row.damage)}</b>
+              <small className="aram-mate-kda">{row.kda}</small>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 export function AramResultCard({
   entry,
   augments,
@@ -220,7 +310,8 @@ export function AramResultCard({
   ];
   return (
     <article
-      className={`aram-result tier-${highlight.tier} ${entry.win ? 'win' : 'loss'} ${onOpen ? 'clickable' : ''}`}
+      className={`aram-result tier-${highlight.tier} ${entry.win ? 'win' : 'loss'} ${onOpen ? 'clickable' : ''} ${entry.with.length > 0 ? 'with-mates' : ''}`}
+      style={{ height: resultHeight(entry) }}
       title={onOpen ? 'Rangliste in blank. öffnen' : undefined}
       onClick={onOpen}
       aria-label={`ARAM Mayhem: ${entry.win ? 'Sieg' : 'Niederlage'}, ${number(entry.damage)} Schaden an Champions`}
@@ -407,6 +498,7 @@ export function AramResultCard({
           ))}
         </Part>
       )}
+      {entry.with.length > 0 && <Mates entry={entry} run={run} />}
       {onClose && (
         <button
           className="aram-result-close"

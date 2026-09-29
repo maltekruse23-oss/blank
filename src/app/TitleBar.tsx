@@ -1,5 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react';
-import { Activity, Bell, BellOff, Download, Minus, Users, X } from 'lucide-react';
+import { Activity, Bell, BellOff, Download, Minus, Users, X, Check, Pencil } from 'lucide-react';
 import { hasNativeWindow, startWindowDrag } from '../platform/window';
 import { formatCpu, formatMemory, type UsageState } from './useAppUsage';
 
@@ -42,6 +42,8 @@ export function TitleBar({
   onRoom,
   onMinimize,
   onClose,
+  editing,
+  onEdit,
 }: {
   status?: ReactNode;
   usage: UsageState;
@@ -56,6 +58,9 @@ export function TitleBar({
   /** Minimize and close (the app fades its content out first). */
   onMinimize: () => void;
   onClose: () => void;
+  /** The edit mode (the app as its own editor) and its switch. */
+  editing: boolean;
+  onEdit: () => void;
 }) {
   return (
     <div className="titlebar" data-drag-region>
@@ -77,6 +82,19 @@ export function TitleBar({
           <Download size={12} /> Update
         </button>
       )}
+      <button
+        className={`edit-toggle ${editing ? 'on' : ''}`}
+        aria-pressed={editing}
+        title={
+          editing
+            ? 'Bearbeiten beenden'
+            : 'Bearbeiten: Home, Seitenleiste, Aussehen und Popout direkt ändern'
+        }
+        onClick={onEdit}
+      >
+        {editing ? <Check size={13} /> : <Pencil size={13} />}
+        {editing ? 'Fertig' : 'Bearbeiten'}
+      </button>
       <UsageChip usage={usage} />
       {status}
       {hasNativeWindow && (

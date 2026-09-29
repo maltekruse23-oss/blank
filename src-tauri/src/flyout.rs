@@ -4,9 +4,9 @@
 //! the window. It has its own WebView, created for a popout and closed half a minute after the
 //! last one, so it costs nothing while there is nothing to show. It never takes the focus when it
 //! appears (only a click on it does), is missing from the taskbar and Alt+Tab, and stays away
-//! while a full-screen game, a full-screen video or a presentation runs (the same rule Windows
-//! uses for its own notifications).
-use crate::tray;
+//! while a full-screen game, a full-screen video or a presentation runs on its screen; when one
+//! starts there while it is visible, it goes away at once (fullscreen.rs).
+use crate::{fullscreen, tray};
 use serde_json::Value;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::Mutex;
@@ -26,10 +26,6 @@ use windows_sys::Win32::{
     Graphics::Gdi::{CreateRectRgn, SetWindowRgn},
     UI::{
         Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK},
-        Shell::{
-            SHQueryUserNotificationState, QUNS_BUSY, QUNS_PRESENTATION_MODE,
-            QUNS_RUNNING_D3D_FULL_SCREEN,
-        },
         WindowsAndMessaging::{
             GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, ShowWindow,
             EVENT_SYSTEM_FOREGROUND, GWL_EXSTYLE, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE,
@@ -91,6 +87,8 @@ struct Inner {
     serial: u64,
     /// The window has the Acrylic background (a setting; changing it means a new window).
     acrylic: bool,
+    /// The latest popout may show over full screen (a setting, or asked for by a click).
+    over: bool,
 }
 
 fn failed(error: impl std::fmt::Display) -> String {
@@ -108,16 +106,23 @@ fn check(item: &Value) -> Result<(), String> {
     }
 }
 
-/// A full-screen game or video, or a presentation: Windows holds back its notifications too.
-fn busy() -> bool {
-    let mut state = 0;
-    // SAFETY: plain query into a local integer.
-    let known = unsafe { SHQueryUserNotificationState(&mut state) } == 0;
-    known
-        && matches!(
-            state,
-            QUNS_BUSY | QUNS_RUNNING_D3D_FULL_SCREEN | QUNS_PRESENTATION_MODE
-        )
+/// Something full screen (a game, a video, a presentation) on the screen a popout goes to: screen`n/// is the setting (placement.ts). Only that screen counts (user's wish), see fullscreen.rs.
+fn held_back(app: &AppHandle, screen: Option<&str>) -> bool {
+    let screen = screen.filter(|s| SCREENS.contains(s)).unwrap_or("primary");
+    let Some(main) = app.get_webview_window("main") else {
+        return false;
+    };
+    target_monitor(&main, screen)
+        .is_ok_and(|monitor| full_screen_at(&monitor, std::ptr::null_mut()))
+}
+
+/// Full screen on this screen, looking past skip (the popout window itself).
+fn full_screen_at(monitor: &tauri::Monitor, skip: HWND) -> bool {
+    let (x, y) = (
+        monitor.position().x + monitor.size().width as i32 / 2,
+        monitor.position().y + monitor.size().height as i32 / 2,
+    );
+    fullscreen::full_screen_on(fullscreen::monitor_at(x, y), skip)
 }
 
 fn hwnd(window: &WebviewWindow) -> Result<HWND, String> {
@@ -251,8 +256,9 @@ fn windows_frame(handle: HWND, acrylic: bool) {
     }
 }
 
-/// Shows a popout item: `false` if it is held back (full screen, unless `over_full_screen`, a
-/// setting). `acrylic`: the setting for the window's background. Called by the main window.
+/// Shows a popout item: `false` if it is held back (full screen on the popout's screen `screen`,
+/// unless `over_full_screen`, a setting). `acrylic`: the setting for the window's background.
+/// Called by the main window.
 #[tauri::command]
 pub async fn flyout_show(
     app: AppHandle,
@@ -260,9 +266,11 @@ pub async fn flyout_show(
     item: Value,
     over_full_screen: Option<bool>,
     acrylic: Option<bool>,
+    screen: Option<String>,
 ) -> Result<bool, String> {
     check(&item)?;
-    if over_full_screen != Some(true) && busy() {
+    let over = over_full_screen == Some(true);
+    if !over && held_back(&app, screen.as_deref()) {
         return Ok(false);
     }
     let acrylic = acrylic == Some(true);
@@ -276,6 +284,7 @@ pub async fn flyout_show(
             inner.ready = false;
         }
         inner.acrylic = acrylic;
+        inner.over = over;
         match (inner.label.clone(), inner.ready) {
             (Some(label), true) => {
                 app.emit_to(label.as_str(), "flyout-item", item)
@@ -671,7 +680,11 @@ pub async fn flyout_present(
     if !PLACES.contains(&place.as_str()) || !SCREENS.contains(&screen.as_str()) {
         return Err("Unbekannte Position".into());
     }
-    state.0.lock().map_err(failed)?.serial += 1;
+    let over = {
+        let mut inner = state.0.lock().map_err(failed)?;
+        inner.serial += 1;
+        inner.over
+    };
     let monitor = target_monitor(&window, &screen)?;
     let scale = monitor.scale_factor();
     let area = monitor.work_area();
@@ -746,7 +759,19 @@ pub async fn flyout_present(
     window
         .set_position(PhysicalPosition::new(x, y))
         .map_err(failed)?;
+    // Its screen turned full screen meanwhile: it stays hidden, and its page drops what it shows.
+    if !over && full_screen_at(&monitor, handle) {
+        window
+            .emit_to(window.label(), "flyout-fullscreen", ())
+            .map_err(failed)?;
+        return Ok(None);
+    }
     keep_above_taskbar(&window, bar.is_some());
+    // Until it is hidden: gone at once when something on its screen turns full screen.
+    fullscreen::watch(
+        window.app_handle(),
+        (!over).then(|| (handle, window.label().to_string())),
+    );
     // SAFETY: valid window handle; shows and raises it without activating it.
     unsafe {
         ShowWindow(handle, SW_SHOWNOACTIVATE);
@@ -820,6 +845,7 @@ pub async fn flyout_hide(
     // SAFETY: valid window handle.
     unsafe { ShowWindow(hwnd(&window)?, SW_HIDE) };
     keep_above_taskbar(&window, false);
+    fullscreen::watch(window.app_handle(), None);
     set_visible(&window, false);
     let serial = {
         let mut inner = state.0.lock().map_err(failed)?;
@@ -887,6 +913,12 @@ pub async fn flyout_mix(
 pub fn flyout_screens(app: AppHandle) -> usize {
     app.available_monitors()
         .map_or(1, |monitors| monitors.len())
+}
+
+/// Whether popouts "in the taskbar" sit at its right end (icons on the left), for the edit mode.
+#[tauri::command]
+pub fn taskbar_icons_left() -> bool {
+    icons_on_the_left()
 }
 
 /// Brings back the full app, optionally on a page (a click in a popout).

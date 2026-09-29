@@ -14,9 +14,10 @@ import { AramGameCard } from './AramGameCard';
 import { AramPlayers } from './AramPlayers';
 import { AramRanking, CategoryChoice } from './AramRanking';
 import { defaultCategories, type CategoryId } from './aramCategories';
-import { bestGames, countedGames } from './aramStats';
+import { bestGames, countedGames, sinceGames } from './aramStats';
 import { day } from './format';
 import type { AramHook } from './useAram';
+import type { AramGroupHook } from './useAramGroup';
 import { resultView, type AramResultView } from './useAramResult';
 
 type Tab = 'ranking' | 'best' | 'players';
@@ -35,8 +36,11 @@ export function AramPage({
   chosen,
   setChosen,
   onShow,
+  group,
 }: {
   aram: AramHook;
+  /** The group: its members and start instead of the own list (the same for everyone). */
+  group: AramGroupHook;
   adapter: AramAdapter;
   friends: AramPlayer[];
   setFriends: (friends: AramPlayer[]) => void;
@@ -50,10 +54,13 @@ export function AramPage({
   const { state } = aram;
   const data = state.status === 'ready' ? state.data : null;
   const me = data?.me ?? null;
-  const players = [...(me ? [me] : []), ...friends.filter((f) => f.puuid !== me?.puuid)];
-  const games = data ? countedGames(data.games, players) : [];
+  const players = group.view
+    ? group.view.members
+    : [...(me ? [me] : []), ...friends.filter((f) => f.puuid !== me?.puuid)];
+  const since = group.view ? group.view.since : (data?.since ?? null);
+  const games = data ? countedGames(sinceGames(data.games, since), players) : [];
   const [view, setView] = useState<{ tab: Tab; dir: number }>({
-    tab: friends.length === 0 ? 'players' : 'ranking',
+    tab: friends.length === 0 && !group.view ? 'players' : 'ranking',
     dir: 1,
   });
   const index = (tab: Tab) => tabs.findIndex((t) => t.id === tab);
@@ -82,7 +89,7 @@ export function AramPage({
         {data && (
           <span className="toolbar-count" title="ARAM-Mayhem-Spiele der Spieler auf der Liste">
             <b>{games.length}</b> {games.length === 1 ? 'Spiel' : 'Spiele'}
-            {data.since && ` · seit ${day(data.since)}`}
+            {since && ` · seit ${day(since)}`}
           </span>
         )}
         {view.tab === 'ranking' && (
@@ -150,7 +157,7 @@ export function AramPage({
               games={games}
               players={players}
               augments={data.augments}
-              onShow={(entry) => onShow(resultView(entry, data, friends))}
+              onShow={(entry) => onShow(resultView(entry, { ...data, since }, players))}
             />
           )}
           {view.tab === 'players' && (
@@ -162,6 +169,7 @@ export function AramPage({
               setFriends={setFriends}
               since={data.since}
               onReset={aram.reset}
+              group={group}
             />
           )}
         </TabContent>

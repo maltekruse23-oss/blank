@@ -9,6 +9,8 @@ import {
   type AramPlayer,
 } from '../../adapters/aram';
 import { ChannelAvatar } from '../../components/ui';
+import { AramGroupCard } from './AramGroupCard';
+import type { AramGroupHook } from './useAramGroup';
 
 type FriendList =
   | { status: 'loading' }
@@ -29,7 +31,11 @@ function Person({ player, children }: { player: AramPlayer; children?: ReactNode
   );
 }
 
-/** Who is in the leaderboard: the user (from the League client) and up to three friends. */
+/**
+ * Who is in the leaderboard. In a group (user's wish: the same for everyone) its members; without
+ * one the user (from the League client) and up to nine friends chosen here – and the way into a
+ * group.
+ */
 export function AramPlayers({
   adapter,
   client,
@@ -38,6 +44,7 @@ export function AramPlayers({
   setFriends,
   since,
   onReset,
+  group,
 }: {
   adapter: AramAdapter;
   client: boolean;
@@ -47,7 +54,53 @@ export function AramPlayers({
   /** The leaderboard counts from this moment (ms), if it was started anew. */
   since: number | null;
   onReset: () => Promise<void>;
+  group: AramGroupHook;
 }) {
+  if (group.view)
+    return (
+      <div className="aram-players">
+        <AramGroupCard group={group} meId={me?.puuid ?? null} />
+        <section className="card aram-invite">
+          <header className="card-header">
+            <h2>Freunde einladen</h2>
+          </header>
+          <ol className="aram-steps">
+            <li>Code oben kopieren und schicken</li>
+            <li>blank. öffnen → ARAM → Spieler</li>
+            <li>Code eingeben → Beitreten</li>
+          </ol>
+          <p className="aram-note">
+            Alle sehen dieselben Spiele und dieselbe Rangliste – auch Spiele, die ihr getrennt
+            spielt.
+          </p>
+        </section>
+      </div>
+    );
+  return (
+    <LocalPlayers
+      adapter={adapter}
+      client={client}
+      me={me}
+      friends={friends}
+      setFriends={setFriends}
+      since={since}
+      onReset={onReset}
+      group={group}
+    />
+  );
+}
+
+/** Without a group: the user's own list of friends (not shared), and the way into a group. */
+function LocalPlayers({
+  adapter,
+  client,
+  me,
+  friends,
+  setFriends,
+  since,
+  onReset,
+  group,
+}: Parameters<typeof AramPlayers>[0]) {
   const [confirming, setConfirming] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [list, setList] = useState<FriendList>({ status: 'loading' });
@@ -81,7 +134,7 @@ export function AramPlayers({
       : [];
 
   return (
-    <div className={`aram-players ${full ? 'full' : ''}`}>
+    <div className="aram-players">
       <section className="card">
         <header className="card-header">
           <h2>In der Rangliste</h2>
@@ -148,57 +201,60 @@ export function AramPlayers({
           )}
         </div>
       </section>
-      {!full && (
-        <section className="card aram-choose">
-          <header className="card-header">
-            <h2>Aus deiner Freundesliste</h2>
-          </header>
-          {!client ? (
-            <p className="aram-note">
-              Öffne den League-Client, dann erscheint hier deine Freundesliste.
-            </p>
-          ) : list.status === 'loading' ? (
-            <p className="aram-note" role="status">
-              Lädt …
-            </p>
-          ) : list.status === 'error' ? (
-            <p className="aram-note" role="status">
-              {list.message}
-            </p>
-          ) : (
-            <>
-              <label className="search">
-                <Search size={15} />
-                <input
-                  type="search"
-                  value={query}
-                  placeholder="Freund suchen"
-                  aria-label="Freund suchen"
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
-              <ul className="aram-people aram-friend-list">
-                {offered.map((friend) => (
-                  <Person key={friend.puuid} player={friend}>
-                    <button
-                      className="secondary-button"
-                      onClick={() => setFriends([...friends, friend].slice(0, MAX_ARAM_FRIENDS))}
-                    >
-                      <UserPlus size={14} />
-                      Hinzufügen
-                    </button>
-                  </Person>
-                ))}
-                {offered.length === 0 && (
-                  <li className="aram-person muted">
-                    {needle ? 'Kein Freund passt zur Suche.' : 'Keine weiteren Freunde.'}
-                  </li>
-                )}
-              </ul>
-            </>
-          )}
-        </section>
-      )}
+      <div className="aram-side">
+        <AramGroupCard group={group} meId={me?.puuid ?? null} />
+        {!full && (
+          <section className="card aram-choose">
+            <header className="card-header">
+              <h2>Aus deiner Freundesliste</h2>
+            </header>
+            {!client ? (
+              <p className="aram-note">
+                Öffne den League-Client, dann erscheint hier deine Freundesliste.
+              </p>
+            ) : list.status === 'loading' ? (
+              <p className="aram-note" role="status">
+                Lädt …
+              </p>
+            ) : list.status === 'error' ? (
+              <p className="aram-note" role="status">
+                {list.message}
+              </p>
+            ) : (
+              <>
+                <label className="search">
+                  <Search size={15} />
+                  <input
+                    type="search"
+                    value={query}
+                    placeholder="Freund suchen"
+                    aria-label="Freund suchen"
+                    onChange={(event) => setQuery(event.target.value)}
+                  />
+                </label>
+                <ul className="aram-people aram-friend-list">
+                  {offered.map((friend) => (
+                    <Person key={friend.puuid} player={friend}>
+                      <button
+                        className="secondary-button"
+                        onClick={() => setFriends([...friends, friend].slice(0, MAX_ARAM_FRIENDS))}
+                      >
+                        <UserPlus size={14} />
+                        Hinzufügen
+                      </button>
+                    </Person>
+                  ))}
+                  {offered.length === 0 && (
+                    <li className="aram-person muted">
+                      {needle ? 'Kein Freund passt zur Suche.' : 'Keine weiteren Freunde.'}
+                    </li>
+                  )}
+                </ul>
+              </>
+            )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }

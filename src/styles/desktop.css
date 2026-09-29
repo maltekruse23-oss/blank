@@ -818,57 +818,6 @@ h2 {
   letter-spacing: 1px;
 }
 
-/* Popout position (Settings): a small screen with six places, like where popouts appear. */
-.setting-row > .place-picker {
-  display: grid;
-  flex: none;
-  grid-template-columns: repeat(3, 24px);
-  grid-template-rows: repeat(2, 18px);
-  gap: 2px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: calc(8px * var(--radius-scale));
-  background: var(--bg);
-}
-.place-choice {
-  display: flex;
-  padding: 3px;
-  border: 0;
-  border-radius: calc(4px * var(--radius-scale));
-  background: none;
-}
-.place-choice:nth-child(-n + 3) {
-  align-items: flex-start;
-}
-.place-choice:nth-child(n + 4) {
-  align-items: flex-end;
-}
-.place-choice:nth-child(3n + 1) {
-  justify-content: flex-start;
-}
-.place-choice:nth-child(3n + 2) {
-  justify-content: center;
-}
-.place-choice:nth-child(3n) {
-  justify-content: flex-end;
-}
-.place-choice span {
-  width: 12px;
-  height: 5px;
-  border-radius: calc(2px * var(--radius-scale));
-  background: var(--subtle);
-}
-.place-choice:hover:not(:disabled) {
-  filter: none;
-  background: var(--surface-hover);
-}
-.place-choice[aria-pressed='true'] span {
-  background: var(--accent);
-}
-.place-choice:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
 /* Settings → Popouts: sub-headings and the app filter list. */
 .setting-group {
   margin-top: 18px;
@@ -1245,6 +1194,7 @@ main,
 
 /* Overview and stream cards lean towards the mouse and a soft light follows it (useTilt.ts). */
 .dashboard-grid > .card,
+.home-grid:not(.editing) > .home-tile,
 .device-grid > .card,
 .pc-grid > .card,
 .stream-card {
@@ -1253,6 +1203,7 @@ main,
     box-shadow var(--motion-normal) ease;
 }
 .dashboard-grid > .card::after,
+.home-grid:not(.editing) > .home-tile::after,
 .device-grid > .card::after,
 .pc-grid > .card::after,
 .stream-card::after {
@@ -1274,6 +1225,7 @@ main,
   box-shadow: var(--shadow-floating);
 }
 .dashboard-grid > .card.tilting,
+.home-grid > .home-tile.tilting,
 .device-grid > .card.tilting,
 .pc-grid > .card.tilting,
 .stream-card.tilting {
@@ -1306,7 +1258,6 @@ main,
   .window-button,
   .game-add,
   .theme-swatch,
-  .place-choice,
   .more-toggle,
   .setting-undo
 ) {
@@ -1325,7 +1276,6 @@ main,
     .window-button,
     .game-add,
     .theme-swatch,
-    .place-choice,
     .more-toggle,
     .setting-undo
   ):active:not(:disabled) {
@@ -2005,7 +1955,6 @@ main,
 }
 .aram-result-zoom {
   width: calc(560px * 1.3);
-  height: calc(232px * 1.3);
 }
 .aram-result-zoom .aram-result {
   transform: scale(1.3);
@@ -2039,9 +1988,10 @@ main,
 }
 
 /* Leaderboard as categories with bars (features/aram/AramRanking.tsx, user's wish). */
+/* Two columns: room for the number one with picture, champion and a large value. */
 .aram-categories {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--gap);
 }
 .aram-category {
@@ -2075,8 +2025,13 @@ main,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.aram-category-head > span:last-child {
+.aram-category-title {
+  flex: 1;
   min-width: 0;
+}
+/* A best game that went up: its value lights up while it counts. */
+.aram-bars li.rising .aram-bar-value {
+  color: var(--accent);
 }
 .aram-category-icon {
   display: grid;
@@ -2168,7 +2123,6 @@ main,
     var(--place)
   );
   opacity: 0.8;
-  transform-origin: left center;
 }
 .aram-bars li.lead .aram-bar-fill {
   opacity: 1;
@@ -2176,6 +2130,238 @@ main,
 }
 .aram-bars li.lead .aram-bar-value {
   color: var(--place);
+}
+/* The number one large: bigger picture with a glowing ring, name bold, value large. */
+.aram-bars li.lead .aram-bar-line {
+  gap: 8px;
+  font-size: 13px;
+}
+.aram-bars li.lead .aram-bar-line .avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+  box-shadow:
+    0 0 0 2px var(--place),
+    0 0 14px color-mix(in srgb, var(--place) 45%, transparent);
+}
+.aram-bars li.lead .aram-bar-name {
+  color: var(--text);
+  font-weight: 700;
+}
+.aram-bar-name small {
+  display: block;
+  overflow: hidden;
+  color: var(--subtle);
+  font-size: 10.5px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+.aram-bars li.lead .aram-bar-value {
+  font-size: 16px;
+  font-weight: 800;
+}
+.aram-bars li.lead .aram-bar-place {
+  width: 20px;
+  height: 20px;
+}
+.aram-bars li.lead .aram-bar-track {
+  height: 8px;
+  margin-left: 28px;
+}
+/* A category while it counts up: its tint a little stronger. */
+.aram-category.counting {
+  border-color: color-mix(in srgb, var(--hue) 55%, var(--border));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--hue) 18%, transparent);
+}
+/* What a new game added, while counting and a moment after. */
+.aram-gain {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-new-leader {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--rank-1);
+  color: var(--bg);
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+/* Crowns: who holds the most number ones (AramRanking.tsx, live while counting). */
+.aram-crowns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 var(--gap);
+  padding: 0;
+  list-style: none;
+}
+.aram-crowns li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+}
+.aram-crowns li .avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 9px;
+}
+.aram-crowns-name {
+  max-width: 110px;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-crowns li.me .aram-crowns-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.aram-crowns-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--subtle);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-crowns li.top {
+  border-color: color-mix(in srgb, var(--rank-1) 60%, var(--border));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--rank-1) 16%, var(--surface)),
+    var(--surface)
+  );
+  box-shadow: 0 0 14px color-mix(in srgb, var(--rank-1) 22%, transparent);
+}
+.aram-crowns li.top .aram-crowns-count {
+  color: var(--rank-1);
+}
+/* Once each: a crown lands, a count or badge pops, a gain slides in (only with motion on). */
+html[data-motion='normal'] .aram-bars li.lead .aram-bar-place svg {
+  animation: aram-crown-land var(--motion-spring) var(--ease-spring);
+}
+html[data-motion='normal'] .aram-crowns-count,
+html[data-motion='normal'] .aram-new-leader {
+  animation: aram-pop var(--motion-spring) var(--ease-spring);
+}
+html[data-motion='normal'] .aram-gain {
+  animation: aram-gain-in var(--motion-normal) ease-out;
+}
+@keyframes aram-pop {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+@keyframes aram-crown-land {
+  from {
+    opacity: 0;
+    translate: 0 calc(-8px * var(--motion-travel));
+    rotate: -25deg;
+    scale: 1.4;
+  }
+}
+@keyframes aram-gain-in {
+  from {
+    opacity: 0;
+    translate: 0 calc(4px * var(--motion-travel));
+  }
+}
+/* The group (AramGroupCard.tsx): create or join; in it, its code, link and members. */
+.aram-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+}
+.aram-group-lead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.aram-group > .primary-button {
+  width: 100%;
+}
+.aram-group-join {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.aram-group-join input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.aram-group-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 6px 6px 6px 12px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: calc(10px * var(--radius-scale));
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.aram-group-code code {
+  color: var(--text);
+  font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  font-size: 15px;
+  letter-spacing: 2px;
+}
+.aram-group-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: var(--subtle);
+  font-size: 11px;
+}
+.aram-group-link::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--subtle);
+}
+.aram-group-link.up::before {
+  background: var(--accent);
+}
+.aram-steps {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 12.5px;
 }
 /* The choice of categories below the toolbar. */
 .aram-choice-panel {
@@ -2241,4 +2427,626 @@ main,
 }
 .aram-reset .text-link {
   font-size: 12px;
+}
+/* Friends in the same game below the result (AramResult.tsx, Mates). */
+.aram-result.with-mates .aram-result-splash,
+.aram-result.with-mates::before {
+  height: 232px;
+  bottom: auto;
+}
+.aram-result.with-mates .aram-result-body {
+  height: 232px;
+}
+.aram-result-mates {
+  padding: 8px 22px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+}
+.aram-result-mates-head {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 6px;
+  color: var(--subtle);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.aram-result-mates-head b {
+  color: var(--rank-1);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.aram-result-mates ol {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-result-mates li {
+  display: grid;
+  grid-template-columns: 16px 18px 110px 1fr 58px 64px;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  font-size: 12px;
+}
+.aram-result-mates img,
+.aram-mate-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: calc(4px * var(--radius-scale));
+}
+.aram-mate-icon {
+  background: var(--surface-hover);
+}
+.aram-mate-name {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-result-mates li.me .aram-mate-name {
+  color: var(--text);
+  font-weight: 700;
+}
+.aram-mate-name small {
+  margin-left: 5px;
+  color: var(--danger-text);
+  font-size: 10px;
+}
+.aram-mate-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-hover);
+}
+.aram-mate-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--place) 45%, transparent),
+    var(--place)
+  );
+  transform-origin: left center;
+}
+.aram-mate-damage {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.aram-mate-kda {
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Home as a grid of widgets and the edit mode (features/edit/, user's wish: direct manipulation). */
+.home-grid {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  gap: var(--gap);
+}
+.home-cell {
+  border: 1px dashed color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: calc(6px * var(--radius-scale));
+  pointer-events: none;
+}
+.home-tile {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
+}
+.home-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.home-grid.editing .home-tile {
+  cursor: grab;
+  outline: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -1px;
+  user-select: none;
+  touch-action: none;
+}
+.home-grid.editing .home-tile:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.home-tile.lifted {
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow: var(--shadow-overlay);
+  outline: 2px solid var(--accent) !important;
+}
+.home-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--subtle);
+}
+.home-title {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: text;
+  text-align: left;
+}
+.home-title h2 {
+  border-bottom: 1px dashed var(--subtle);
+}
+.home-title-input {
+  width: 100%;
+  padding: 2px 4px;
+  border: 1px solid var(--accent);
+  border-radius: calc(6px * var(--radius-scale));
+  background: var(--surface-hover);
+  font-size: 14px;
+  font-weight: 600;
+}
+.home-resize {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 14px;
+  height: 14px;
+  border-right: 3px solid var(--accent);
+  border-bottom: 3px solid var(--accent);
+  border-radius: 0 0 calc(4px * var(--radius-scale)) 0;
+  cursor: nwse-resize;
+}
+/* The rounding handle in the top left corner: drag to round all cards. */
+.home-radius {
+  position: absolute;
+  top: calc(var(--radius-card) * 0.3 + 3px);
+  left: calc(var(--radius-card) * 0.3 + 3px);
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--panel);
+  cursor: se-resize;
+}
+.home-empty {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  align-self: center;
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+}
+/* Widgets at small sizes: less of them. */
+@container (max-height: 150px) {
+  .home-body .list-row:nth-of-type(n + 3) {
+    display: none;
+  }
+}
+.widget-music {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.widget-cover {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--surface-hover);
+  color: var(--accent);
+  object-fit: cover;
+}
+.widget-music .row-copy {
+  flex: 1;
+  min-width: 0;
+}
+.widget-aram {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.widget-aram li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-bottom: 6px;
+  font-size: 12.5px;
+}
+.widget-aram .avatar {
+  width: 20px;
+  height: 20px;
+  font-size: 8px;
+}
+.widget-aram .aram-bar-name {
+  flex: 1;
+}
+.widget-aram-bar {
+  position: absolute;
+  left: 22px;
+  bottom: 0;
+  max-width: calc(100% - 22px);
+  height: 3px;
+  border-radius: 999px;
+  background: var(--place);
+}
+/* The title bar's switch. */
+.edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.edit-toggle:hover,
+.edit-toggle.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* The dock and its tools. */
+/* Centred over the content (beside the 150 px sidebar), so it never covers the account block. */
+.edit-dock-area {
+  position: fixed;
+  left: calc(50% + 75px);
+  bottom: 14px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  translate: -50% 0;
+  pointer-events: none;
+}
+.edit-dock,
+.edit-popover {
+  pointer-events: auto;
+}
+.edit-dock {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: calc(14px * var(--radius-scale));
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: var(--shadow-overlay);
+}
+.dock-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: calc(9px * var(--radius-scale));
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.dock-button:hover:not(:disabled),
+.dock-button.selected {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.dock-button.selected {
+  color: var(--accent);
+}
+.dock-button:disabled {
+  opacity: 0.35;
+}
+.dock-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 3px;
+  background: var(--border);
+}
+.edit-popover {
+  width: 460px;
+  max-height: 380px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-overlay);
+}
+.edit-popover.wide {
+  width: 620px;
+}
+.edit-popover-head h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.look-reset {
+  margin-top: 10px;
+}
+.dock-widgets ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dock-widgets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dock-widget-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.dock-widget-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+}
+.dock-widget-text small,
+.dock-hint {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+/* The popout placed on a miniature screen. */
+.popout-stage {
+  display: grid;
+  gap: 10px;
+}
+.stage-screens {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.stage-screen {
+  position: relative;
+  flex: 0 1 340px;
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: linear-gradient(160deg, var(--surface-hover), var(--bg));
+}
+.stage-screen.current {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+.stage-label {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  color: var(--subtle);
+  font-size: 10.5px;
+}
+.stage-spot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px dashed var(--subtle);
+  border-radius: 50%;
+  translate: -50% -50%;
+  transition:
+    scale var(--motion-normal) var(--ease-spring),
+    background-color var(--motion-normal);
+}
+/* The magnet: the place the dragged popout will snap to lights up. */
+.stage-spot.target {
+  scale: 1.8;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+}
+.stage-taskbar {
+  position: absolute;
+  inset: auto 0 0;
+  height: 12%;
+  border-radius: 0 0 calc(6px * var(--radius-scale)) calc(6px * var(--radius-scale));
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  transition: background-color var(--motion-normal);
+}
+.stage-taskbar.target {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+/* Outline of the popout where it will land. */
+.stage-ghost {
+  position: absolute;
+  z-index: 1;
+  border: 2px dashed var(--accent);
+  border-radius: calc(7px * var(--radius-scale));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  translate: -50% -50%;
+  pointer-events: none;
+  transition:
+    left var(--motion-normal) var(--ease-spring),
+    top var(--motion-normal) var(--ease-spring);
+}
+.stage-ghost.in-taskbar {
+  width: 108px !important;
+  height: 22px !important;
+}
+.stage-popout {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  width: 132px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  border-radius: calc(7px * var(--radius-scale));
+  background: color-mix(in srgb, var(--panel) var(--opacity), transparent);
+  box-shadow: var(--shadow-floating);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  translate: -50% -50%;
+}
+/* Released: springs into its place (also onto the other screen). */
+.stage-popout.settled {
+  transition:
+    left var(--motion-spring) var(--ease-spring),
+    top var(--motion-spring) var(--ease-spring),
+    scale var(--motion-normal) var(--ease-spring);
+}
+/* Dragged: follows the mouse exactly, no easing in between. */
+.stage-popout.dragging {
+  cursor: grabbing;
+  scale: 1.05;
+  outline: 2px solid var(--accent);
+  transition: scale var(--motion-normal) var(--ease-spring);
+}
+.stage-popout.compact,
+.stage-popout.in-taskbar {
+  width: 108px;
+}
+.stage-popout.in-taskbar {
+  padding: 3px 6px;
+}
+.stage-cover {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.stage-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  font-size: 10px;
+}
+.stage-controls {
+  display: flex;
+  gap: 4px;
+  color: var(--muted);
+}
+.stage-part {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 9px;
+  text-align: left;
+  cursor: pointer;
+}
+.stage-part.off {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+.stage-seek {
+  flex-basis: 100%;
+  height: 8px;
+}
+.stage-seek span {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent) 40%, var(--surface-hover) 40%);
+}
+.stage-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.stage-opacity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+/* The sidebar while editing: grips and eyes. */
+.nav-edit {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.nav-edit.lifted {
+  cursor: grabbing;
+  background: var(--surface-hover);
+}
+.nav-edit.off {
+  opacity: 0.45;
+}
+.nav-edit.current {
+  background: var(--surface);
+  color: var(--text);
+}
+.nav-edit.current > svg:not(.nav-grip) {
+  color: var(--accent);
+}
+.nav-grip {
+  margin-left: -6px;
+  color: var(--subtle);
+}
+.nav-eye {
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--subtle);
+}
+.nav-eye:hover {
+  color: var(--text);
+}
+/* The remaining settings in a side panel. */
+.settings-drawer {
+  position: fixed;
+  top: var(--titlebar-height);
+  right: 8px;
+  bottom: 8px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  width: 600px;
+  border: 1px solid var(--panel-border);
+  border-radius: calc(14px * var(--radius-scale));
+  background: var(--panel);
+  box-shadow: var(--shadow-overlay);
+}
+/* In the edit mode above the dock, so "Fertig" stays in reach. */
+.settings-drawer.over-dock {
+  bottom: 66px;
+}
+.settings-drawer:focus {
+  outline: none;
+}
+.settings-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px 16px;
+}
+.settings-drawer-head h2 {
+  margin: 0;
+}
+.settings-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+/* While editing, the grid leaves room for the dock (everything stays reachable). */
+/* Room for the dock on every page while editing (nothing hides behind it). */
+.panel.editing .page {
+  padding-bottom: 58px;
 }

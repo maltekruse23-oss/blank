@@ -2,7 +2,8 @@ import { useEffect, type RefObject } from 'react';
 import { getMotion } from './motion';
 
 /** Cards that lean towards the mouse: the overview cards and stream cards. */
-const TILTING = '.dashboard-grid > .card, .device-grid > .card, .pc-grid > .card, .stream-card';
+const TILTING =
+  '.home-grid:not(.editing) > .home-tile, .device-grid > .card, .pc-grid > .card, .stream-card';
 /** At most this many degrees in each direction. */
 const MAX_DEG = 4;
 

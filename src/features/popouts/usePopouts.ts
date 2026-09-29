@@ -84,6 +84,7 @@ export function usePopouts({
     return showPopout(item, {
       overFullScreen: explicit || p.popoutFullscreen,
       acrylic: p.popoutAcrylic && !p.popoutTaskbar,
+      screen: p.popoutScreen,
     });
   };
 

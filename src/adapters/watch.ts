@@ -40,6 +40,12 @@ export const newRoomSecret = () => randomSecret(SECRET_LENGTH);
 
 /** Topic and key of a room; both only from the secret. */
 export async function openRoom(secret: string): Promise<Room> {
+  const { topic, key } = await deriveChannel(secret, SALT, TOPIC_PREFIX);
+  return { secret, code: formatRoomCode(secret), topic, key };
+}
+
+/** A topic (prefix + 32 hex) and an AES-GCM key from a secret (PBKDF2); also for ARAM groups. */
+export async function deriveChannel(secret: string, salt: string, prefix: string) {
   const base = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
@@ -49,22 +55,22 @@ export async function openRoom(secret: string): Promise<Room> {
   );
   const bits = new Uint8Array(
     await crypto.subtle.deriveBits(
-      { name: 'PBKDF2', salt: new TextEncoder().encode(SALT), iterations: ROUNDS, hash: 'SHA-256' },
+      { name: 'PBKDF2', salt: new TextEncoder().encode(salt), iterations: ROUNDS, hash: 'SHA-256' },
       base,
       384,
     ),
   );
   const topic =
-    TOPIC_PREFIX + [...bits.slice(0, 16)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    prefix + [...bits.slice(0, 16)].map((b) => b.toString(16).padStart(2, '0')).join('');
   const key = await crypto.subtle.importKey('raw', bits.slice(16), 'AES-GCM', false, [
     'encrypt',
     'decrypt',
   ]);
-  return { secret, code: formatRoomCode(secret), topic, key };
+  return { topic, key };
 }
 
 /** base64(iv 12 | AES-GCM ciphertext with tag). */
-async function seal(plain: string, key: CryptoKey) {
+export async function seal(plain: string, key: CryptoKey) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const data = new Uint8Array(
     await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plain)),
@@ -75,7 +81,7 @@ async function seal(plain: string, key: CryptoKey) {
   return toBase64(all);
 }
 
-async function open(text: string, key: CryptoKey): Promise<string | null> {
+export async function open(text: string, key: CryptoKey): Promise<string | null> {
   try {
     const all = fromBase64(text);
     const plain = await crypto.subtle.decrypt(

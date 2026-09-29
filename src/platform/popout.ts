@@ -81,17 +81,19 @@ function subscribe<T>(event: string, handler: (payload: T) => void): () => void 
 // --- App window ---
 
 /**
- * `false` when it is held back because a full-screen game, video or presentation runs (unless
- * `overFullScreen`, a setting). `acrylic`: the setting for the popout window's background.
+ * `false` when it is held back because a full-screen game, video or presentation runs on the
+ * popout's screen `screen` (the setting; unless `overFullScreen`, a setting). `acrylic`: the
+ * setting for the popout window's background.
  */
 export const showPopout = (
   item: PopoutItem,
-  options: { overFullScreen?: boolean; acrylic?: boolean } = {},
+  options: { overFullScreen?: boolean; acrylic?: boolean; screen?: PopoutScreen } = {},
 ) =>
   invoke<boolean>('flyout_show', {
     item,
     overFullScreen: options.overFullScreen ?? false,
     acrylic: options.acrylic ?? false,
+    screen: options.screen ?? null,
   }).catch((error: unknown) => {
     console.error('Popout failed', error);
     return false;
@@ -123,12 +125,18 @@ export const setTrayClick = (music: boolean) =>
 /** Number of screens (the choice of screen only matters with more than one). */
 export const countScreens = () => invoke<number>('flyout_screens').catch(() => 1);
 
+/** Taskbar icons on the left: popouts in the taskbar then sit at its right end (flyout.rs). */
+export const taskbarIconsLeft = () => invoke<boolean>('taskbar_icons_left').catch(() => false);
+
 // --- Popout window ---
 
 export const onPopoutItem = (handler: (item: PopoutItem) => void) =>
   subscribe('flyout-item', handler);
 export const onPopoutUpdate = (handler: (item: PopoutItem) => void) =>
   subscribe('flyout-update', handler);
+/** Something on the popout's screen turned full screen: it is hidden already (fullscreen.rs). */
+export const onPopoutFullScreen = (handler: () => void) =>
+  subscribe<null>('flyout-fullscreen', () => handler());
 export const takePendingPopouts = () => invoke<PopoutItem[]>('flyout_pending');
 export const preparePopout = () => invoke<void>('flyout_prepare');
 /**

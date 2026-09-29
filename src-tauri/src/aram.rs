@@ -10,11 +10,20 @@
 //! same 20), so besides the page itself a sync also follows the end of each game and the opening
 //! of the client (`league_seen`, from the process list pc.rs reads anyway) – once the page was
 //! used at least once (aram.json exists).
+//!
+//! The card right after a game (user's report: it came too late): when a Mayhem game starts, its
+//! id is noted and the end of the game process is awaited (Windows reports it, no polling); then
+//! the end-of-game screen's stats (all ten players, there at once) go into the collection, marked
+//! provisional until the history has the game, and the app shows the card. Friends of the user in
+//! the same game come along for the comparison (user's wish).
 
 use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
-    sync::Mutex,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
     time::Duration,
 };
 
@@ -44,9 +53,25 @@ const AFTER_GAME: [Duration; 5] = [
     Duration::from_secs(45),
 ];
 const AFTER_CLIENT_START: Duration = Duration::from_secs(45);
-/// Only a game that started this recently is announced as just played.
-const JUST_PLAYED_MS: u64 = 3 * 60 * 60 * 1000;
 const NOT_OPEN: &str = "Der League-Client ist nicht geöffnet.";
+/// As the process list names the game (program_pids compares without case).
+const GAME_EXE: &str = "League of Legends.exe";
+const SESSION: &str = "/lol-gameflow/v1/session";
+const SUMMONER: &str = "/lol-summoner/v1/current-summoner";
+const FRIENDS: &str = "/lol-chat/v1/friends";
+const CHAMPIONS: &str = "/lol-game-data/assets/v1/champion-summary.json";
+/// The end-of-game screen's stats; asked once a second for at most a minute after the game.
+const EOG: &str = "/lol-end-of-game/v1/eog-stats-block";
+const EOG_TRIES: u32 = 60;
+/// Then the history's exact values replace the end-of-game ones.
+const FINISH_AFTER: Duration = Duration::from_secs(150);
+/// Cards remembered as shown (enough for months of games).
+const MAX_CARDED: usize = 300;
+/// A game of the user that ended this recently and has no card yet gets it at the next look
+/// (blank. was not running at its end, or its end was not noticed).
+const CATCH_UP_MS: u64 = 30 * 60 * 1000;
+/// Members of a group (with the user ten, as in one game).
+const MAX_MEMBERS: usize = 10;
 
 /// One player's result in one game.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -88,6 +113,28 @@ pub struct Entry {
     /** The values below came later (details): None for games stored before, until fetched again. */
     #[serde(default)]
     details: Option<Details>,
+    /// Friends of the user in the same game (League friend list or leaderboard), for the card.
+    #[serde(default)]
+    with: Vec<Mate>,
+    /// From the end-of-game screen: the history's exact values replace it once it has the game.
+    #[serde(default)]
+    provisional: bool,
+}
+
+/// A friend of the user in the same game, for the comparison on the card.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Mate {
+    puuid: String,
+    name: String,
+    champion: String,
+    champion_name: String,
+    damage: u64,
+    kills: u32,
+    deaths: u32,
+    assists: u32,
+    /// In the same team as the player of the entry.
+    same_team: bool,
 }
 
 /// More of a player's values in a game, for the leaderboard's categories.
@@ -146,6 +193,21 @@ struct Stored {
     /// Started anew at this moment (ms): only games that began later count (user's wish).
     #[serde(default)]
     since: Option<u64>,
+    /// Games whose card was shown (newest last): every game gets exactly one card, whichever
+    /// look found it first (user's report: not after every game).
+    #[serde(default)]
+    carded: Vec<u64>,
+}
+
+/// Marks a game's card as shown; false if it was shown before.
+fn take_card(stored: &mut Stored, game_id: u64) -> bool {
+    if stored.carded.contains(&game_id) {
+        return false;
+    }
+    stored.carded.push(game_id);
+    let over = stored.carded.len().saturating_sub(MAX_CARDED);
+    stored.carded.drain(..over);
+    true
 }
 
 #[derive(Serialize)]
@@ -555,54 +617,61 @@ fn patch(version: &str) -> String {
     version.split('.').take(2).collect::<Vec<_>>().join(".")
 }
 
-/// The results of the tracked players in one game, with their place in damage among all.
-fn entries(
-    game: &Game,
-    tracked: &HashSet<String>,
-    champions: &HashMap<i64, (String, String)>,
-) -> Vec<Entry> {
-    let mut damages: Vec<u64> = game
-        .participants
-        .iter()
-        .map(|p| p.stats.total_damage_dealt_to_champions)
-        .collect();
-    damages.sort_unstable_by(|a, b| b.cmp(a));
-    let team_damage = |team: i64| -> u64 {
-        game.participants
-            .iter()
-            .filter(|p| p.team_id == team)
-            .map(|p| p.stats.total_damage_dealt_to_champions)
-            .sum()
-    };
+/// One player of a game, from the history or from the end-of-game screen.
+#[derive(Default, Clone)]
+struct Line {
+    puuid: String,
+    name: String,
+    team: i64,
+    champion_id: i64,
+    win: bool,
+    kills: u32,
+    deaths: u32,
+    assists: u32,
+    damage: u64,
+    taken: u64,
+    healed: u64,
+    shielded: u64,
+    gold: u64,
+    level: u32,
+    items: Vec<u32>,
+    augments: Vec<u32>,
+    multikill: u32,
+    pentas: u32,
+    details: Details,
+}
+
+/// A game with all its players, whatever the source.
+struct Summary {
+    game_id: u64,
+    at: u64,
+    seconds: u32,
+    patch: String,
+    players: Vec<Line>,
+}
+
+fn from_history(game: &Game) -> Summary {
     // Older games give the length in milliseconds.
     let seconds = if game.game_duration > 36_000 {
         game.game_duration / 1000
     } else {
         game.game_duration
     };
-    game.participant_identities
+    let players = game
+        .participant_identities
         .iter()
-        .filter(|identity| tracked.contains(&identity.player.puuid))
         .filter_map(|identity| {
             let p = game
                 .participants
                 .iter()
                 .find(|p| p.participant_id == identity.participant_id)?;
             let s = &p.stats;
-            let (champion, champion_name) =
-                champions.get(&p.champion_id).cloned().unwrap_or_default();
-            let team = team_damage(p.team_id);
             let player = &identity.player;
-            Some(Entry {
-                game_id: game.game_id,
-                at: game.game_creation,
-                seconds: seconds.min(u32::MAX as u64) as u32,
-                patch: patch(&game.game_version),
+            Some(Line {
                 puuid: player.puuid.clone(),
                 name: riot_id(&player.game_name, &player.tag_line, &player.summoner_name),
+                team: p.team_id,
                 champion_id: p.champion_id,
-                champion,
-                champion_name,
                 win: s.win,
                 kills: s.kills,
                 deaths: s.deaths,
@@ -630,18 +699,9 @@ fn entries(
                 .into_iter()
                 .filter(|augment| *augment != 0)
                 .collect(),
-                damage_rank: damages
-                    .iter()
-                    .position(|d| *d == s.total_damage_dealt_to_champions)
-                    .map_or(0, |i| i as u32 + 1),
-                team_share: if team == 0 {
-                    0.0
-                } else {
-                    s.total_damage_dealt_to_champions as f64 / team as f64
-                },
                 multikill: s.largest_multi_kill,
                 pentas: s.penta_kills,
-                details: Some(Details {
+                details: Details {
                     magic: s.magic_damage_dealt_to_champions,
                     physical: s.physical_damage_dealt_to_champions,
                     true_damage: s.true_damage_dealt_to_champions,
@@ -653,9 +713,226 @@ fn entries(
                     cc_seconds: s.time_ccing_others,
                     largest_spree: s.largest_killing_spree,
                     turret_damage: s.damage_dealt_to_turrets,
-                }),
+                },
             })
         })
+        .collect();
+    Summary {
+        game_id: game.game_id,
+        at: game.game_creation,
+        seconds: seconds.min(u32::MAX as u64) as u32,
+        patch: patch(&game.game_version),
+        players,
+    }
+}
+
+/// The end-of-game screen: its own shape, stats by upper-case names.
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct Eog {
+    game_id: u64,
+    /// Seconds.
+    game_length: u64,
+    teams: Vec<EogTeam>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct EogTeam {
+    team_id: i64,
+    is_winning_team: bool,
+    players: Vec<EogPlayer>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct EogPlayer {
+    puuid: String,
+    riot_id_game_name: String,
+    riot_id_tag_line: String,
+    summoner_name: String,
+    champion_id: i64,
+    team_id: i64,
+    level: u32,
+    items: Vec<i64>,
+    stats: HashMap<String, serde_json::Value>,
+}
+
+fn from_eog(eog: &Eog, now: u64) -> Summary {
+    let players = eog
+        .teams
+        .iter()
+        .flat_map(|team| team.players.iter().map(move |p| (team, p)))
+        .map(|(team, p)| {
+            let n = |key: &str| {
+                p.stats
+                    .get(key)
+                    .and_then(serde_json::Value::as_f64)
+                    .unwrap_or(0.0)
+                    .max(0.0)
+            };
+            let big = |key: &str| n(key).round() as u64;
+            let small = |key: &str| n(key).round().min(u32::MAX as f64) as u32;
+            Line {
+                puuid: p.puuid.clone(),
+                name: riot_id(&p.riot_id_game_name, &p.riot_id_tag_line, &p.summoner_name),
+                team: if p.team_id != 0 {
+                    p.team_id
+                } else {
+                    team.team_id
+                },
+                champion_id: p.champion_id,
+                win: team.is_winning_team || n("WIN") > 0.0,
+                kills: small("CHAMPIONS_KILLED"),
+                deaths: small("NUM_DEATHS"),
+                assists: small("ASSISTS"),
+                damage: big("TOTAL_DAMAGE_DEALT_TO_CHAMPIONS"),
+                taken: big("TOTAL_DAMAGE_TAKEN"),
+                healed: big("TOTAL_HEAL"),
+                shielded: 0,
+                gold: big("GOLD_EARNED"),
+                level: if p.level > 0 { p.level } else { small("LEVEL") },
+                items: p
+                    .items
+                    .iter()
+                    .filter(|item| **item > 0 && **item <= u32::MAX as i64)
+                    .map(|item| *item as u32)
+                    .collect(),
+                augments: (1..=6)
+                    .map(|i| small(&format!("PLAYER_AUGMENT_{i}")))
+                    .filter(|augment| *augment != 0)
+                    .collect(),
+                multikill: small("LARGEST_MULTI_KILL"),
+                pentas: small("PENTA_KILLS"),
+                details: Details {
+                    magic: big("MAGIC_DAMAGE_DEALT_TO_CHAMPIONS"),
+                    physical: big("PHYSICAL_DAMAGE_DEALT_TO_CHAMPIONS"),
+                    true_damage: big("TRUE_DAMAGE_DEALT_TO_CHAMPIONS"),
+                    mitigated: big("TOTAL_DAMAGE_SELF_MITIGATED"),
+                    doubles: small("DOUBLE_KILLS"),
+                    triples: small("TRIPLE_KILLS"),
+                    quadras: small("QUADRA_KILLS"),
+                    largest_crit: small("LARGEST_CRITICAL_STRIKE"),
+                    cc_seconds: small("TIME_CCING_OTHERS"),
+                    largest_spree: small("LARGEST_KILLING_SPREE"),
+                    turret_damage: big("TOTAL_DAMAGE_DEALT_TO_TURRETS"),
+                },
+            }
+        })
+        .collect();
+    Summary {
+        game_id: eog.game_id,
+        at: now.saturating_sub(eog.game_length.saturating_mul(1000)),
+        seconds: eog.game_length.min(36_000) as u32,
+        // Unknown here: the item pictures take the known version until the history's values come.
+        patch: String::new(),
+        players,
+    }
+}
+
+/// The results of the tracked players in one game, with their place in damage among all and the
+/// user's friends in the same game.
+fn entries(
+    game: &Summary,
+    tracked: &HashSet<String>,
+    champions: &HashMap<i64, (String, String)>,
+    friends: &HashSet<String>,
+    provisional: bool,
+) -> Vec<Entry> {
+    let mut damages: Vec<u64> = game.players.iter().map(|p| p.damage).collect();
+    damages.sort_unstable_by(|a, b| b.cmp(a));
+    let team_damage = |team: i64| -> u64 {
+        game.players
+            .iter()
+            .filter(|p| p.team == team)
+            .map(|p| p.damage)
+            .sum()
+    };
+    let champion = |id: i64| champions.get(&id).cloned().unwrap_or_default();
+    game.players
+        .iter()
+        .filter(|p| tracked.contains(&p.puuid))
+        .map(|p| {
+            let (alias, champion_name) = champion(p.champion_id);
+            let team = team_damage(p.team);
+            let with = game
+                .players
+                .iter()
+                .filter(|o| o.puuid != p.puuid)
+                .filter(|o| friends.contains(&o.puuid) || tracked.contains(&o.puuid))
+                .map(|o| {
+                    let (alias, champion_name) = champion(o.champion_id);
+                    Mate {
+                        puuid: o.puuid.clone(),
+                        name: o.name.clone(),
+                        champion: alias,
+                        champion_name,
+                        damage: o.damage,
+                        kills: o.kills,
+                        deaths: o.deaths,
+                        assists: o.assists,
+                        same_team: o.team == p.team,
+                    }
+                })
+                .collect();
+            Entry {
+                game_id: game.game_id,
+                at: game.at,
+                seconds: game.seconds,
+                patch: game.patch.clone(),
+                puuid: p.puuid.clone(),
+                name: p.name.clone(),
+                champion_id: p.champion_id,
+                champion: alias,
+                champion_name,
+                win: p.win,
+                kills: p.kills,
+                deaths: p.deaths,
+                assists: p.assists,
+                damage: p.damage,
+                taken: p.taken,
+                healed: p.healed,
+                shielded: p.shielded,
+                gold: p.gold,
+                level: p.level,
+                items: p.items.clone(),
+                augments: p.augments.clone(),
+                damage_rank: damages
+                    .iter()
+                    .position(|d| *d == p.damage)
+                    .map_or(0, |i| i as u32 + 1),
+                team_share: if team == 0 {
+                    0.0
+                } else {
+                    p.damage as f64 / team as f64
+                },
+                multikill: p.multikill,
+                pentas: p.pentas,
+                details: Some(p.details.clone()),
+                with,
+                provisional,
+            }
+        })
+        .collect()
+}
+
+/// The user's League friends (for the comparison on the card).
+async fn friend_set(lcu: &Lcu) -> HashSet<String> {
+    lcu.get::<Vec<ChatFriend>>(FRIENDS)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|f| f.puuid)
+        .filter(|p| valid_puuid(p))
+        .collect()
+}
+
+async fn champion_names(lcu: &Lcu) -> HashMap<i64, (String, String)> {
+    lcu.get::<Vec<Champion>>(CHAMPIONS)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|c| (c.id, (c.alias, c.name)))
         .collect()
 }
 
@@ -672,7 +949,7 @@ async fn sync(
     stored: &mut Stored,
     friends: &[String],
 ) -> Result<(Vec<String>, Vec<Entry>), String> {
-    let me: Summoner = lcu.get("/lol-summoner/v1/current-summoner").await?;
+    let me: Summoner = lcu.get(SUMMONER).await?;
     if !valid_puuid(&me.puuid) {
         return Err("Im League-Client ist niemand angemeldet.".into());
     }
@@ -692,11 +969,12 @@ async fn sync(
         .iter()
         .map(|e| (e.game_id, e.puuid.clone()))
         .collect();
-    // Stored before the details existed: fetched again while the client still has them.
+    // Stored before the details existed, or from the end-of-game screen: fetched again while the
+    // client still has them.
     let without_details: HashSet<(u64, String)> = stored
         .games
         .iter()
-        .filter(|e| e.details.is_none())
+        .filter(|e| e.details.is_none() || e.provisional)
         .map(|e| (e.game_id, e.puuid.clone()))
         .collect();
     let mut wanted: Vec<u64> = Vec::new();
@@ -726,13 +1004,8 @@ async fn sync(
         }
     }
     if !wanted.is_empty() {
-        let champions: HashMap<i64, (String, String)> = lcu
-            .get::<Vec<Champion>>("/lol-game-data/assets/v1/champion-summary.json")
-            .await
-            .unwrap_or_default()
-            .into_iter()
-            .map(|c| (c.id, (c.alias, c.name)))
-            .collect();
+        let champions = champion_names(lcu).await;
+        let friends = friend_set(lcu).await;
         let tracked: HashSet<String> = tracked.into_iter().collect();
         for id in wanted {
             let Ok(game) = lcu
@@ -744,7 +1017,7 @@ async fn sync(
             if game.queue_id != MAYHEM_QUEUE {
                 continue;
             }
-            for entry in entries(&game, &tracked, &champions) {
+            for entry in entries(&from_history(&game), &tracked, &champions, &friends, false) {
                 let key = (entry.game_id, entry.puuid.clone());
                 if !have.contains(&key) {
                     added.push(entry.clone());
@@ -755,7 +1028,7 @@ async fn sync(
                         .iter_mut()
                         .find(|e| e.game_id == entry.game_id && e.puuid == entry.puuid)
                     {
-                        old.details = entry.details;
+                        *old = entry;
                     }
                 }
             }
@@ -811,9 +1084,13 @@ fn data(stored: Stored, client: bool, missing: Vec<String>) -> AramData {
     }
 }
 
-/// From pc.rs's process list (every 10 s anyway): whether the game and the client run. A game
-/// that ended, or a client that just opened, starts a sync a little later – once the page was
-/// used (aram.json exists). Nothing else is watched.
+/// A Mayhem game's end is being awaited (then the process list does not start a second look).
+static WATCHING: AtomicBool = AtomicBool::new(false);
+
+/// From pc.rs's process list (every 10 s anyway): whether the game and the client run. A game that
+/// starts is followed to its end (game_started); a game that ended without being followed, or a
+/// client that just opened, starts a look a little later – once the page was used (aram.json
+/// exists). Nothing else is watched.
 pub fn league_seen(app: &AppHandle, game: bool, client: bool) {
     static LAST: Mutex<(bool, bool)> = Mutex::new((false, false));
     let Ok(mut last) = LAST.lock() else {
@@ -822,13 +1099,18 @@ pub fn league_seen(app: &AppHandle, game: bool, client: bool) {
     let (had_game, had_client) = std::mem::replace(&mut *last, (game, client));
     drop(last);
     let app = app.clone();
-    if had_game && !game {
-        tauri::async_runtime::spawn(after_game(app));
+    if game && !had_game {
+        tauri::async_runtime::spawn(game_started(app));
+    } else if had_game && !game {
+        if !WATCHING.load(Ordering::Relaxed) {
+            tauri::async_runtime::spawn(after_game(app, 0));
+        }
     } else if client && !had_client {
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(AFTER_CLIENT_START).await;
-            if let Err(error) = sync_in_background(&app).await {
-                eprintln!("ARAM: {error}");
+            match sync_in_background(&app).await {
+                Ok(_) => catch_up(&app).await,
+                Err(error) => eprintln!("ARAM: {error}"),
             }
         });
     }
@@ -849,8 +1131,9 @@ struct Session {
 }
 
 #[derive(Deserialize, Default)]
-#[serde(default)]
+#[serde(default, rename_all = "camelCase")]
 struct SessionGame {
+    game_id: u64,
     queue: SessionQueue,
 }
 
@@ -860,44 +1143,243 @@ struct SessionQueue {
     id: i64,
 }
 
-/// A game just ended: only for ARAM Mayhem (the client still knows the queue right after), look a
-/// few times until it is in the history, then tell the app the user's result for the card.
-async fn after_game(app: AppHandle) {
+/// A game started: while it runs the client knows its id and queue. A Mayhem game's end is awaited
+/// (Windows reports the end of its process), then its card follows at once.
+async fn game_started(app: AppHandle) {
     if !app.state::<AramState>().path.is_file() {
         return;
     }
-    if let Ok(Some(lcu)) = Lcu::connect() {
-        if let Ok(session) = lcu.get::<Session>("/lol-gameflow/v1/session").await {
-            let queue = session.game_data.queue.id;
-            if queue != 0 && queue != MAYHEM_QUEUE {
-                return;
+    let mut info = None;
+    for _ in 0..10 {
+        if let Ok(Some(lcu)) = Lcu::connect() {
+            if let Ok(session) = lcu.get::<Session>(SESSION).await {
+                if session.game_data.game_id != 0 {
+                    info = Some((session.game_data.queue.id, session.game_data.game_id));
+                    break;
+                }
+            }
+        }
+        tokio::time::sleep(Duration::from_secs(3)).await;
+    }
+    let Some((queue, game_id)) = info else {
+        return;
+    };
+    if queue != MAYHEM_QUEUE {
+        return;
+    }
+    WATCHING.store(true, Ordering::Relaxed);
+    let waited = tauri::async_runtime::spawn_blocking(wait_for_game_exit)
+        .await
+        .unwrap_or(false);
+    // Not awaitable: the process list notices the end, a little later (after_game with id 0).
+    if waited {
+        after_game(app, game_id).await;
+    }
+    WATCHING.store(false, Ordering::Relaxed);
+}
+
+/// Blocks until the game's process ends; false if it cannot be awaited (the process list then
+/// notices the end, a little later).
+fn wait_for_game_exit() -> bool {
+    use windows_sys::Win32::{
+        Foundation::CloseHandle,
+        System::Threading::{OpenProcess, WaitForSingleObject, INFINITE, PROCESS_SYNCHRONIZE},
+    };
+    let Some(pid) = crate::pc::program_pids(GAME_EXE).into_iter().next() else {
+        return false;
+    };
+    // SAFETY: the handle is checked and closed; waiting needs only the right to synchronize.
+    unsafe {
+        let handle = OpenProcess(PROCESS_SYNCHRONIZE, 0, pid);
+        if handle.is_null() {
+            return false;
+        }
+        WaitForSingleObject(handle, INFINITE);
+        CloseHandle(handle);
+    }
+    true
+}
+
+/// What the end-of-game screen gave.
+enum Recorded {
+    /// In the collection, and its card is due (not shown before).
+    Card(JustPlayed),
+    /// Its card was shown before (e.g. the screen of an earlier game is still there).
+    Shown,
+    /// Began before the leaderboard started: not counted, no card.
+    Before,
+}
+
+/// A game just ended (`expected`: its id, 0 if not known): the end-of-game screen's stats as soon
+/// as they are there, else the history as before; then the user's card – exactly one per game,
+/// whichever look found the game first (`carded` in aram.json).
+async fn after_game(app: AppHandle, expected: u64) {
+    if !app.state::<AramState>().path.is_file() {
+        return;
+    }
+    if expected == 0 {
+        // Only from the process list: which queue it was, the client still knows right after.
+        if let Ok(Some(lcu)) = Lcu::connect() {
+            if let Ok(session) = lcu.get::<Session>(SESSION).await {
+                let queue = session.game_data.queue.id;
+                if queue != 0 && queue != MAYHEM_QUEUE {
+                    return;
+                }
             }
         }
     }
     let ended = now_ms();
-    for wait in AFTER_GAME {
-        tokio::time::sleep(wait).await;
-        match sync_in_background(&app).await {
-            Ok((me, added)) => {
-                let played = added
-                    .into_iter()
-                    .filter(|e| Some(&e.puuid) == me.as_ref())
-                    .filter(|e| ended.saturating_sub(e.at) < JUST_PLAYED_MS)
-                    .max_by_key(|e| e.at);
-                if let Some(entry) = played {
-                    let _ = app.emit(
-                        "aram-result",
-                        JustPlayed {
-                            game_id: entry.game_id,
-                            puuid: entry.puuid,
-                        },
-                    );
-                    return;
+    for _ in 0..EOG_TRIES {
+        if let Ok(Some(lcu)) = Lcu::connect() {
+            if let Ok(eog) = lcu.get::<Eog>(EOG).await {
+                if eog.game_id != 0 && (expected == 0 || eog.game_id == expected) {
+                    match record_eog(&app, &lcu, &eog).await {
+                        Ok(Recorded::Card(played)) => {
+                            let _ = app.emit("aram-result", played);
+                            finish_later(app);
+                            return;
+                        }
+                        // Not knowing which game ended, an earlier game's screen may still be
+                        // there: wait for this one's.
+                        Ok(Recorded::Shown) if expected == 0 => {}
+                        Ok(_) => {
+                            finish_later(app);
+                            return;
+                        }
+                        Err(error) => {
+                            eprintln!("ARAM: {error}");
+                            break;
+                        }
+                    }
                 }
             }
+        }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+    // No usable end-of-game stats: look in the history a few times, as before – for a game of the
+    // user that ended just now and has no card yet.
+    let window = Duration::from_secs(10 * 60).as_millis() as u64;
+    for wait in AFTER_GAME {
+        tokio::time::sleep(wait).await;
+        if let Err(error) = sync_in_background(&app).await {
+            eprintln!("ARAM: {error}");
+            continue;
+        }
+        match claim_card(&app, ended.saturating_sub(window)).await {
+            Ok(Some(played)) => {
+                let _ = app.emit("aram-result", played);
+                return;
+            }
+            Ok(None) => {}
             Err(error) => eprintln!("ARAM: {error}"),
         }
     }
+}
+
+/// The end-of-game stats into the collection (provisional until the history has the game), and
+/// whether the user's card is due. Unusable stats (no damage, the user not among them) are an
+/// error: then the history is used.
+async fn record_eog(app: &AppHandle, lcu: &Lcu, eog: &Eog) -> Result<Recorded, String> {
+    let summary = from_eog(eog, now_ms());
+    let me: Summoner = lcu.get(SUMMONER).await?;
+    if !valid_puuid(&me.puuid) {
+        return Err("Im League-Client ist niemand angemeldet.".into());
+    }
+    if summary.players.iter().all(|p| p.damage == 0)
+        || !summary.players.iter().any(|p| p.puuid == me.puuid)
+    {
+        return Err("Endbildschirm ohne brauchbare Werte".into());
+    }
+    let friends = friend_set(lcu).await;
+    let champions = champion_names(lcu).await;
+    let state = app.state::<AramState>();
+    let _guard = state.lock.lock().await;
+    let mut stored = load(&state.path)?;
+    if stored.since.is_some_and(|since| summary.at < since) {
+        return Ok(Recorded::Before);
+    }
+    stored.me = Some(Player {
+        puuid: me.puuid.clone(),
+        name: riot_id(&me.game_name, &me.tag_line, ""),
+        icon: me.profile_icon_id,
+    });
+    let mut tracked: HashSet<String> = stored.friends.iter().cloned().collect();
+    tracked.insert(me.puuid.clone());
+    let have: HashSet<(u64, String)> = stored
+        .games
+        .iter()
+        .map(|e| (e.game_id, e.puuid.clone()))
+        .collect();
+    let mut added = false;
+    for entry in entries(&summary, &tracked, &champions, &friends, true) {
+        if !have.contains(&(entry.game_id, entry.puuid.clone())) {
+            stored.games.push(entry);
+            added = true;
+        }
+    }
+    let due = take_card(&mut stored, summary.game_id);
+    stored.games.sort_by(|a, b| b.at.cmp(&a.at));
+    stored.games.truncate(MAX_ENTRIES);
+    add_augments(lcu, &mut stored).await;
+    save(&state.path, &stored)?;
+    if added {
+        let _ = app.emit("aram-updated", ());
+    }
+    Ok(if due {
+        Recorded::Card(JustPlayed {
+            game_id: summary.game_id,
+            puuid: me.puuid,
+        })
+    } else {
+        Recorded::Shown
+    })
+}
+
+/// The user's newest game that ended after `ended_after` (ms) and has no card yet: its card is
+/// marked as shown and due now.
+async fn claim_card(app: &AppHandle, ended_after: u64) -> Result<Option<JustPlayed>, String> {
+    let state = app.state::<AramState>();
+    let _guard = state.lock.lock().await;
+    let mut stored = load(&state.path)?;
+    let Some(me) = stored.me.as_ref().map(|m| m.puuid.clone()) else {
+        return Ok(None);
+    };
+    let newest = stored
+        .games
+        .iter()
+        .filter(|e| e.puuid == me && !stored.carded.contains(&e.game_id))
+        .filter(|e| e.at + u64::from(e.seconds) * 1000 >= ended_after)
+        .filter(|e| stored.since.is_none_or(|since| e.at >= since))
+        .max_by_key(|e| e.at)
+        .map(|e| e.game_id);
+    let Some(game_id) = newest else {
+        return Ok(None);
+    };
+    take_card(&mut stored, game_id);
+    save(&state.path, &stored)?;
+    Ok(Some(JustPlayed { game_id, puuid: me }))
+}
+
+/// A game of the user that ended in the last half hour without a card (blank. was not running at
+/// its end, or the end went unnoticed) gets it now.
+async fn catch_up(app: &AppHandle) {
+    match claim_card(app, now_ms().saturating_sub(CATCH_UP_MS)).await {
+        Ok(Some(played)) => {
+            let _ = app.emit("aram-result", played);
+        }
+        Ok(None) => {}
+        Err(error) => eprintln!("ARAM: {error}"),
+    }
+}
+
+/// A little later the history has the game: its exact values replace the end-of-game ones.
+fn finish_later(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(FINISH_AFTER).await;
+        if let Err(error) = sync_in_background(&app).await {
+            eprintln!("ARAM: {error}");
+        }
+    });
 }
 
 /// A sync without the page (after a game, when the client opens): the user and the new results.
@@ -930,23 +1412,182 @@ pub async fn aram_data(state: tauri::State<'_, AramState>) -> Result<AramData, S
 /// Fetches new games from the League client (the user's and those of up to three friends).
 #[tauri::command]
 pub async fn aram_sync(
+    app: AppHandle,
     state: tauri::State<'_, AramState>,
     friends: Vec<String>,
 ) -> Result<AramData, String> {
+    let result = {
+        let _guard = state.lock.lock().await;
+        let mut stored = load(&state.path)?;
+        let Some(lcu) = Lcu::connect()? else {
+            return Ok(data(stored, false, Vec::new()));
+        };
+        // The user is always fetched; a group's list of members includes them.
+        let me = stored.me.as_ref().map(|m| m.puuid.clone());
+        stored.friends = friends
+            .into_iter()
+            .filter(|f| valid_puuid(f) && Some(f) != me.as_ref())
+            .take(MAX_FRIENDS)
+            .collect();
+        let friends = stored.friends.clone();
+        let (missing, _) = sync(&lcu, &mut stored, &friends).await?;
+        save(&state.path, &stored)?;
+        data(stored, true, missing)
+    };
+    catch_up(&app).await;
+    Ok(result)
+}
+
+/// A group's start (ms, from its code's reset; None: no group): only games that began later
+/// count and are fetched. The collection itself stays (leaving the group keeps it).
+#[tauri::command]
+pub async fn aram_set_since(
+    app: AppHandle,
+    state: tauri::State<'_, AramState>,
+    since: Option<u64>,
+) -> Result<AramData, String> {
+    if since.is_some_and(|s| !(PLAUSIBLE_FROM..=now_ms() + DAY_MS).contains(&s)) {
+        return Err("Ungültiger Startzeitpunkt".into());
+    }
     let _guard = state.lock.lock().await;
     let mut stored = load(&state.path)?;
-    let Some(lcu) = Lcu::connect()? else {
-        return Ok(data(stored, false, Vec::new()));
-    };
-    stored.friends = friends
+    if stored.since != since {
+        stored.since = since;
+        save(&state.path, &stored)?;
+        let _ = app.emit("aram-updated", ());
+    }
+    Ok(data(stored, lockfile().is_some(), Vec::new()))
+}
+
+/// Games of the group's members from the other members' apps (src/adapters/aramGroup.ts): each
+/// strictly checked, only for `members`, only after the start. A game already here is replaced
+/// only by a better version of itself (exact history values instead of the end-of-game screen's,
+/// or with the later values). Returns how many changed.
+#[tauri::command]
+pub async fn aram_merge(
+    app: AppHandle,
+    state: tauri::State<'_, AramState>,
+    entries: Vec<Entry>,
+    members: Vec<String>,
+) -> Result<usize, String> {
+    let members: HashSet<String> = members
         .into_iter()
-        .filter(|f| valid_puuid(f))
-        .take(MAX_FRIENDS)
+        .filter(|m| valid_puuid(m))
+        .take(MAX_MEMBERS)
         .collect();
-    let friends = stored.friends.clone();
-    let (missing, _) = sync(&lcu, &mut stored, &friends).await?;
-    save(&state.path, &stored)?;
-    Ok(data(stored, true, missing))
+    let _guard = state.lock.lock().await;
+    let mut stored = load(&state.path)?;
+    let mut changed = 0;
+    for entry in entries.into_iter().take(2_000) {
+        if !members.contains(&entry.puuid)
+            || !valid_entry(&entry)
+            || stored.since.is_some_and(|since| entry.at < since)
+        {
+            continue;
+        }
+        match stored
+            .games
+            .iter_mut()
+            .find(|e| e.game_id == entry.game_id && e.puuid == entry.puuid)
+        {
+            Some(old) if quality(&entry) > quality(old) => {
+                *old = entry;
+                changed += 1;
+            }
+            Some(_) => {}
+            None => {
+                stored.games.push(entry);
+                changed += 1;
+            }
+        }
+    }
+    if changed > 0 {
+        stored.games.sort_by(|a, b| b.at.cmp(&a.at));
+        stored.games.truncate(MAX_ENTRIES);
+        save(&state.path, &stored)?;
+        let _ = app.emit("aram-updated", ());
+    }
+    Ok(changed)
+}
+
+/// How good a version of a game is: exact values with all details, exact values, the end-of-game
+/// screen's. Everyone keeps the best, so all end up with the same.
+fn quality(entry: &Entry) -> u8 {
+    match (entry.provisional, entry.details.is_some()) {
+        (true, _) => 1,
+        (false, false) => 2,
+        (false, true) => 3,
+    }
+}
+
+/// Games before this cannot be ARAM Mayhem results (2020), for checks of times.
+const PLAUSIBLE_FROM: u64 = 1_577_836_800_000;
+const DAY_MS: u64 = 24 * 60 * 60 * 1000;
+
+fn plain_text(text: &str, max: usize) -> bool {
+    text.chars().count() <= max && !text.chars().any(char::is_control)
+}
+
+fn alias(text: &str) -> bool {
+    text.len() <= 40 && text.chars().all(|c| c.is_ascii_alphanumeric())
+}
+
+/// A game from another app: every value in a sane range, every text short and plain.
+fn valid_entry(e: &Entry) -> bool {
+    let big = 100_000_000;
+    let mates_ok = e.with.len() <= MAX_MEMBERS
+        && e.with.iter().all(|m| {
+            valid_puuid(&m.puuid)
+                && plain_text(&m.name, 40)
+                && alias(&m.champion)
+                && plain_text(&m.champion_name, 40)
+                && m.damage <= big
+                && m.kills.max(m.deaths).max(m.assists) <= 1000
+        });
+    let details_ok = e.details.as_ref().is_none_or(|d| {
+        [
+            d.magic,
+            d.physical,
+            d.true_damage,
+            d.mitigated,
+            d.turret_damage,
+        ]
+        .iter()
+        .all(|v| *v <= big)
+            && [d.doubles, d.triples, d.quadras, d.largest_spree]
+                .iter()
+                .all(|v| *v <= 1000)
+            && d.largest_crit <= 1_000_000
+            && d.cc_seconds <= 100_000
+    });
+    e.game_id > 0
+        && e.game_id < 10_000_000_000_000
+        && (PLAUSIBLE_FROM..=now_ms() + DAY_MS).contains(&e.at)
+        && e.seconds <= 4 * 60 * 60
+        && e.patch.len() <= 10
+        && e.patch.chars().all(|c| c.is_ascii_digit() || c == '.')
+        && valid_puuid(&e.puuid)
+        && !e.name.is_empty()
+        && plain_text(&e.name, 40)
+        && (0..=100_000).contains(&e.champion_id)
+        && alias(&e.champion)
+        && plain_text(&e.champion_name, 40)
+        && e.kills.max(e.deaths).max(e.assists) <= 1000
+        && [e.damage, e.taken, e.healed, e.shielded, e.gold]
+            .iter()
+            .all(|v| *v <= big)
+        && e.level <= 30
+        && e.items.len() <= 7
+        && e.items.iter().all(|i| *i <= 1_000_000)
+        && e.augments.len() <= 8
+        && e.augments.iter().all(|a| *a <= 1_000_000)
+        && (1..=10).contains(&e.damage_rank)
+        && e.team_share.is_finite()
+        && (0.0..=1.0).contains(&e.team_share)
+        && e.multikill <= 5
+        && e.pentas <= 100
+        && details_ok
+        && mates_ok
 }
 
 /// Starts the leaderboard anew (user's wish): all games go, only games from now on count. The
@@ -1066,6 +1707,73 @@ mod tests {
         assert_eq!(parse_lockfile("kaputt"), None);
     }
 
+    /// One real entry of the test game, from an hour ago.
+    fn sample_entry() -> Entry {
+        let tracked: HashSet<String> = [puuid(1)].into_iter().collect();
+        let mut entry = entries(
+            &from_history(&game()),
+            &tracked,
+            &HashMap::new(),
+            &HashSet::new(),
+            false,
+        )
+        .remove(0);
+        entry.at = now_ms() - 60 * 60 * 1000;
+        entry
+    }
+
+    #[test]
+    fn every_game_gets_exactly_one_card() {
+        let mut stored = Stored::default();
+        assert!(take_card(&mut stored, 11));
+        assert!(!take_card(&mut stored, 11));
+        assert!(take_card(&mut stored, 12));
+        for id in 100..(100 + MAX_CARDED as u64) {
+            take_card(&mut stored, id);
+        }
+        // Only the newest are kept; the oldest could get a card again, but are months old.
+        assert_eq!(stored.carded.len(), MAX_CARDED);
+        assert!(!stored.carded.contains(&11));
+    }
+
+    #[test]
+    fn games_from_other_apps_are_checked() {
+        let good = sample_entry();
+        assert!(valid_entry(&good));
+        let mut bad = good.clone();
+        bad.name = "a\u{7}b".into();
+        assert!(!valid_entry(&bad));
+        let mut bad = good.clone();
+        bad.champion = "../x".into();
+        assert!(!valid_entry(&bad));
+        let mut bad = good.clone();
+        bad.damage = 10_000_000_000;
+        assert!(!valid_entry(&bad));
+        let mut bad = good.clone();
+        bad.team_share = f64::NAN;
+        assert!(!valid_entry(&bad));
+        let mut bad = good.clone();
+        bad.at = 1_000;
+        assert!(!valid_entry(&bad));
+        let mut bad = good.clone();
+        bad.items = vec![1; 20];
+        assert!(!valid_entry(&bad));
+        let mut bad = good;
+        bad.puuid = "short".into();
+        assert!(!valid_entry(&bad));
+    }
+
+    #[test]
+    fn the_best_version_of_a_game_wins_everywhere() {
+        let exact = sample_entry();
+        let mut screen = exact.clone();
+        screen.provisional = true;
+        let mut older = exact.clone();
+        older.details = None;
+        assert!(quality(&exact) > quality(&older));
+        assert!(quality(&older) > quality(&screen));
+    }
+
     #[test]
     fn only_tracked_players_with_rank_and_share() {
         let tracked: HashSet<String> = [puuid(1), puuid(2)].into_iter().collect();
@@ -1073,7 +1781,14 @@ mod tests {
             (10, ("Kayle".to_string(), "Kayle".to_string())),
             (62, ("MonkeyKing".to_string(), "Wukong".to_string())),
         ]);
-        let found = entries(&game(), &tracked, &champions);
+        let friends: HashSet<String> = [puuid(3)].into_iter().collect();
+        let found = entries(
+            &from_history(&game()),
+            &tracked,
+            &champions,
+            &friends,
+            false,
+        );
         assert_eq!(found.len(), 2);
         let first = &found[0];
         assert_eq!(first.name, "Spieler1#EUW");
@@ -1090,6 +1805,14 @@ mod tests {
             (7_500, 15_000, 33)
         );
         assert_eq!(first.pentas, 1);
+        // Tracked player 2 (same team) and friend 3 (other team) are in the game with player 1.
+        let with: Vec<(&str, bool)> = first
+            .with
+            .iter()
+            .map(|m| (m.name.as_str(), m.same_team))
+            .collect();
+        assert_eq!(with, vec![("Spieler2#EUW", true), ("Spieler3#EUW", false)]);
+        assert!(!first.provisional);
         assert_eq!(found[1].champion, "MonkeyKing");
         assert_eq!(found[1].champion_name, "Wukong");
         assert_eq!(found[1].damage_rank, 3);
@@ -1100,9 +1823,52 @@ mod tests {
         let tracked: HashSet<String> = [puuid(4)].into_iter().collect();
         let mut g = game();
         g.participants[2].stats.total_damage_dealt_to_champions = 0;
-        let found = entries(&g, &tracked, &HashMap::new());
+        let found = entries(
+            &from_history(&g),
+            &tracked,
+            &HashMap::new(),
+            &HashSet::new(),
+            false,
+        );
         assert_eq!(found[0].champion, "");
         assert_eq!(found[0].team_share, 0.0);
+    }
+
+    #[test]
+    fn end_of_game_stats_become_provisional_entries() {
+        let json = r#"{"gameId":88,"gameLength":1100,"teams":[
+            {"teamId":100,"isWinningTeam":true,"players":[
+                {"puuid":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1","riotIdGameName":"Spieler1","riotIdTagLine":"EUW","championId":10,"teamId":100,"items":[3031,0,3006],
+                 "stats":{"TOTAL_DAMAGE_DEALT_TO_CHAMPIONS":40000,"CHAMPIONS_KILLED":12,"NUM_DEATHS":3,"ASSISTS":20,"MAGIC_DAMAGE_DEALT_TO_CHAMPIONS":30000.0,"PENTA_KILLS":1}},
+                {"puuid":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2","riotIdGameName":"Freund","riotIdTagLine":"EUW","championId":62,"teamId":100,
+                 "stats":{"TOTAL_DAMAGE_DEALT_TO_CHAMPIONS":10000,"CHAMPIONS_KILLED":4}}]},
+            {"teamId":200,"isWinningTeam":false,"players":[
+                {"puuid":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","championId":10,"teamId":200,"stats":{"TOTAL_DAMAGE_DEALT_TO_CHAMPIONS":50000}}]}]}"#;
+        let eog: Eog = serde_json::from_str(json).unwrap();
+        let summary = from_eog(&eog, 2_000_000);
+        assert_eq!(summary.at, 2_000_000 - 1_100_000);
+        let tracked: HashSet<String> = [puuid(1)].into_iter().collect();
+        let friends: HashSet<String> = [puuid(2)].into_iter().collect();
+        let found = entries(&summary, &tracked, &HashMap::new(), &friends, true);
+        let me = &found[0];
+        assert!(me.provisional && me.win);
+        assert_eq!(
+            (me.damage, me.kills, me.deaths, me.assists, me.pentas),
+            (40_000, 12, 3, 20, 1)
+        );
+        assert_eq!(me.details.as_ref().unwrap().magic, 30_000);
+        assert_eq!(me.items, vec![3031, 3006]);
+        assert_eq!(me.damage_rank, 2);
+        assert!((me.team_share - 0.8).abs() < 1e-9);
+        assert_eq!(me.with.len(), 1);
+        assert_eq!(
+            (
+                me.with[0].name.as_str(),
+                me.with[0].damage,
+                me.with[0].same_team
+            ),
+            ("Freund#EUW", 10_000, true)
+        );
     }
 
     #[test]
@@ -1146,9 +1912,16 @@ mod tests {
                 name: "Spieler1#EUW".into(),
                 icon: 29,
             }),
-            games: entries(&game(), &tracked, &HashMap::new()),
+            games: entries(
+                &from_history(&game()),
+                &tracked,
+                &HashMap::new(),
+                &HashSet::new(),
+                false,
+            ),
             synced_at: Some(5),
             since: Some(7),
+            carded: vec![3, 9],
             friends: vec![puuid(2)],
             augments: HashMap::from([(
                 7,
@@ -1165,6 +1938,7 @@ mod tests {
         assert_eq!(back.me, stored.me);
         assert_eq!(back.friends, stored.friends);
         assert_eq!(back.since, Some(7));
+        assert_eq!(back.carded, vec![3, 9]);
         // A collection from before the reset existed reads as never reset.
         let old: Stored =
             serde_json::from_str(r#"{"version":1,"me":null,"games":[],"syncedAt":null}"#).unwrap();

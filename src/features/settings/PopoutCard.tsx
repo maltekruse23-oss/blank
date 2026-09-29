@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { Move, X } from 'lucide-react';
 import { Badge, Card } from '../../components/ui';
 import { readMedia } from '../../adapters/media';
 import { countScreens, hasPopouts, showPopout } from '../../platform/popout';
@@ -35,13 +35,18 @@ export const popoutParts: { id: PopoutPart; name: string }[] = [
 /**
  * Settings → Popouts, after FluentFlyout's settings, in four parts. Every change is saved at once
  * and shows a live preview popout (a sample track or notice) that follows each further change.
+ * The place (six places, taskbar, screen) is set by dragging in the edit mode: `onPlace` goes
+ * there (user's wish: dragged, not picked twice).
  */
 export function PopoutCard({
   preferences: p,
   update,
+  onPlace,
 }: {
   preferences: Preferences;
   update: (next: Preferences) => void;
+  /** Into the edit mode, where the popout is dragged to its place. */
+  onPlace: () => void;
 }) {
   const searching = useContext(Searching);
   const [part, setPart] = useState<PopoutPart>('general');
@@ -93,7 +98,11 @@ export function PopoutCard({
   function sample() {
     void showPopout(
       { kind: 'test', id: Date.now() },
-      { overFullScreen: p.popoutFullscreen, acrylic: p.popoutAcrylic && !p.popoutTaskbar },
+      {
+        overFullScreen: p.popoutFullscreen,
+        acrylic: p.popoutAcrylic && !p.popoutTaskbar,
+        screen: p.popoutScreen,
+      },
     ).then((shown) => setHeldBack(!shown));
   }
 
@@ -238,31 +247,14 @@ export function PopoutCard({
                 trotzdem).
               </p>
             )}
-            {toggle(
-              'popoutTaskbar',
-              'In der Taskleiste',
-              'Links auf der Taskleiste, als wäre es ein Teil von ihr',
-            )}
             <div className="setting-row">
               <div>
-                <h3>Stelle</h3>
-                <p>{p.popoutTaskbar ? 'In der Taskleiste' : place.name}</p>
+                <h3>Platz</h3>
+                <p>{p.popoutTaskbar ? 'In der Taskleiste' : place.name} · Stelle, Taskleiste</p>
               </div>
-              <div className="place-picker" role="group" aria-label="Position der Popouts">
-                {popoutPlaces.map((pl) => (
-                  <button
-                    key={pl.id}
-                    className="place-choice"
-                    aria-label={pl.name}
-                    aria-pressed={p.popoutPlace === pl.id}
-                    title={pl.name}
-                    disabled={off || p.popoutTaskbar}
-                    onClick={() => change({ ...p, popoutPlace: pl.id })}
-                  >
-                    <span />
-                  </button>
-                ))}
-              </div>
+              <button className="filter-button" disabled={off} onClick={onPlace}>
+                <Move size={13} /> Hinziehen
+              </button>
             </div>
             {screens > 1 &&
               choice(

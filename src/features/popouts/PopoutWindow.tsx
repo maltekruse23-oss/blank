@@ -39,6 +39,7 @@ import {
 import {
   controlMix,
   hidePopout,
+  onPopoutFullScreen,
   onPopoutItem,
   onPopoutUpdate,
   openApp,
@@ -691,6 +692,12 @@ export function PopoutWindow() {
     };
     const stops = [
       onPopoutItem(add),
+      // Its screen turned full screen: already hidden; everything shown goes, and it hides as usual.
+      onPopoutFullScreen(() => {
+        setQueue([]);
+        setLeaving(null);
+        void hidePopout();
+      }),
       // The own mix changed while its popout may be open: new state in place, same time left.
       onPopoutUpdate((item) => {
         if (item.kind !== 'mix') return;

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-aram-group-open"
+description = "Enables the aram_group_open command without any pre-configured scope."
+commands.allow = ["aram_group_open"]
+
+[[permission]]
+identifier = "deny-aram-group-open"
+description = "Denies the aram_group_open command without any pre-configured scope."
+commands.deny = ["aram_group_open"]

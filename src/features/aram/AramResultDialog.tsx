@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { spring } from '../../design/motion';
-import { AramResultCard } from './AramResult';
+import { AramResultCard, resultHeight } from './AramResult';
 import type { AramResultView } from './useAramResult';
 
 /** The card after a game inside the app, larger, over a dimmed backdrop. */
@@ -34,6 +34,7 @@ export function AramResultDialog({
     >
       <motion.div
         className="aram-result-zoom"
+        style={{ height: resultHeight(view.entry) * 1.3 }}
         initial={{ opacity: 0, y: 26, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1, transition: spring('bouncy') }}
         exit={{ opacity: 0, y: 10, scale: 0.96, transition: { duration: 0.14 } }}

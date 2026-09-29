@@ -61,6 +61,24 @@ export type AramEntry = {
   pentas: number;
   /** null for games stored before these values existed, until fetched again. */
   details: AramDetails | null;
+  /** Friends of the user in the same game (League friend list or leaderboard). */
+  with: AramMate[];
+  /** From the end-of-game screen, until the history's exact values replace it. */
+  provisional?: boolean;
+};
+
+/** A friend in the same game, for the comparison on the card. */
+export type AramMate = {
+  puuid: string;
+  name: string;
+  champion: string;
+  championName: string;
+  damage: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  /** In the same team as the player of the entry. */
+  sameTeam: boolean;
 };
 
 /** An augment: name, rarity and its icon from the League client (data URL), if it had one. */
@@ -94,6 +112,10 @@ export type AramAdapter = {
   friends: () => Promise<AramPlayer[]>;
   /** Starts the leaderboard anew: all games go, only later ones count. */
   reset: () => Promise<AramData>;
+  /** A group's start (null: none): only later games count and are fetched. */
+  setSince: (since: number | null) => Promise<AramData>;
+  /** Games of the group's members from the other apps (checked strictly in aram.rs). */
+  merge: (entries: AramEntry[], members: string[]) => Promise<number>;
   /** blank. fetched new games by itself (after a game ended); returns the unsubscribe. */
   onUpdate: (handler: () => void) => () => void;
   /** An ARAM Mayhem game of the user just ended and is in the collection (for the card). */
@@ -107,6 +129,8 @@ export const aramAdapter: AramAdapter = isTauri()
       sync: (friends) => invoke<AramData>('aram_sync', { friends }),
       friends: () => invoke<AramPlayer[]>('aram_friends'),
       reset: () => invoke<AramData>('aram_reset'),
+      setSince: (since) => invoke<AramData>('aram_set_since', { since }),
+      merge: (entries, members) => invoke<number>('aram_merge', { entries, members }),
       onUpdate: (handler) => {
         const stop = listen('aram-updated', () => handler());
         return () => void stop.then((unlisten) => unlisten());
@@ -124,6 +148,8 @@ export const aramAdapter: AramAdapter = isTauri()
       sync: () => Promise.resolve({ ...mockAramData, syncedAt: Date.now() }),
       friends: () => Promise.resolve(mockAramFriends),
       reset: () => Promise.resolve({ ...mockAramData, games: [], since: Date.now() }),
+      setSince: (since) => Promise.resolve({ ...mockAramData, since }),
+      merge: () => Promise.resolve(0),
       onUpdate: () => () => undefined,
       onResult: () => () => undefined,
     };
