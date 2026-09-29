@@ -44,23 +44,31 @@ jobs:
         run: cargo test --locked
       # Release EXE only via the Tauri CLI (custom-protocol), never plain cargo build --release.
       - run: pnpm desktop:build
+      # The browser extension for watching together, as a zip to unpack and load.
+      - run: pnpm extension:build
 
-      # Always the same file name, so the README link .../releases/latest/download/blank.exe works.
+      # Always the same file names, so the README links .../releases/latest/download/blank.exe and
+      # blank-extension.zip work (the updater only takes blank.exe).
       - name: Collect the download
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force download | Out-Null
           Copy-Item src-tauri/target/release/blank.exe download/blank.exe
+          Compress-Archive -Path extension/dist/* -DestinationPath download/blank-extension.zip
 
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: blank. ${{ github.ref_name }}
-          files: download/blank.exe
+          files: |
+            download/blank.exe
+            download/blank-extension.zip
           body_path: .github/release-notes.md
 
       - uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           name: blank-windows-x64
-          path: download/blank.exe
+          path: |
+            download/blank.exe
+            download/blank-extension.zip

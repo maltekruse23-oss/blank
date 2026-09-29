@@ -15,6 +15,14 @@ Windows 11 Home 10.0.26200 (x64, 96 DPI), WebView2 153.0.4234.48, Node.js 24.19.
 - Lesbarkeit: Bei Start- und Mindestgröße sind Navigation, Überschriften, Werte und Mock-Hinweis klar lesbar. Vor hellen oder textreichen Fenstern scheinen deren Inhalte schwach durch (gewollte ~8 % Transparenz); das stört die Lesbarkeit der App-Texte nicht. Bei Bedarf `WINDOW_ALPHA` erhöhen.
 - Browser-Vorschau bei 720 × 520 und 860 × 640: alle sechs Bereiche ohne horizontalen Überlauf und ohne Konsolenfehler.
 
+## Zusammen schauen im eigenen Browser, Erweiterung (Benutzerwunsch)
+
+Geprüft am 29.09.2026 in einer Cloud-Umgebung (Linux, Chromium 141 von Playwright, ohne Windows). Nicht nativ geprüft.
+
+- `pnpm build`, `pnpm test` (47 Tests, neu: Raum-Code mit jedem einzelnen falschen, fehlenden, zusätzlichen und vertauschten Zeichen über 20 zufällige Codes, Verschlüsselung hin und zurück, Nachrichtenprüfung, MQTT-Pakete mit denselben Bytes wie die Rust-Tests in `watch.rs`, Kanal aus Tab-Adressen), `pnpm format:check`, `pnpm extension:build` (Hintergrund 13,5 kB, Fenster 5,8 kB, unminifiziert).
+- Ende-zu-Ende mit zwei getrennten Browsern, beide mit der gebauten Erweiterung: 17 von 17 Prüfungen bestanden – Raum starten; mit beiden Vermittlern verbunden; leerer Raum übernimmt den Kanal des Tabs; Beitreten (Code klein geschrieben) lädt den Raum-Kanal im Tab; beide sehen sich; Wechsel im Tab ohne Neuladen (wie Twitch selbst navigiert) und per Link gehen an den anderen, mit „… hat auf … umgeschaltet“; zwei schnelle Wechsel enden bei beiden beim letzten, kein Hin und Her; Twitch-Seiten ohne Kanal (Directory) schalten nicht um; ein Vermittler fällt aus → Umschalten geht über den anderen; „Neu synchronisieren“ lädt den Tab des anderen neu; Verlassen meldet sich ab; die Letzte löscht den gespeicherten Kanal auf dem Vermittler; Tippfehler im Code erkannt; keine Konsolenfehler.
+- **Blockiert:** Die echten Vermittler (HiveMQ, Mosquitto) und twitch.tv sind aus der Cloud-Umgebung nicht erreichbar. Getestet wurde deshalb mit zwei lokal nachgebauten MQTT-Vermittlern (WebSocket, QoS 0, aufbewahrte Nachrichten) und einer Kopie der Erweiterung, deren zwei Adressen auf diese zeigen; twitch.tv wurde durch eine leere Seite ersetzt. Offen, auf Windows zu prüfen: echte Vermittler, echtes twitch.tv, gemeinsamer Raum mit der Desktop-App, Weitermachen nach einer Pause des Hintergrunds durch den Browser.
+
 ## Rahmenloses Fenster (Benutzerauftrag)
 
 Native Titelleiste und klassische Scrollbar ersetzt: `decorations: false`, eigene 36-px-Titelleiste (`src/app/TitleBar.tsx`) mit Minimieren/Schließen (Lucide), schmale abgerundete Scrollbar ohne Pfeile, die erst unter der Titelleiste beginnt. Neue Abhängigkeit `@tauri-apps/api` 2.11.1 (passend zu tauri 2.11). Capabilities nur `core:window:allow-start-dragging`, `allow-minimize`, `allow-close`.
