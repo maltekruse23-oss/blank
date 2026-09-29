@@ -1,0 +1,220 @@
+/* Colours of blank.'s default scheme "Wald" (src/styles/tokens.css). */
+:root {
+  color-scheme: dark;
+  --bg: #080b09;
+  --panel: #0d1210;
+  --surface: #121915;
+  --surface-hover: #19221c;
+  --border: #212b24;
+  --text: #e6ede5;
+  --muted: #8d9b90;
+  --accent: #afd58c;
+  --accent-soft: #1e2c1b;
+  --accent-line: #405534;
+  --accent-ink: #182114;
+  --danger-text: #e08a80;
+  --font: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 300px;
+  margin: 0;
+  padding: 14px;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 var(--font);
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.brand span {
+  color: var(--accent);
+}
+
+.title {
+  color: var(--muted);
+}
+
+main {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+input,
+button {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 7px 10px;
+}
+
+input {
+  width: 100%;
+  min-width: 0;
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.08);
+}
+
+button.danger {
+  color: var(--danger-text);
+}
+
+button.small {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  text-align: left;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+.row > button {
+  flex: 1;
+}
+
+form.row > button {
+  flex: none;
+}
+
+.or {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+
+.code strong {
+  font:
+    600 15px/1 ui-monospace,
+    'Cascadia Mono',
+    Consolas,
+    monospace;
+  letter-spacing: 0.04em;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.dot.on {
+  background: var(--accent);
+}
+
+.channel {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+p {
+  margin: 0;
+}
+
+.members,
+.hint,
+small,
+.muted {
+  color: var(--muted);
+}
+
+.hint {
+  font-size: 12px;
+}
+
+.event {
+  color: var(--accent);
+}
+
+.message:empty {
+  display: none;
+}
+
+.message {
+  color: var(--danger-text);
+}

@@ -1,0 +1,4 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["src", "../src/adapters/watchRoom.ts", "../src/adapters/codes.ts"]
+}
