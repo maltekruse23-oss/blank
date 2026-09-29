@@ -94,8 +94,10 @@ mod registry {
         let exe = std::env::current_exe().map_err(|e| e.to_string())?;
         let stored = read(RUN, RRF_RT_REG_SZ)?.map(|data| {
             let units: Vec<u16> = data
-                .chunks_exact(2)
-                .map(|b| u16::from_le_bytes([b[0], b[1]]))
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|b| u16::from_le_bytes(*b))
                 .take_while(|c| *c != 0)
                 .collect();
             String::from_utf16_lossy(&units)

@@ -1033,7 +1033,7 @@ async fn sync(
                 }
             }
         }
-        stored.games.sort_by(|a, b| b.at.cmp(&a.at));
+        stored.games.sort_by_key(|e| std::cmp::Reverse(e.at));
         stored.games.truncate(MAX_ENTRIES);
     }
     add_augments(lcu, stored).await;
@@ -1318,7 +1318,7 @@ async fn record_eog(app: &AppHandle, lcu: &Lcu, eog: &Eog) -> Result<Recorded, S
         }
     }
     let due = take_card(&mut stored, summary.game_id);
-    stored.games.sort_by(|a, b| b.at.cmp(&a.at));
+    stored.games.sort_by_key(|e| std::cmp::Reverse(e.at));
     stored.games.truncate(MAX_ENTRIES);
     add_augments(lcu, &mut stored).await;
     save(&state.path, &stored)?;
@@ -1502,7 +1502,7 @@ pub async fn aram_merge(
         }
     }
     if changed > 0 {
-        stored.games.sort_by(|a, b| b.at.cmp(&a.at));
+        stored.games.sort_by_key(|e| std::cmp::Reverse(e.at));
         stored.games.truncate(MAX_ENTRIES);
         save(&state.path, &stored)?;
         let _ = app.emit("aram-updated", ());
