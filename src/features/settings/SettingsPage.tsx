@@ -118,6 +118,7 @@ function AlertsCard({ preferences, update, twitch }: Props & { twitch: TwitchDat
 
   const channels = twitch.entries.length;
   const { volume } = preferences;
+  const anySound = preferences.sound || preferences.batteryWarning || preferences.loadWarning;
   return (
     <Card title="Meldungen">
       <div className="setting-row">
@@ -150,7 +151,7 @@ function AlertsCard({ preferences, update, twitch }: Props & { twitch: TwitchDat
       <div className="setting-row">
         <div>
           <h3>Lautstärke</h3>
-          <p>Beim Loslassen zum Hören</p>
+          <p>Live-Ton und Warnungen, beim Loslassen zum Hören</p>
         </div>
         <input
           type="range"
@@ -159,7 +160,8 @@ function AlertsCard({ preferences, update, twitch }: Props & { twitch: TwitchDat
           max={100}
           step={5}
           value={volume}
-          disabled={!preferences.sound}
+          // The warnings play their sound at this volume too.
+          disabled={!anySound}
           aria-label="Lautstärke"
           aria-valuetext={`${volume} %`}
           style={{ '--value': `${volume}%` } as CSSProperties}

@@ -1,5 +1,16 @@
 import type { MouseEvent, ReactNode } from 'react';
-import { Activity, Bell, BellOff, Download, Minus, Users, X, Check, Pencil } from 'lucide-react';
+import {
+  Activity,
+  Bell,
+  BellOff,
+  Download,
+  Minus,
+  Users,
+  X,
+  Check,
+  Pencil,
+  Settings,
+} from 'lucide-react';
 import { hasNativeWindow, startWindowDrag } from '../platform/window';
 import { formatCpu, formatMemory, type UsageState } from './useAppUsage';
 
@@ -44,6 +55,8 @@ export function TitleBar({
   onClose,
   editing,
   onEdit,
+  settingsOpen,
+  onSettings,
 }: {
   status?: ReactNode;
   usage: UsageState;
@@ -61,6 +74,9 @@ export function TitleBar({
   /** The edit mode (the app as its own editor) and its switch. */
   editing: boolean;
   onEdit: () => void;
+  /** The settings side panel (user's wish: easy to find, not only through the edit mode). */
+  settingsOpen: boolean;
+  onSettings: () => void;
 }) {
   return (
     <div className="titlebar" data-drag-region>
@@ -94,6 +110,15 @@ export function TitleBar({
       >
         {editing ? <Check size={13} /> : <Pencil size={13} />}
         {editing ? 'Fertig' : 'Bearbeiten'}
+      </button>
+      <button
+        className={`window-button settings-toggle ${settingsOpen ? 'on' : ''}`}
+        aria-label="Einstellungen"
+        aria-pressed={settingsOpen}
+        title={settingsOpen ? 'Einstellungen schließen' : 'Einstellungen'}
+        onClick={onSettings}
+      >
+        <Settings size={15} />
       </button>
       <UsageChip usage={usage} />
       {status}

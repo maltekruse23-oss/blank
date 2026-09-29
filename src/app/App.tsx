@@ -522,6 +522,8 @@ export function App() {
             onClose={closeToTray}
             editing={editing}
             onEdit={toggleEditing}
+            settingsOpen={drawer}
+            onSettings={() => (drawer ? setDrawer(false) : openSettings(settingsSection))}
           />
           <div className={`panel ${editing ? 'editing' : ''}`}>
             <div className="scroll-area">

@@ -247,23 +247,19 @@ export function PopoutCard({
                 trotzdem).
               </p>
             )}
+            {/* Place and screen are set in the popout tool of the edit mode, nowhere else. */}
             <div className="setting-row">
               <div>
-                <h3>Platz</h3>
-                <p>{p.popoutTaskbar ? 'In der Taskleiste' : place.name} · Stelle, Taskleiste</p>
+                <h3>{screens > 1 ? 'Platz und Bildschirm' : 'Platz'}</h3>
+                <p>
+                  {p.popoutTaskbar ? 'In der Taskleiste' : place.name}
+                  {screens > 1 ? ` · ${screen.name}` : ' · Stelle, Taskleiste'}
+                </p>
               </div>
               <button className="filter-button" disabled={off} onClick={onPlace}>
                 <Move size={13} /> Hinziehen
               </button>
             </div>
-            {screens > 1 &&
-              choice(
-                'Bildschirm',
-                screen.name,
-                popoutScreens.map((s) => ({ id: s.id, name: s.short })),
-                p.popoutScreen,
-                (popoutScreen) => ({ ...p, popoutScreen }),
-              )}
             <More count={3}>
               {toggle(
                 'popoutFullscreen',

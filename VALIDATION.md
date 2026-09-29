@@ -1,5 +1,16 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Settings leichter zu finden und aufgeräumt (Benutzerauftrag nach der Einschätzung)
+
+Geprüft am 30.09.2026 in der Cloud (Chromium, 860 × 640, App mit nachgebildeten Tauri-Befehlen, damit die Desktop-Teile erscheinen); nicht nativ.
+
+- Zahnrad in der Titelleiste öffnet die Einstellungen auch außerhalb des Bearbeiten-Modus, zweiter Klick schließt sie (`aria-pressed` folgt).
+- Einzelne Karten in Meldungen, Popouts und System ohne doppelte Überschrift; Twitch und Daten (je zwei Karten) behalten ihre; die Suche zeigt die Überschriften weiter („lautst“ → „Meldungen“). Stil-Werkzeug nur noch mit der Zeile „Stil“.
+- Bildschirm nur noch im Popout-Werkzeug (Haupt, Zweiter, Maus, Aktives Fenster; „Maus“ gespeichert als `cursor`, dann ist keine Miniatur umrandet); in der Schublade nur „Platz und Bildschirm“ mit dem aktuellen Stand und „Hinziehen“.
+- Lautstärke: Live-Ton aus, Warnungen an → Regler bedienbar; alles aus → gesperrt.
+- `pnpm build`, `pnpm test`, `pnpm format:check`; keine Konsolenfehler.
+- **Offen, nativ:** Zahnrad neben „Bearbeiten“ bei echter Titelleiste (mit Auslastung und Status), Bildschirm-Wahl mit zwei Monitoren.
+
 ## Umgebung
 
 Windows 11 Home 10.0.26200 (x64, 96 DPI), WebView2 153.0.4234.48, Node.js 24.19.0, pnpm 11.25.0, Rust 1.98.1 (stable-x86_64-pc-windows-msvc, rustup 1.29.1), Visual Studio Build Tools 2022 17.14 mit „Desktopentwicklung mit C++“ und Windows SDK 10.0.26100. `pnpm tauri info` meldet keine fehlenden Voraussetzungen. Aufgelöst: tauri 2.11.6, wry 0.55.1, tao 0.35.3, windows-sys 0.61.2.

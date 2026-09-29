@@ -14,6 +14,7 @@ Mehr brauchst du nicht. Die Ordner auf dieser Seite und die „Source code“-Da
 
 **Gut zu wissen**
 
+- **Einstellungen:** Zahnrad oben in der Titelleiste (neben „Bearbeiten“). Aussehen, Home und den Platz der Popouts änderst du direkt über „Bearbeiten“.
 - **Schließen:** Das X versteckt blank. nur im Infobereich (Pfeil unten rechts in der Taskleiste), damit Meldungen und Popouts weiterlaufen. Ganz beenden: Rechtsklick auf das Symbol → **Beenden**. Zurück holst du blank. mit einem Klick aufs Symbol oder indem du es einfach noch mal startest.
 - **Neue Version:** blank. meldet sich selbst („Update“ oben in der Titelleiste). Settings → System → **Jetzt aktualisieren** lädt die neue Version, prüft sie und startet neu; Einstellungen bleiben erhalten. Danach zeigt blank. einmal, was neu ist (jederzeit wieder unter Settings → System → Neuigkeiten). Von Hand geht es auch: blank. über das Symbol unten rechts beenden (Rechtsklick → Beenden), den Link oben erneut benutzen und die alte `blank.exe` ersetzen.
 - **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumente\blank`), bevor du in den Settings „Mit Windows starten“ einschaltest.

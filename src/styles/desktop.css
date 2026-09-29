@@ -501,6 +501,15 @@ h2 {
   }
 }
 /* Do not disturb switched on. */
+/* A tab with a single card: the tab already names it, so the card's own heading goes (search
+   still shows every heading, where it tells the results apart). */
+.settings-layout > .tab-enter > .card:only-child > .card-header {
+  display: none;
+}
+.window-button.settings-toggle.on {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
 .window-button.quiet {
   color: var(--accent);
   background: var(--accent-soft);
@@ -2958,6 +2967,18 @@ html[data-motion='normal'] .aram-gain {
   height: 3px;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--accent) 40%, var(--surface-hover) 40%);
+}
+.stage-screen-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.stage-screen-choice > span {
+  margin-right: 4px;
 }
 .stage-options {
   display: flex;
