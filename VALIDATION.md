@@ -1,5 +1,14 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Popouts: Vollbild, kein ×, Balken im kompakten Popout (Benutzerwünsche, Issue #2)
+
+Geprüft am 30.09.2026 in der Cloud; nicht nativ.
+
+- Vollbild (`fullscreen.rs`): Die Prüfung lief nur einmal 40 ms nach der letzten Fensteränderung. Windows' Vollbild-Meldung hinkt hinterher – beim Wechsel ins Vollbild stand sie noch auf „kein Vollbild“ (das Popout blieb), beim Verlassen noch auf „Vollbild“ (das Popout ging). Jetzt: weitere Prüfungen nach 250 und 750 ms, solange nichts Neues passiert, und Windows' Meldung zählt nur, wenn das aktive Fenster den Bildschirm noch deckt. `cargo check` und `cargo clippy --target x86_64-pc-windows-msvc` ohne Warnung, `cargo fmt --check`; die Rust-Tests laufen nur unter Windows (Release-Ablauf). **Nativ zu prüfen:** Video in Chrome/Opera ins Vollbild und zurück, Spiel im Vollbild, Vollbild auf dem anderen Bildschirm.
+- Kein ×: im nachgebildeten Popout-Fenster (Browser, Tauri-Befehle nachgebildet) für Musik normal und kompakt, Vorschau-Meldung und Akku-Warnung kein Schließen-Knopf mehr; Meldungen gehen auf Klick (Klicks auf ihre Knöpfe lösen nur deren Aktion aus).
+- Kompakt: statt Zurück/Pause/Weiter ein Balken (72 × 4 px, Akzentfarbe), Beispiel-Titel bei 1:13 von 3:34 ≈ ein Drittel; ohne Länge nichts.
+- `pnpm build`, `pnpm test`, `pnpm format:check`.
+
 ## Settings leichter zu finden und aufgeräumt (Benutzerauftrag nach der Einschätzung)
 
 Geprüft am 30.09.2026 in der Cloud (Chromium, 860 × 640, App mit nachgebildeten Tauri-Befehlen, damit die Desktop-Teile erscheinen); nicht nativ.

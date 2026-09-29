@@ -99,6 +99,29 @@ fn monitor_edges(monitor: HMONITOR) -> Option<Edges> {
     (unsafe { GetMonitorInfoW(monitor, &mut info) } != 0).then(|| rect_edges(info.rcMonitor))
 }
 
+/// What is seen of a window (without invisible borders), else its window rect.
+fn bounds_of(hwnd: HWND) -> Option<Edges> {
+    let mut rect = RECT {
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+    };
+    // SAFETY: plain queries on a window handle into a local RECT of the stated size.
+    let framed = unsafe {
+        DwmGetWindowAttribute(
+            hwnd,
+            DWMWA_EXTENDED_FRAME_BOUNDS as u32,
+            &mut rect as *mut RECT as *mut _,
+            size_of::<RECT>() as u32,
+        )
+    } == 0;
+    if !framed && unsafe { GetWindowRect(hwnd, &mut rect) } == 0 {
+        return None;
+    }
+    (rect.right > rect.left && rect.bottom > rect.top).then(|| rect_edges(rect))
+}
+
 /// Windows that are not what one looks at: the desktop, the taskbars.
 const SHELL: &[&str] = &[
     "Progman",
@@ -142,27 +165,11 @@ fn front_to_back(skip: HWND) -> Vec<Seen> {
             if SHELL.contains(&class.as_str()) {
                 return 1;
             }
-            // What is seen (without invisible borders), else the window rect.
-            let mut rect = RECT {
-                left: 0,
-                top: 0,
-                right: 0,
-                bottom: 0,
+            let Some(bounds) = bounds_of(hwnd) else {
+                return 1;
             };
-            let framed = DwmGetWindowAttribute(
-                hwnd,
-                DWMWA_EXTENDED_FRAME_BOUNDS as u32,
-                &mut rect as *mut RECT as *mut _,
-                size_of::<RECT>() as u32,
-            ) == 0;
-            if !framed && GetWindowRect(hwnd, &mut rect) == 0 {
-                return 1;
-            }
-            if rect.right <= rect.left || rect.bottom <= rect.top {
-                return 1;
-            }
             search.seen.push(Seen {
-                bounds: rect_edges(rect),
+                bounds,
                 topmost: extended & WS_EX_TOPMOST != 0,
                 maximized: IsZoomed(hwnd) != 0,
             });
@@ -193,8 +200,13 @@ pub fn full_screen_on(monitor: HMONITOR, skip: HWND) -> bool {
         if state == QUNS_BUSY || state == QUNS_RUNNING_D3D_FULL_SCREEN {
             // SAFETY: plain queries; a null foreground window is checked.
             let front = unsafe { GetForegroundWindow() };
+            // Windows' state lags behind: right after a video left full screen it still says
+            // "busy" while the window is small again (the popout went away then – user's report
+            // "bei kleinem Bild geht es aus"). So it counts only where the active window really
+            // still covers this screen.
             if !front.is_null()
                 && unsafe { MonitorFromWindow(front, MONITOR_DEFAULTTONEAREST) } == monitor
+                && bounds_of(front).is_some_and(|front| covers(front, screen))
             {
                 return true;
             }
@@ -222,15 +234,31 @@ static SIGNAL: OnceLock<mpsc::SyncSender<()>> = OnceLock::new();
 /// A change settles for this long before it is checked (a window going full screen may resize in
 /// steps); short enough that the popout is gone at once to the eye.
 const SETTLE: Duration = Duration::from_millis(40);
+/// Checked again this long after the first check (and after each other) while nothing else
+/// happens: the last step of a window going full screen, or Windows' own full-screen state, can
+/// come after the last event. Checking only once let a popout stay over a video that had just
+/// gone full screen (user's report "wenn ich Vollbild mache, geht das Popup an").
+const RECHECK: [Duration; 2] = [Duration::from_millis(250), Duration::from_millis(750)];
 
 fn signal() {
     let sender = SIGNAL.get_or_init(|| {
         let (send, receive) = mpsc::sync_channel::<()>(1);
         std::thread::spawn(move || {
             while receive.recv().is_ok() {
-                std::thread::sleep(SETTLE);
-                while receive.try_recv().is_ok() {}
-                check_now();
+                'burst: loop {
+                    std::thread::sleep(SETTLE);
+                    while receive.try_recv().is_ok() {}
+                    check_now();
+                    for wait in RECHECK {
+                        match receive.recv_timeout(wait) {
+                            // Something changed again: settle and check from the start.
+                            Ok(()) => continue 'burst,
+                            Err(mpsc::RecvTimeoutError::Timeout) => check_now(),
+                            Err(mpsc::RecvTimeoutError::Disconnected) => return,
+                        }
+                    }
+                    break;
+                }
             }
         });
         send

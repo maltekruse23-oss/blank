@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent,
   type ReactNode,
 } from 'react';
 import {
@@ -22,7 +23,6 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
-  X,
 } from 'lucide-react';
 import { ChannelAvatar } from '../../components/ui';
 import {
@@ -373,6 +373,35 @@ function Seekbar({ playing }: { playing: Playing }) {
   );
 }
 
+/**
+ * The compact popout's progress (user's wish): a slim bar where the buttons were, how far the
+ * track or video has played. Nothing without a length (a Twitch live stream) or with "Fortschritt"
+ * off. Moves on once a second, only while it plays and the popout is on screen; hovering opens the
+ * full popout with pause and the seek bar.
+ */
+function MiniProgress({ playing }: { playing: Playing }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!playing.playing) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [playing.playing]);
+  const timeline = playing.timeline;
+  if (!timeline || !(timeline.duration > 0)) return null;
+  const share = positionOf(timeline, playing.playing, now) / timeline.duration;
+  return (
+    <span
+      className="popout-mini-progress"
+      role="progressbar"
+      aria-label="Fortschritt"
+      aria-valuemin={0}
+      aria-valuemax={Math.ceil(timeline.duration)}
+      aria-valuenow={Math.round(share * timeline.duration)}
+      style={{ '--value': `${share * 100}%` } as CSSProperties}
+    />
+  );
+}
+
 function Cover({ src, size }: { src: string | null; size: number }) {
   return src ? (
     <img className="popout-cover" src={src} alt="" />
@@ -394,13 +423,11 @@ function MusicPopout({
   playing: reported,
   look,
   compact,
-  onClose,
 }: {
   playing: Playing;
   look: Preferences;
   /** One slim row; hovering a compact popout shows the full one (the window decides). */
   compact: boolean;
-  onClose: () => void;
 }) {
   const [failed, setFailed] = useState<string | null>(null);
   // Instant feedback: pause, repeat and shuffle change on the click, not when the player reports.
@@ -484,8 +511,7 @@ function MusicPopout({
           <b title={playing.title}>{playing.title}</b>
           <span title={`${playing.artist} · ${playing.app}`}>{artist || playing.app}</span>
         </div>
-        <div className="popout-controls">{main}</div>
-        <CloseButton onClick={onClose} />
+        {look.popoutSeek && <MiniProgress playing={playing} />}
       </div>
     );
   const repeatLabel =
@@ -531,13 +557,12 @@ function MusicPopout({
         </div>
       </div>
       {look.popoutSeek && <Seekbar playing={playing} />}
-      <CloseButton onClick={onClose} />
     </>
   );
 }
 
 /** "Als Nächstes": small, after a track ended and the next one started by itself. */
-function UpNextPopout({ playing, onClose }: { playing: Playing; onClose: () => void }) {
+function UpNextPopout({ playing }: { playing: Playing }) {
   return (
     <div className="popout-row upnext">
       <span className="popout-label">
@@ -548,18 +573,18 @@ function UpNextPopout({ playing, onClose }: { playing: Playing; onClose: () => v
         <b title={playing.title}>{playing.title}</b>
         {playing.artist && <small>{playing.artist}</small>}
       </span>
-      <CloseButton onClick={onClose} />
     </div>
   );
 }
 
-function CloseButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button className="popout-close" aria-label="Ausblenden" title="Ausblenden" onClick={onClick}>
-      <X size={14} />
-    </button>
-  );
-}
+/**
+ * No × on popouts (user's wish: they are switched off in the settings only). A notice without a
+ * button of its own goes on a click on it; clicks on its buttons do what they say (and put it away
+ * themselves), so a notice set to "Immer anzeigen" always has a way out.
+ */
+const dismissOn = (dismiss: () => void) => (event: MouseEvent<HTMLElement>) => {
+  if (!(event.target as HTMLElement).closest('button')) dismiss();
+};
 
 /**
  * The colours of the popout (a setting): blank.'s scheme, a fixed dark one, or the light popout
@@ -1181,7 +1206,7 @@ export function PopoutWindow() {
           onMouseLeave={hoverOut}
           onPointerDown={() => setTouched((n) => n + 1)}
         >
-          <MusicPopout playing={playing} look={look} compact={false} onClose={next} />
+          <MusicPopout playing={playing} look={look} compact={false} />
         </motion.div>
       )}
     </AnimatePresence>
@@ -1209,12 +1234,12 @@ export function PopoutWindow() {
       )}
       {playing &&
         (isUpNext(item) ? (
-          <UpNextPopout playing={playing} onClose={next} />
+          <UpNextPopout playing={playing} />
         ) : (
-          <MusicPopout playing={playing} look={look} compact={compactNow} onClose={next} />
+          <MusicPopout playing={playing} look={look} compact={compactNow} />
         ))}
       {item.kind === 'preview' && item.topic === 'notice' && (
-        <div className="popout-row">
+        <div className="popout-row" title="Klick: ausblenden" onClick={dismissOn(next)}>
           <span className="popout-label">
             <Radio size={14} /> Live:
           </span>
@@ -1223,11 +1248,10 @@ export function PopoutWindow() {
             <b>Beispielkanal</b>
             <small>So sehen deine Meldungen aus</small>
           </span>
-          <CloseButton onClick={next} />
         </div>
       )}
       {item.kind === 'test' && (
-        <div className="popout-row">
+        <div className="popout-row" title="Klick: ausblenden" onClick={dismissOn(next)}>
           <span className="popout-icon">
             <Bell size={20} />
           </span>
@@ -1240,11 +1264,10 @@ export function PopoutWindow() {
               · {popoutScreens.find((s) => s.id === popoutScreen)?.name}
             </small>
           </span>
-          <CloseButton onClick={next} />
         </div>
       )}
       {item.kind === 'info' && (
-        <div className="popout-row">
+        <div className="popout-row" title="Klick: ausblenden" onClick={dismissOn(next)}>
           <span className="popout-icon">
             <Info size={20} />
           </span>
@@ -1252,7 +1275,6 @@ export function PopoutWindow() {
             <b>{item.title}</b>
             <small>{item.detail}</small>
           </span>
-          <CloseButton onClick={next} />
         </div>
       )}
       {item.kind === 'live' && (
@@ -1274,11 +1296,14 @@ export function PopoutWindow() {
               {item.game && <small>{item.game}</small>}
             </span>
           </button>
-          <CloseButton onClick={() => close(item)} />
         </div>
       )}
       {item.kind === 'warning' && (
-        <div className="popout-row">
+        <div
+          className="popout-row"
+          title="Klick: ausblenden"
+          onClick={dismissOn(() => close(item))}
+        >
           <span className="popout-icon warning">
             {item.battery ? <BatteryLow size={20} /> : <Gauge size={20} />}
           </span>
@@ -1298,7 +1323,6 @@ export function PopoutWindow() {
               {item.culprit && <CloseProgramButton app={item.culprit} onDone={() => close(item)} />}
             </span>
           </span>
-          <CloseButton onClick={() => close(item)} />
         </div>
       )}
       {item.kind === 'aram' && (
@@ -1307,7 +1331,6 @@ export function PopoutWindow() {
           augments={item.augments}
           highlight={item.highlight}
           run={fadeMs === 0 ? 'off' : presented === `${item.kind}-${item.id}` ? 'play' : 'wait'}
-          onClose={next}
           onOpen={() => {
             void openApp('aram');
             next();
