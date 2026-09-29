@@ -15,7 +15,6 @@ import {
   navPages,
   type Tile,
 } from '../edit/layout';
-import { defaultCategories, readAramCategories, type CategoryId } from '../aram/aramCategories';
 import { isThemeId, type ThemeId } from './themes';
 import {
   isPopoutBackground,
@@ -125,8 +124,6 @@ export type Preferences = {
   aramFriends: AramPlayer[];
   /** Code of the ARAM group (empty: none): the same leaderboard for every member. */
   aramGroup: string;
-  /** Categories of the ARAM leaderboard, in their fixed order. */
-  aramCategories: CategoryId[];
   /** Home as a grid of widgets, arranged in the edit mode (features/edit/). */
   homeLayout: Tile[];
   /** Order of the pages in the sidebar (within their sections) and the hidden ones. */
@@ -186,7 +183,6 @@ export const defaultPreferences: Preferences = {
   watchLastRoom: '',
   aramFriends: [],
   aramGroup: '',
-  aramCategories: defaultCategories,
   homeLayout: defaultLayout,
   navOrder: navPages,
   navHidden: [],
@@ -319,7 +315,6 @@ export function readPreferences(raw: unknown): Preferences | null {
       typeof data.aramGroup === 'string' && isGroupCode(data.aramGroup)
         ? data.aramGroup
         : d.aramGroup,
-    aramCategories: readAramCategories(data.aramCategories),
     homeLayout: readHomeLayout(data.homeLayout),
     navOrder: readNavOrder(data.navOrder),
     navHidden: readNavHidden(data.navHidden),

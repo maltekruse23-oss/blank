@@ -1,17 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { animate } from 'motion';
 import { motion, type Transition } from 'motion/react';
-import { Crown, Swords, X } from 'lucide-react';
+import { Crown, X } from 'lucide-react';
 import {
   championSplash,
+  splashFallback,
   championSquare,
-  itemIcon,
   splitRiotId,
   type AramAugment,
   type AramEntry,
 } from '../../adapters/aram';
 import { spring } from '../../design/motion';
+import { categories } from './aramCategories';
 import type { AramHighlight } from './aramHighlight';
+import { categoryIcons } from './aramIcons';
+import { damagePerMinute } from './aramStats';
 import { duration, number, percent } from './format';
 
 /**
@@ -23,19 +26,20 @@ export type ResultMotion = 'play' | 'wait' | 'off';
 /** When each part comes, in seconds from the start (user's wish: all stats load in animated). */
 const T = {
   head: 0.12,
-  who: 0.2,
-  damage: 0.3,
+  damage: 0.25,
   count: 1.3,
   stats: 0.55,
-  statStep: 0.07,
-  augments: 1.0,
-  augmentStep: 0.08,
-  items: 1.25,
-  itemStep: 0.05,
+  statStep: 0.08,
+  augments: 0.95,
+  augmentStep: 0.07,
   /** The special part for a top game: badge, shine, glow; for a record also the burst. */
-  special: 1.65,
-  lines: 1.9,
+  special: 1.5,
+  /** The new records under the damage, after the badge. */
+  records: 1.75,
+  mates: 1.9,
 };
+/** Records shown as chips; more are counted ("+1"). */
+const MAX_RECORD_CHIPS = 2;
 const EASE_OUT: Transition['ease'] = [0.16, 1, 0.3, 1];
 
 /** A number counting up from 0, written straight into the element (no re-render per frame). */
@@ -234,8 +238,8 @@ function Mates({ entry, run }: { entry: AramEntry; run: ResultMotion }) {
   return (
     <div className="aram-result-mates">
       <p className="aram-result-mates-head">
-        <span>Mit Freunden im Spiel</span>
-        {best && <b>Du hattest den meisten Schaden</b>}
+        <span>Freunde im Spiel</span>
+        {best && <b>Du vorn</b>}
       </p>
       <ol>
         {rows.map((row, i) => {
@@ -264,11 +268,12 @@ function Mates({ entry, run }: { entry: AramEntry; run: ResultMotion }) {
                   style={{ width: `${(row.damage / top) * 100}%` }}
                   initial={run === 'off' ? false : { scaleX: 0 }}
                   animate={run === 'wait' ? { scaleX: 0 } : { scaleX: 1 }}
-                  transition={{ ...spring('default'), delay: T.lines + 0.1 + i * 0.08 }}
+                  transition={{ ...spring('default'), delay: T.mates + i * 0.08 }}
                 />
               </span>
-              <b className="aram-mate-damage">{number(row.damage)}</b>
-              <small className="aram-mate-kda">{row.kda}</small>
+              <b className="aram-mate-damage" title={`K / D / A ${row.kda}`}>
+                {number(row.damage)}
+              </b>
             </li>
           );
         })}
@@ -293,26 +298,33 @@ export function AramResultCard({
   /** A click on the card (not on its close button): opens the ranking. */
   onOpen?: () => void;
 }) {
-  const splash = championSplash(entry.champion);
+  const splash = championSplash(entry.champion, entry.skin);
   const { name, tag } = splitRiotId(entry.name);
   const special = highlight.tier !== 'normal';
   const legend = highlight.tier === 'legend';
   const moving = run !== 'off';
+  // Only what tells the game at a glance (user's wish: less, clearer); the rest is in the games list.
+  const perMinute = damagePerMinute(entry);
   const stats: [string, number, (v: number) => string][] = [
-    ['Kills', entry.kills, (v) => String(Math.round(v))],
     [
       'K / D / A',
       1,
       (v) =>
         `${Math.round(entry.kills * v)} / ${Math.round(entry.deaths * v)} / ${Math.round(entry.assists * v)}`,
     ],
+    ...(perMinute === null
+      ? []
+      : [['Schaden/Min', perMinute, number] as [string, number, (v: number) => string]]),
     ['Anteil Team', entry.teamShare, percent],
-    ['Eingesteckt', entry.taken, number],
-    ['Geheilt', entry.healed, number],
   ];
+  const records = highlight.records
+    .map((id) => categories.find((c) => c.id === id))
+    .filter((c) => c !== undefined);
+  const shownRecords = records.slice(0, MAX_RECORD_CHIPS);
+  const moreRecords = records.slice(MAX_RECORD_CHIPS);
   return (
     <article
-      className={`aram-result tier-${highlight.tier} ${entry.win ? 'win' : 'loss'} ${onOpen ? 'clickable' : ''} ${entry.with.length > 0 ? 'with-mates' : ''} ${highlight.lines.length > 0 ? 'has-lines' : ''}`}
+      className={`aram-result tier-${highlight.tier} ${entry.win ? 'win' : 'loss'} ${onOpen ? 'clickable' : ''} ${entry.with.length > 0 ? 'with-mates' : ''}`}
       style={{ height: resultHeight(entry) }}
       title={onOpen ? 'Rangliste in blank. öffnen' : undefined}
       onClick={onOpen}
@@ -328,9 +340,7 @@ export function AramResultCard({
             run === 'wait' ? { opacity: 0, x: 60, scale: 1.12 } : { opacity: 1, x: 0, scale: 1 }
           }
           transition={{ duration: 1.1, ease: EASE_OUT }}
-          onError={(event) => {
-            event.currentTarget.hidden = true;
-          }}
+          onError={(event) => splashFallback(event, entry.champion, entry.skin)}
         />
       )}
       {special && moving && run === 'play' && (
@@ -358,17 +368,12 @@ export function AramResultCard({
       {legend && run === 'play' && <Burst delay={T.special} />}
       <div className="aram-result-body">
         <Part run={run} delay={T.head} className="aram-result-head">
-          <Swords size={14} aria-hidden />
-          <span>ARAM Mayhem</span>
-          <i aria-hidden>·</i>
           <b className="aram-result-outcome">{entry.win ? 'Sieg' : 'Niederlage'}</b>
-          <i aria-hidden>·</i>
+          <span className="aram-result-champion">{entry.championName || 'Champion'}</span>
           <span className="aram-result-time">{duration(entry.seconds)}</span>
-        </Part>
-        <Part run={run} delay={T.who} className="aram-result-who">
-          <b>{name}</b>
-          {tag && <small>#{tag}</small>}
-          <span>{entry.championName || 'Champion'}</span>
+          <span className="aram-result-player" title={tag ? `${name}#${tag}` : name}>
+            {name}
+          </span>
         </Part>
         <Part
           run={run}
@@ -393,6 +398,32 @@ export function AramResultCard({
           </motion.strong>
           <span>Schaden an Champions</span>
         </Part>
+        {records.length > 0 && (
+          <Part
+            run={run}
+            delay={T.records}
+            className="aram-result-records"
+            from={{ opacity: 0, y: 6 }}
+          >
+            {shownRecords.map((category) => {
+              const Icon = categoryIcons[category.id];
+              return (
+                <span
+                  key={category.id}
+                  style={{ '--hue': `var(--game-${category.hue})` } as CSSProperties}
+                >
+                  <Icon size={12} aria-hidden />
+                  {category.title}
+                </span>
+              );
+            })}
+            {moreRecords.length > 0 && (
+              <span className="more" title={moreRecords.map((c) => c.title).join(', ')}>
+                +{moreRecords.length}
+              </span>
+            )}
+          </Part>
+        )}
         <dl className="aram-result-stats">
           {stats.map(([label, value, format], i) => (
             <Part
@@ -436,34 +467,12 @@ export function AramResultCard({
               })}
             </ul>
           )}
-          {entry.items.length > 0 && (
-            <div className="aram-items" aria-label="Items">
-              {entry.items.map((item, i) => (
-                <motion.img
-                  key={`${item}-${i}`}
-                  src={itemIcon(item, entry.patch)}
-                  alt=""
-                  width={26}
-                  height={26}
-                  initial={moving ? { opacity: 0, y: 12, scale: 0.6 } : false}
-                  animate={
-                    run === 'wait'
-                      ? { opacity: 0, y: 12, scale: 0.6 }
-                      : { opacity: 1, y: 0, scale: 1 }
-                  }
-                  transition={{ ...spring('snappy'), delay: T.items + i * T.itemStep }}
-                  onError={(event) => {
-                    event.currentTarget.hidden = true;
-                  }}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
       {highlight.badge && (
         <motion.span
           className="aram-result-badge"
+          title={highlight.lines.join(' · ') || undefined}
           initial={moving ? { opacity: 0, scale: 2.4, rotate: -14 } : false}
           animate={
             run === 'wait'
@@ -492,13 +501,6 @@ export function AramResultCard({
           )}
           {highlight.badge}
         </motion.span>
-      )}
-      {highlight.lines.length > 0 && (
-        <Part run={run} delay={T.lines} className="aram-result-lines" from={{ opacity: 0, y: 8 }}>
-          {highlight.lines.map((line) => (
-            <span key={line}>{line}</span>
-          ))}
-        </Part>
       )}
       {entry.with.length > 0 && <Mates entry={entry} run={run} />}
       {onClose && (

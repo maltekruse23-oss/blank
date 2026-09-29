@@ -363,6 +363,8 @@ export const mockAramData: AramData = {
       i,
     ): AramEntry => ({
       gameId: 1000 + i,
+      // Some fictional games in a skin (splash art of the skin played).
+      ...(i % 2 === 0 ? { skin: [1, 2, 3, 4, 5][i % 5] } : {}),
       at: Date.now() - daysAgo * 86_400_000 - i * 3_600_000,
       seconds: minutes * 60 + 17,
       patch: '16.18',

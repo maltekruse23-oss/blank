@@ -13,6 +13,16 @@ Mit der neuen `blank.exe` (`pnpm desktop:build` oder das Artefakt eines manuelle
 7. Update aus der vorigen Version: „Nach Updates suchen“ → „Jetzt aktualisieren“ → Neustart mit „Neu in Version …“.
 8. Wenn vorhanden, Windows 10: Popouts „In der Taskleiste“ → rechts neben dem Infobereich, nicht über „Start“.
 
+## ARAM: Skin-Splash, Karte übersichtlicher, feste Rekorde, Schaden pro Minute, Spieler-Übersicht (Benutzerwünsche)
+
+Geprüft am 30.09.2026 in der Cloud (Vorschau mit Beispielspielen); nicht nativ.
+
+- Skin: Rust-Tests für die Bildpfade (`Skins/Skin14`, `Skins/Base`, `champion-splashes/103/103027.jpg`, fremder Champion → nichts), das Auffüllen aus der Gameflow-Sitzung und das Behalten beim Ersetzen durch genauere Werte (Qualität mit Skin höher, `valid_entry` bis 999); der Pfad-Leser zusätzlich in einer Kopie unter Linux grün. `cargo clippy` mit Rust 1.98 (wie GitHub) ohne Warnung. In der Vorschau laden Karte und „Beste Spiele“ `…/Kayle_N.jpg` mit Rückfall über die Nummern darunter (Chroma) auf den Standard. **Nativ offen:** ob der Client im Spiel `selectedSkinIndex` bzw. am Ende `skinSplashPath` liefert (sonst bleibt der Standard-Splash wie bisher).
+- Karte: eine Kopfzeile, großer Schaden, Rekorde als Chips (zwei plus „+n“), drei Werte (K/D/A, Schaden/Min, Team-Anteil), Augments; Freunde nur mit Balken und Schaden; Items nur noch unter „Beste Spiele“.
+- Rangliste: kein „Kategorien wählen“ mehr; 14 Rekord-Kategorien mit Werten in fester Reihenfolge, „Schaden pro Minute“ an zweiter Stelle (95.120 in 20:17 → 4.690); Pentakills erscheinen, sobald jemand einen hat. Tests: feste Liste, Schaden pro Minute (bestes Spiel, unter einer Minute kein Wert).
+- Spieler-Übersicht: Klick auf den Namen im Balken öffnet sie (Medaillen 14/0/0, acht Zahlen mit Platz, Rekorde, beste Spiele, Champions); „Ansehen“ legt die Karte darüber, Esc schließt erst die Karte, dann die Übersicht. Test: Plätze mit Gleichstand, Medaillen nur ab zwei Spielern und für Werte über 0, ohne Spiele nichts erfunden.
+- `pnpm build`, `pnpm lint`, `pnpm test` (64), `pnpm format:check`.
+
 ## Für Freunde: Absturzschutz, Fehlerbericht, Fensterplatz, Windows 10, Twitch ohne Einrichtung, Prüfung bei jeder Änderung (Benutzerauftrag)
 
 Geprüft am 30.09.2026 in der Cloud (Chromium, App mit nachgebildeten Tauri-Befehlen und absichtlich kaputten Daten); nicht nativ.

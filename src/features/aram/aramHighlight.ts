@@ -1,7 +1,7 @@
 // How special a game is, for the card after it (user's wish: a special animation when one is top
 // or high in the leaderboard). Only what the games say – nothing made up (no MVP score).
 import type { AramEntry, AramPlayer } from '../../adapters/aram';
-import { categories } from './aramCategories';
+import { categories, type CategoryId } from './aramCategories';
 import { countedGames } from './aramStats';
 
 /**
@@ -13,6 +13,8 @@ export type AramHighlight = {
   tier: 'normal' | 'top' | 'legend';
   badge: string | null;
   lines: string[];
+  /** Categories with a new record of the group in this game (shown as chips on the card). */
+  records: CategoryId[];
 };
 
 const isNumber = (value: unknown): value is number => typeof value === 'number';
@@ -68,5 +70,5 @@ export function aramHighlight(
             : amongBest
               ? `Top ${bestPlace}`
               : null;
-  return { tier, badge, lines: lines.slice(0, 3) };
+  return { tier, badge, lines: lines.slice(0, 3), records: records.map((c) => c.id) };
 }

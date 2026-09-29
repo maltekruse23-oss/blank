@@ -26,6 +26,7 @@ import { useAram } from '../features/aram/useAram';
 import { useAramResult } from '../features/aram/useAramResult';
 import { useAramGroup } from '../features/aram/useAramGroup';
 import { AramResultDialog } from '../features/aram/AramResultDialog';
+import { AramPlayerDialog, type AramPlayerView } from '../features/aram/AramPlayerDialog';
 import { aramAdapter } from '../adapters/aram';
 import { HomeGrid } from '../features/edit/HomeGrid';
 import { EditDock, type EditTool } from '../features/edit/EditDock';
@@ -210,6 +211,8 @@ export function App() {
   );
   // The card after an ARAM Mayhem game: a popout in the background, otherwise here.
   const aramResult = useAramResult(aramAdapter, settings.preferences, aramPlayers);
+  // A player's overview from the leaderboard (user's wish); a game opened in it lies above it.
+  const [aramPlayer, setAramPlayer] = useState<AramPlayerView | null>(null);
   // Battery levels are read only while a page shows them.
   const batteries = useBatteries(page === 'home' || page === 'devices');
   // On <html>, so the page background and scrollbars follow the colour scheme too (tokens.css;
@@ -596,11 +599,8 @@ export function App() {
                           setFriends={(aramFriends) =>
                             update({ ...settings.preferences, aramFriends })
                           }
-                          chosen={settings.preferences.aramCategories}
-                          setChosen={(aramCategories) =>
-                            update({ ...settings.preferences, aramCategories })
-                          }
                           onShow={aramResult.show}
+                          onPlayer={setAramPlayer}
                           group={aramGroup}
                         />
                       )}
@@ -699,6 +699,15 @@ export function App() {
               fallback={failedDialog('Neuigkeiten', () => setNews(false))}
             >
               <PatchNotes onClose={() => setNews(false)} />
+            </Guard>
+          )}
+          {aramPlayer && page === 'aram' && (
+            <Guard
+              key="aram-player"
+              name="Spieler-Übersicht"
+              fallback={failedDialog('Spieler-Übersicht', () => setAramPlayer(null))}
+            >
+              <AramPlayerDialog view={aramPlayer} onClose={() => setAramPlayer(null)} />
             </Guard>
           )}
           {aramResult.view && (

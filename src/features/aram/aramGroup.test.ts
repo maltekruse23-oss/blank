@@ -99,9 +99,11 @@ describe('ARAM-Gruppe', () => {
 
   it('die bessere Fassung eines Spiels zählt höher', () => {
     const exact = { ...game(player(1, 'A'), 1, 1), details: { magic: 1 } as AramEntry['details'] };
-    expect(gameQuality(exact)).toBe(3);
-    expect(gameQuality({ ...exact, details: null })).toBe(2);
-    expect(gameQuality({ ...exact, provisional: true })).toBe(1);
+    expect(gameQuality(exact)).toBe(6);
+    expect(gameQuality({ ...exact, details: null })).toBe(4);
+    expect(gameQuality({ ...exact, provisional: true })).toBe(2);
+    expect(gameQuality({ ...exact, skin: 3 })).toBe(7);
+    expect(gameQuality({ ...exact, provisional: true, skin: 3 })).toBeLessThan(gameQuality(exact));
   });
 
   it('bei allen dieselbe Rangliste, egal in welcher Reihenfolge die Daten kamen', () => {

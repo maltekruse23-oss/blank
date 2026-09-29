@@ -6,11 +6,15 @@ import type { AramEntry, AramPlayer } from '../../adapters/aram';
 export const kda = (e: Pick<AramEntry, 'kills' | 'deaths' | 'assists'>) =>
   (e.kills + e.assists) / Math.max(1, e.deaths);
 
-/** The games that count: of the listed players, once per player and game. */
+/** Damage to champions per minute of the game (user's wish); none for games under a minute. */
+export const damagePerMinute = (e: Pick<AramEntry, 'damage' | 'seconds'>) =>
+  e.seconds >= 60 ? e.damage / (e.seconds / 60) : null;
+
 /** The games that count: only those that began after the (group's) start. */
 export const sinceGames = (games: AramEntry[], since: number | null) =>
   since === null ? games : games.filter((g) => g.at >= since);
 
+/** The games that count: of the listed players, once per player and game. */
 export function countedGames(games: AramEntry[], players: AramPlayer[]) {
   const listed = new Set(players.map((p) => p.puuid));
   const seen = new Set<string>();

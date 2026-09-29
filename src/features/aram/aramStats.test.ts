@@ -5,9 +5,10 @@ import {
   type AramEntry,
   type AramPlayer,
 } from '../../adapters/aram';
-import { categories, defaultCategories, ranking, readAramCategories } from './aramCategories';
+import { categories, ranking, recordCategories } from './aramCategories';
 import { aramHighlight } from './aramHighlight';
 import { bestGames, kda } from './aramStats';
+import { playerOverview } from './aramPlayer';
 
 const player = (name: string): AramPlayer => ({
   puuid: `${name}-${'0'.repeat(40)}`,
@@ -98,12 +99,27 @@ describe('ARAM-Kategorien', () => {
     expect(ranking(category('tank'), [a, b], games)[0]!.player).toBe(b);
   });
 
-  it('Auswahl streng geprüft, nie leer', () => {
-    expect(readAramCategories(['ap', 'ap', 'kaputt', 'kills'])).toEqual(['ap', 'kills']);
-    expect(readAramCategories([])).toEqual(defaultCategories);
-    expect(readAramCategories('x')).toEqual(defaultCategories);
-    expect(defaultCategories).toEqual(['damage', 'pentas', 'ap', 'ad', 'kills', 'tank']);
+  it('Rangliste: immer die Rekorde und Pentakills, fest in dieser Reihenfolge', () => {
+    expect(recordCategories.slice(0, 7).map((x) => x.id)).toEqual([
+      'damage',
+      'dpm',
+      'pentas',
+      'ap',
+      'ad',
+      'kills',
+      'tank',
+    ]);
+    expect(recordCategories.every((x) => x.kind === 'best' || x.id === 'pentas')).toBe(true);
     expect(new Set(categories.map((x) => x.id)).size).toBe(categories.length);
+  });
+
+  it('Schaden pro Minute: bestes Spiel, kurze Spiele ohne Wert', () => {
+    const quick = game(a, { damage: 30_000, seconds: 600 });
+    const long = game(a, { damage: 45_000, seconds: 1800 });
+    const [row] = ranking(category('dpm'), [a], [quick, long]);
+    expect(row!.value).toBe(3_000);
+    expect(row!.game).toBe(quick);
+    expect(category('dpm').value(game(a, { seconds: 30 }))).toBeNull();
   });
 
   it('beste Spiele und KDA', () => {
@@ -144,6 +160,7 @@ describe('ARAM-Karte nach dem Spiel', () => {
     expect(result.tier).toBe('legend');
     expect(result.badge).toBe('Neuer Rekord');
     expect(result.lines).toContain('Neuer Rekord: Höchster Schaden');
+    expect(result.records.slice(0, 2)).toEqual(['damage', 'dpm']);
   });
 
   it('ein Pentakill ist immer legendär', () => {
@@ -169,7 +186,12 @@ describe('ARAM-Karte nach dem Spiel', () => {
 
   it('erstes Spiel: kein erfundener Rekord; ein normales Spiel bleibt normal', () => {
     const first = at(a, 1, { damage: 10_000 });
-    expect(aramHighlight(first, [first], [a])).toEqual({ tier: 'normal', badge: null, lines: [] });
+    expect(aramHighlight(first, [first], [a])).toEqual({
+      tier: 'normal',
+      badge: null,
+      lines: [],
+      records: [],
+    });
     const history = [at(a, 1, { damage: 60_000 }), at(a, 2, { damage: 50_000, kills: 30 })];
     const now = at(a, 3, { damage: 20_000, kills: 5, taken: 1_000 });
     expect(aramHighlight(now, [...history, now], [a]).tier).toBe('normal');
@@ -185,5 +207,41 @@ describe('ARAM-Karte nach dem Spiel', () => {
     const result = aramHighlight(now, [...history, now], [a, b]);
     expect(result).toMatchObject({ tier: 'top', badge: 'Bestleistung' });
     expect(result.lines).toEqual(['Deine neue Bestleistung', 'Platz 2 der besten Spiele']);
+  });
+});
+
+describe('Spieler-Übersicht', () => {
+  it('Plätze mit Gleichstand, Medaillen nur für Werte über 0, beste Spiele und Champions', () => {
+    const games = [
+      game(a, { damage: 50_000, win: true, champion: 'Ahri', championName: 'Ahri' }),
+      game(a, { damage: 30_000, win: false, champion: 'Ahri', championName: 'Ahri', pentas: 0 }),
+      game(a, { damage: 40_000, win: true, champion: 'Lux', championName: 'Lux' }),
+      game(b, { damage: 60_000, win: true, kills: 5 }),
+    ];
+    const view = playerOverview(a, [a, b], games);
+    expect(view.games).toBe(3);
+    expect(view.records.find((s) => s.category.id === 'damage')).toMatchObject({
+      value: 50_000,
+      place: 2,
+    });
+    // Pentakills: nobody has one, so no place and no medal.
+    expect(view.records.some((s) => s.category.id === 'pentas')).toBe(false);
+    expect(view.medals.reduce((t, n) => t + n, 0)).toBe(
+      view.records.filter((s) => s.place! <= 3).length,
+    );
+    expect(view.overall.find((s) => s.category.id === 'wins')).toMatchObject({ place: 2 });
+    expect(view.overall.find((s) => s.category.id === 'games')).toMatchObject({
+      value: 3,
+      place: 1,
+    });
+    expect(view.best.map((g) => g.damage)).toEqual([50_000, 40_000, 30_000]);
+    expect(view.champions[0]).toMatchObject({ championName: 'Ahri', games: 2, wins: 1 });
+    // Alone: places, but no medals.
+    expect(playerOverview(a, [a], games).medals).toEqual([0, 0, 0]);
+    // Without games: nothing made up.
+    const none = playerOverview(c, [a, c], games);
+    expect(none.games).toBe(0);
+    expect(none.records).toEqual([]);
+    expect(none.overall.every((s) => s.value === null && s.place === null)).toBe(true);
   });
 });

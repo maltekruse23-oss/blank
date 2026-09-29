@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SlidersHorizontal, Swords } from 'lucide-react';
+import { Swords } from 'lucide-react';
 import {
   splitRiotId,
   type AramAdapter,
@@ -7,13 +7,12 @@ import {
   type AramEntry,
   type AramPlayer,
 } from '../../adapters/aram';
-import { Reveal } from '../../components/Reveal';
 import { TabContent, TabPill } from '../../components/TabMotion';
 import { RefreshButton } from '../twitch/RefreshButton';
 import { AramGameCard } from './AramGameCard';
+import type { AramPlayerView } from './AramPlayerDialog';
 import { AramPlayers } from './AramPlayers';
-import { AramRanking, CategoryChoice } from './AramRanking';
-import { defaultCategories, type CategoryId } from './aramCategories';
+import { AramRanking } from './AramRanking';
 import { bestGames, countedGames, sinceGames } from './aramStats';
 import { day } from './format';
 import type { AramHook } from './useAram';
@@ -33,9 +32,8 @@ export function AramPage({
   adapter,
   friends,
   setFriends,
-  chosen,
-  setChosen,
   onShow,
+  onPlayer,
   group,
 }: {
   aram: AramHook;
@@ -44,13 +42,11 @@ export function AramPage({
   adapter: AramAdapter;
   friends: AramPlayer[];
   setFriends: (friends: AramPlayer[]) => void;
-  /** Categories of the leaderboard (settings). */
-  chosen: CategoryId[];
-  setChosen: (chosen: CategoryId[]) => void;
   /** Shows a game as the card after a game (dialog in the app). */
   onShow: (view: AramResultView) => void;
+  /** Opens a player's overview (dialog in the app). */
+  onPlayer: (view: AramPlayerView) => void;
 }) {
-  const [choosing, setChoosing] = useState(false);
   const { state } = aram;
   const data = state.status === 'ready' ? state.data : null;
   const me = data?.me ?? null;
@@ -65,6 +61,10 @@ export function AramPage({
   });
   const index = (tab: Tab) => tabs.findIndex((t) => t.id === tab);
   const choose = (tab: Tab) => setView((v) => ({ tab, dir: index(tab) >= index(v.tab) ? 1 : -1 }));
+  const showGame = (entry: AramEntry) =>
+    data && onShow(resultView(entry, { ...data, since }, players));
+  const showPlayer = (player: AramPlayer) =>
+    onPlayer({ player, players, games, meId: me?.puuid ?? null, showGame });
   const missing = data
     ? players.filter((p) => data.missing.includes(p.puuid)).map((p) => splitRiotId(p.name).name)
     : [];
@@ -92,27 +92,8 @@ export function AramPage({
             {since && ` · seit ${day(since)}`}
           </span>
         )}
-        {view.tab === 'ranking' && (
-          <button
-            className={`filter-button icon-only ${choosing ? 'selected' : ''}`}
-            aria-label="Kategorien wählen"
-            title="Kategorien wählen"
-            aria-expanded={choosing}
-            onClick={() => setChoosing(!choosing)}
-          >
-            <SlidersHorizontal size={16} />
-          </button>
-        )}
         <RefreshButton data={aram} result={state} />
       </div>
-      <Reveal show={choosing && view.tab === 'ranking'}>
-        <div className="aram-choice-panel">
-          <CategoryChoice chosen={chosen} onChange={setChosen} />
-          <button className="text-link" onClick={() => setChosen(defaultCategories)}>
-            Standard
-          </button>
-        </div>
-      </Reveal>
       {state.status === 'ready' && state.staleBecause && (
         <div className="notice" role="status">
           Aktualisierung fehlgeschlagen: {state.staleBecause}
@@ -148,17 +129,12 @@ export function AramPage({
               games={games}
               meId={me?.puuid ?? null}
               client={data.client}
-              chosen={chosen}
               onPlayers={() => choose('players')}
+              onPlayer={showPlayer}
             />
           )}
           {view.tab === 'best' && (
-            <BestGames
-              games={games}
-              players={players}
-              augments={data.augments}
-              onShow={(entry) => onShow(resultView(entry, { ...data, since }, players))}
-            />
+            <BestGames games={games} players={players} augments={data.augments} onShow={showGame} />
           )}
           {view.tab === 'players' && (
             <AramPlayers
@@ -193,15 +169,15 @@ function Ranking({
   games,
   meId,
   client,
-  chosen,
   onPlayers,
+  onPlayer,
 }: {
   players: AramPlayer[];
   games: AramEntry[];
   meId: string | null;
   client: boolean;
-  chosen: CategoryId[];
   onPlayers: () => void;
+  onPlayer: (player: AramPlayer) => void;
 }) {
   if (players.length === 0 || games.length === 0) return <Empty client={client} />;
   return (
@@ -214,7 +190,7 @@ function Ranking({
           </button>
         </p>
       )}
-      <AramRanking chosen={chosen} players={players} games={games} meId={meId} />
+      <AramRanking players={players} games={games} meId={meId} onPlayer={onPlayer} />
     </>
   );
 }
