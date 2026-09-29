@@ -66,6 +66,7 @@ import { useAppUsage } from './useAppUsage';
 import { useWarnings } from './useWarnings';
 import { useUpdate } from './useUpdate';
 import { usePcStatus } from '../features/pc/usePcStatus';
+import { Guard, GuardNotice } from '../components/Guard';
 import { readPcStatus } from '../adapters/pc';
 export type Page =
   'home' | 'twitch' | 'pros' | 'aram' | 'music' | 'devices' | 'pc' | 'apps' | 'settings';
@@ -107,6 +108,18 @@ const pageVariants: Variants = {
     transition: { duration: 0.12, ease: [0.3, 0, 1, 1] },
   }),
 };
+/** Runs `then` once when shown: a part that failed and has nothing to show goes away. */
+function Gone({ then }: { then: () => void }) {
+  const latest = useRef(then);
+  useEffect(() => latest.current(), []);
+  return null;
+}
+/** A failed dialog: a notice in its place that closes it. */
+const failedDialog = (name: string, close: () => void) => () => (
+  <div className="guard-float">
+    <GuardNotice name={name} retry={close} retryLabel="Schließen" />
+  </div>
+);
 function loadPreferences(): { preferences: Preferences; storageAvailable: boolean } {
   try {
     const raw: unknown = JSON.parse(localStorage.getItem(preferencesKey) ?? 'null');
@@ -545,70 +558,72 @@ export function App() {
                       </span>
                       <h1>{current.label}</h1>
                     </div>
-                    {page === 'home' && (
-                      <HomeGrid
-                        layout={settings.preferences.homeLayout}
-                        editing={editing}
-                        context={{
-                          navigate: setPage,
-                          twitch,
-                          batteries,
-                          pc,
-                          music,
-                          aramFriends: aramPlayers,
-                        }}
-                        onChange={(homeLayout) => update({ ...settings.preferences, homeLayout })}
-                        radiusScale={
-                          resolveSettings(settings.preferences.customization).settings.radiusScale
-                        }
-                        onRadius={(radiusScale) =>
-                          update(
-                            withDesign(settings.preferences, (c) =>
-                              changeSettings(c, { radiusScale }),
-                            ),
-                          )
-                        }
-                      />
-                    )}
-                    {page === 'twitch' && (
-                      <TwitchPage twitch={twitch} watch={watch} watchName={watchName} />
-                    )}
-                    {page === 'pros' && <ProsPage twitch={twitch} />}
-                    {page === 'aram' && (
-                      <AramPage
-                        aram={aram}
-                        adapter={aramAdapter}
-                        friends={settings.preferences.aramFriends}
-                        setFriends={(aramFriends) =>
-                          update({ ...settings.preferences, aramFriends })
-                        }
-                        chosen={settings.preferences.aramCategories}
-                        setChosen={(aramCategories) =>
-                          update({ ...settings.preferences, aramCategories })
-                        }
-                        onShow={aramResult.show}
-                        group={aramGroup}
-                      />
-                    )}
-                    {page === 'music' && <MusicPage music={music} />}
-                    {page === 'devices' && <DevicesPage batteries={batteries} />}
-                    {page === 'pc' && <PcPage pc={pc} />}
-                    {page === 'apps' && (
-                      <AppsPage
-                        apps={apps}
-                        navigate={(target) =>
-                          target === 'settings' ? openSettings('data') : setPage(target)
-                        }
-                        content={() =>
-                          settingsFileContent(
-                            settings.preferences,
-                            { accounts: music.accounts, volume: music.volume },
-                            apps.selected,
-                          )
-                        }
-                        onRestore={() => setRestore('manual')}
-                      />
-                    )}
+                    <Guard name={current.label}>
+                      {page === 'home' && (
+                        <HomeGrid
+                          layout={settings.preferences.homeLayout}
+                          editing={editing}
+                          context={{
+                            navigate: setPage,
+                            twitch,
+                            batteries,
+                            pc,
+                            music,
+                            aramFriends: aramPlayers,
+                          }}
+                          onChange={(homeLayout) => update({ ...settings.preferences, homeLayout })}
+                          radiusScale={
+                            resolveSettings(settings.preferences.customization).settings.radiusScale
+                          }
+                          onRadius={(radiusScale) =>
+                            update(
+                              withDesign(settings.preferences, (c) =>
+                                changeSettings(c, { radiusScale }),
+                              ),
+                            )
+                          }
+                        />
+                      )}
+                      {page === 'twitch' && (
+                        <TwitchPage twitch={twitch} watch={watch} watchName={watchName} />
+                      )}
+                      {page === 'pros' && <ProsPage twitch={twitch} />}
+                      {page === 'aram' && (
+                        <AramPage
+                          aram={aram}
+                          adapter={aramAdapter}
+                          friends={settings.preferences.aramFriends}
+                          setFriends={(aramFriends) =>
+                            update({ ...settings.preferences, aramFriends })
+                          }
+                          chosen={settings.preferences.aramCategories}
+                          setChosen={(aramCategories) =>
+                            update({ ...settings.preferences, aramCategories })
+                          }
+                          onShow={aramResult.show}
+                          group={aramGroup}
+                        />
+                      )}
+                      {page === 'music' && <MusicPage music={music} />}
+                      {page === 'devices' && <DevicesPage batteries={batteries} />}
+                      {page === 'pc' && <PcPage pc={pc} />}
+                      {page === 'apps' && (
+                        <AppsPage
+                          apps={apps}
+                          navigate={(target) =>
+                            target === 'settings' ? openSettings('data') : setPage(target)
+                          }
+                          content={() =>
+                            settingsFileContent(
+                              settings.preferences,
+                              { accounts: music.accounts, volume: music.volume },
+                              apps.selected,
+                            )
+                          }
+                          onRestore={() => setRestore('manual')}
+                        />
+                      )}
+                    </Guard>
                   </motion.div>
                 </AnimatePresence>
               </main>
@@ -617,20 +632,21 @@ export function App() {
         </div>
         <AnimatePresence>
           {editing && (
-            <EditDock
-              key="edit-dock"
-              tool={editTool}
-              setTool={chooseTool}
-              preferences={settings.preferences}
-              update={update}
-              storageAvailable={settings.storageAvailable}
-              replayStart={replayStart}
-              restartForGpu={restartForGpu}
-              undo={history.current.past.length > 0 ? undo : null}
-              redo={history.current.future.length > 0 ? redo : null}
-              openMore={(popouts) => openSettings(popouts ? 'popouts' : settingsSection)}
-              goHome={() => setPage('home')}
-            />
+            <Guard key="edit-dock" name="Bearbeiten">
+              <EditDock
+                tool={editTool}
+                setTool={chooseTool}
+                preferences={settings.preferences}
+                update={update}
+                storageAvailable={settings.storageAvailable}
+                replayStart={replayStart}
+                restartForGpu={restartForGpu}
+                undo={history.current.past.length > 0 ? undo : null}
+                redo={history.current.future.length > 0 ? redo : null}
+                openMore={(popouts) => openSettings(popouts ? 'popouts' : settingsSection)}
+                goHome={() => setPage('home')}
+              />
+            </Guard>
           )}
           {drawer && (
             <motion.aside
@@ -654,70 +670,94 @@ export function App() {
                 </button>
               </header>
               <div className="settings-drawer-body">
-                <SettingsPage
-                  preferences={settings.preferences}
-                  update={update}
-                  twitch={twitch}
-                  usage={usage}
-                  music={music}
-                  apps={apps}
-                  updates={updates}
-                  section={settingsSection}
-                  setSection={setSettingsSection}
-                  openPage={(target) => {
-                    setDrawer(false);
-                    go(target);
-                  }}
-                  showNews={() => setNews(true)}
-                  onEdit={editAt}
-                />
+                <Guard name="Einstellungen">
+                  <SettingsPage
+                    preferences={settings.preferences}
+                    update={update}
+                    twitch={twitch}
+                    usage={usage}
+                    music={music}
+                    apps={apps}
+                    updates={updates}
+                    section={settingsSection}
+                    setSection={setSettingsSection}
+                    openPage={(target) => {
+                      setDrawer(false);
+                      go(target);
+                    }}
+                    showNews={() => setNews(true)}
+                    onEdit={editAt}
+                  />
+                </Guard>
               </div>
             </motion.aside>
           )}
-          {news && <PatchNotes key="news" onClose={() => setNews(false)} />}
+          {news && (
+            <Guard
+              key="news"
+              name="Neuigkeiten"
+              fallback={failedDialog('Neuigkeiten', () => setNews(false))}
+            >
+              <PatchNotes onClose={() => setNews(false)} />
+            </Guard>
+          )}
           {aramResult.view && (
-            <AramResultDialog
+            <Guard
               key="aram-result"
-              view={aramResult.view}
-              motionOn={motionOn}
-              onClose={aramResult.close}
-              onRanking={() => {
-                aramResult.close();
-                setPage('aram');
-              }}
-            />
+              name="ARAM-Ergebnis"
+              fallback={failedDialog('ARAM-Ergebnis', aramResult.close)}
+            >
+              <AramResultDialog
+                view={aramResult.view}
+                motionOn={motionOn}
+                onClose={aramResult.close}
+                onRanking={() => {
+                  aramResult.close();
+                  setPage('aram');
+                }}
+              />
+            </Guard>
           )}
           {restore && (
-            <RestoreDialog
-              fresh={restore === 'fresh'}
-              onClose={() => setRestore(null)}
-              onDone={() => {
-                setRestore(null);
-                setPage('apps');
-              }}
-              update={update}
-              music={music}
-              apps={apps}
-              twitch={twitch}
-            />
+            <Guard
+              key="restore"
+              name="Einstellungen holen"
+              fallback={failedDialog('Einstellungen holen', () => setRestore(null))}
+            >
+              <RestoreDialog
+                fresh={restore === 'fresh'}
+                onClose={() => setRestore(null)}
+                onDone={() => {
+                  setRestore(null);
+                  setPage('apps');
+                }}
+                update={update}
+                music={music}
+                apps={apps}
+                twitch={twitch}
+              />
+            </Guard>
           )}
         </AnimatePresence>
         {start && (
-          <StartScreen
+          <Guard
             key={start.run}
-            kind={start.kind}
-            sources={startSources}
-            onDone={() => setStart(null)}
-          />
+            name="Startbildschirm"
+            fallback={() => <Gone then={() => setStart(null)} />}
+          >
+            <StartScreen kind={start.kind} sources={startSources} onDone={() => setStart(null)} />
+          </Guard>
         )}
-        <LiveToasts
-          twitch={twitch}
-          alerts={liveAlerts.alerts}
-          dismiss={liveAlerts.dismiss}
-          warnings={warnings.warnings}
-          dismissWarning={warnings.dismiss}
-          openPage={setPage}
-        />
+        <Guard name="Meldungen" fallback={() => null}>
+          <LiveToasts
+            twitch={twitch}
+            alerts={liveAlerts.alerts}
+            dismiss={liveAlerts.dismiss}
+            warnings={warnings.warnings}
+            dismissWarning={warnings.dismiss}
+            openPage={setPage}
+          />
+        </Guard>
       </div>
       <canvas ref={fxCanvas} className="window-fx" aria-hidden />
       {music.frame}

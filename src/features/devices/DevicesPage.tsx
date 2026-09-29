@@ -1,5 +1,5 @@
 import { Headphones } from 'lucide-react';
-import type { BatteryDevice, DeviceKind } from '../../adapters/devices';
+import { SUPPORTED_DEVICES, type BatteryDevice, type DeviceKind } from '../../adapters/devices';
 import { Badge, DeviceIcon, Meter } from '../../components/ui';
 import { RefreshButton } from '../twitch/RefreshButton';
 import type { Batteries } from './useBatteries';
@@ -99,6 +99,7 @@ export function DevicesPage({ batteries }: { batteries: Batteries }) {
         <div className="empty-state">
           <Headphones size={28} />
           <h2>Kein Gerät mit lesbarem Akku gefunden</h2>
+          <p>Unterstützt: {SUPPORTED_DEVICES}</p>
         </div>
       )}
     </>

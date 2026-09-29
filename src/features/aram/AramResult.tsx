@@ -71,6 +71,7 @@ function Count({
       },
     });
     return () => controls.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- counts again only for a new value or run
   }, [value, run]);
   return <span ref={element}>{format(value)}</span>;
 }
@@ -142,6 +143,7 @@ function Burst({ delay }: { delay: number }) {
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the burst plays once
   }, []);
   return <canvas ref={canvas} className="aram-result-burst" aria-hidden />;
 }
@@ -310,7 +312,7 @@ export function AramResultCard({
   ];
   return (
     <article
-      className={`aram-result tier-${highlight.tier} ${entry.win ? 'win' : 'loss'} ${onOpen ? 'clickable' : ''} ${entry.with.length > 0 ? 'with-mates' : ''}`}
+      className={`aram-result tier-${highlight.tier} ${entry.win ? 'win' : 'loss'} ${onOpen ? 'clickable' : ''} ${entry.with.length > 0 ? 'with-mates' : ''} ${highlight.lines.length > 0 ? 'has-lines' : ''}`}
       style={{ height: resultHeight(entry) }}
       title={onOpen ? 'Rangliste in blank. öffnen' : undefined}
       onClick={onOpen}

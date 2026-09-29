@@ -1,5 +1,33 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Vor jedem Release (auf Windows, ca. 10 Minuten)
+
+Mit der neuen `blank.exe` (`pnpm desktop:build` oder das Artefakt eines manuellen Laufs von „Release“ unter Actions) nacheinander:
+
+1. Starten: Startbildschirm, Home ohne Scrollen, nirgends „Fehler in …“; das Fenster steht, wo es zuletzt war.
+2. Seiten durchklicken: Twitch (Live-Liste, Kanal hinzufügen und entfernen), Pros (Filter), ARAM (Rangliste, Beste Spiele → Ansehen), Musik (Mix starten und stoppen), Devices, PC, Apps.
+3. Zahnrad: alle sechs Reiter und die Suche („laut“); eine Einstellung ändern, blank. über das Symbol im Infobereich beenden, neu starten – die Einstellung ist noch da.
+4. Popouts: blank. in den Hintergrund, in einem Player Musik starten → Popout an seiner Stelle (kompakt mit Balken); Video ins Vollbild → Popout weg; zurück aus dem Vollbild → es kommt nicht von selbst wieder.
+5. X → Animation, blank. im Infobereich; Klick aufs Symbol → zurück.
+6. Zahnrad → System → Fehlerbericht → Kopieren und einfügen: „Keine Fehler aufgezeichnet“ oder nur Erklärbares.
+7. Update aus der vorigen Version: „Nach Updates suchen“ → „Jetzt aktualisieren“ → Neustart mit „Neu in Version …“.
+8. Wenn vorhanden, Windows 10: Popouts „In der Taskleiste“ → rechts neben dem Infobereich, nicht über „Start“.
+
+## Für Freunde: Absturzschutz, Fehlerbericht, Fensterplatz, Windows 10, Twitch ohne Einrichtung, Prüfung bei jeder Änderung (Benutzerauftrag)
+
+Geprüft am 30.09.2026 in der Cloud (Chromium, App mit nachgebildeten Tauri-Befehlen und absichtlich kaputten Daten); nicht nativ.
+
+- Absturzschutz: `pc_status` als Text statt Objekt → auf Home zeigt nur „PC-Status“ „Fehler in „PC-Status““ mit „Neu laden“, Twitch Live und Dein Setup laufen weiter; die Seite PC zeigt den Hinweis unter ihrer Überschrift, danach Twitch normal. Ein kaputter Konto-Name in der Seitenleiste (außerhalb aller Teile) → „Da ist etwas schiefgegangen.“ mit „Neu laden“ und „Fehlerbericht kopieren“ (→ „Bericht kopiert“) statt eines schwarzen Fensters.
+- Fehlerbericht: Settings → System → „Kopieren“ → „Kopiert – …“; in der Zwischenablage die aufgezeichneten Fehler mit Teil und Ort („PC-Status: TypeError … at pcMetrics …“), jede Meldung einmal.
+- Popout: eine Live-Meldung ohne Kanal lässt das Popout-Fenster abstürzen → Eintrag im Protokoll, `flyout_hide`, einmal neu geladen; derselbe Fehler gleich wieder → nur ausgeblendet, kein zweites Neuladen (höchstens einmal pro Minute). Normale Popouts (kompakt, groß, Meldung, Warnung) wie vorher.
+- Getrennt geladen: Build mit `PopoutWindow` (21 kB) und `App` (237 kB) als eigene Teile; das Popout-Fenster lädt die Seiten der App nicht mehr (vorher ein Paket mit ≈ 660 kB).
+- ARAM-Karte mit drei Rekorden: „Schaden an / Champions“ steht zweizeilig neben der Zahl, keine Rekord-Zeile überdeckt sie.
+- Devices ohne Gerät: „Unterstützt: Logitech (Funk und Kabel) und HyperX Cloud Alpha Wireless“, auf Home als Tooltip.
+- Rust (`errors.rs`, `monitor.rs`, `winver.rs`, Twitch): `cargo clippy --target x86_64-pc-windows-msvc --all-targets` ohne Warnung, auch mit gesetztem `BLANK_TWITCH_CLIENT_ID` (baut neu); die neuen Unit-Tests (Datum, Namen herausnehmen, einzeilige Meldung, Fensterplatz auf einem Bildschirm) in einer Kopie der reinen Funktionen unter Linux grün – die Rust-Tests selbst laufen nur unter Windows (jetzt bei jedem Pull Request).
+- Lint: 18 Fundstellen der React-Hooks-Regeln geprüft, alle bewusst (Effekte nur für einen Auslöser, der Rest über Refs) und mit Begründung markiert; keine offenen Fehler.
+- `pnpm build`, `pnpm lint`, `pnpm test`, `pnpm format:check`.
+- **Offen, nativ:** Fensterplatz nach Neustart (auch mit zwei Bildschirmen und nach Abziehen des zweiten), `errors.log` im Konfigurationsordner, Windows 10 mit „In der Taskleiste“, Anmeldung mit eingebauter Client-ID (sobald die Variable gesetzt ist), erster Lauf von `check.yml` auf GitHub.
+
 ## Popouts: Vollbild, kein ×, Balken im kompakten Popout (Benutzerwünsche, Issue #2)
 
 Geprüft am 30.09.2026 in der Cloud; nicht nativ.

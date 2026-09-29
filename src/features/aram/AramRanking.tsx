@@ -308,6 +308,7 @@ export function AramRanking({
     setRace({ from: seen ?? {}, order: changed });
     setStart(null);
     setCounting(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a race only when the values change (by content, not identity)
   }, [targetKey, moving]);
 
   // Frames only while counting; afterwards the gains fade on their own (CSS), nothing runs.
@@ -330,6 +331,7 @@ export function AramRanking({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the race reads the values it started with
   }, [race, counting]);
   useEffect(() => {
     if (!race || counting) return;

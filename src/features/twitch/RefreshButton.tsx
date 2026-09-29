@@ -26,7 +26,7 @@ export function RefreshButton({ data, result: streams }: { data: Reloadable; res
     if (!wasSpinning.current) return;
     wasSpinning.current = false;
     setResult(streams.status === 'ready' && !streams.staleBecause ? 'done' : 'failed');
-    // Only the end of a spin matters; streams is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the end of a spin matters; streams is read at that moment
   }, [spinning]);
 
   useEffect(() => {

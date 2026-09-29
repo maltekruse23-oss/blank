@@ -4,6 +4,7 @@ import { autostart, type Autostart } from '../../platform/system';
 import { formatCpu, formatMemory, usageLevel, type UsageState } from '../../app/useAppUsage';
 import type { Updates } from '../../app/useUpdate';
 import { version } from '../../../package.json';
+import { errorReport } from '../../platform/errorLog';
 
 /** Version line and button of the update row, by state. */
 function updateText(updates: Updates) {
@@ -101,6 +102,17 @@ export function SystemCard({
       .finally(() => setBusy(false));
   }
 
+  // The error report (errors.rs): copied for the user to send; nothing is sent from here.
+  const [report, setReport] = useState<'copied' | 'failed' | null>(null);
+  const copyReport = async () => {
+    try {
+      await navigator.clipboard.writeText(await errorReport());
+      setReport('copied');
+    } catch {
+      setReport('failed');
+    }
+  };
+
   const startLine = start.status === 'ready' ? autostartLine(start.info) : null;
   const ready = usage.status === 'ready' ? usage.usage : null;
   const level = ready && usageLevel(ready);
@@ -165,6 +177,21 @@ export function SystemCard({
             <span />
           </button>
         )}
+      </div>
+      <div className="setting-row">
+        <div>
+          <h3>Fehlerbericht</h3>
+          <p role="status">
+            {report === 'copied'
+              ? 'Kopiert – in eine Nachricht einfügen und schicken'
+              : report === 'failed'
+                ? 'Kopieren ging nicht'
+                : 'Die letzten Fehler zum Verschicken; blank. sendet nichts selbst'}
+          </p>
+        </div>
+        <button className="filter-button" onClick={() => void copyReport()}>
+          Kopieren
+        </button>
       </div>
       <div className="setting-row">
         <div>

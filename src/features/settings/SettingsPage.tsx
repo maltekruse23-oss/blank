@@ -316,6 +316,7 @@ export function SettingsPage({
   const [found, setFound] = useState(true);
   const searching = query.trim().length > 0;
   const layout = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- filters after every render; setFound bails out on the same value
   useEffect(() => {
     const root = layout.current;
     if (!root) return;

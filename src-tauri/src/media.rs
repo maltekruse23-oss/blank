@@ -130,7 +130,10 @@ impl Drop for Bound {
 pub fn start(app: AppHandle) {
     std::thread::spawn(move || {
         if let Err(error) = watch(app) {
-            eprintln!("Media watch unavailable: {error}");
+            crate::errors::record(
+                "Musik",
+                &format!("Medien-Überwachung nicht verfügbar: {error}"),
+            );
         }
     });
 }

@@ -10,6 +10,7 @@ mod background;
 mod battery;
 #[cfg(windows)]
 mod cloud;
+mod errors;
 #[cfg(windows)]
 mod flyout;
 mod fullscreen;
@@ -42,6 +43,8 @@ mod usage;
 mod watch;
 #[cfg(windows)]
 mod window_aspect;
+#[cfg(windows)]
+mod winver;
 
 use tauri::Manager;
 
@@ -62,6 +65,8 @@ pub fn run() {
     }
     tauri::Builder::default()
         .setup(|app| {
+            // First, so everything after it can write to the error log (errors.rs).
+            errors::init(app.handle());
             // The app window, created here so WebView2 gets this run's arguments (gpu.rs).
             let config = app
                 .config()
@@ -113,12 +118,13 @@ pub fn run() {
                 // Must not stop the app from opening, e.g. early at sign-in before the taskbar
                 // is ready (the tray icon then appears once Explorer announces it).
                 if let Err(error) = tray::create(app.handle()) {
-                    eprintln!("Tray icon unavailable: {error}");
+                    errors::record("Infobereich", &format!("Symbol nicht verfügbar: {error}"));
                 }
                 // A second start shows this window (single_instance.rs).
                 single_instance::listen(app.handle().clone());
-                // A missing or changed monitor setup must not stop the app from opening.
-                let _ = monitor::place_on_second(&window);
+                // Where it was last, else on the second monitor; a missing or changed monitor setup
+                // must not stop the app from opening.
+                let _ = monitor::place(&window);
                 window.show()?;
             }
             #[cfg(not(windows))]
@@ -134,7 +140,11 @@ pub fn run() {
             #[cfg(windows)]
             if _window.label() == "main" {
                 match _event {
-                    tauri::WindowEvent::Resized(_) => background::sync(_window),
+                    tauri::WindowEvent::Resized(_) => {
+                        background::sync(_window);
+                        monitor::remember(_window);
+                    }
+                    tauri::WindowEvent::Moved(_) => monitor::remember(_window),
                     // The X (and Alt+F4) hides blank. into the notification area (user's wish,
                     // like other apps); "Beenden" in the icon's menu ends it. Without the icon
                     // (it could not be created) the X still ends it, or blank. would be unreachable.
@@ -156,6 +166,8 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            errors::log_error,
+            errors::error_report,
             #[cfg(windows)]
             apps::apps_scan,
             #[cfg(windows)]

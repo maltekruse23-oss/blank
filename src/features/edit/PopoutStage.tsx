@@ -75,6 +75,7 @@ export function PopoutStage({
   }
   // The real popout appears where it is as soon as this tool opens: its window is there before the
   // first drag, so it follows the miniature at once (user's wish "instant").
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once when the tool opens
   useEffect(() => preview(p), []);
 
   const monitors: PopoutScreen[] = screens > 1 ? ['primary', 'second'] : ['primary'];

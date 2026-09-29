@@ -18,6 +18,7 @@ import { pcMetrics } from '../pc/PcPage';
 import type { PcState } from '../pc/usePcStatus';
 import { batteryText, LOW_BATTERY } from '../devices/DevicesPage';
 import type { Batteries } from '../devices/useBatteries';
+import { SUPPORTED_DEVICES } from '../../adapters/devices';
 import type { Page } from '../../app/App';
 import { usePros } from '../pros/usePros';
 import { ChannelLink } from '../twitch/ChannelLink';
@@ -143,7 +144,7 @@ function SetupBody({ batteries }: WidgetContext) {
       {setup.status === 'loading' && <small role="status">Lädt …</small>}
       {setup.status === 'error' && <small role="status">Nicht verfügbar</small>}
       {setup.status === 'ready' && setup.devices.length === 0 && (
-        <small>Kein Gerät mit lesbarem Akku gefunden</small>
+        <small title={`Unterstützt: ${SUPPORTED_DEVICES}`}>Kein unterstütztes Gerät gefunden</small>
       )}
       {setup.status === 'ready' &&
         setup.devices.slice(0, 3).map((d) => (

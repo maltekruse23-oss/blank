@@ -97,6 +97,8 @@ pub struct LiveStream {
 #[serde(rename_all = "camelCase")]
 pub struct Account {
     configured: bool,
+    /// The app's own client ID is in use (none of the user's own): nothing to set up.
+    built_in: bool,
     signed_in: bool,
     login: Option<String>,
 }
@@ -256,12 +258,14 @@ impl Twitch {
             .filter(|p| p.device_code == device_code)
     }
 
+    /// The user's own client ID, else the one built into this copy of the app.
     async fn client_id(&self) -> Result<String> {
         self.settings
             .lock()
             .await
             .client_id
             .clone()
+            .or_else(|| built_in_client_id().map(str::to_owned))
             .ok_or(TwitchError::NotConfigured)
     }
 
@@ -361,15 +365,31 @@ impl Twitch {
     }
 }
 
+/// Valid form of a Twitch client ID (~30 letters and digits); shorter input is usually a channel.
+fn is_client_id(id: &str) -> bool {
+    (20..=64).contains(&id.len()) && id.bytes().all(|b| b.is_ascii_alphanumeric())
+}
+
+/// The client ID of the app's own Twitch application (public client, device login), set when the
+/// release is built (GitHub variable TWITCH_CLIENT_ID, release.yml). A client ID is no secret; with
+/// it, friends only sign in. Without it everyone enters their own, as before.
+fn built_in_client_id() -> Option<&'static str> {
+    option_env!("BLANK_TWITCH_CLIENT_ID")
+        .map(str::trim)
+        .filter(|id| is_client_id(id))
+}
+
 #[tauri::command]
 pub async fn twitch_account(twitch: State<'_, Twitch>) -> Result<Account> {
     let Ok(client_id) = twitch.client_id().await else {
         return Ok(Account {
             configured: false,
+            built_in: false,
             signed_in: false,
             login: None,
         });
     };
+    let built_in = twitch.settings.lock().await.client_id.is_none();
     match twitch.access_token(&client_id).await {
         Ok(_) | Err(TwitchError::Unauthenticated | TwitchError::Offline) => {}
         Err(error) => return Err(error),
@@ -377,6 +397,7 @@ pub async fn twitch_account(twitch: State<'_, Twitch>) -> Result<Account> {
     let session = twitch.session.lock().await;
     Ok(Account {
         configured: true,
+        built_in,
         signed_in: session.token.is_some(),
         login: session.login.clone(),
     })
@@ -385,10 +406,7 @@ pub async fn twitch_account(twitch: State<'_, Twitch>) -> Result<Account> {
 #[tauri::command]
 pub async fn twitch_set_client_id(twitch: State<'_, Twitch>, client_id: String) -> Result<()> {
     let client_id = client_id.trim().to_owned();
-    // Twitch client IDs are ~30 characters; shorter input is usually a channel name.
-    if !(20..=64).contains(&client_id.len())
-        || !client_id.bytes().all(|b| b.is_ascii_alphanumeric())
-    {
+    if !is_client_id(&client_id) {
         return Err(TwitchError::Unknown {
             message: "Ungültige Client-ID".into(),
         });

@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { spring } from '../../design/motion';
 import { widgets, type WidgetContext } from '../home/widgets';
 import { COLS, MAX_TITLE, ROWS, place, removeTile, type Tile, type WidgetId } from './layout';
+import { Guard } from '../../components/Guard';
 
 type Gesture = {
   id: WidgetId;
@@ -274,7 +275,9 @@ export function HomeGrid({
               )}
             </header>
             <div className="home-body">
-              <Body {...context} />
+              <Guard name={title}>
+                <Body {...context} />
+              </Guard>
             </div>
             {editing && (
               <>

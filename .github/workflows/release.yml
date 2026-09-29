@@ -38,12 +38,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      - run: pnpm lint
       - run: pnpm test
       - name: Rust tests
         working-directory: src-tauri
         run: cargo test --locked
       # Release EXE only via the Tauri CLI (custom-protocol), never plain cargo build --release.
+      # The app's own Twitch client ID (a repository variable, no secret: twitch/mod.rs), so friends
+      # only sign in; without the variable everyone enters their own, as before.
       - run: pnpm desktop:build
+        env:
+          BLANK_TWITCH_CLIENT_ID: ${{ vars.TWITCH_CLIENT_ID }}
       # The browser extension for watching together, as a zip to unpack and load.
       - run: pnpm extension:build
 

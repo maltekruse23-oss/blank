@@ -325,7 +325,7 @@ export function StartScreen({
       stopKeys();
       cancelAnimationFrame(frame);
     };
-    // Starts once; sources and onDone are read through `latest`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- starts once; sources and onDone are read through `latest`
   }, []);
 
   const count = sources.filter((s) => s.ready).length;

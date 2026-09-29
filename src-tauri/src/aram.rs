@@ -1110,7 +1110,7 @@ pub fn league_seen(app: &AppHandle, game: bool, client: bool) {
             tokio::time::sleep(AFTER_CLIENT_START).await;
             match sync_in_background(&app).await {
                 Ok(_) => catch_up(&app).await,
-                Err(error) => eprintln!("ARAM: {error}"),
+                Err(error) => crate::errors::record("ARAM", &error.to_string()),
             }
         });
     }
@@ -1247,7 +1247,7 @@ async fn after_game(app: AppHandle, expected: u64) {
                             return;
                         }
                         Err(error) => {
-                            eprintln!("ARAM: {error}");
+                            crate::errors::record("ARAM", &error.to_string());
                             break;
                         }
                     }
@@ -1262,7 +1262,7 @@ async fn after_game(app: AppHandle, expected: u64) {
     for wait in AFTER_GAME {
         tokio::time::sleep(wait).await;
         if let Err(error) = sync_in_background(&app).await {
-            eprintln!("ARAM: {error}");
+            crate::errors::record("ARAM", &error.to_string());
             continue;
         }
         match claim_card(&app, ended.saturating_sub(window)).await {
@@ -1271,7 +1271,7 @@ async fn after_game(app: AppHandle, expected: u64) {
                 return;
             }
             Ok(None) => {}
-            Err(error) => eprintln!("ARAM: {error}"),
+            Err(error) => crate::errors::record("ARAM", &error.to_string()),
         }
     }
 }
@@ -1368,7 +1368,7 @@ async fn catch_up(app: &AppHandle) {
             let _ = app.emit("aram-result", played);
         }
         Ok(None) => {}
-        Err(error) => eprintln!("ARAM: {error}"),
+        Err(error) => crate::errors::record("ARAM", &error.to_string()),
     }
 }
 
@@ -1377,7 +1377,7 @@ fn finish_later(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(FINISH_AFTER).await;
         if let Err(error) = sync_in_background(&app).await {
-            eprintln!("ARAM: {error}");
+            crate::errors::record("ARAM", &error.to_string());
         }
     });
 }

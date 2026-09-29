@@ -22,3 +22,6 @@ export type BatteryDevice = {
 export const readBatteries = isTauri()
   ? (fresh: boolean) => invoke<BatteryDevice[]>('device_batteries', { fresh })
   : null;
+
+/** What battery.rs can read (read only); other devices do not tell their battery this way. */
+export const SUPPORTED_DEVICES = 'Logitech (Funk und Kabel) und HyperX Cloud Alpha Wireless';

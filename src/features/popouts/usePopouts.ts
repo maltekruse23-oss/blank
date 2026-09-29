@@ -189,6 +189,7 @@ export function usePopouts({
       if (popUp) void show(item);
       else void updatePopout(item);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a change of track or play state pops up
   }, [mixKey, mixPlaying]);
 
   // New live notices and warnings (ids only grow).
