@@ -4,6 +4,7 @@
 - **MP kommen aus deiner Leistung, nicht vom Sieg:** Jedes Spiel bekommt eine Note von 0 bis 10 im Vergleich mit allen zehn im Spiel – Schaden, Anteil am Team, Beteiligung, Einstecken, Heilen, je nach Rolle deines Champions. Spiel strecken, schnell pushen oder nichts tun bringt nichts. Ein Sieg zählt nur ein kleines bisschen.
 - **Nach dem Spiel:** Die Karte zeigt, wie viele MP du bekommen hast – bei einem Aufstieg füllt sich der Balken und dein neues Wappen landet.
 - **Home:** Das ARAM-Widget zeigt oben deinen Rang.
+- **Wappen:** Jede Stufe hat ihr eigenes Wappen, und in der Einstufung siehst du schon blass, wohin es geht.
 
 ## So geht's
 
