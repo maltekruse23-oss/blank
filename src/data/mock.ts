@@ -355,6 +355,17 @@ function mockLobby(i: number, you: Omit<AramSeat, 'team' | 'championId' | 'you'>
   });
   return [{ ...you, team: 100, championId: 0, you: true }, ...others];
 }
+/** Older fictional games of the preview's own player, so the rank tab shows a placed rank. */
+const olderGames: MockGame[] = mockGames
+  .filter((g) => g[0] === nova)
+  .map((g) => {
+    const copy = [...g] as MockGame;
+    copy[3] = !g[3];
+    copy[5] = Math.round(g[5] * 0.8);
+    copy[13] = g[13] + 6;
+    return copy;
+  });
+
 export const mockAramData: AramData = {
   client: true,
   me: nova,
@@ -362,7 +373,7 @@ export const mockAramData: AramData = {
   augments: {},
   since: null,
   missing: [],
-  games: mockGames.map(
+  games: [...mockGames, ...olderGames].map(
     (
       [
         player,

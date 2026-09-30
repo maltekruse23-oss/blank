@@ -9,6 +9,7 @@ import type {
 import { hasPopouts, showPopout } from '../../platform/popout';
 import type { Preferences } from '../settings/preferences';
 import { aramHighlight, type AramHighlight } from './aramHighlight';
+import { rankResult, type RankResult } from './aramRating';
 import { sinceGames } from './aramStats';
 
 export type AramResultView = {
@@ -18,6 +19,8 @@ export type AramResultView = {
   /** Only the augments of this game, with their icons. */
   augments: Record<string, AramAugment>;
   highlight: AramHighlight;
+  /** The game on the ladder (Rang); null when it does not count. */
+  rank: RankResult | null;
 };
 
 let serial = 0;
@@ -43,6 +46,7 @@ export function resultView(
     augments,
     // Records only against the games that count (since the group's start).
     highlight: aramHighlight(entry, sinceGames(data.games, data.since), players),
+    rank: rankResult(data.games, entry.puuid, entry.gameId, data.since ?? 0),
   };
 }
 

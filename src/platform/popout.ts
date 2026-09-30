@@ -7,6 +7,7 @@ import type { AppLoad } from '../adapters/pc';
 import type { Page } from '../app/App';
 import type { AramAugment, AramEntry } from '../adapters/aram';
 import type { AramHighlight } from '../features/aram/aramHighlight';
+import type { RankResult } from '../features/aram/aramRating';
 import type { PopoutPlace, PopoutScreen } from '../features/popouts/placement';
 
 /** blank.'s own SoundCloud mix; positions in ms, `at`: when `position` was true. */
@@ -48,6 +49,7 @@ export type PopoutItem =
       entry: AramEntry;
       augments: Record<string, AramAugment>;
       highlight: AramHighlight;
+      rank?: RankResult | null;
     }
   | {
       kind: 'live';
