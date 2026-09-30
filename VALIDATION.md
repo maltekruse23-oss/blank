@@ -13,6 +13,16 @@ Mit der neuen `blank.exe` (`pnpm desktop:build` oder das Artefakt eines manuelle
 7. Update aus der vorigen Version: „Nach Updates suchen“ → „Jetzt aktualisieren“ → Neustart mit „Neu in Version …“.
 8. Wenn vorhanden, Windows 10: Popouts „In der Taskleiste“ → rechts neben dem Infobereich, nicht über „Start“.
 
+## ARAM: Rang-Modus (Benutzerauftrag, 0.9.0)
+
+Geprüft am 30.09.2026 nativ mit der Release-EXE (`pnpm desktop:build`) und offenem League-Client, dazu in der Vorschau.
+
+- Riots Web-API: mit Entwickler-Schlüssel (`server/tools/check-mayhem.mjs`) Konto gefunden, 100 Spiele, davon 0 ARAM Mayhem; die Liste endet vor den gespielten Mayhem-Spielen (nur Draft, Solo/Duo, Arena) – eine öffentliche Version mit Server geht derzeit nicht. Riots Richtlinien verbieten Alternativen zur offiziellen Rangliste (MMR/Elo) – deshalb offene Leistungsnote statt Skill-Schätzung.
+- Wertung: 80 Tests (Strecken/Pushen ändert nichts, Nichtstun und reines Schaden-Farmen bleiben niedrig, Sieg ±0,3, Rollen, Remake/AFK, Ladder mit Divisionen, Übertrag, Abstieg auf 75, Schutz, Einstufung, gleiche Reihenfolge überall). Ausgleich je Rolle aus 110 Spielen (1100 Noten) der Freundesliste gemessen: Tank +0,79, Assassine −0,79 (`aramBias.ts`).
+- Probe an echten Spielen (18): MP meist ±5 bis 30 je Spiel, Einstufung, Auf- und Abstieg plausibel.
+- Nativ: `aram.json` nach dem Abgleich Version 3, alle 5 Spiele mit den Werten aller zehn, je genau ein „Du“; Reiter „Rang“ mit echten Noten, Karte über „Beste Spiele“ mit Rang-Band („Einstufung 3/5 · Note 6,9“), Home-Widget mit Rang; keine Fehler, keine `errors.log`.
+- **Offen:** Aufstiegs-Animation nur per Test der Rechnung, noch nicht im Bild gesehen; Popout-Karte nach einem echten Spiel noch nicht mit Band gesehen.
+
 ## ARAM: Skin-Splash, Karte übersichtlicher, feste Rekorde, Schaden pro Minute, Spieler-Übersicht (Benutzerwünsche)
 
 Geprüft am 30.09.2026 in der Cloud (Vorschau mit Beispielspielen); nicht nativ.
