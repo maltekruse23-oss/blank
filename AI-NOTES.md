@@ -15,15 +15,17 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
 
 - Keine LoL-Ränge (Eisen … Challenger), kein LP, keine verdeckte Skill-Wertung: Riots
   Entwickler-Richtlinien verbieten „Alternativen zur offiziellen Rangliste, z. B. MMR- oder
-  Elo-Rechner“. Stattdessen „Weg B“: offene Leistungsnote je Spiel, Saisonwert, eigene Stufen.
-- Stufen: **D, C, B, A, S, SS, SSS, MAYHEM**.
+  Elo-Rechner“. Stattdessen „Weg B“: offene Leistungsnote je Spiel, Ladder wie Ranked, eigene Stufen.
+- Stufen: **D, C, B, A, S, SS, SSS, MAYHEM**, eng an LoL-Ranked: Divisionen IV–I zu je 100 Punkten
+  (MP), Auf- und Abstieg (Wahl des Benutzers), Schutz nach Aufstieg, 5 Einstufungsspiele, MAYHEM
+  ohne Divisionen. Nur die Punkte je Spiel kommen aus der Note (gegen die Erwartung des Rangs).
+- Immer daran denken: soll später öffentlich werden und von LoL-Spielern genutzt werden.
 - Leistung zählt, Sieg kaum (Fun-Modus: manche Spiele sind nicht zu gewinnen). Spiel strecken,
   schnell pushen oder nichts tun darf nichts bringen.
 - Wappen: der eigene SVG-Entwurf gefiel nicht. Der Benutzer lässt sie von ChatGPT malen (Kristall-
   Stil). Eingebaut als 256-px-PNGs in `src/features/aram/emblems/`, vorbereitet mit
   `node server/tools/emblems.mjs <Ordner mit 1-D.png … 8-MAYHEM.png> src/features/aram/emblems`
-  (entfernt eingebranntes Schachbrett oder Magenta-Hintergrund #FF00FF, schneidet zu). **Platzhalter:**
-  D ist C in Grau, B hat Löcher im Silber – der Benutzer liefert beide neu auf Magenta. Keine
+  (entfernt eingebranntes Schachbrett oder Magenta-Hintergrund #FF00FF, schneidet zu). D und B kamen auf Magenta nach, alle acht sind die echten Bilder. Keine
   fremden Grafiken (Riot, Overwatch, Marvel Rivals usw.) übernehmen.
 
 **Fertig (Code im Repo, noch ohne Oberfläche):**
@@ -35,20 +37,18 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
 2. Wertung `src/features/aram/aramRating.ts` (Tests in `aramRating.test.ts`): Note 0–10 je Spiel
    aus Plätzen unter allen zehn (Schaden, Team-Anteil, Beteiligung, Einstecken, Heilen, wenig Tode
    nur mit Beteiligung), Gewichte je Rolle (`championRoles.ts`), Sieg ±0,3, Ausgleich je
-   Champion/Rolle (`aramBias.ts`), Saisonwert = Schnitt der besten 20 (fehlende = 3,5), Stufe ab 5
-   Spielen. `standings()` ist deterministisch (gleiche Spiele → bei allen gleiches Ergebnis).
+   Champion/Rolle (`aramBias.ts`), Ladder mit `rankOf`, `pointsFor`, `applyPoints`, `placementLadder`. `standings()` ist deterministisch (gleiche Spiele → bei allen gleiches Ergebnis).
 3. Werkzeuge in `server/tools/`: `champion-roles.mjs` (Rollen aus Data Dragon neu erzeugen),
    `mark-bias.ts` (Ausgleich aus den Spielen des League-Clients neu messen, je Saison;
    `node server/tools/mark-bias.ts`, Client muss offen sein), `check-mayhem.mjs` (prüft Riots
    Web-API mit eigenem Entwickler-Schlüssel in `RIOT_API_KEY`).
 
 4. Etappe 3: Reiter „Rang“ (erster Reiter der ARAM-Seite, `AramRank.tsx`): je Spieler Wappen, Stufe,
-   Saisonwert, Fortschritt zur nächsten Stufe, letzte 6 Noten; in der Einstufung (< 5 Spiele) die
+   Platz, Rang mit Division, MP, Fortschritt, MP der letzten 6 Spiele; in der Einstufung (< 5 Spiele) die
    vorläufige Stufe blass. Die Vorschau hat dafür erfundene Zehner-Spiele (`mockLobby` in `mock.ts`).
 
 **Nächste Schritte:**
 
-- Wappen D und B ersetzen, sobald der Benutzer sie als Datei liefert.
 - Etappe 4: Note und Aufstieg auf der Karte nach dem Spiel (`AramResult.tsx`), Popout, Home-Widget;
   Aufstieg einmal animiert, nie dauerhaft.
 - Etappe 5: Saisons (Start = Gruppen-Start, `RATING_VERSION` gehört zur Saison).
@@ -84,6 +84,10 @@ Rechnung aus `aramRating.ts`, vorher Riot per Developer-Portal fragen.
   wurde, ist später weg.
 
 ## Verlauf
+
+- 30.09.2026 (4): Ladder wie LoL-Ranked statt Saisonwert (Benutzerwunsch: öffentlich für LoL-Spieler, Abstieg ja): Divisionen IV–I, 0–100 MP, Auf-/Abstieg, Schutz, Einstufung; Reiter zeigt Platz, Rang, MP und MP je Spiel.
+
+- 30.09.2026 (3): Wappen D und B durch die echten Bilder (Magenta-Hintergrund) ersetzt.
 
 - 30.09.2026 (2): Reiter „Rang“ mit den Wappen des Benutzers (D/B Platzhalter), Werkzeug
   `emblems.mjs`, Mock-Spiele mit allen zehn.

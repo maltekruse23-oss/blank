@@ -281,17 +281,3 @@ for (const file of readdirSync(from).filter((f) => f.endsWith('.png'))) {
     `${file} → ${name}: Hintergrund ${(share * 100).toFixed(0)} %, Emblem ${maxX - minX + 1}×${maxY - minY + 1}`,
   );
 }
-
-// Stand-in for D until its picture comes: C in dull grey.
-if (!readdirSync(from).some((f) => /-D\.png$/i.test(f))) {
-  const { w, h, px } = decode(readFileSync(`${to}/c.png`));
-  for (let i = 0; i < w * h; i++) {
-    const o = i * 4;
-    const l = Math.round((0.3 * px[o] + 0.59 * px[o + 1] + 0.11 * px[o + 2]) * 0.75);
-    px[o] = l;
-    px[o + 1] = l;
-    px[o + 2] = Math.min(255, l + 6);
-  }
-  writeFileSync(`${to}/d.png`, encode(w, h, px));
-  console.log('d.png: Platzhalter aus C in Grau');
-}

@@ -1,7 +1,10 @@
 /**
  * Mayhem rating (user's wish: a rank mode that fits a fun mode). Not a skill estimate like MMR
  * (Riot forbids alternatives to its ranked ladder): every game gets an open performance mark
- * 0–10 against the other nine in the same game, the season shows the mean of the best marks.
+ * 0–10 against the other nine in the same game. The ladder is close to LoL ranked (user's wish:
+ * later public for LoL players): tiers with divisions IV–I, 0–100 points per division, promotion,
+ * demotion with a shield, placement games, seasons; only the points per game come from the mark
+ * (measured against what the current rank expects) instead of win or loss.
  *
  * - Relative to the lobby: shares and places among all ten, so stretching a game to farm damage or
  *   ending it fast changes nothing (everyone farms more in a long game).
@@ -144,58 +147,126 @@ export function markGame(entry: AramEntry, neutral = false): Mark | null {
   return { value, role, win: entry.win, parts };
 }
 
-/** The season's value: mean of the best marks; missing games up to BEST count as START, so a few
- * lucky games do not make a high tier and every new best mark lifts the value. */
-export const BEST = 20;
+/** Placement games before the first rank (as in LoL). */
 export const PLACEMENT = 5;
-export const START = 3.5;
+/** Points per mark point above or below what the rank expects, and the most per game. */
+export const POINTS_PER_MARK = 10;
+export const MAX_GAIN = 30;
+export const MAX_LOSS = 25;
+/** Games after the placement or a promotion to a new tier in which the tier cannot be lost. */
+export const SHIELD_GAMES = 3;
+/** Points after a demotion (as in LoL). */
+const AFTER_DEMOTION = 75;
+/** Placements never place higher than the start of this tier (index into TIERS). */
+const PLACEMENT_CAP = 4;
 
-export function seasonValue(marks: number[]) {
-  const best = [...marks].sort((a, b) => b - a).slice(0, BEST);
-  const sum = best.reduce((s, m) => s + m, 0) + Math.max(0, BEST - best.length) * START;
-  return Math.round((sum / BEST) * 100) / 100;
-}
-
-/** The tiers (user's choice: short grades as in action games). */
+/** The tiers (user's choice: short grades as in action games) and the mark each expects at its
+ * start; within a tier the expectation rises towards the next. */
 export const TIERS = [
-  { id: 'd', name: 'D', from: 0 },
-  { id: 'c', name: 'C', from: 3.6 },
-  { id: 'b', name: 'B', from: 4.3 },
-  { id: 'a', name: 'A', from: 5 },
-  { id: 's', name: 'S', from: 5.7 },
-  { id: 'ss', name: 'SS', from: 6.4 },
-  { id: 'sss', name: 'SSS', from: 7.1 },
-  { id: 'mayhem', name: 'MAYHEM', from: 7.8 },
+  { id: 'd', name: 'D', expects: 3.0 },
+  { id: 'c', name: 'C', expects: 3.6 },
+  { id: 'b', name: 'B', expects: 4.3 },
+  { id: 'a', name: 'A', expects: 5 },
+  { id: 's', name: 'S', expects: 5.7 },
+  { id: 'ss', name: 'SS', expects: 6.4 },
+  { id: 'sss', name: 'SSS', expects: 7.1 },
+  { id: 'mayhem', name: 'MAYHEM', expects: 7.8 },
 ] as const;
 
 export type Tier = (typeof TIERS)[number];
+export const DIVISION_NAMES = ['I', 'II', 'III', 'IV'] as const;
 
-/** The tier of a season value and how far it is to the next (0–1; 1 in the top tier). */
-export function tierOf(value: number) {
-  let at = 0;
-  TIERS.forEach((tier, i) => {
-    if (value >= tier.from) at = i;
-  });
-  const next = TIERS[at + 1];
-  const progress = next
-    ? Math.min(1, Math.max(0, (value - TIERS[at].from) / (next.from - TIERS[at].from)))
-    : 1;
-  return { tier: TIERS[at] as Tier, next: next as Tier | undefined, progress };
+/** Each tier below the top has four divisions of 100 points; the top tier has only points. */
+const TIER_SPAN = 400;
+const TOP = (TIERS.length - 1) * TIER_SPAN;
+
+export type Rank = {
+  tier: Tier;
+  /** 4 (IV) … 1 (I); null in the top tier. */
+  division: number | null;
+  /** 0–99 in a division, open-ended in the top tier. */
+  points: number;
+  /** One number for the whole ladder (sorting, the way up). */
+  ladder: number;
+};
+
+export function rankOf(ladder: number): Rank {
+  const l = Math.max(0, Math.round(ladder));
+  if (l >= TOP)
+    return { tier: TIERS[TIERS.length - 1], division: null, points: l - TOP, ladder: l };
+  const tier = Math.floor(l / TIER_SPAN);
+  return {
+    tier: TIERS[tier],
+    division: 4 - Math.floor((l % TIER_SPAN) / 100),
+    points: l % 100,
+    ladder: l,
+  };
 }
 
-export type MarkedGame = { entry: AramEntry; mark: Mark; before: number; after: number };
+/** "S II", "MAYHEM". */
+export const rankName = (rank: Rank) =>
+  rank.division === null
+    ? rank.tier.name
+    : `${rank.tier.name} ${DIVISION_NAMES[rank.division - 1]}`;
+
+/** The mark a rank expects: the higher, the more is needed for points. */
+export function expectedMark(ladder: number) {
+  if (ladder >= TOP) return TIERS[TIERS.length - 1].expects + ((ladder - TOP) / TIER_SPAN) * 0.7;
+  const tier = Math.floor(ladder / TIER_SPAN);
+  const within = (ladder - tier * TIER_SPAN) / TIER_SPAN;
+  return TIERS[tier].expects + (TIERS[tier + 1].expects - TIERS[tier].expects) * within;
+}
+
+/** Points for a game: its mark against what the rank expects (never zero, like LP). */
+export function pointsFor(mark: number, ladder: number) {
+  const raw = Math.round(POINTS_PER_MARK * (mark - expectedMark(ladder)));
+  const gain = Math.max(-MAX_LOSS, Math.min(MAX_GAIN, raw));
+  return gain !== 0 ? gain : mark >= expectedMark(ladder) ? 1 : -1;
+}
+
+/** Where the placement games put a player: the rank whose expectation their mean mark meets. */
+export function placementLadder(marks: number[]) {
+  const mean = marks.reduce((s, m) => s + m, 0) / marks.length;
+  let ladder = 0;
+  while (ladder < PLACEMENT_CAP * TIER_SPAN && expectedMark(ladder + 1) <= mean) ladder += 1;
+  return ladder;
+}
+
+/** One game on the ladder: promotion carries the extra points; below 0 a player first drops to 0,
+ * then one division down to 75 points; a new tier is kept for SHIELD_GAMES games. */
+export function applyPoints(ladder: number, gain: number, shield: number) {
+  const next = ladder + gain;
+  if (gain >= 0) return next;
+  const floor = ladder >= TOP ? TOP : Math.floor(ladder / 100) * 100;
+  if (next >= floor) return next;
+  if (ladder > floor) return floor;
+  if (floor === 0) return 0;
+  if (floor % TIER_SPAN === 0 && shield > 0) return floor;
+  return floor - 100 + AFTER_DEMOTION;
+}
+
+export type Step = {
+  entry: AramEntry;
+  mark: Mark;
+  /** Points of this game; null for placement games. */
+  gain: number | null;
+  before: Rank | null;
+  after: Rank | null;
+  change: 'placed' | 'promoted' | 'demoted' | null;
+};
 
 export type Standing = {
   puuid: string;
   name: string;
   /** Counted games of the season. */
   games: number;
-  value: number;
   /** Null until the placement games are played. */
-  tier: ReturnType<typeof tierOf> | null;
-  /** Every counted game with the season value before and after it, oldest first. */
-  history: MarkedGame[];
+  rank: Rank | null;
+  /** Every counted game with the rank before and after it, oldest first. */
+  history: Step[];
 };
+
+const division = (rank: Rank) => (rank.ladder >= TOP ? TOP : Math.floor(rank.ladder / 100));
 
 /** Everyone's season from the collected games (only games from `since` on); the same games in any
  * order give the same result. */
@@ -211,28 +282,56 @@ export function standings(entries: AramEntry[], since = 0): Standing[] {
   for (const [puuid, list] of byPlayer) {
     list.sort((a, b) => a.at - b.at || a.gameId - b.gameId);
     const marks: number[] = [];
-    const history: MarkedGame[] = [];
+    const history: Step[] = [];
+    let ladder: number | null = null;
+    let shield = 0;
     for (const entry of list) {
       const mark = markGame(entry);
       if (!mark) continue;
-      const before = seasonValue(marks);
       marks.push(mark.value);
-      history.push({ entry, mark, before, after: seasonValue(marks) });
+      if (ladder === null) {
+        const placed = marks.length === PLACEMENT;
+        if (placed) {
+          ladder = placementLadder(marks);
+          shield = SHIELD_GAMES;
+        }
+        const after = placed ? rankOf(ladder!) : null;
+        history.push({
+          entry,
+          mark,
+          gain: null,
+          before: null,
+          after,
+          change: placed ? 'placed' : null,
+        });
+        continue;
+      }
+      const before = rankOf(ladder);
+      const gain = pointsFor(mark.value, ladder);
+      ladder = applyPoints(ladder, gain, shield);
+      shield = Math.max(0, shield - 1);
+      const after = rankOf(ladder);
+      if (after.tier !== before.tier && after.ladder > before.ladder) shield = SHIELD_GAMES;
+      const change =
+        division(after) > division(before)
+          ? 'promoted'
+          : division(after) < division(before)
+            ? 'demoted'
+            : null;
+      history.push({ entry, mark, gain, before, after, change });
     }
-    const value = seasonValue(marks);
     result.push({
       puuid,
       name: list[list.length - 1].name,
       games: marks.length,
-      value,
-      tier: marks.length >= PLACEMENT ? tierOf(value) : null,
+      rank: ladder === null ? null : rankOf(ladder),
       history,
     });
   }
   // Plain comparisons: the same order on every PC.
   return result.sort(
     (a, b) =>
-      b.value - a.value ||
+      (b.rank?.ladder ?? -1) - (a.rank?.ladder ?? -1) ||
       (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) ||
       (a.puuid < b.puuid ? -1 : 1),
   );
