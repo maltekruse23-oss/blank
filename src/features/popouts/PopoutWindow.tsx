@@ -1364,6 +1364,7 @@ export function PopoutWindow() {
           entry={item.entry}
           augments={item.augments}
           highlight={item.highlight}
+          rank={item.rank ?? null}
           run={fadeMs === 0 ? 'off' : presented === `${item.kind}-${item.id}` ? 'play' : 'wait'}
           onOpen={() => {
             void openApp('aram');

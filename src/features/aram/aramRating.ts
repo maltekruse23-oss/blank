@@ -336,3 +336,38 @@ export function standings(entries: AramEntry[], since = 0): Standing[] {
       (a.puuid < b.puuid ? -1 : 1),
   );
 }
+
+/** What one game did on the ladder, for the card after the game (small: goes to the popout). */
+export type RankResult = {
+  mark: number;
+  /** Points of the game; null in the placement games. */
+  gain: number | null;
+  before: Rank | null;
+  after: Rank | null;
+  change: Step['change'];
+  /** Counted games up to this one (placement: "3/5"). */
+  games: number;
+};
+
+/** The step of one player's game on the ladder (only games from `since` on), or null when the game
+ * does not count (no values of all ten, remake, away). */
+export function rankResult(
+  entries: AramEntry[],
+  puuid: string,
+  gameId: number,
+  since = 0,
+): RankResult | null {
+  const own = entries.filter((e) => e.puuid === puuid);
+  const standing = standings(own, since)[0];
+  const index = standing?.history.findIndex((h) => h.entry.gameId === gameId) ?? -1;
+  if (!standing || index < 0) return null;
+  const step = standing.history[index];
+  return {
+    mark: step.mark.value,
+    gain: step.gain,
+    before: step.before,
+    after: step.after,
+    change: step.change,
+    games: index + 1,
+  };
+}

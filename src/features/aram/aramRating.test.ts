@@ -11,6 +11,7 @@ import {
   pointsFor,
   rankName,
   rankOf,
+  rankResult,
   SHIELD_GAMES,
   standings,
   WIN_BONUS,
@@ -218,6 +219,22 @@ describe('Mayhem-Wertung: Ladder wie in LoL', () => {
     expect(a[0].history[PLACEMENT - 1].change).toBe('placed');
     expect(a[0].history[PLACEMENT].gain).not.toBeNull();
     expect(standings(games.slice(0, PLACEMENT - 1))[0].rank).toBeNull();
+  });
+
+  it('Schritt eines Spiels für die Karte: Einstufung, dann Punkte', () => {
+    const games = Array.from({ length: 7 }, (_, i) =>
+      game({ damage: 30_000 + i * 4_000 }, { gameId: 50 + i, at: 1_790_000_000_000 + i * 1e6 }),
+    );
+    const third = rankResult(games, 'p1', 52)!;
+    expect(third).toMatchObject({ gain: null, after: null, games: 3 });
+    const fifth = rankResult(games, 'p1', 54)!;
+    expect(fifth.change).toBe('placed');
+    expect(fifth.after).not.toBeNull();
+    const sixth = rankResult(games, 'p1', 55)!;
+    expect(sixth.gain).not.toBeNull();
+    expect(sixth.before).toEqual(fifth.after);
+    expect(rankResult(games, 'p1', 999)).toBeNull();
+    expect(rankResult(games, 'someone else', 55)).toBeNull();
   });
 
   it('nur Spiele ab Saisonstart', () => {

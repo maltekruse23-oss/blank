@@ -14,6 +14,8 @@ import { spring } from '../../design/motion';
 import { categories } from './aramCategories';
 import type { AramHighlight } from './aramHighlight';
 import { categoryIcons } from './aramIcons';
+import type { RankResult } from './aramRating';
+import { RankStrip, RANK_STRIP } from './RankStrip';
 import { damagePerMinute } from './aramStats';
 import { duration, number, percent } from './format';
 
@@ -37,6 +39,8 @@ const T = {
   /** The new records under the damage, after the badge. */
   records: 1.75,
   mates: 1.9,
+  /** The game on the ladder: points count, the bar fills, a promotion lands. */
+  rank: 1.15,
 };
 /** Records shown as chips; more are counted ("+1"). */
 const MAX_RECORD_CHIPS = 2;
@@ -197,8 +201,9 @@ const BASE_HEIGHT = 232;
 const MATES_HEAD = 34;
 const MATE_ROW = 27;
 const MAX_MATES = 4;
-export const resultHeight = (entry: AramEntry) =>
+export const resultHeight = (entry: AramEntry, rank: RankResult | null = null) =>
   BASE_HEIGHT +
+  (rank ? RANK_STRIP : 0) +
   (entry.with.length > 0
     ? MATES_HEAD + MATE_ROW * (1 + Math.min(MAX_MATES, entry.with.length))
     : 0);
@@ -286,6 +291,7 @@ export function AramResultCard({
   entry,
   augments,
   highlight,
+  rank = null,
   run,
   onClose,
   onOpen,
@@ -293,6 +299,8 @@ export function AramResultCard({
   entry: AramEntry;
   augments: Record<string, AramAugment>;
   highlight: AramHighlight;
+  /** The game on the ladder (Rang); null when it does not count. */
+  rank?: RankResult | null;
   run: ResultMotion;
   onClose?: () => void;
   /** A click on the card (not on its close button): opens the ranking. */
@@ -325,7 +333,12 @@ export function AramResultCard({
   return (
     <article
       className={`aram-result tier-${highlight.tier} ${entry.win ? 'win' : 'loss'} ${onOpen ? 'clickable' : ''} ${entry.with.length > 0 ? 'with-mates' : ''}`}
-      style={{ height: resultHeight(entry) }}
+      style={
+        {
+          height: resultHeight(entry, rank),
+          '--body-height': `${BASE_HEIGHT + (rank ? RANK_STRIP : 0)}px`,
+        } as CSSProperties
+      }
       title={onOpen ? 'Rangliste in blank. öffnen' : undefined}
       onClick={onOpen}
       aria-label={`ARAM Mayhem: ${entry.win ? 'Sieg' : 'Niederlage'}, ${number(entry.damage)} Schaden an Champions`}
@@ -439,6 +452,7 @@ export function AramResultCard({
             </Part>
           ))}
         </dl>
+        {rank && <RankStrip rank={rank} run={run} delay={T.rank} />}
         <div className="aram-result-loadout">
           {entry.augments.length > 0 && (
             <ul className="aram-augments" aria-label="Augments">

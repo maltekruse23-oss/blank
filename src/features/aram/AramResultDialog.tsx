@@ -34,7 +34,7 @@ export function AramResultDialog({
     >
       <motion.div
         className="aram-result-zoom"
-        style={{ height: resultHeight(view.entry) * 1.3 }}
+        style={{ height: resultHeight(view.entry, view.rank) * 1.3 }}
         initial={{ opacity: 0, y: 26, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1, transition: spring('bouncy') }}
         exit={{ opacity: 0, y: 10, scale: 0.96, transition: { duration: 0.14 } }}
@@ -44,6 +44,7 @@ export function AramResultDialog({
           entry={view.entry}
           augments={view.augments}
           highlight={view.highlight}
+          rank={view.rank}
           run={motionOn ? 'play' : 'off'}
           onClose={onClose}
         />

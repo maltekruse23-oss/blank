@@ -47,10 +47,11 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
    Platz, Rang mit Division, MP, Fortschritt, MP der letzten 6 Spiele; in der Einstufung (< 5 Spiele) die
    vorläufige Stufe blass. Die Vorschau hat dafür erfundene Zehner-Spiele (`mockLobby` in `mock.ts`).
 
+5. Etappe 4: Rang-Band auf der Karte nach dem Spiel (`RankStrip.tsx`, auch im Popout und im Dialog), eigener
+   Rang im ARAM-Widget auf Home. Wappen einzeln in `TierEmblem.tsx` (das Popout lädt nicht die Rang-Seite).
+
 **Nächste Schritte:**
 
-- Etappe 4: Note und Aufstieg auf der Karte nach dem Spiel (`AramResult.tsx`), Popout, Home-Widget;
-  Aufstieg einmal animiert, nie dauerhaft.
 - Etappe 5: Saisons (Start = Gruppen-Start, `RATING_VERSION` gehört zur Saison).
 - Prüfen nach dem nächsten Build: Die Werte aller zehn kommen wirklich in `aram.json` an.
 
@@ -84,6 +85,8 @@ Rechnung aus `aramRating.ts`, vorher Riot per Developer-Portal fragen.
   wurde, ist später weg.
 
 ## Verlauf
+
+- 30.09.2026 (5): Etappe 4 – MP und Aufstieg auf der Karte (auch Popout), Rang im Home-Widget.
 
 - 30.09.2026 (4): Ladder wie LoL-Ranked statt Saisonwert (Benutzerwunsch: öffentlich für LoL-Spieler, Abstieg ja): Divisionen IV–I, 0–100 MP, Auf-/Abstieg, Schutz, Einstufung; Reiter zeigt Platz, Rang, MP und MP je Spiel.
 

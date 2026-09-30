@@ -2422,7 +2422,7 @@ html[data-motion='normal'] .aram-gain {
   bottom: auto;
 }
 .aram-result.with-mates .aram-result-body {
-  height: 232px;
+  height: var(--body-height, 232px);
 }
 .aram-result-mates {
   padding: 8px 22px 12px;
@@ -3536,4 +3536,136 @@ html[data-motion='normal'] .aram-gain {
 }
 .rank-mark.demoted {
   outline: 1px solid var(--danger);
+}
+
+/* The game on the ladder on the card after the game (RankStrip.tsx). */
+.rank-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 50px;
+  max-width: 330px;
+  padding: 4px 12px 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: calc(12px * var(--radius-scale));
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
+.rank-strip.up {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.rank-strip.down {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+}
+.rank-strip-emblem {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+}
+.rank-strip-emblem .rank-emblem {
+  width: 46px;
+  height: 46px;
+}
+.rank-strip-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.rank-placing.small {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+.rank-strip-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.rank-strip-name {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rank-strip-name b {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
+}
+.rank-strip-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+.rank-strip-bar {
+  max-width: none;
+}
+.rank-strip-bar > span {
+  transition: none;
+}
+.rank-strip-gain {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.rank-strip-gain b {
+  font-size: 20px;
+  font-weight: 900;
+}
+.rank-strip-gain small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.rank-strip-gain.plus b {
+  color: var(--accent);
+}
+.rank-strip-gain.minus b {
+  color: var(--danger-text);
+}
+.rank-strip-label {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.rank-strip-label.down {
+  background: var(--danger);
+  color: var(--text);
+}
+
+/* The user's rank on the ARAM widget of Home. */
+.widget-rank {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.widget-rank .rank-emblem {
+  width: 52px;
+  height: 52px;
+}
+.widget-rank-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.widget-rank-main b {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 900;
 }

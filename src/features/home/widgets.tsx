@@ -33,7 +33,9 @@ import {
 } from '../../adapters/aram';
 import { categories, ranking } from '../aram/aramCategories';
 import { placeColor } from '../aram/AramRanking';
+import { PLACEMENT, rankName, standings } from '../aram/aramRating';
 import { sinceGames } from '../aram/aramStats';
+import { TierEmblem } from '../aram/TierEmblem';
 import type { WidgetId } from '../edit/layout';
 
 export type WidgetContext = {
@@ -255,7 +257,8 @@ function MusicBody({ music, navigate }: WidgetContext) {
   );
 }
 
-/** The top three of "Höchster Schaden" from the stored ARAM games (asks the League client nothing). */
+/** The user's rank on the Mayhem ladder and the top three of "Höchster Schaden" from the stored
+ * ARAM games (asks the League client nothing). */
 function AramBody({ aramFriends }: WidgetContext) {
   const [data, setData] = useState<AramData | null>(null);
   useEffect(() => {
@@ -279,24 +282,63 @@ function AramBody({ aramFriends }: WidgetContext) {
     .slice(0, 3);
   if (rows.length === 0) return <small>Noch keine ARAM-Mayhem-Spiele</small>;
   const top = rows[0]!.value ?? 1;
+  const mine = data.me
+    ? standings(sinceGames(data.games, data.since)).find((s) => s.puuid === data.me!.puuid)
+    : undefined;
   return (
-    <ol className="widget-aram">
-      {rows.map((row, i) => (
-        <li key={row.player.puuid} style={{ '--place': placeColor(i + 1) } as React.CSSProperties}>
-          <span className="aram-bar-place">{i + 1}</span>
-          <ChannelAvatar
-            login={splitRiotId(row.player.name).name}
-            imageUrl={profileIcon(row.player.icon)}
-          />
-          <span className="aram-bar-name">{splitRiotId(row.player.name).name}</span>
-          <b>{damage.format(row.value ?? 0)}</b>
-          <span
-            className="widget-aram-bar"
-            style={{ width: `${((row.value ?? 0) / top) * 100}%` }}
-          />
-        </li>
-      ))}
-    </ol>
+    <>
+      {mine && mine.games > 0 && (
+        <div className="widget-rank">
+          {mine.rank ? (
+            <TierEmblem tier={mine.rank.tier} size={52} />
+          ) : (
+            <span className="rank-placing small">?</span>
+          )}
+          <span className="widget-rank-main">
+            {mine.rank ? (
+              <>
+                <b>{rankName(mine.rank)}</b>
+                <span>{mine.rank.points} MP</span>
+                <span
+                  className="rank-progress"
+                  style={
+                    {
+                      '--progress': mine.rank.division === null ? 1 : mine.rank.points / 100,
+                    } as React.CSSProperties
+                  }
+                >
+                  <span />
+                </span>
+              </>
+            ) : (
+              <span>
+                Einstufung {mine.games}/{PLACEMENT}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+      <ol className="widget-aram">
+        {rows.map((row, i) => (
+          <li
+            key={row.player.puuid}
+            style={{ '--place': placeColor(i + 1) } as React.CSSProperties}
+          >
+            <span className="aram-bar-place">{i + 1}</span>
+            <ChannelAvatar
+              login={splitRiotId(row.player.name).name}
+              imageUrl={profileIcon(row.player.icon)}
+            />
+            <span className="aram-bar-name">{splitRiotId(row.player.name).name}</span>
+            <b>{damage.format(row.value ?? 0)}</b>
+            <span
+              className="widget-aram-bar"
+              style={{ width: `${((row.value ?? 0) / top) * 100}%` }}
+            />
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 
