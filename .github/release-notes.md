@@ -1,10 +1,14 @@
 ## Neu in dieser Version
 
-- **Zusammen schauen im eigenen Browser:** Die neue Browser-Erweiterung `blank-extension.zip` (unten bei Assets) für Chrome, Edge, Brave und Opera. Du schaust ganz normal auf twitch.tv – wechselst du den Kanal, wechseln alle im Raum mit.
-- **Eingeloggt schauen:** Im eigenen Browser hast du Chat, Abos, Emotes und deine Browser-Erweiterungen wie gewohnt; auf der Twitch-Seite selbst zeigt die Erweiterung nichts an.
-- **Gemischt mit blank.:** Gleiche Räume und Codes wie Twitch → Zusammen. Einer schaut in blank., der andere im Browser – alle sind im selben Raum.
-- **Freunde ohne blank.:** Wer nur zuschauen will, braucht blank. nicht – die Erweiterung allein reicht, auch auf einem anderen PC.
-- **Einrichten in einer Minute:** Zip entpacken, im Browser `chrome://extensions` (Opera: `opera://extensions`) öffnen, „Entwicklermodus“ an, „Entpackte Erweiterung laden“ und den Ordner wählen. Symbol oben anheften, im Twitch-Tab draufklicken, Raum starten oder Code eingeben.
+- **ARAM-Karte mit deinem Skin:** Nach dem Spiel zeigt die Karte das Splash-Art des Skins, den du gespielt hast.
+- **Übersichtlichere Karte:** Groß der Schaden, neue Rekorde als kleine Chips, darunter nur K/D/A, Schaden pro Minute und Team-Anteil.
+- **Rangliste mit allen Rekorden:** Kein Auswählen mehr – es stehen immer alle Rekorde da, neu mit **Schaden pro Minute**.
+- **Spieler-Übersicht:** Klick auf einen Namen in der Rangliste zeigt Medaillen, Siege, KDA, Rekorde, beste Spiele und Lieblings-Champions.
+- **Einstellungen schneller finden:** Zahnrad oben neben „Bearbeiten“.
+- **Popouts:** verschwinden jetzt zuverlässig bei Vollbild, kein × mehr (ausschalten in den Einstellungen), das kleine Musik-Popout zeigt einen Fortschrittsbalken.
+- **Kein schwarzes Fenster mehr:** Hat ein Teil einen Fehler, zeigt nur dieser „Fehler in …“ mit „Neu laden“. Unter Zahnrad → System → **Fehlerbericht** kannst du den Bericht kopieren und schicken.
+- **Fensterplatz:** blank. startet dort, wo du es zuletzt hattest.
+- **Twitch ohne Einrichtung:** Einfach „Mit Twitch verbinden“ – keine eigene Client-ID mehr nötig.
 
 ## So geht's
 
@@ -23,5 +27,5 @@ Die beiden Dateien **„Source code“** brauchst du nicht, das ist nur der Quel
 - **ARAM:** Der League-Client muss ab und zu offen sein, am besten läuft blank. im Hintergrund mit (der Client merkt sich nur die letzten 20 Spiele je Spieler). blank. liest nur, ändert nichts und fasst das Spiel nie an. Für die Gruppe brauchen alle Freunde Version 0.6.0; die Rangliste der Gruppe zählt ab ihrer Erstellung.
 - **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumente\blank`), bevor du in den Settings „Mit Windows starten“ einschaltest.
 - **Anderer PC:** am einfachsten mit „Online sichern“ (Seite Apps); oder Settings → Übertragen → Exportieren und auf dem anderen PC Importieren. Twitch danach einmal neu verbinden.
-- **Twitch:** braucht einmalig eine eigene, kostenlose Client-ID (Anleitung in der README unter „Twitch einrichten“).
+- **Twitch:** Settings → Twitch → „Mit Twitch verbinden“ und den Code im Browser bestätigen.
 - Voraussetzung: Windows 10 oder 11 (64 Bit).
