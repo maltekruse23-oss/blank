@@ -5,7 +5,7 @@ stehen in `CLAUDE.md` (zuerst lesen, gilt für alle), Prüfstände in `VALIDATIO
 `README.md`. Hier steht nur, **woran gerade gearbeitet wird, was entschieden ist und was offen
 ist.** Bei jedem Patch und jedem Release aktualisieren und mit hochladen (Benutzerwunsch).
 
-Stand: 30.09.2026, nach v0.8.0 (noch nicht als neue Version veröffentlicht).
+Stand: 30.09.2026, Version 0.9.0 (Rang-Modus veröffentlicht).
 
 ## Gerade in Arbeit: Rang-Modus für ARAM Mayhem
 
@@ -53,7 +53,7 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
 **Nächste Schritte:**
 
 - Etappe 5: Saisons (Start = Gruppen-Start, `RATING_VERSION` gehört zur Saison).
-- Prüfen nach dem nächsten Build: Die Werte aller zehn kommen wirklich in `aram.json` an.
+- Nachsehen: Aufstiegs-Animation und Popout-Karte mit Band nach einem echten Spiel (nativ noch nicht im Bild gesehen).
 
 **Öffentliche Version: derzeit nicht möglich.** Geprüft am 30.09.2026 mit Entwickler-Schlüssel:
 Riots Web-API (Match-V5) gibt ARAM-Mayhem-Spiele nicht heraus (Spielliste endet vor den
@@ -85,6 +85,8 @@ Rechnung aus `aramRating.ts`, vorher Riot per Developer-Portal fragen.
   wurde, ist später weg.
 
 ## Verlauf
+
+- 30.09.2026: **Release 0.9.0** (Rang-Modus). Nativ geprüft: `aram.json` v3 mit allen zehn, Rang-Reiter, Karte, Home.
 
 - 30.09.2026 (5): Etappe 4 – MP und Aufstieg auf der Karte (auch Popout), Rang im Home-Widget.
 
