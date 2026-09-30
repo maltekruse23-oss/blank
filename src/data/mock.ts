@@ -1,6 +1,6 @@
 // Static demonstration data only. Never present these values as detected or live.
 import type { GameRef, LiveStream, WatchedChannel } from '../adapters/twitch';
-import type { AramData, AramEntry, AramPlayer } from '../adapters/aram';
+import type { AramData, AramEntry, AramPlayer, AramSeat } from '../adapters/aram';
 
 // Fictional category IDs; real Twitch IDs come from the Helix category search.
 export const mockCategories: GameRef[] = [
@@ -335,6 +335,26 @@ const mockGames: MockGame[] = [
     12,
   ],
 ];
+/** A fictional game of ten around one player's values (for the rank tab of the preview). */
+function mockLobby(i: number, you: Omit<AramSeat, 'team' | 'championId' | 'you'>): AramSeat[] {
+  const others = [0.55, 0.7, 0.8, 0.9, 1.05, 1.15, 0.6, 0.95, 0.75].map((f, k) => {
+    const g = f * (1 + (((i * 7 + k * 3) % 5) - 2) * 0.06);
+    return {
+      team: k < 4 ? 100 : 200,
+      championId: [103, 54, 16, 22, 1, 12, 99, 37, 45][k],
+      kills: Math.round(you.kills * g),
+      deaths: Math.round(you.deaths * (2 - g)),
+      assists: Math.round(you.assists * g),
+      damage: Math.round(you.damage * g),
+      taken: Math.round(you.taken * (0.6 + ((k * 5) % 7) * 0.12)),
+      mitigated: Math.round(you.mitigated * g),
+      healed: Math.round(you.healed * (0.5 + ((k * 3) % 5) * 0.2)),
+      shielded: 0,
+      gold: Math.round(you.gold * (0.85 + g * 0.1)),
+    };
+  });
+  return [{ ...you, team: 100, championId: 0, you: true }, ...others];
+}
 export const mockAramData: AramData = {
   client: true,
   me: nova,
@@ -417,6 +437,17 @@ export const mockAramData: AramData = {
               },
             ]
           : [],
+      lobby: mockLobby(i, {
+        kills,
+        deaths,
+        assists,
+        damage,
+        taken,
+        mitigated: Math.round(taken * 0.6),
+        healed,
+        shielded: 0,
+        gold,
+      }),
       details: {
         magic: Math.round(damage * (i % 3 === 0 ? 0.2 : 0.75)),
         physical: Math.round(damage * (i % 3 === 0 ? 0.72 : 0.18)),
