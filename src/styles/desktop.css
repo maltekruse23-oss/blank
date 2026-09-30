@@ -1433,7 +1433,8 @@ main,
 .aram-toolbar {
   align-items: center;
 }
-.aram-tabs {
+/* Sub-tabs of a page (components/SubTabs.tsx). */
+.sub-tabs {
   display: flex;
   gap: 5px;
   margin-right: auto;
@@ -1441,12 +1442,12 @@ main,
 .aram-toolbar .toolbar-count {
   margin-right: 0;
 }
-.aram-tabs .filter-button {
+.sub-tabs .filter-button {
   position: relative;
   isolation: isolate;
   padding: 8px 11px;
 }
-.aram-tabs .filter-button.selected {
+.sub-tabs .filter-button.selected {
   border-color: var(--border);
 }
 .aram-note {

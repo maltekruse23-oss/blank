@@ -77,16 +77,34 @@ describe('Home-Raster', () => {
 describe('Seitenleiste', () => {
   it('Reihenfolge: bekannte Seiten je einmal, fehlende an ihren Platz', () => {
     expect(readNavOrder(['pc', 'home', 'pc', 'settings', 'x'])).toEqual([
-      'pc',
-      'home',
+      'rank',
+      'aram',
       'twitch',
       'pros',
-      'aram',
       'music',
       'devices',
+      'pc',
+      'home',
       'apps',
     ]);
     expect(readNavOrder(undefined)[0]).toBe('home');
+  });
+
+  it('nach dem Update: die neue Seite Rang steht vor Rekorde, Eigenes bleibt', () => {
+    // Saved before Rang existed, with Musik moved above Twitch.
+    const order = readNavOrder([
+      'home',
+      'music',
+      'twitch',
+      'pros',
+      'aram',
+      'devices',
+      'pc',
+      'apps',
+    ]);
+    expect(order.indexOf('rank')).toBe(order.indexOf('aram') - 1);
+    expect(order.indexOf('music')).toBeLessThan(order.indexOf('twitch'));
+    expect(new Set(order).size).toBe(9);
   });
 
   it('ausgeblendet: nie Home', () => {
