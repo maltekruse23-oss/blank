@@ -12,6 +12,7 @@ import { RefreshButton } from '../twitch/RefreshButton';
 import { AramGameCard } from './AramGameCard';
 import type { AramPlayerView } from './AramPlayerDialog';
 import { AramPlayers } from './AramPlayers';
+import { AramRank } from './AramRank';
 import { AramRanking } from './AramRanking';
 import { bestGames, countedGames, sinceGames } from './aramStats';
 import { day } from './format';
@@ -19,8 +20,9 @@ import type { AramHook } from './useAram';
 import type { AramGroupHook } from './useAramGroup';
 import { resultView, type AramResultView } from './useAramResult';
 
-type Tab = 'ranking' | 'best' | 'players';
+type Tab = 'rank' | 'ranking' | 'best' | 'players';
 const tabs: { id: Tab; name: string }[] = [
+  { id: 'rank', name: 'Rang' },
   { id: 'ranking', name: 'Rangliste' },
   { id: 'best', name: 'Beste Spiele' },
   { id: 'players', name: 'Spieler' },
@@ -56,7 +58,7 @@ export function AramPage({
   const since = group.view ? group.view.since : (data?.since ?? null);
   const games = data ? countedGames(sinceGames(data.games, since), players) : [];
   const [view, setView] = useState<{ tab: Tab; dir: number }>({
-    tab: friends.length === 0 && !group.view ? 'players' : 'ranking',
+    tab: friends.length === 0 && !group.view ? 'players' : 'rank',
     dir: 1,
   });
   const index = (tab: Tab) => tabs.findIndex((t) => t.id === tab);
@@ -123,6 +125,17 @@ export function AramPage({
       )}
       {data && (
         <TabContent id={view.tab} dir={view.dir} className="aram-tab">
+          {view.tab === 'rank' &&
+            (players.length === 0 ? (
+              <Empty client={data.client} />
+            ) : (
+              <AramRank
+                players={players}
+                games={games}
+                meId={me?.puuid ?? null}
+                onPlayer={showPlayer}
+              />
+            ))}
           {view.tab === 'ranking' && (
             <Ranking
               players={players}
