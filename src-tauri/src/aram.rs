@@ -123,6 +123,30 @@ pub struct Entry {
     /// None when the client did not tell it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     skin: Option<u32>,
+    /// All ten players' values of the game, without names (the rank mode compares with everyone in
+    /// the game); empty for games stored before, until fetched again.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    lobby: Vec<Seat>,
+}
+
+/// One player of a game for the comparison with everyone: values only, no name or PUUID.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Seat {
+    /// The player of the entry.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    you: bool,
+    team: i64,
+    champion_id: i64,
+    kills: u32,
+    deaths: u32,
+    assists: u32,
+    damage: u64,
+    taken: u64,
+    mitigated: u64,
+    healed: u64,
+    shielded: u64,
+    gold: u64,
 }
 
 /// Skin numbers go up to about a hundred (chromas included).
@@ -955,6 +979,24 @@ fn entries(
                 with,
                 provisional,
                 skin: p.skin,
+                lobby: game
+                    .players
+                    .iter()
+                    .map(|o| Seat {
+                        you: o.puuid == p.puuid,
+                        team: o.team,
+                        champion_id: o.champion_id,
+                        kills: o.kills,
+                        deaths: o.deaths,
+                        assists: o.assists,
+                        damage: o.damage,
+                        taken: o.taken,
+                        mitigated: o.details.mitigated,
+                        healed: o.healed,
+                        shielded: o.shielded,
+                        gold: o.gold,
+                    })
+                    .collect(),
             }
         })
         .collect()
@@ -1021,12 +1063,12 @@ async fn sync(
         .iter()
         .map(|e| (e.game_id, e.puuid.clone()))
         .collect();
-    // Stored before the details existed, or from the end-of-game screen: fetched again while the
-    // client still has them.
+    // Stored before the details or the whole game's values existed, or from the end-of-game
+    // screen: fetched again while the client still has them.
     let without_details: HashSet<(u64, String)> = stored
         .games
         .iter()
-        .filter(|e| e.details.is_none() || e.provisional)
+        .filter(|e| e.details.is_none() || e.lobby.is_empty() || e.provisional)
         .map(|e| (e.game_id, e.puuid.clone()))
         .collect();
     let mut wanted: Vec<u64> = Vec::new();
@@ -1091,7 +1133,7 @@ async fn sync(
         stored.games.truncate(MAX_ENTRIES);
     }
     add_augments(lcu, stored).await;
-    stored.version = 2;
+    stored.version = 3;
     stored.synced_at = Some(now_ms());
     Ok((missing, added))
 }
@@ -1618,13 +1660,15 @@ pub async fn aram_merge(
     Ok(changed)
 }
 
-/// How good a version of a game is: exact values with all details, exact values, the end-of-game
-/// screen's. Everyone keeps the best, so all end up with the same.
+/// How good a version of a game is: exact values with all details and the whole game, with all
+/// details, exact values, the end-of-game screen's. Everyone keeps the best, so all end up with
+/// the same.
 fn quality(entry: &Entry) -> u8 {
     let values = match (entry.provisional, entry.details.is_some()) {
         (true, _) => 1,
         (false, false) => 2,
-        (false, true) => 3,
+        (false, true) if entry.lobby.is_empty() => 3,
+        (false, true) => 4,
     };
     // The same values with the skin played are a little better (so the skin reaches everyone).
     values * 2 + u8::from(entry.skin.is_some())
@@ -1699,6 +1743,22 @@ fn valid_entry(e: &Entry) -> bool {
         && e.skin.is_none_or(|skin| skin <= MAX_SKIN)
         && details_ok
         && mates_ok
+        && lobby_ok(&e.lobby)
+}
+
+/// The whole game's values: at most ten players, the entry's player at most once, sane values.
+fn lobby_ok(lobby: &[Seat]) -> bool {
+    let big = 100_000_000;
+    lobby.len() <= MAX_MEMBERS
+        && lobby.iter().filter(|s| s.you).count() <= 1
+        && lobby.iter().all(|s| {
+            (0..=1000).contains(&s.team)
+                && (0..=100_000).contains(&s.champion_id)
+                && s.kills.max(s.deaths).max(s.assists) <= 1000
+                && [s.damage, s.taken, s.mitigated, s.healed, s.shielded, s.gold]
+                    .iter()
+                    .all(|v| *v <= big)
+        })
 }
 
 /// Starts the leaderboard anew (user's wish): all games go, only games from now on count. The
@@ -1710,7 +1770,7 @@ pub async fn aram_reset(state: tauri::State<'_, AramState>) -> Result<AramData, 
     stored.games.clear();
     stored.since = Some(now_ms());
     stored.synced_at = None;
-    stored.version = 2;
+    stored.version = 3;
     save(&state.path, &stored)?;
     Ok(data(stored, lockfile().is_some(), Vec::new()))
 }
@@ -1881,8 +1941,75 @@ mod tests {
         screen.provisional = true;
         let mut older = exact.clone();
         older.details = None;
-        assert!(quality(&exact) > quality(&older));
+        let mut no_lobby = exact.clone();
+        no_lobby.lobby.clear();
+        assert!(quality(&exact) > quality(&no_lobby));
+        assert!(quality(&no_lobby) > quality(&older));
         assert!(quality(&older) > quality(&screen));
+    }
+
+    #[test]
+    fn every_game_keeps_all_players_values_without_names() {
+        let entry = sample_entry();
+        assert_eq!(entry.lobby.len(), 4);
+        let you: Vec<&Seat> = entry.lobby.iter().filter(|s| s.you).collect();
+        assert_eq!(you.len(), 1);
+        assert_eq!((you[0].damage, you[0].team), (30_000, 100));
+        let json = serde_json::to_string(&entry.lobby).unwrap();
+        assert!(!json.contains("Spieler") && !json.contains(&puuid(2)));
+
+        let mut bad = entry.clone();
+        bad.lobby.iter_mut().for_each(|s| s.you = true);
+        assert!(!valid_entry(&bad));
+        let mut bad = entry.clone();
+        bad.lobby[1].damage = 10_000_000_000;
+        assert!(!valid_entry(&bad));
+        let mut bad = entry;
+        bad.lobby = vec![bad.lobby[0].clone(); 11];
+        assert!(!valid_entry(&bad));
+    }
+
+    /// A full game (ten players, six items, all details, friends) still fits into one message of
+    /// the group, encrypted and in Base64 (aram_group.rs: 8 KB).
+    #[test]
+    fn a_full_game_fits_into_a_group_message() {
+        let mut entry = sample_entry();
+        entry.name = "N".repeat(40);
+        entry.champion_name = "C".repeat(40);
+        entry.items = vec![999_999; 7];
+        entry.augments = vec![999_999; 8];
+        let seat = Seat {
+            you: false,
+            team: 200,
+            champion_id: 99_999,
+            kills: 999,
+            deaths: 999,
+            assists: 999,
+            damage: 99_999_999,
+            taken: 99_999_999,
+            mitigated: 99_999_999,
+            healed: 99_999_999,
+            shielded: 99_999_999,
+            gold: 99_999_999,
+        };
+        entry.lobby = vec![seat; 10];
+        let mate = Mate {
+            puuid: puuid(9),
+            name: "M".repeat(40),
+            champion: "A".repeat(40),
+            champion_name: "B".repeat(40),
+            damage: 99_999_999,
+            kills: 999,
+            deaths: 999,
+            assists: 999,
+            same_team: true,
+        };
+        entry.with = vec![mate; 9];
+        entry.skin = Some(MAX_SKIN);
+        let json = serde_json::to_string(&entry).unwrap();
+        // Message frame, 12 bytes nonce + 16 tag, Base64 4/3.
+        let sealed = (json.len() + 120 + 28).div_ceil(3) * 4;
+        assert!(sealed < 8 * 1024, "{sealed}");
     }
 
     #[test]

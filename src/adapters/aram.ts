@@ -68,6 +68,25 @@ export type AramEntry = {
   provisional?: boolean;
   /** The skin played (its number, 0 = base look), for the splash art; absent when not known. */
   skin?: number;
+  /** All ten players' values without names (rank mode); absent for games stored before. */
+  lobby?: AramSeat[];
+};
+
+/** One player of a game for the comparison with everyone: values only, no name. */
+export type AramSeat = {
+  /** The player of the entry. */
+  you?: boolean;
+  team: number;
+  championId: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  damage: number;
+  taken: number;
+  mitigated: number;
+  healed: number;
+  shielded: number;
+  gold: number;
 };
 
 /** A friend in the same game, for the comparison on the card. */
