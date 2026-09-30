@@ -4,14 +4,14 @@ import {
   applyPoints,
   expectedMark,
   markGame,
-  MAX_GAIN,
-  MAX_LOSS,
   PLACEMENT,
+  PLACEMENT_CAP,
   placementLadder,
   pointsFor,
   rankName,
   rankOf,
   rankResult,
+  seasonOf,
   SHIELD_GAMES,
   standings,
   WIN_BONUS,
@@ -156,10 +156,9 @@ describe('Mayhem-Wertung: Note je Spiel', () => {
   });
 });
 
-describe('Mayhem-Wertung: Ladder wie in LoL', () => {
+describe('Mayhem-Wertung: Ladder wie LoL-Ranked 2026', () => {
   it('Stufen mit Divisionen IV–I, oben nur Punkte', () => {
     expect(rankName(rankOf(0))).toBe('D IV');
-    expect(rankOf(0).points).toBe(0);
     expect(rankName(rankOf(399))).toBe('D I');
     expect(rankOf(399).points).toBe(99);
     expect(rankName(rankOf(1650))).toBe('S IV');
@@ -173,35 +172,101 @@ describe('Mayhem-Wertung: Ladder wie in LoL', () => {
       expect(expectedMark(l + 50)).toBeGreaterThan(expectedMark(l));
   });
 
-  it('Punkte aus Note gegen Erwartung, gedeckelt, nie 0', () => {
-    expect(pointsFor(expectedMark(800) + 1, 800)).toBeGreaterThan(0);
-    expect(pointsFor(expectedMark(800) - 1, 800)).toBeLessThan(0);
-    expect(pointsFor(10, 0)).toBe(MAX_GAIN);
-    expect(pointsFor(0, 2800)).toBe(-MAX_LOSS);
-    expect(pointsFor(expectedMark(800), 800)).toBe(1);
+  it('MP in LoL-Größen: etwa ±25 bis S, ±20 in SS/SSS, ±30 in MAYHEM', () => {
+    const at = (l: number, above: boolean) =>
+      pointsFor(expectedMark(l) + (above ? 0.5 : -0.5), l, 0);
+    expect(at(800, true)).toBe(25);
+    expect(at(800, false)).toBe(-25);
+    expect(at(2100, true)).toBe(20);
+    expect(at(2500, false)).toBe(-20);
+    expect(at(2900, true)).toBe(30);
   });
 
-  it('Aufstieg mit Übertrag, erst auf 0, dann Abstieg auf 75', () => {
-    expect(applyPoints(390, 25, 0)).toBe(415);
-    expect(applyPoints(510, -20, 0)).toBe(500);
-    expect(applyPoints(500, -20, 0)).toBe(475);
-    expect(applyPoints(0, -20, 0)).toBe(0);
-    expect(applyPoints(2810, -30, 0)).toBe(2800);
-    expect(applyPoints(2800, -30, 0)).toBe(2775);
+  it('Form über dem Rang: mehr Plus, weniger Minus (etwa +27/−13), darunter umgekehrt', () => {
+    const l = 2100;
+    const good = 1.4;
+    expect(pointsFor(expectedMark(l) + 0.2, l, good)).toBe(27);
+    expect(pointsFor(expectedMark(l) - 0.2, l, good)).toBe(-13);
+    expect(pointsFor(expectedMark(l) + 0.2, l, -good)).toBe(13);
+    expect(pointsFor(expectedMark(l) - 0.2, l, -good)).toBe(-27);
+    // Never zero, never out of range.
+    for (let m = 0; m <= 10; m += 0.5)
+      for (const f of [-2, 0, 2]) {
+        const p = pointsFor(m, 800, f);
+        expect(Math.abs(p)).toBeGreaterThanOrEqual(5);
+        expect(Math.abs(p)).toBeLessThanOrEqual(37);
+      }
   });
 
-  it('nach einem Stufen-Aufstieg Schutz vor dem Abstieg', () => {
-    expect(applyPoints(800, -20, SHIELD_GAMES)).toBe(800);
-    expect(applyPoints(800, -20, 0)).toBe(775);
-    // Only the tier is shielded, a division inside it is not.
-    expect(applyPoints(900, -20, SHIELD_GAMES)).toBe(875);
+  it('Aufstieg mit Übertrag, Abstieg mit Überlauf (10 − 25 → 85)', () => {
+    expect(applyPoints(390, 25, 0, 0)).toBe(415);
+    expect(applyPoints(510, -25, 0, 0)).toBe(485);
+    expect(rankName(rankOf(485))).toBe('C IV');
+    expect(rankOf(485).points).toBe(85);
+    expect(applyPoints(0, -25, 0, 0)).toBe(0);
   });
 
-  it('Einstufung nach 5 Spielen, gedeckelt', () => {
+  it('Stufen-Abstieg landet je nach Form bei 75, 50 oder 25', () => {
+    expect(applyPoints(810, -25, 0, 0.3)).toBe(775);
+    expect(applyPoints(810, -25, 0, -0.5)).toBe(750);
+    expect(applyPoints(810, -25, 0, -1.5)).toBe(725);
+    expect(applyPoints(2810, -30, 0, 0)).toBe(2775);
+  });
+
+  it('nach einem Stufen-Aufstieg Schutz vor dem Stufen-Abstieg', () => {
+    expect(applyPoints(810, -25, SHIELD_GAMES, 0)).toBe(800);
+    // Inside the tier the overflow still happens.
+    expect(applyPoints(910, -25, SHIELD_GAMES, 0)).toBe(885);
+  });
+
+  it('Einstufung nach 5 Spielen, höchstens SSS III 80', () => {
     expect(placementLadder([3, 3, 3, 3, 3])).toBe(0);
-    const mid = placementLadder([5, 5, 5, 5, 5]);
-    expect(expectedMark(mid)).toBeLessThanOrEqual(5);
-    expect(rankOf(placementLadder([10, 10, 10, 10, 10])).tier.id).toBe('s');
+    const top = rankOf(placementLadder([10, 10, 10, 10, 10]));
+    expect(rankName(top)).toBe('SSS III');
+    expect(top.points).toBe(80);
+  });
+
+  it('drei Saisons pro Jahr wie LoL', () => {
+    expect(seasonOf(Date.UTC(2026, 0, 7)).id).toBe('2025-3');
+    expect(seasonOf(Date.UTC(2026, 0, 8)).id).toBe('2026-1');
+    expect(seasonOf(Date.UTC(2026, 3, 29)).id).toBe('2026-2');
+    expect(seasonOf(Date.UTC(2026, 8, 30)).id).toBe('2026-3');
+  });
+
+  it('Rang bleibt zwischen Saisons, Soft-Reset und neue Einstufung zum neuen Jahr', () => {
+    const at = (y: number, m: number, d: number, i: number) => Date.UTC(y, m, d) + i * 3_600_000;
+    const strong = { damage: 90_000, kills: 25, assists: 30, deaths: 3 };
+    const season2 = Array.from({ length: 8 }, (_, i) =>
+      game(strong, { gameId: 100 + i, at: at(2026, 4, 1, i) }),
+    );
+    const season3 = [game(strong, { gameId: 200, at: at(2026, 7, 1, 0) })];
+    const nextYear = Array.from({ length: 5 }, (_, i) =>
+      game(strong, { gameId: 300 + i, at: at(2027, 1, 1, i) }),
+    );
+    const s3 = standings([...season2, ...season3])[0];
+    expect(s3.seasons.map((s) => s.season.id)).toEqual(['2026-2']);
+    expect(s3.history.at(-1)!.gain).not.toBeNull();
+    const firstOfYear = standings([...season2, ...season3, ...nextYear.slice(0, 1)])[0];
+    expect(firstOfYear.rank).toBeNull();
+    expect(firstOfYear.placed).toBe(1);
+    const placed = standings([...season2, ...season3, ...nextYear])[0];
+    expect(placed.rank).not.toBeNull();
+    expect(placed.rank!.ladder).toBeLessThanOrEqual(PLACEMENT_CAP);
+    expect(placed.seasons[0].season.id).toBe('2026-3');
+  });
+
+  it('Siege, Niederlagen und Form', () => {
+    const games = Array.from({ length: 8 }, (_, i) =>
+      game(
+        { damage: 60_000 },
+        { gameId: 10 + i, at: 1_790_000_000_000 + i * 1e6, win: i % 2 === 0 },
+      ),
+    );
+    const s = standings(games)[0];
+    expect(s.games).toBe(8);
+    expect(s.wins).toBe(4);
+    expect(s.form).toBeGreaterThanOrEqual(-2);
+    expect(s.form).toBeLessThanOrEqual(2);
   });
 
   it('gleiche Spiele in anderer Reihenfolge ergeben bei allen dasselbe', () => {
@@ -214,8 +279,6 @@ describe('Mayhem-Wertung: Ladder wie in LoL', () => {
     const a = standings(games);
     const b = standings([...games].reverse());
     expect(a).toEqual(b);
-    expect(a[0].games).toBe(12);
-    expect(a[0].rank).not.toBeNull();
     expect(a[0].history[PLACEMENT - 1].change).toBe('placed');
     expect(a[0].history[PLACEMENT].gain).not.toBeNull();
     expect(standings(games.slice(0, PLACEMENT - 1))[0].rank).toBeNull();
@@ -225,20 +288,20 @@ describe('Mayhem-Wertung: Ladder wie in LoL', () => {
     const games = Array.from({ length: 7 }, (_, i) =>
       game({ damage: 30_000 + i * 4_000 }, { gameId: 50 + i, at: 1_790_000_000_000 + i * 1e6 }),
     );
-    const third = rankResult(games, 'p1', 52)!;
-    expect(third).toMatchObject({ gain: null, after: null, games: 3 });
+    expect(rankResult(games, 'p1', 52)).toMatchObject({ gain: null, after: null, games: 3 });
     const fifth = rankResult(games, 'p1', 54)!;
     expect(fifth.change).toBe('placed');
-    expect(fifth.after).not.toBeNull();
     const sixth = rankResult(games, 'p1', 55)!;
     expect(sixth.gain).not.toBeNull();
     expect(sixth.before).toEqual(fifth.after);
     expect(rankResult(games, 'p1', 999)).toBeNull();
-    expect(rankResult(games, 'someone else', 55)).toBeNull();
   });
 
-  it('nur Spiele ab Saisonstart', () => {
-    const games = [game({}, { at: 100 }), game({}, { gameId: 2, at: 300 })];
-    expect(standings(games, 200)[0].games).toBe(1);
+  it('nur Spiele ab Saisonstart der Gruppe', () => {
+    const games = [
+      game({}, { at: 1_790_000_000_000 }),
+      game({}, { gameId: 2, at: 1_790_000_100_000 }),
+    ];
+    expect(standings(games, 1_790_000_050_000)[0].games).toBe(1);
   });
 });

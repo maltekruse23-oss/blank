@@ -14,6 +14,7 @@ import { placeColor } from './AramRanking';
 import { categoryIcons } from './aramIcons';
 import { playerOverview, type Standing } from './aramPlayer';
 import { day, number, percent } from './format';
+import { RankHistory } from './RankHistory';
 
 /** What the overview of a player needs, taken when it opens (from the ARAM page). */
 export type AramPlayerView = {
@@ -117,6 +118,7 @@ export function AramPlayerDialog({ view, onClose }: { view: AramPlayerView; onCl
             <p className="section-note">Noch keine Spiele, die zählen.</p>
           ) : (
             <>
+              <RankHistory games={games} puuid={player.puuid} />
               <dl className="aram-player-overall">
                 {overview.overall.map((standing) => {
                   const Icon = categoryIcons[standing.category.id];
