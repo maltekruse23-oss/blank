@@ -49,7 +49,7 @@ export async function memberId(topic: string, puuid: string) {
 /** How good a version of a game is (as quality() in aram.rs): everyone keeps the best; the same
  * values with the skin played count a little more, so the skin reaches everyone. */
 export const gameQuality = (entry: AramEntry) =>
-  (entry.provisional ? 1 : entry.details === null ? 2 : 3) * 2 +
+  (entry.provisional ? 1 : entry.details === null ? 2 : entry.lobby?.length ? 4 : 3) * 2 +
   (typeof entry.skin === 'number' ? 1 : 0);
 
 export type GroupMessage =

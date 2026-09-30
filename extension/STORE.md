@@ -33,9 +33,12 @@ oben). Vor jedem neuen Upload `version` in `extension/public/manifest.json` erh�
   >
   > Quellcode: https://github.com/maltekruse23-oss/blank (Ordner `extension`)
 
-- **Screenshots:** 1280 × 800 oder 640 × 400 Pixel, z. B. das kleine Fenster der Erweiterung über
-  einem Twitch-Tab (Raum starten, im Raum mit Mitgliedern).
-- **Symbol:** `extension/public/icons/128.png`
+- **Screenshots:** `extension/store/screenshot-1-1280x800.png`, `-2-` und `-3-` (24-Bit-PNG ohne
+  Alpha; in 640 × 400 liegen sie daneben).
+- **Symbol:** `extension/store/icon-128.png` (96 px Bild mit 16 px durchsichtigem Rand, wie Google
+  es verlangt).
+- **Kleine Werbekachel:** `extension/store/promo-440x280.png`
+- **Sichtbarkeit (Reiter „Vertrieb“):** „Nicht gelistet“ – nur wer den Link hat, findet sie.
 
 ## Datenschutz (Reiter „Datenschutz“)
 
@@ -51,3 +54,21 @@ oben). Vor jedem neuen Upload `version` in `extension/public/manifest.json` erh�
   Kreditwürdigkeit genutzt und nur für den einen Zweck übertragen.
 - **Datenschutzerklärung (Link):**
   https://github.com/maltekruse23-oss/blank/blob/main/extension/PRIVACY.md
+
+## Opera Add-ons (eigener Eintrag, kostenlos)
+
+Ohne eigenen Eintrag installieren Opera-Nutzer über die Chrome-Web-Store-Seite: Opera bietet dort
+„Chrome-Erweiterungen installieren“ an. Eigener Eintrag unter https://addons.opera.com/developer/
+mit demselben `blank-extension.zip` und denselben Texten wie oben:
+
+- **Category:** Social. **Language:** Deutsch.
+- **Icon (64 × 64):** `extension/store/icon-64.png`
+- **Screenshots:** `extension/store/screenshot-1-612x408.png`, `-2-`, `-3-` (will die Seite eine
+  andere Größe, die 1280 × 800-Bilder).
+- **Privacy policy:** derselbe Link wie oben.
+- **Hide the add-on from search results …:** anhaken (wie „Nicht gelistet“).
+- **Notes for reviewers:** The code is bundled with Vite. Full source:
+  https://github.com/maltekruse23-oss/blank (folder `extension`). Build: `pnpm install
+--frozen-lockfile`, then `pnpm extension:build`; the result is in `extension/dist`. The extension
+  only reads the address of one twitch.tv tab and exchanges encrypted room messages over two public
+  MQTT brokers (see privacy policy).

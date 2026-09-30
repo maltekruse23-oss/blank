@@ -104,6 +104,9 @@ describe('ARAM-Gruppe', () => {
     expect(gameQuality({ ...exact, provisional: true })).toBe(2);
     expect(gameQuality({ ...exact, skin: 3 })).toBe(7);
     expect(gameQuality({ ...exact, provisional: true, skin: 3 })).toBeLessThan(gameQuality(exact));
+    const lobby = [{ team: 100, championId: 1 } as NonNullable<AramEntry['lobby']>[number]];
+    expect(gameQuality({ ...exact, lobby })).toBe(8);
+    expect(gameQuality({ ...exact, lobby: [] })).toBe(6);
   });
 
   it('bei allen dieselbe Rangliste, egal in welcher Reihenfolge die Daten kamen', () => {
