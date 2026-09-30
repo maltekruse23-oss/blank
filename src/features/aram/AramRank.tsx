@@ -10,7 +10,7 @@ import ss from './emblems/ss.png';
 import sss from './emblems/sss.png';
 import mayhem from './emblems/mayhem.png';
 
-/** The emblem of each tier (the user's pictures; D is a stand-in until its picture comes). */
+/** The emblem of each tier (the user's pictures). */
 const EMBLEMS: Record<Tier['id'], string> = { d, c, b, a, s, ss, sss, mayhem };
 
 const mark = (value: number) => value.toFixed(1).replace('.', ',');

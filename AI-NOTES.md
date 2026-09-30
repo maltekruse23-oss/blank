@@ -22,8 +22,7 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
 - Wappen: der eigene SVG-Entwurf gefiel nicht. Der Benutzer lässt sie von ChatGPT malen (Kristall-
   Stil). Eingebaut als 256-px-PNGs in `src/features/aram/emblems/`, vorbereitet mit
   `node server/tools/emblems.mjs <Ordner mit 1-D.png … 8-MAYHEM.png> src/features/aram/emblems`
-  (entfernt eingebranntes Schachbrett oder Magenta-Hintergrund #FF00FF, schneidet zu). **Platzhalter:**
-  D ist C in Grau, B hat Löcher im Silber – der Benutzer liefert beide neu auf Magenta. Keine
+  (entfernt eingebranntes Schachbrett oder Magenta-Hintergrund #FF00FF, schneidet zu). D und B kamen auf Magenta nach, alle acht sind die echten Bilder. Keine
   fremden Grafiken (Riot, Overwatch, Marvel Rivals usw.) übernehmen.
 
 **Fertig (Code im Repo, noch ohne Oberfläche):**
@@ -48,7 +47,6 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
 
 **Nächste Schritte:**
 
-- Wappen D und B ersetzen, sobald der Benutzer sie als Datei liefert.
 - Etappe 4: Note und Aufstieg auf der Karte nach dem Spiel (`AramResult.tsx`), Popout, Home-Widget;
   Aufstieg einmal animiert, nie dauerhaft.
 - Etappe 5: Saisons (Start = Gruppen-Start, `RATING_VERSION` gehört zur Saison).
@@ -84,6 +82,8 @@ Rechnung aus `aramRating.ts`, vorher Riot per Developer-Portal fragen.
   wurde, ist später weg.
 
 ## Verlauf
+
+- 30.09.2026 (3): Wappen D und B durch die echten Bilder (Magenta-Hintergrund) ersetzt.
 
 - 30.09.2026 (2): Reiter „Rang“ mit den Wappen des Benutzers (D/B Platzhalter), Werkzeug
   `emblems.mjs`, Mock-Spiele mit allen zehn.
