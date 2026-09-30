@@ -119,7 +119,14 @@ pub struct Entry {
     /// From the end-of-game screen: the history's exact values replace it once it has the game.
     #[serde(default)]
     provisional: bool,
+    /// The skin played (its number, 0 = the base look), for the card's splash art (user's wish);
+    /// None when the client did not tell it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    skin: Option<u32>,
 }
+
+/// Skin numbers go up to about a hundred (chromas included).
+const MAX_SKIN: u32 = 999;
 
 /// A friend of the user in the same game, for the comparison on the card.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -620,6 +627,8 @@ fn patch(version: &str) -> String {
 /// One player of a game, from the history or from the end-of-game screen.
 #[derive(Default, Clone)]
 struct Line {
+    /// The skin played, if the source tells it.
+    skin: Option<u32>,
     puuid: String,
     name: String,
     team: i64,
@@ -668,6 +677,7 @@ fn from_history(game: &Game) -> Summary {
             let s = &p.stats;
             let player = &identity.player;
             Some(Line {
+                skin: None,
                 puuid: player.puuid.clone(),
                 name: riot_id(&player.game_name, &player.tag_line, &player.summoner_name),
                 team: p.team_id,
@@ -756,6 +766,37 @@ struct EogPlayer {
     level: u32,
     items: Vec<i64>,
     stats: HashMap<String, serde_json::Value>,
+    /// Pictures of the skin played; their path names the skin.
+    skin_splash_path: String,
+    skin_tile_path: String,
+}
+
+/// The skin's number from a picture path of the client: ".../Skins/Skin14/...", ".../Skins/Base/..."
+/// (0) or ".../champion-splashes/103/103014.jpg" (champion id × 1000 + number).
+fn skin_from_path(path: &str, champion_id: i64) -> Option<u32> {
+    let lower = path.to_ascii_lowercase();
+    if lower.contains("/skins/base/") {
+        return Some(0);
+    }
+    let digits = |text: &str| -> Option<u64> {
+        let end = text
+            .find(|c: char| !c.is_ascii_digit())
+            .unwrap_or(text.len());
+        text[..end].parse().ok()
+    };
+    if let Some(at) = lower.find("/skins/skin") {
+        return digits(&lower[at + "/skins/skin".len()..])
+            .filter(|n| *n <= u64::from(MAX_SKIN))
+            .map(|n| n as u32);
+    }
+    if let Some(at) = lower.find("/champion-splashes/") {
+        let file = lower[at..].rsplit('/').next()?;
+        let id = digits(file)?;
+        let champion = u64::try_from(champion_id).ok()?;
+        return (id / 1000 == champion && id % 1000 <= u64::from(MAX_SKIN))
+            .then_some((id % 1000) as u32);
+    }
+    None
 }
 
 fn from_eog(eog: &Eog, now: u64) -> Summary {
@@ -774,6 +815,8 @@ fn from_eog(eog: &Eog, now: u64) -> Summary {
             let big = |key: &str| n(key).round() as u64;
             let small = |key: &str| n(key).round().min(u32::MAX as f64) as u32;
             Line {
+                skin: skin_from_path(&p.skin_splash_path, p.champion_id)
+                    .or_else(|| skin_from_path(&p.skin_tile_path, p.champion_id)),
                 puuid: p.puuid.clone(),
                 name: riot_id(&p.riot_id_game_name, &p.riot_id_tag_line, &p.summoner_name),
                 team: if p.team_id != 0 {
@@ -911,9 +954,18 @@ fn entries(
                 details: Some(p.details.clone()),
                 with,
                 provisional,
+                skin: p.skin,
             }
         })
         .collect()
+}
+
+/// A stored game gets a new version (exact values, a better one from a friend): the skin stays if
+/// the new version does not know it.
+fn replace_keeping_skin(old: &mut Entry, new: Entry) {
+    let skin = new.skin.or(old.skin);
+    *old = new;
+    old.skin = skin;
 }
 
 /// The user's League friends (for the comparison on the card).
@@ -1017,7 +1069,9 @@ async fn sync(
             if game.queue_id != MAYHEM_QUEUE {
                 continue;
             }
-            for entry in entries(&from_history(&game), &tracked, &champions, &friends, false) {
+            let mut summary = from_history(&game);
+            add_noted_skins(&mut summary);
+            for entry in entries(&summary, &tracked, &champions, &friends, false) {
                 let key = (entry.game_id, entry.puuid.clone());
                 if !have.contains(&key) {
                     added.push(entry.clone());
@@ -1028,12 +1082,12 @@ async fn sync(
                         .iter_mut()
                         .find(|e| e.game_id == entry.game_id && e.puuid == entry.puuid)
                     {
-                        *old = entry;
+                        replace_keeping_skin(old, entry);
                     }
                 }
             }
         }
-        stored.games.sort_by(|a, b| b.at.cmp(&a.at));
+        stored.games.sort_by_key(|e| std::cmp::Reverse(e.at));
         stored.games.truncate(MAX_ENTRIES);
     }
     add_augments(lcu, stored).await;
@@ -1110,7 +1164,7 @@ pub fn league_seen(app: &AppHandle, game: bool, client: bool) {
             tokio::time::sleep(AFTER_CLIENT_START).await;
             match sync_in_background(&app).await {
                 Ok(_) => catch_up(&app).await,
-                Err(error) => eprintln!("ARAM: {error}"),
+                Err(error) => crate::errors::record("ARAM", &error.to_string()),
             }
         });
     }
@@ -1135,6 +1189,58 @@ struct Session {
 struct SessionGame {
     game_id: u64,
     queue: SessionQueue,
+    /// Champion and skin of each player (for the card's splash art).
+    player_champion_selections: Vec<Selection>,
+    team_one: Vec<Selection>,
+    team_two: Vec<Selection>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct Selection {
+    champion_id: i64,
+    selected_skin_index: i64,
+}
+
+/// Skins played in the last games (game id, champion id, skin), noted at the start of a game; in
+/// ARAM a champion is in a game only once. Only in memory: the stored game keeps its skin.
+static SKINS: std::sync::Mutex<Vec<(u64, i64, u32)>> = std::sync::Mutex::new(Vec::new());
+const MAX_SKINS: usize = 100;
+
+fn note_skins(game: &SessionGame) {
+    let mut skins = SKINS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    for pick in game
+        .player_champion_selections
+        .iter()
+        .chain(&game.team_one)
+        .chain(&game.team_two)
+    {
+        let Ok(skin) = u32::try_from(pick.selected_skin_index) else {
+            continue;
+        };
+        if pick.champion_id <= 0 || skin > MAX_SKIN {
+            continue;
+        }
+        skins.retain(|(g, c, _)| !(*g == game.game_id && *c == pick.champion_id));
+        skins.push((game.game_id, pick.champion_id, skin));
+    }
+    let over = skins.len().saturating_sub(MAX_SKINS);
+    skins.drain(..over);
+}
+
+/// The players' skins as noted at the start, where the game's own source did not tell them.
+fn add_noted_skins(summary: &mut Summary) {
+    let skins = SKINS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    for player in summary.players.iter_mut().filter(|p| p.skin.is_none()) {
+        player.skin = skins
+            .iter()
+            .find(|(g, c, _)| *g == summary.game_id && *c == player.champion_id)
+            .map(|(_, _, skin)| *skin);
+    }
 }
 
 #[derive(Deserialize, Default)]
@@ -1154,6 +1260,7 @@ async fn game_started(app: AppHandle) {
         if let Ok(Some(lcu)) = Lcu::connect() {
             if let Ok(session) = lcu.get::<Session>(SESSION).await {
                 if session.game_data.game_id != 0 {
+                    note_skins(&session.game_data);
                     info = Some((session.game_data.queue.id, session.game_data.game_id));
                     break;
                 }
@@ -1247,7 +1354,7 @@ async fn after_game(app: AppHandle, expected: u64) {
                             return;
                         }
                         Err(error) => {
-                            eprintln!("ARAM: {error}");
+                            crate::errors::record("ARAM", &error.to_string());
                             break;
                         }
                     }
@@ -1262,7 +1369,7 @@ async fn after_game(app: AppHandle, expected: u64) {
     for wait in AFTER_GAME {
         tokio::time::sleep(wait).await;
         if let Err(error) = sync_in_background(&app).await {
-            eprintln!("ARAM: {error}");
+            crate::errors::record("ARAM", &error.to_string());
             continue;
         }
         match claim_card(&app, ended.saturating_sub(window)).await {
@@ -1271,7 +1378,7 @@ async fn after_game(app: AppHandle, expected: u64) {
                 return;
             }
             Ok(None) => {}
-            Err(error) => eprintln!("ARAM: {error}"),
+            Err(error) => crate::errors::record("ARAM", &error.to_string()),
         }
     }
 }
@@ -1280,7 +1387,8 @@ async fn after_game(app: AppHandle, expected: u64) {
 /// whether the user's card is due. Unusable stats (no damage, the user not among them) are an
 /// error: then the history is used.
 async fn record_eog(app: &AppHandle, lcu: &Lcu, eog: &Eog) -> Result<Recorded, String> {
-    let summary = from_eog(eog, now_ms());
+    let mut summary = from_eog(eog, now_ms());
+    add_noted_skins(&mut summary);
     let me: Summoner = lcu.get(SUMMONER).await?;
     if !valid_puuid(&me.puuid) {
         return Err("Im League-Client ist niemand angemeldet.".into());
@@ -1318,7 +1426,7 @@ async fn record_eog(app: &AppHandle, lcu: &Lcu, eog: &Eog) -> Result<Recorded, S
         }
     }
     let due = take_card(&mut stored, summary.game_id);
-    stored.games.sort_by(|a, b| b.at.cmp(&a.at));
+    stored.games.sort_by_key(|e| std::cmp::Reverse(e.at));
     stored.games.truncate(MAX_ENTRIES);
     add_augments(lcu, &mut stored).await;
     save(&state.path, &stored)?;
@@ -1368,7 +1476,7 @@ async fn catch_up(app: &AppHandle) {
             let _ = app.emit("aram-result", played);
         }
         Ok(None) => {}
-        Err(error) => eprintln!("ARAM: {error}"),
+        Err(error) => crate::errors::record("ARAM", &error.to_string()),
     }
 }
 
@@ -1377,7 +1485,7 @@ fn finish_later(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(FINISH_AFTER).await;
         if let Err(error) = sync_in_background(&app).await {
-            eprintln!("ARAM: {error}");
+            crate::errors::record("ARAM", &error.to_string());
         }
     });
 }
@@ -1491,7 +1599,7 @@ pub async fn aram_merge(
             .find(|e| e.game_id == entry.game_id && e.puuid == entry.puuid)
         {
             Some(old) if quality(&entry) > quality(old) => {
-                *old = entry;
+                replace_keeping_skin(old, entry);
                 changed += 1;
             }
             Some(_) => {}
@@ -1502,7 +1610,7 @@ pub async fn aram_merge(
         }
     }
     if changed > 0 {
-        stored.games.sort_by(|a, b| b.at.cmp(&a.at));
+        stored.games.sort_by_key(|e| std::cmp::Reverse(e.at));
         stored.games.truncate(MAX_ENTRIES);
         save(&state.path, &stored)?;
         let _ = app.emit("aram-updated", ());
@@ -1513,11 +1621,13 @@ pub async fn aram_merge(
 /// How good a version of a game is: exact values with all details, exact values, the end-of-game
 /// screen's. Everyone keeps the best, so all end up with the same.
 fn quality(entry: &Entry) -> u8 {
-    match (entry.provisional, entry.details.is_some()) {
+    let values = match (entry.provisional, entry.details.is_some()) {
         (true, _) => 1,
         (false, false) => 2,
         (false, true) => 3,
-    }
+    };
+    // The same values with the skin played are a little better (so the skin reaches everyone).
+    values * 2 + u8::from(entry.skin.is_some())
 }
 
 /// Games before this cannot be ARAM Mayhem results (2020), for checks of times.
@@ -1586,6 +1696,7 @@ fn valid_entry(e: &Entry) -> bool {
         && (0.0..=1.0).contains(&e.team_share)
         && e.multikill <= 5
         && e.pentas <= 100
+        && e.skin.is_none_or(|skin| skin <= MAX_SKIN)
         && details_ok
         && mates_ok
 }
@@ -1869,6 +1980,68 @@ mod tests {
             ),
             ("Freund#EUW", 10_000, true)
         );
+    }
+
+    #[test]
+    fn the_skin_played_comes_from_the_picture_paths() {
+        let base = "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Base/Images/ahri_splash.jpg";
+        let skin = "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin14/Images/a.jpg";
+        let splash = "/lol-game-data/assets/v1/champion-splashes/103/103027.jpg";
+        assert_eq!(skin_from_path(base, 103), Some(0));
+        assert_eq!(skin_from_path(skin, 103), Some(14));
+        assert_eq!(skin_from_path(splash, 103), Some(27));
+        // Another champion's picture or nothing to read: not guessed.
+        assert_eq!(skin_from_path(splash, 104), None);
+        assert_eq!(skin_from_path("", 103), None);
+        assert_eq!(skin_from_path("/x/Skins/Skin99999/y.jpg", 103), None);
+
+        let json = r#"{"gameId":88,"gameLength":900,"teams":[{"teamId":100,"isWinningTeam":true,"players":[
+            {"puuid":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1","championId":103,
+             "skinSplashPath":"/lol-game-data/assets/v1/champion-splashes/103/103014.jpg","stats":{"TOTAL_DAMAGE_DEALT_TO_CHAMPIONS":1}},
+            {"puuid":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2","championId":62,
+             "stats":{"TOTAL_DAMAGE_DEALT_TO_CHAMPIONS":1}}]}]}"#;
+        let mut summary = from_eog(&serde_json::from_str(json).unwrap(), 2_000_000);
+        assert_eq!(summary.players[0].skin, Some(14));
+        assert_eq!(summary.players[1].skin, None);
+        // Noted at the start of the game (session): fills in what the screen did not tell.
+        let session: Session = serde_json::from_str(
+            r#"{"gameData":{"gameId":88,"queue":{"id":2400},"playerChampionSelections":[
+                {"championId":62,"selectedSkinIndex":7},{"championId":103,"selectedSkinIndex":2}]}}"#,
+        )
+        .unwrap();
+        note_skins(&session.game_data);
+        add_noted_skins(&mut summary);
+        assert_eq!(summary.players[0].skin, Some(14));
+        assert_eq!(summary.players[1].skin, Some(7));
+    }
+
+    #[test]
+    fn a_better_version_keeps_the_skin() {
+        let tracked: HashSet<String> = [puuid(1)].into_iter().collect();
+        let mut summary = from_history(&game());
+        summary.players[0].skin = Some(5);
+        let with_skin =
+            entries(&summary, &tracked, &HashMap::new(), &HashSet::new(), true).remove(0);
+        let exact = entries(
+            &from_history(&game()),
+            &tracked,
+            &HashMap::new(),
+            &HashSet::new(),
+            false,
+        )
+        .remove(0);
+        assert!(quality(&exact) > quality(&with_skin));
+        let mut kept = with_skin.clone();
+        replace_keeping_skin(&mut kept, exact.clone());
+        assert_eq!(kept.skin, Some(5));
+        assert!(!kept.provisional);
+        // The same values with the skin are the better version.
+        let mut exact_with_skin = exact.clone();
+        exact_with_skin.skin = Some(5);
+        assert!(quality(&exact_with_skin) > quality(&exact));
+        assert!(valid_entry(&exact_with_skin));
+        exact_with_skin.skin = Some(MAX_SKIN + 1);
+        assert!(!valid_entry(&exact_with_skin));
     }
 
     #[test]

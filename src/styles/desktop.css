@@ -355,6 +355,11 @@ main {
   font-size: 14px;
   color: var(--text);
 }
+.empty-state p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
 .card {
   padding: var(--space-card);
   border-radius: var(--radius-card);
@@ -501,6 +506,15 @@ h2 {
   }
 }
 /* Do not disturb switched on. */
+/* A tab with a single card: the tab already names it, so the card's own heading goes (search
+   still shows every heading, where it tells the results apart). */
+.settings-layout > .tab-enter > .card:only-child > .card-header {
+  display: none;
+}
+.window-button.settings-toggle.on {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
 .window-button.quiet {
   color: var(--accent);
   background: var(--accent-soft);
@@ -1738,20 +1752,34 @@ main,
 }
 .aram-result-head {
   display: flex;
-  align-items: center;
-  gap: 7px;
+  align-items: baseline;
+  min-width: 0;
+  max-width: 62%;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* One line: outcome · champion · time · player (who played, for a friend's game). */
+.aram-result-head > * + *::before {
+  content: '·';
+  margin: 0 7px;
+  color: var(--subtle);
+}
+.aram-result-outcome {
   font-size: 11.5px;
   font-style: italic;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.aram-result-head svg {
-  color: var(--accent);
+.aram-result-champion {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
 }
-.aram-result-head i {
-  color: var(--subtle);
-  font-style: normal;
+.aram-result-player {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .aram-result.win .aram-result-outcome {
   color: var(--accent);
@@ -1761,26 +1789,6 @@ main,
 }
 .aram-result-time {
   color: var(--muted);
-}
-.aram-result-who {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-  color: var(--muted);
-  font-size: 12.5px;
-}
-.aram-result-who b {
-  color: var(--text);
-}
-.aram-result-who small {
-  margin-left: 1px;
-  color: var(--subtle);
-  font-size: 11px;
-}
-.aram-result-who span::before {
-  content: '·';
-  margin: 0 6px;
-  color: var(--subtle);
 }
 .aram-result-damage {
   display: flex;
@@ -1814,8 +1822,32 @@ main,
 }
 .aram-result-stats {
   display: flex;
-  gap: 17px;
+  gap: 28px;
   margin: 2px 0 0;
+}
+/* New records of this game (aramHighlight.ts) as small chips in their category's hue. */
+.aram-result-records {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.aram-result-records span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--hue, var(--accent)) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hue, var(--accent)) 16%, var(--panel));
+  color: color-mix(in srgb, var(--hue, var(--accent)) 55%, var(--text));
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.aram-result-records span.more {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--muted);
 }
 .aram-result-stat {
   display: flex;
@@ -1864,29 +1896,6 @@ main,
 }
 .aram-result-crown {
   display: inline-flex;
-}
-/* Under the badge, over the splash art: the row of augments and items below stays free. */
-.aram-result-lines {
-  position: absolute;
-  top: 50px;
-  right: 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  max-width: 44%;
-  font-size: 11.5px;
-  font-weight: 600;
-  text-align: right;
-  text-shadow: 0 1px 6px var(--panel);
-}
-.aram-result-lines span {
-  padding: 2px 8px;
-  border-radius: calc(6px * var(--radius-scale));
-  background: color-mix(in srgb, var(--panel) 78%, transparent);
-}
-.aram-result-lines span:first-child {
-  color: var(--accent);
 }
 /* A shine sweeping once over a special game, and its glowing frame. */
 .aram-result-shine {
@@ -2363,28 +2372,6 @@ html[data-motion='normal'] .aram-gain {
   color: var(--muted);
   font-size: 12.5px;
 }
-/* The choice of categories below the toolbar. */
-.aram-choice-panel {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding-bottom: 12px;
-}
-.aram-choice {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-.aram-choice .filter-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 9px;
-}
-.aram-choice-panel .text-link {
-  flex-shrink: 0;
-  font-size: 12px;
-}
 /* Closing to and opening from the notification area (app/windowFx.ts): drawn over everything. */
 .window-fx {
   position: fixed;
@@ -2465,7 +2452,7 @@ html[data-motion='normal'] .aram-gain {
 }
 .aram-result-mates li {
   display: grid;
-  grid-template-columns: 16px 18px 110px 1fr 58px 64px;
+  grid-template-columns: 16px 18px 130px 1fr 64px;
   align-items: center;
   gap: 8px;
   height: 22px;
@@ -2513,11 +2500,6 @@ html[data-motion='normal'] .aram-gain {
   transform-origin: left center;
 }
 .aram-mate-damage {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.aram-mate-kda {
-  color: var(--muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -2959,6 +2941,18 @@ html[data-motion='normal'] .aram-gain {
   border-radius: 999px;
   background: linear-gradient(90deg, var(--accent) 40%, var(--surface-hover) 40%);
 }
+.stage-screen-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.stage-screen-choice > span {
+  margin-right: 4px;
+}
 .stage-options {
   display: flex;
   flex-wrap: wrap;
@@ -3049,4 +3043,341 @@ html[data-motion='normal'] .aram-gain {
 /* Room for the dock on every page while editing (nothing hides behind it). */
 .panel.editing .page {
   padding-bottom: 58px;
+}
+/* A part that failed to draw (components/Guard.tsx): a quiet notice in its place. */
+.guard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+  border-radius: calc(10px * var(--radius-scale));
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  color: var(--text);
+}
+.guard > svg {
+  flex: none;
+  color: var(--danger-text);
+}
+.guard > div {
+  display: grid;
+  flex: 1 1 170px;
+  min-width: 0;
+  gap: 2px;
+}
+.guard strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.guard small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.guard .secondary-button {
+  flex: none;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+/* A failed dialog: its notice floats where the dialog would be. */
+.guard-float {
+  position: fixed;
+  inset: auto 24px 24px auto;
+  z-index: 40;
+  max-width: 420px;
+  box-shadow: var(--shadow-overlay);
+  border-radius: calc(10px * var(--radius-scale));
+  background: var(--panel);
+}
+/* The whole app failed (app/CrashScreen.tsx): opaque like the app, a way back and the report. */
+.crash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 32px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+.crash-brand {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+}
+.crash-brand span {
+  color: var(--accent);
+}
+.crash-screen h1 {
+  margin: 8px 0 0;
+  font-size: 18px;
+}
+.crash-screen p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.crash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.crash-actions .filter-button {
+  gap: 8px;
+}
+.crash-report {
+  width: min(560px, 80vw);
+  height: 160px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--surface);
+  color: var(--text);
+  font:
+    11px/1.4 ui-monospace,
+    monospace;
+  resize: none;
+}
+/* A player in the leaderboard is a button: their overview (features/aram/AramPlayerDialog.tsx). */
+.aram-bar-player,
+.aram-crowns li > button {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: calc(5px * var(--radius-scale));
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aram-bar-player {
+  flex: 1;
+  gap: 6px;
+}
+.aram-crowns li > button {
+  gap: 7px;
+}
+.aram-bar-player:hover .aram-bar-name,
+.aram-crowns li > button:hover .aram-crowns-name {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--text) 35%, transparent);
+  text-underline-offset: 2px;
+}
+.aram-bar-player:focus-visible,
+.aram-crowns li > button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.aram-bar-place.first {
+  background: var(--place);
+  color: var(--panel);
+}
+/* The overview of a player: medals, numbers with places, records, best games, champions. */
+.aram-player-card {
+  display: flex;
+  flex-direction: column;
+  width: 680px;
+  max-height: 560px;
+  overflow: hidden;
+  border: 1px solid var(--accent-line);
+  border-radius: calc(14px * var(--radius-scale));
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+}
+.aram-player-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.aram-player-head .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: calc(10px * var(--radius-scale));
+  font-size: 14px;
+}
+.aram-player-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.aram-player-head h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 17px;
+}
+.aram-player-head h2 small {
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 400;
+}
+.aram-player-head h2 .badge {
+  align-self: center;
+}
+.aram-player-head p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.aram-player-medals {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-player-medals li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-player-medals li.none {
+  opacity: 0.4;
+}
+.aram-player-medals .aram-bar-place {
+  width: 22px;
+  height: 22px;
+  background: var(--place);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--place) 45%, transparent);
+  color: var(--panel);
+  font-size: 11px;
+}
+.aram-player-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 18px 18px;
+}
+.aram-player-overall {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.aram-player-overall > div {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(10px * var(--radius-scale));
+  background: color-mix(in srgb, var(--hue) 6%, var(--panel));
+}
+.aram-player-overall dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.aram-player-overall dt svg,
+.aram-player-icon {
+  flex: none;
+  color: color-mix(in srgb, var(--hue) 70%, var(--text));
+}
+.aram-player-overall dd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-player-caption {
+  margin: 4px 0 0;
+  color: var(--subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.aram-player-records {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-player-records li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 27px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  font-size: 12.5px;
+}
+.aram-player-record-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-player-records img,
+.aram-player-games img,
+.aram-player-champions img {
+  flex: none;
+  border-radius: calc(5px * var(--radius-scale));
+}
+.aram-player-records b,
+.aram-player-game-damage {
+  font-variant-numeric: tabular-nums;
+}
+.aram-player-columns {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 18px;
+}
+.aram-player-games,
+.aram-player-champions {
+  display: grid;
+  gap: 7px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-player-games li,
+.aram-player-champions li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.aram-player-games li {
+  padding-left: 7px;
+  border-left: 2px solid var(--accent);
+}
+.aram-player-games li.loss {
+  border-left-color: var(--danger-text);
+}
+.aram-player-game-name,
+.aram-player-champions span {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.aram-player-game-name small,
+.aram-player-champions small {
+  color: var(--muted);
+  font-size: 11px;
 }

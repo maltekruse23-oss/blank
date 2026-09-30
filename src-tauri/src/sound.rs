@@ -68,9 +68,9 @@ fn scaled(wav: &[u8], level: f32) -> Option<Vec<u8>> {
             b"fmt " => pcm16 = word(body)? == 1 && word(body + 14)? == 16,
             b"data" if pcm16 => {
                 let end = body.checked_add(size)?.min(wav.len());
-                for sample in out[body..end].chunks_exact_mut(2) {
-                    let value = f32::from(i16::from_le_bytes([sample[0], sample[1]]));
-                    sample.copy_from_slice(&((value * gain).round() as i16).to_le_bytes());
+                for sample in out[body..end].as_chunks_mut::<2>().0 {
+                    let value = f32::from(i16::from_le_bytes(*sample));
+                    *sample = ((value * gain).round() as i16).to_le_bytes();
                 }
                 return Some(out);
             }
@@ -90,8 +90,10 @@ mod tests {
     fn samples(wav: &[u8]) -> Vec<i16> {
         let data = wav.windows(4).position(|w| w == b"data").unwrap() + 8;
         wav[data..]
-            .chunks_exact(2)
-            .map(|b| i16::from_le_bytes([b[0], b[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|b| i16::from_le_bytes(*b))
             .collect()
     }
 

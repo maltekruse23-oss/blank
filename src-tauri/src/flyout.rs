@@ -481,6 +481,11 @@ fn in_taskbar(
 
 /// Taskbar icons on the left (Windows setting "Taskleistenausrichtung: Links"); read only.
 fn icons_on_the_left() -> bool {
+    // Windows 10 has no such setting: its icons are always on the left, next to Start (the left
+    // end is not free there).
+    if crate::winver::is_windows_10() {
+        return true;
+    }
     // Missing: Windows 11's default, centred.
     user_dword(
         "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",

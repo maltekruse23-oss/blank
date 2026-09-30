@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { Music, Pause, SkipBack, SkipForward } from 'lucide-react';
 import { countScreens, hasPopouts, showPopout, taskbarIconsLeft } from '../../platform/popout';
-import type { PopoutPlace, PopoutScreen } from '../popouts/placement';
+import { popoutScreens, type PopoutPlace, type PopoutScreen } from '../popouts/placement';
 import type { Preferences } from '../settings/preferences';
 
 /** Where each place sits on the miniature screen (share of width and height). */
@@ -75,6 +75,7 @@ export function PopoutStage({
   }
   // The real popout appears where it is as soon as this tool opens: its window is there before the
   // first drag, so it follows the miniature at once (user's wish "instant").
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once when the tool opens
   useEffect(() => preview(p), []);
 
   const monitors: PopoutScreen[] = screens > 1 ? ['primary', 'second'] : ['primary'];
@@ -242,7 +243,8 @@ export function PopoutStage({
         {monitors.map((screen) => (
           <div
             key={screen}
-            className={`stage-screen ${onScreen === screen ? 'current' : ''}`}
+            // Outlined only when it is the chosen screen ("Maus" and "Aktives Fenster": neither).
+            className={`stage-screen ${p.popoutScreen === screen ? 'current' : ''}`}
             data-screen={screen}
           >
             <span className="stage-label">
@@ -340,6 +342,24 @@ export function PopoutStage({
         <p className="aram-note" role="status">
           Gerade im Vollbild – das Popout erscheint danach.
         </p>
+      )}
+      {/* The screen only here (not also in the side panel): dragging picks the main or second
+          one, these buttons also "where the mouse is" and "where the active window is". */}
+      {screens > 1 && (
+        <div className="stage-screen-choice" role="group" aria-label="Bildschirm der Popouts">
+          <span>Bildschirm</span>
+          {popoutScreens.map((screen) => (
+            <button
+              key={screen.id}
+              className={`filter-button ${p.popoutScreen === screen.id ? 'selected' : ''}`}
+              aria-pressed={p.popoutScreen === screen.id}
+              title={screen.name}
+              onClick={() => change({ ...p, popoutScreen: screen.id })}
+            >
+              {screen.short}
+            </button>
+          ))}
+        </div>
       )}
       <div className="stage-options">
         <label className="stage-opacity">

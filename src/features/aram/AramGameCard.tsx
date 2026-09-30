@@ -1,5 +1,6 @@
 import {
   championSplash,
+  splashFallback,
   itemIcon,
   splitRiotId,
   type AramAugment,
@@ -21,7 +22,7 @@ export function AramGameCard({
   /** Shows the game as the card after a game, with its animation. */
   onShow: () => void;
 }) {
-  const splash = championSplash(entry.champion);
+  const splash = championSplash(entry.champion, entry.skin);
   const { name, tag } = splitRiotId(entry.name);
   const stats: [string, string][] = [
     ['K / D / A', `${entry.kills} / ${entry.deaths} / ${entry.assists}`],
@@ -38,9 +39,7 @@ export function AramGameCard({
           src={splash}
           alt=""
           loading="lazy"
-          onError={(event) => {
-            event.currentTarget.hidden = true;
-          }}
+          onError={(event) => splashFallback(event, entry.champion, entry.skin)}
         />
       )}
       <div className="aram-game-body">

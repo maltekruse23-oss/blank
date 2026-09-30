@@ -165,7 +165,7 @@ export function useTwitch(adapter: TwitchAdapter) {
     return () => {
       active = false;
     };
-    // applyChannelInfo reads the latest list through a ref; only what is missing matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyChannelInfo reads the latest list through a ref; only what is missing matters here
   }, [adapter, missingImages, canLookUp]);
 
   // Manual refresh: streams (title, game, viewers, preview) and channel data, all at once.

@@ -1,26 +1,4 @@
-import {
-  BarChart3,
-  Coins,
-  Crosshair,
-  Crown,
-  Flame,
-  Gamepad2,
-  HeartPulse,
-  Medal,
-  PieChart,
-  Shield,
-  ShieldCheck,
-  Skull,
-  Snowflake,
-  Sparkles,
-  Swords,
-  Target,
-  TowerControl,
-  TrendingUp,
-  Trophy,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { motion } from 'motion/react';
 import {
@@ -34,8 +12,8 @@ import { ChannelAvatar } from '../../components/ui';
 import { spring } from '../../design/motion';
 import { useMotion } from '../../design/useDesign';
 import {
-  categories,
   ranking,
+  recordCategories,
   type Category,
   type CategoryId,
   type Placing,
@@ -51,34 +29,11 @@ import {
   type Seen,
 } from './aramRace';
 import { day } from './format';
+import { categoryIcons as icons } from './aramIcons';
 
 /** Classic colours of a place (user's wish): 1 gold, 2 silver, 3 bronze, then neutral. */
 export const placeColor = (place: number) =>
   place >= 1 && place <= 3 ? `var(--rank-${place})` : 'var(--rank-rest)';
-
-const icons: Record<CategoryId, LucideIcon> = {
-  damage: Flame,
-  pentas: Crown,
-  ap: Sparkles,
-  ad: Swords,
-  kills: Skull,
-  tank: Shield,
-  avgDamage: BarChart3,
-  wins: Trophy,
-  kda: Target,
-  heal: HeartPulse,
-  true: Zap,
-  mitigated: ShieldCheck,
-  quadras: Medal,
-  crit: Crosshair,
-  cc: Snowflake,
-  spree: TrendingUp,
-  gold: Coins,
-  share: PieChart,
-  topDamage: Medal,
-  turrets: TowerControl,
-  games: Gamepad2,
-};
 
 /** A row as shown right now (while counting up: the value on its way). */
 type Shown = Placing & { now: number | null; from: number | null; index: number };
@@ -116,6 +71,7 @@ function CategoryCard({
   progress,
   racing,
   meId,
+  onPlayer,
 }: {
   category: Category;
   rows: Shown[];
@@ -124,6 +80,7 @@ function CategoryCard({
   /** Counted up in this race (gains and a new leader are shown). */
   racing: boolean;
   meId: string | null;
+  onPlayer: (player: AramPlayer) => void;
 }) {
   const Icon = icons[category.id];
   const done = progress >= 1;
@@ -183,11 +140,17 @@ function CategoryCard({
                 <span className="aram-bar-place">
                   {lead ? <Crown size={lead ? 13 : 12} aria-label="Platz 1" /> : place}
                 </span>
-                <ChannelAvatar login={name} imageUrl={profileIcon(row.player.icon)} />
-                <span className="aram-bar-name">
-                  {name}
-                  {lead && row.game && <small>{row.game.championName}</small>}
-                </span>
+                <button
+                  className="aram-bar-player"
+                  title={`Übersicht: ${name}`}
+                  onClick={() => onPlayer(row.player)}
+                >
+                  <ChannelAvatar login={name} imageUrl={profileIcon(row.player.icon)} />
+                  <span className="aram-bar-name">
+                    {name}
+                    {lead && row.game && <small>{row.game.championName}</small>}
+                  </span>
+                </button>
                 {champion && row.game && (
                   <img
                     className="aram-bar-champion"
@@ -228,10 +191,12 @@ function Crowns({
   players,
   crowns,
   meId,
+  onPlayer,
 }: {
   players: AramPlayer[];
   crowns: Map<string, number>;
   meId: string | null;
+  onPlayer: (player: AramPlayer) => void;
 }) {
   const order = players
     .map((player, index) => ({ player, index, count: crowns.get(player.puuid) ?? 0 }))
@@ -249,11 +214,13 @@ function Crowns({
             transition={spring('snappy')}
             className={`${top ? 'top' : ''} ${player.puuid === meId ? 'me' : ''}`}
           >
-            <ChannelAvatar login={name} imageUrl={profileIcon(player.icon)} />
-            <span className="aram-crowns-name">{name}</span>
-            <span className="aram-crowns-count" key={count}>
-              <Crown size={12} /> {count}
-            </span>
+            <button title={`Übersicht: ${name}`} onClick={() => onPlayer(player)}>
+              <ChannelAvatar login={name} imageUrl={profileIcon(player.icon)} />
+              <span className="aram-crowns-name">{name}</span>
+              <span className="aram-crowns-count" key={count}>
+                <Crown size={12} /> {count}
+              </span>
+            </button>
           </motion.li>
         );
       })}
@@ -262,22 +229,27 @@ function Crowns({
 }
 
 export function AramRanking({
-  chosen,
   players,
   games,
   meId,
+  onPlayer,
 }: {
-  chosen: CategoryId[];
   players: AramPlayer[];
   games: AramEntry[];
   meId: string | null;
+  /** A click on a player: their overview (user's wish). */
+  onPlayer: (player: AramPlayer) => void;
 }) {
   const { enabled: moving } = useMotion();
-  const shown = useMemo(() => categories.filter((c) => chosen.includes(c.id)), [chosen]);
+  // Always the records (user's wish: nothing to choose); a category shows once someone has a value.
   const results = useMemo(
-    () => shown.map((category) => ({ category, rows: ranking(category, players, games) })),
-    [shown, players, games],
+    () =>
+      recordCategories
+        .map((category) => ({ category, rows: ranking(category, players, games) }))
+        .filter(({ rows }) => rows.some((row) => row.value !== null && row.value > 0)),
+    [players, games],
   );
+  const shown = useMemo(() => results.map((r) => r.category), [results]);
   const target = useMemo(() => {
     const values: Seen = {};
     for (const { category, rows } of results)
@@ -308,6 +280,7 @@ export function AramRanking({
     setRace({ from: seen ?? {}, order: changed });
     setStart(null);
     setCounting(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a race only when the values change (by content, not identity)
   }, [targetKey, moving]);
 
   // Frames only while counting; afterwards the gains fade on their own (CSS), nothing runs.
@@ -330,6 +303,7 @@ export function AramRanking({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the race reads the values it started with
   }, [race, counting]);
   useEffect(() => {
     if (!race || counting) return;
@@ -364,52 +338,14 @@ export function AramRanking({
 
   return (
     <>
-      {players.length > 1 && <Crowns players={players} crowns={crowns} meId={meId} />}
+      {players.length > 1 && (
+        <Crowns players={players} crowns={crowns} meId={meId} onPlayer={onPlayer} />
+      )}
       <div className="aram-categories">
         {cards.map((card) => (
-          <CategoryCard key={card.category.id} meId={meId} {...card} />
+          <CategoryCard key={card.category.id} meId={meId} onPlayer={onPlayer} {...card} />
         ))}
       </div>
     </>
-  );
-}
-
-/** Which categories the leaderboard shows (user's wish: the main ones, more to choose). */
-export function CategoryChoice({
-  chosen,
-  onChange,
-}: {
-  chosen: CategoryId[];
-  onChange: (chosen: CategoryId[]) => void;
-}) {
-  return (
-    <div className="aram-choice" role="group" aria-label="Kategorien der Rangliste">
-      {categories.map((category) => {
-        const on = chosen.includes(category.id);
-        const Icon = icons[category.id];
-        return (
-          <button
-            key={category.id}
-            className={`filter-button ${on ? 'selected' : ''}`}
-            aria-pressed={on}
-            title={category.note}
-            // The last one stays: an empty leaderboard shows nothing.
-            disabled={on && chosen.length === 1}
-            onClick={() =>
-              onChange(
-                on
-                  ? chosen.filter((id) => id !== category.id)
-                  : categories
-                      .filter((c) => c.id === category.id || chosen.includes(c.id))
-                      .map((c) => c.id),
-              )
-            }
-          >
-            <Icon size={13} />
-            <span>{category.title}</span>
-          </button>
-        );
-      })}
-    </div>
   );
 }

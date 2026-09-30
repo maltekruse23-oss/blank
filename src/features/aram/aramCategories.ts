@@ -1,12 +1,14 @@
 // Categories of the ARAM leaderboard (user's wish: one ranking per category with bars, no player
-// cards; the main ones set, more to choose). Each one ranks the players by one value of their
+// cards; the records on the leaderboard, the rest in each player's overview). Each one ranks the players by one value of their
 // games: the best single game, a total, or an average. Missing values never count as 0.
 import type { AramDetails, AramEntry, AramPlayer } from '../../adapters/aram';
-import { countedGames, kda } from './aramStats';
+import { countedGames, damagePerMinute, kda } from './aramStats';
 import { decimal, number, percent } from './format';
 
 export type CategoryId =
   | 'damage'
+  | 'dpm'
+  | 'avgDpm'
   | 'pentas'
   | 'ap'
   | 'ad'
@@ -56,6 +58,15 @@ export const categories: Category[] = [
     note: 'an Champions · bestes Spiel',
     kind: 'best',
     value: (g) => g.damage,
+    format: number,
+  },
+  {
+    id: 'dpm',
+    hue: 'fire',
+    title: 'Schaden pro Minute',
+    note: 'an Champions · bestes Spiel',
+    kind: 'best',
+    value: damagePerMinute,
     format: number,
   },
   {
@@ -110,6 +121,15 @@ export const categories: Category[] = [
     note: 'an Champions · pro Spiel',
     kind: 'average',
     value: (g) => g.damage,
+    format: number,
+  },
+  {
+    id: 'avgDpm',
+    hue: 'fire',
+    title: 'Ø Schaden/Min',
+    note: 'an Champions · pro Spiel',
+    kind: 'average',
+    value: damagePerMinute,
     format: number,
   },
   {
@@ -240,19 +260,11 @@ export const categories: Category[] = [
   },
 ];
 
-/** The main categories (user's choice), shown until others are chosen. */
-export const defaultCategories: CategoryId[] = ['damage', 'pentas', 'ap', 'ad', 'kills', 'tank'];
-
-const known = new Set<string>(categories.map((c) => c.id));
-
-/** Chosen categories from stored or imported settings: known ids, each once, at least one. */
-export function readAramCategories(raw: unknown): CategoryId[] {
-  if (!Array.isArray(raw)) return defaultCategories;
-  const chosen = [
-    ...new Set(raw.filter((id): id is CategoryId => typeof id === 'string' && known.has(id))),
-  ];
-  return chosen.length > 0 ? chosen : defaultCategories;
-}
+/**
+ * What the leaderboard shows (user's wish: nothing to choose, always the stats with records): the
+ * records – the best single game – and the Pentakills, in this order.
+ */
+export const recordCategories = categories.filter((c) => c.kind === 'best' || c.id === 'pentas');
 
 export type Placing = {
   player: AramPlayer;

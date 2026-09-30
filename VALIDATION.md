@@ -1,5 +1,63 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Vor jedem Release (auf Windows, ca. 10 Minuten)
+
+Mit der neuen `blank.exe` (`pnpm desktop:build` oder das Artefakt eines manuellen Laufs von „Release“ unter Actions) nacheinander:
+
+1. Starten: Startbildschirm, Home ohne Scrollen, nirgends „Fehler in …“; das Fenster steht, wo es zuletzt war.
+2. Seiten durchklicken: Twitch (Live-Liste, Kanal hinzufügen und entfernen), Pros (Filter), ARAM (Rangliste, Beste Spiele → Ansehen), Musik (Mix starten und stoppen), Devices, PC, Apps.
+3. Zahnrad: alle sechs Reiter und die Suche („laut“); eine Einstellung ändern, blank. über das Symbol im Infobereich beenden, neu starten – die Einstellung ist noch da.
+4. Popouts: blank. in den Hintergrund, in einem Player Musik starten → Popout an seiner Stelle (kompakt mit Balken); Video ins Vollbild → Popout weg; zurück aus dem Vollbild → es kommt nicht von selbst wieder.
+5. X → Animation, blank. im Infobereich; Klick aufs Symbol → zurück.
+6. Zahnrad → System → Fehlerbericht → Kopieren und einfügen: „Keine Fehler aufgezeichnet“ oder nur Erklärbares.
+7. Update aus der vorigen Version: „Nach Updates suchen“ → „Jetzt aktualisieren“ → Neustart mit „Neu in Version …“.
+8. Wenn vorhanden, Windows 10: Popouts „In der Taskleiste“ → rechts neben dem Infobereich, nicht über „Start“.
+
+## ARAM: Skin-Splash, Karte übersichtlicher, feste Rekorde, Schaden pro Minute, Spieler-Übersicht (Benutzerwünsche)
+
+Geprüft am 30.09.2026 in der Cloud (Vorschau mit Beispielspielen); nicht nativ.
+
+- Skin: Rust-Tests für die Bildpfade (`Skins/Skin14`, `Skins/Base`, `champion-splashes/103/103027.jpg`, fremder Champion → nichts), das Auffüllen aus der Gameflow-Sitzung und das Behalten beim Ersetzen durch genauere Werte (Qualität mit Skin höher, `valid_entry` bis 999); der Pfad-Leser zusätzlich in einer Kopie unter Linux grün. `cargo clippy` mit Rust 1.98 (wie GitHub) ohne Warnung. In der Vorschau laden Karte und „Beste Spiele“ `…/Kayle_N.jpg` mit Rückfall über die Nummern darunter (Chroma) auf den Standard. **Nativ offen:** ob der Client im Spiel `selectedSkinIndex` bzw. am Ende `skinSplashPath` liefert (sonst bleibt der Standard-Splash wie bisher).
+- Karte: eine Kopfzeile, großer Schaden, Rekorde als Chips (zwei plus „+n“), drei Werte (K/D/A, Schaden/Min, Team-Anteil), Augments; Freunde nur mit Balken und Schaden; Items nur noch unter „Beste Spiele“.
+- Rangliste: kein „Kategorien wählen“ mehr; 14 Rekord-Kategorien mit Werten in fester Reihenfolge, „Schaden pro Minute“ an zweiter Stelle (95.120 in 20:17 → 4.690); Pentakills erscheinen, sobald jemand einen hat. Tests: feste Liste, Schaden pro Minute (bestes Spiel, unter einer Minute kein Wert).
+- Spieler-Übersicht: Klick auf den Namen im Balken öffnet sie (Medaillen 14/0/0, acht Zahlen mit Platz, Rekorde, beste Spiele, Champions); „Ansehen“ legt die Karte darüber, Esc schließt erst die Karte, dann die Übersicht. Test: Plätze mit Gleichstand, Medaillen nur ab zwei Spielern und für Werte über 0, ohne Spiele nichts erfunden.
+- `pnpm build`, `pnpm lint`, `pnpm test` (64), `pnpm format:check`.
+
+## Für Freunde: Absturzschutz, Fehlerbericht, Fensterplatz, Windows 10, Twitch ohne Einrichtung, Prüfung bei jeder Änderung (Benutzerauftrag)
+
+Geprüft am 30.09.2026 in der Cloud (Chromium, App mit nachgebildeten Tauri-Befehlen und absichtlich kaputten Daten); nicht nativ.
+
+- Absturzschutz: `pc_status` als Text statt Objekt → auf Home zeigt nur „PC-Status“ „Fehler in „PC-Status““ mit „Neu laden“, Twitch Live und Dein Setup laufen weiter; die Seite PC zeigt den Hinweis unter ihrer Überschrift, danach Twitch normal. Ein kaputter Konto-Name in der Seitenleiste (außerhalb aller Teile) → „Da ist etwas schiefgegangen.“ mit „Neu laden“ und „Fehlerbericht kopieren“ (→ „Bericht kopiert“) statt eines schwarzen Fensters.
+- Fehlerbericht: Settings → System → „Kopieren“ → „Kopiert – …“; in der Zwischenablage die aufgezeichneten Fehler mit Teil und Ort („PC-Status: TypeError … at pcMetrics …“), jede Meldung einmal.
+- Popout: eine Live-Meldung ohne Kanal lässt das Popout-Fenster abstürzen → Eintrag im Protokoll, `flyout_hide`, einmal neu geladen; derselbe Fehler gleich wieder → nur ausgeblendet, kein zweites Neuladen (höchstens einmal pro Minute). Normale Popouts (kompakt, groß, Meldung, Warnung) wie vorher.
+- Getrennt geladen: Build mit `PopoutWindow` (21 kB) und `App` (237 kB) als eigene Teile; das Popout-Fenster lädt die Seiten der App nicht mehr (vorher ein Paket mit ≈ 660 kB).
+- ARAM-Karte mit drei Rekorden: „Schaden an / Champions“ steht zweizeilig neben der Zahl, keine Rekord-Zeile überdeckt sie.
+- Devices ohne Gerät: „Unterstützt: Logitech (Funk und Kabel) und HyperX Cloud Alpha Wireless“, auf Home als Tooltip.
+- Rust (`errors.rs`, `monitor.rs`, `winver.rs`, Twitch): `cargo clippy --target x86_64-pc-windows-msvc --all-targets` ohne Warnung, auch mit gesetztem `BLANK_TWITCH_CLIENT_ID` (baut neu); die neuen Unit-Tests (Datum, Namen herausnehmen, einzeilige Meldung, Fensterplatz auf einem Bildschirm) in einer Kopie der reinen Funktionen unter Linux grün – die Rust-Tests selbst laufen nur unter Windows (jetzt bei jedem Pull Request).
+- Lint: 18 Fundstellen der React-Hooks-Regeln geprüft, alle bewusst (Effekte nur für einen Auslöser, der Rest über Refs) und mit Begründung markiert; keine offenen Fehler.
+- `pnpm build`, `pnpm lint`, `pnpm test`, `pnpm format:check`.
+- **Offen, nativ:** Fensterplatz nach Neustart (auch mit zwei Bildschirmen und nach Abziehen des zweiten), `errors.log` im Konfigurationsordner, Windows 10 mit „In der Taskleiste“, Anmeldung mit eingebauter Client-ID (sobald die Variable gesetzt ist), erster Lauf von `check.yml` auf GitHub.
+
+## Popouts: Vollbild, kein ×, Balken im kompakten Popout (Benutzerwünsche, Issue #2)
+
+Geprüft am 30.09.2026 in der Cloud; nicht nativ.
+
+- Vollbild (`fullscreen.rs`): Die Prüfung lief nur einmal 40 ms nach der letzten Fensteränderung. Windows' Vollbild-Meldung hinkt hinterher – beim Wechsel ins Vollbild stand sie noch auf „kein Vollbild“ (das Popout blieb), beim Verlassen noch auf „Vollbild“ (das Popout ging). Jetzt: weitere Prüfungen nach 250 und 750 ms, solange nichts Neues passiert, und Windows' Meldung zählt nur, wenn das aktive Fenster den Bildschirm noch deckt. `cargo check` und `cargo clippy --target x86_64-pc-windows-msvc` ohne Warnung, `cargo fmt --check`; die Rust-Tests laufen nur unter Windows (Release-Ablauf). **Nativ zu prüfen:** Video in Chrome/Opera ins Vollbild und zurück, Spiel im Vollbild, Vollbild auf dem anderen Bildschirm.
+- Kein ×: im nachgebildeten Popout-Fenster (Browser, Tauri-Befehle nachgebildet) für Musik normal und kompakt, Vorschau-Meldung und Akku-Warnung kein Schließen-Knopf mehr; Meldungen gehen auf Klick (Klicks auf ihre Knöpfe lösen nur deren Aktion aus).
+- Kompakt: statt Zurück/Pause/Weiter ein Balken (72 × 4 px, Akzentfarbe), Beispiel-Titel bei 1:13 von 3:34 ≈ ein Drittel; ohne Länge nichts.
+- `pnpm build`, `pnpm test`, `pnpm format:check`.
+
+## Settings leichter zu finden und aufgeräumt (Benutzerauftrag nach der Einschätzung)
+
+Geprüft am 30.09.2026 in der Cloud (Chromium, 860 × 640, App mit nachgebildeten Tauri-Befehlen, damit die Desktop-Teile erscheinen); nicht nativ.
+
+- Zahnrad in der Titelleiste öffnet die Einstellungen auch außerhalb des Bearbeiten-Modus, zweiter Klick schließt sie (`aria-pressed` folgt).
+- Einzelne Karten in Meldungen, Popouts und System ohne doppelte Überschrift; Twitch und Daten (je zwei Karten) behalten ihre; die Suche zeigt die Überschriften weiter („lautst“ → „Meldungen“). Stil-Werkzeug nur noch mit der Zeile „Stil“.
+- Bildschirm nur noch im Popout-Werkzeug (Haupt, Zweiter, Maus, Aktives Fenster; „Maus“ gespeichert als `cursor`, dann ist keine Miniatur umrandet); in der Schublade nur „Platz und Bildschirm“ mit dem aktuellen Stand und „Hinziehen“.
+- Lautstärke: Live-Ton aus, Warnungen an → Regler bedienbar; alles aus → gesperrt.
+- `pnpm build`, `pnpm test`, `pnpm format:check`; keine Konsolenfehler.
+- **Offen, nativ:** Zahnrad neben „Bearbeiten“ bei echter Titelleiste (mit Auslastung und Status), Bildschirm-Wahl mit zwei Monitoren.
+
 ## Umgebung
 
 Windows 11 Home 10.0.26200 (x64, 96 DPI), WebView2 153.0.4234.48, Node.js 24.19.0, pnpm 11.25.0, Rust 1.98.1 (stable-x86_64-pc-windows-msvc, rustup 1.29.1), Visual Studio Build Tools 2022 17.14 mit „Desktopentwicklung mit C++“ und Windows SDK 10.0.26100. `pnpm tauri info` meldet keine fehlenden Voraussetzungen. Aufgelöst: tauri 2.11.6, wry 0.55.1, tao 0.35.3, windows-sys 0.61.2.

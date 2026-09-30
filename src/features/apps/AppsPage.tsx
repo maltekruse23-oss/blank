@@ -59,6 +59,7 @@ export function AppsPage({
   onRestore: () => void;
 }) {
   // Once per app start; the list keeps its state across pages.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   useEffect(() => apps.scanOnce(), []);
 
   if (!apps.available)

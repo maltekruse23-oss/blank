@@ -195,6 +195,7 @@ export function useMusic() {
     };
     window.addEventListener('online', online);
     return () => window.removeEventListener('online', online);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recheck only uses refs and setters
   }, []);
 
   function save(next: Saved) {

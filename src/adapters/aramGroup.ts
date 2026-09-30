@@ -46,9 +46,11 @@ export async function memberId(topic: string, puuid: string) {
   return [...hash.slice(0, 8)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** How good a version of a game is (as quality() in aram.rs): everyone keeps the best. */
+/** How good a version of a game is (as quality() in aram.rs): everyone keeps the best; the same
+ * values with the skin played count a little more, so the skin reaches everyone. */
 export const gameQuality = (entry: AramEntry) =>
-  entry.provisional ? 1 : entry.details === null ? 2 : 3;
+  (entry.provisional ? 1 : entry.details === null ? 2 : 3) * 2 +
+  (typeof entry.skin === 'number' ? 1 : 0);
 
 export type GroupMessage =
   | { t: 'member'; player: AramPlayer; at: number }

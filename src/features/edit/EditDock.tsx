@@ -171,9 +171,12 @@ export function EditDock({
             animate={{ opacity: 1, y: 0, scale: 1, transition: spring('snappy') }}
             exit={{ opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.12 } }}
           >
-            <header className="edit-popover-head">
-              <h2>{tools.find((t) => t.id === tool)?.name}</h2>
-            </header>
+            {/* "Stil" starts with its own row "Stil"; a heading above it would say it twice. */}
+            {tool !== 'style' && (
+              <header className="edit-popover-head">
+                <h2>{tools.find((t) => t.id === tool)?.name}</h2>
+              </header>
+            )}
             {panel}
           </motion.div>
         )}

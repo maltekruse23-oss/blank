@@ -60,6 +60,7 @@ export function useGoLiveAlerts(twitch: TwitchData, volume: number) {
       stop();
       timers.forEach((timer) => window.clearTimeout(timer));
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- announce reads the latest values through refs
   }, [twitch.adapter]);
 
   // Polling: compare each new result with the previous one.
@@ -76,7 +77,7 @@ export function useGoLiveAlerts(twitch: TwitchData, volume: number) {
       if (status.kind === 'live' && (was === 'offline' || was === 'other-game'))
         announce(channel, status.stream.game.name);
     }
-    // Only a new result matters; entries belong to it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new result matters; entries belong to it
   }, [updatedAt]);
 
   return { alerts, dismiss };

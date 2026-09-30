@@ -38,7 +38,13 @@ export class TwitchError extends Error {
   }
 }
 
-export type TwitchAccount = { configured: boolean; signedIn: boolean; login: string | null };
+export type TwitchAccount = {
+  configured: boolean;
+  /** The app's own client ID is in use: nothing to set up, only sign in. */
+  builtIn?: boolean;
+  signedIn: boolean;
+  login: string | null;
+};
 export type DeviceLogin = { userCode: string; verificationUri: string; expiresIn: number };
 
 export interface TwitchAccountApi {

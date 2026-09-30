@@ -125,9 +125,11 @@ function AccountCard({ api, twitch }: { api: TwitchAccountApi; twitch: TwitchDat
           <div>
             <h3>Nicht verbunden</h3>
           </div>
-          <button className="text-link" disabled={busy} onClick={() => setEditingClientId(true)}>
-            Client-ID ändern
-          </button>
+          {!account.builtIn && (
+            <button className="text-link" disabled={busy} onClick={() => setEditingClientId(true)}>
+              Client-ID ändern
+            </button>
+          )}
           <button className="filter-button" disabled={busy} onClick={connect}>
             Mit Twitch verbinden
           </button>

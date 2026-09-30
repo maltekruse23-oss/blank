@@ -2,6 +2,7 @@
 // from the League client on this PC (src-tauri/src/aram.rs). The browser preview shows fictional
 // games (src/data/mock.ts).
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import type { SyntheticEvent } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { mockAramData, mockAramFriends } from '../data/mock';
 import { DDRAGON_VERSION } from '../data/proStreamers';
@@ -65,6 +66,8 @@ export type AramEntry = {
   with: AramMate[];
   /** From the end-of-game screen, until the history's exact values replace it. */
   provisional?: boolean;
+  /** The skin played (its number, 0 = base look), for the splash art; absent when not known. */
+  skin?: number;
 };
 
 /** A friend in the same game, for the comparison on the card. */
@@ -192,8 +195,31 @@ const version = (patch: string) =>
 
 export const championSquare = (alias: string) =>
   ALIAS.test(alias) ? `${CDN}/${DDRAGON_VERSION}/img/champion/${alias}.png` : null;
-export const championSplash = (alias: string) =>
-  ALIAS.test(alias) ? `${CDN}/img/champion/splash/${alias}_0.jpg` : null;
+/** Splash art of a champion in a skin (its number; 0 = the base look). */
+export const championSplash = (alias: string, skin = 0) =>
+  ALIAS.test(alias) && Number.isInteger(skin) && skin >= 0 && skin <= 999
+    ? `${CDN}/img/champion/splash/${alias}_${skin}.jpg`
+    : null;
+/** How far below a chroma its skin may be (chromas follow their skin's number). */
+const CHROMA_STEPS = 12;
+
+/**
+ * A splash that did not load: a chroma has no picture of its own, so the numbers below it are
+ * tried (its skin comes right before its chromas), at last the base look; if that fails too, the
+ * picture hides.
+ */
+export function splashFallback(event: SyntheticEvent<HTMLImageElement>, alias: string, skin = 0) {
+  const image = event.currentTarget;
+  const tried = Number(image.dataset.tried ?? skin);
+  const next = tried > 0 && skin - tried < CHROMA_STEPS ? tried - 1 : tried > 0 ? 0 : -1;
+  const url = next >= 0 ? championSplash(alias, next) : null;
+  if (!url) {
+    image.hidden = true;
+    return;
+  }
+  image.dataset.tried = String(next);
+  image.src = url;
+}
 export const itemIcon = (id: number, patch: string) =>
   `${CDN}/${version(patch)}/img/item/${Math.trunc(id)}.png`;
 export const profileIcon = (id: number) =>
