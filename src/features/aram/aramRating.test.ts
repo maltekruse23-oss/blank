@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { AramEntry, AramSeat } from '../../adapters/aram';
 import {
-  BEST,
+  applyPoints,
+  expectedMark,
   markGame,
+  MAX_GAIN,
+  MAX_LOSS,
   PLACEMENT,
-  START,
-  seasonValue,
+  placementLadder,
+  pointsFor,
+  rankName,
+  rankOf,
+  SHIELD_GAMES,
   standings,
-  tierOf,
-  TIERS,
   WIN_BONUS,
 } from './aramRating';
 
@@ -151,34 +155,69 @@ describe('Mayhem-Wertung: Note je Spiel', () => {
   });
 });
 
-describe('Mayhem-Wertung: Saison', () => {
-  it('fehlende Spiele zählen als Startwert, die besten zählen', () => {
-    expect(seasonValue([])).toBe(START);
-    expect(seasonValue([9])).toBeCloseTo((9 + (BEST - 1) * START) / BEST, 2);
-    const many = Array.from({ length: 30 }, (_, i) => (i < 20 ? 8 : 1));
-    expect(seasonValue(many)).toBe(8);
+describe('Mayhem-Wertung: Ladder wie in LoL', () => {
+  it('Stufen mit Divisionen IV–I, oben nur Punkte', () => {
+    expect(rankName(rankOf(0))).toBe('D IV');
+    expect(rankOf(0).points).toBe(0);
+    expect(rankName(rankOf(399))).toBe('D I');
+    expect(rankOf(399).points).toBe(99);
+    expect(rankName(rankOf(1650))).toBe('S IV');
+    expect(rankName(rankOf(1750))).toBe('S III');
+    expect(rankName(rankOf(2800))).toBe('MAYHEM');
+    expect(rankOf(3050)).toMatchObject({ division: null, points: 250 });
   });
 
-  it('Stufen steigen mit dem Wert, oben ist Schluss', () => {
-    expect(tierOf(0).tier.id).toBe('d');
-    expect(tierOf(START).tier.id).toBe('d');
-    expect(tierOf(10).tier.id).toBe(TIERS[TIERS.length - 1].id);
-    expect(tierOf(10).progress).toBe(1);
-    const mid = tierOf((TIERS[3].from + TIERS[4].from) / 2);
-    expect(mid.tier.id).toBe(TIERS[3].id);
-    expect(mid.progress).toBeCloseTo(0.5, 5);
+  it('höherer Rang erwartet mehr', () => {
+    for (let l = 0; l < 3600; l += 50)
+      expect(expectedMark(l + 50)).toBeGreaterThan(expectedMark(l));
+  });
+
+  it('Punkte aus Note gegen Erwartung, gedeckelt, nie 0', () => {
+    expect(pointsFor(expectedMark(800) + 1, 800)).toBeGreaterThan(0);
+    expect(pointsFor(expectedMark(800) - 1, 800)).toBeLessThan(0);
+    expect(pointsFor(10, 0)).toBe(MAX_GAIN);
+    expect(pointsFor(0, 2800)).toBe(-MAX_LOSS);
+    expect(pointsFor(expectedMark(800), 800)).toBe(1);
+  });
+
+  it('Aufstieg mit Übertrag, erst auf 0, dann Abstieg auf 75', () => {
+    expect(applyPoints(390, 25, 0)).toBe(415);
+    expect(applyPoints(510, -20, 0)).toBe(500);
+    expect(applyPoints(500, -20, 0)).toBe(475);
+    expect(applyPoints(0, -20, 0)).toBe(0);
+    expect(applyPoints(2810, -30, 0)).toBe(2800);
+    expect(applyPoints(2800, -30, 0)).toBe(2775);
+  });
+
+  it('nach einem Stufen-Aufstieg Schutz vor dem Abstieg', () => {
+    expect(applyPoints(800, -20, SHIELD_GAMES)).toBe(800);
+    expect(applyPoints(800, -20, 0)).toBe(775);
+    // Only the tier is shielded, a division inside it is not.
+    expect(applyPoints(900, -20, SHIELD_GAMES)).toBe(875);
+  });
+
+  it('Einstufung nach 5 Spielen, gedeckelt', () => {
+    expect(placementLadder([3, 3, 3, 3, 3])).toBe(0);
+    const mid = placementLadder([5, 5, 5, 5, 5]);
+    expect(expectedMark(mid)).toBeLessThanOrEqual(5);
+    expect(rankOf(placementLadder([10, 10, 10, 10, 10])).tier.id).toBe('s');
   });
 
   it('gleiche Spiele in anderer Reihenfolge ergeben bei allen dasselbe', () => {
-    const games = Array.from({ length: 8 }, (_, i) =>
-      game({ damage: 20_000 + i * 7_000 }, { gameId: 10 + i, at: 1_790_000_000_000 + i * 1e6 }),
+    const games = Array.from({ length: 12 }, (_, i) =>
+      game(
+        { damage: 20_000 + ((i * 7) % 5) * 9_000 },
+        { gameId: 10 + i, at: 1_790_000_000_000 + i * 1e6 },
+      ),
     );
     const a = standings(games);
     const b = standings([...games].reverse());
     expect(a).toEqual(b);
-    expect(a[0].games).toBe(8);
-    expect(a[0].tier).not.toBeNull();
-    expect(standings(games.slice(0, PLACEMENT - 1))[0].tier).toBeNull();
+    expect(a[0].games).toBe(12);
+    expect(a[0].rank).not.toBeNull();
+    expect(a[0].history[PLACEMENT - 1].change).toBe('placed');
+    expect(a[0].history[PLACEMENT].gain).not.toBeNull();
+    expect(standings(games.slice(0, PLACEMENT - 1))[0].rank).toBeNull();
   });
 
   it('nur Spiele ab Saisonstart', () => {

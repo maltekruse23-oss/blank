@@ -3520,3 +3520,20 @@ html[data-motion='normal'] .aram-gain {
   opacity: 0.45;
   filter: grayscale(0.7);
 }
+.rank-row {
+  grid-template-columns: 22px 76px minmax(0, 1fr) auto;
+}
+.rank-place {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.rank-mark.promoted,
+.rank-mark.placed {
+  outline: 1px solid var(--accent);
+}
+.rank-mark.demoted {
+  outline: 1px solid var(--danger);
+}
