@@ -1,10 +1,11 @@
 ## Neu in dieser Version
 
-- **Rang-Modus für ARAM Mayhem:** Neuer Reiter **„Rang“** mit Stufen wie in Ranked – **D, C, B, A, S, SS, SSS** mit Divisionen IV–I und ganz oben **MAYHEM**. Nach 5 Einstufungsspielen bekommst du deinen Rang, danach gibt es pro Spiel **MP** (0–100 pro Division), Auf- und Abstieg und Schutz nach einem Aufstieg.
-- **MP kommen aus deiner Leistung, nicht vom Sieg:** Jedes Spiel bekommt eine Note von 0 bis 10 im Vergleich mit allen zehn im Spiel – Schaden, Anteil am Team, Beteiligung, Einstecken, Heilen, je nach Rolle deines Champions. Spiel strecken, schnell pushen oder nichts tun bringt nichts. Ein Sieg zählt nur ein kleines bisschen.
-- **Nach dem Spiel:** Die Karte zeigt, wie viele MP du bekommen hast – bei einem Aufstieg füllt sich der Balken und dein neues Wappen landet.
-- **Home:** Das ARAM-Widget zeigt oben deinen Rang.
-- **Wappen:** Jede Stufe hat ihr eigenes Wappen, und in der Einstufung siehst du schon blass, wohin es geht.
+- **Rang als eigene Seite:** In der Seitenleiste gibt es jetzt den Abschnitt **ARAM** mit **Rang** und **Rekorde**. Twitch, Pros und Musik stehen unter **Medien**.
+- **Rang wie in LoL-Ranked:** MP-Größen wie im echten Ranked (etwa ±25, in SS/SSS ±20, MAYHEM ±30), Abstieg mit Überlauf in die Division darunter und Schutz nach dem Aufstieg.
+- **Form:** Spielst du über deinem Rang, gibt es mehr MP und du verlierst weniger – angezeigt als „Form über dem Rang“.
+- **Mein Verlauf:** Deine Rang-Karte mit Siegen, Niederlagen, Platz und Matchverlauf (MP und Stand nach jedem Spiel), wie auf op.gg.
+- **Saisons:** Drei Saisons pro Jahr wie in LoL, dein Endrang jeder Saison bleibt gespeichert.
+- **Unterreiter:** Merken sich, wo du warst, und lassen sich mit den Pfeiltasten wechseln.
 
 ## So geht's
 

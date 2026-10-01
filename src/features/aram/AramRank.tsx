@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { splitRiotId, type AramEntry, type AramPlayer } from '../../adapters/aram';
 import {
+  CLIMBING,
   PLACEMENT,
   placementLadder,
   rankName,
@@ -10,6 +11,8 @@ import {
   type Standing,
   type Step,
 } from './aramRating';
+import { TrendingUp } from 'lucide-react';
+import { ladderPlace, record } from './RankHistory';
 import { TierEmblem } from './TierEmblem';
 
 const mark = (value: number) => value.toFixed(1).replace('.', ',');
@@ -29,7 +32,8 @@ export function AramRank({
   meId: string | null;
   onPlayer: (player: AramPlayer) => void;
 }) {
-  const byPuuid = new Map(standings(games).map((s) => [s.puuid, s]));
+  const all = standings(games);
+  const byPuuid = new Map(all.map((s) => [s.puuid, s]));
   const rows = players
     .map((player) => ({ player, standing: byPuuid.get(player.puuid) ?? null }))
     .sort(
@@ -51,6 +55,7 @@ export function AramRank({
           <li key={player.puuid}>
             <RankRow
               place={standing?.rank ? i + 1 : null}
+              top={ladderPlace(all, player.puuid)?.top ?? null}
               player={player}
               standing={standing}
               me={player.puuid === meId}
@@ -65,23 +70,26 @@ export function AramRank({
 
 function RankRow({
   place,
+  top,
   player,
   standing,
   me,
   onClick,
 }: {
   place: number | null;
+  top: number | null;
   player: AramPlayer;
   standing: Standing | null;
   me: boolean;
   onClick: () => void;
 }) {
   const { name } = splitRiotId(player.name);
-  const games = standing?.games ?? 0;
   const rank = standing?.rank ?? null;
   const history = standing?.history ?? [];
   const soFar: Rank | null =
-    !rank && games > 0 ? rankOf(placementLadder(history.map((h) => h.mark.value))) : null;
+    !rank && (standing?.placed ?? 0) > 0
+      ? rankOf(placementLadder(history.slice(-standing!.placed).map((h) => h.mark.value)))
+      : null;
   const last = history.slice(-LAST).reverse();
   return (
     <button className={`rank-row ${me ? 'me' : ''}`} onClick={onClick}>
@@ -98,12 +106,26 @@ function RankRow({
         )}
       </span>
       <span className="rank-main">
-        <span className="rank-name">{name}</span>
+        <span className="rank-name">
+          {name}
+          {standing && standing.games > 0 && (
+            <span className="rank-record"> · {record(standing)}</span>
+          )}
+          {top !== null && <span className="rank-record"> · Top {top} %</span>}
+        </span>
         {rank ? (
           <>
             <span className="rank-tier">
               <b>{rankName(rank)}</b>
               <span className="rank-value">{rank.points} MP</span>
+              {standing!.form >= CLIMBING && (
+                <span
+                  className="rank-climb small"
+                  title="Form über dem Rang – du steigst schneller"
+                >
+                  <TrendingUp size={12} aria-hidden />
+                </span>
+              )}
             </span>
             <span
               className="rank-progress"
@@ -116,7 +138,7 @@ function RankRow({
           </>
         ) : (
           <span className="rank-tier placing-text">
-            Einstufung {Math.min(games, PLACEMENT)}/{PLACEMENT}
+            Einstufung {standing?.placed ?? 0}/{PLACEMENT}
           </span>
         )}
       </span>

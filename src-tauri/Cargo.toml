@@ -1,6 +1,6 @@
 [package]
 name = "blank"
-version = "0.9.0"
+version = "0.9.1"
 description = "Private desktop workspace"
 authors = ["blank contributors"]
 edition = "2021"

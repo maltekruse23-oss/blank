@@ -68,7 +68,7 @@ const PLACES: &[&str] = &[
 const SCREENS: &[&str] = &["primary", "second", "cursor", "focus"];
 /// Pages a popout may open in the app (App.tsx).
 const PAGES: &[&str] = &[
-    "home", "twitch", "pros", "aram", "music", "devices", "pc", "apps", "settings",
+    "home", "twitch", "pros", "rank", "aram", "music", "devices", "pc", "apps", "settings",
 ];
 
 #[derive(Default)]

@@ -1433,7 +1433,8 @@ main,
 .aram-toolbar {
   align-items: center;
 }
-.aram-tabs {
+/* Sub-tabs of a page (components/SubTabs.tsx). */
+.sub-tabs {
   display: flex;
   gap: 5px;
   margin-right: auto;
@@ -1441,12 +1442,12 @@ main,
 .aram-toolbar .toolbar-count {
   margin-right: 0;
 }
-.aram-tabs .filter-button {
+.sub-tabs .filter-button {
   position: relative;
   isolation: isolate;
   padding: 8px 11px;
 }
-.aram-tabs .filter-button.selected {
+.sub-tabs .filter-button.selected {
   border-color: var(--border);
 }
 .aram-note {
@@ -3668,4 +3669,127 @@ html[data-motion='normal'] .aram-gain {
   color: var(--text);
   font-size: 18px;
   font-weight: 900;
+}
+
+/* Ranked profile of a player (RankHistory.tsx): as in the client and on op.gg. */
+.rank-record {
+  color: var(--muted);
+}
+.rank-climb {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.rank-climb.small {
+  padding: 2px 5px;
+}
+.rank-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rank-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: calc(12px * var(--radius-scale));
+  background: var(--panel);
+}
+.rank-card .rank-emblem {
+  width: 72px;
+  height: 72px;
+}
+.rank-card-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.rank-card-main b {
+  font-size: 18px;
+  font-weight: 900;
+}
+.rank-card-season,
+.rank-card-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.rank-seasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rank-seasons li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 4px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 12px;
+}
+.rank-seasons .rank-emblem {
+  width: 22px;
+  height: 22px;
+}
+.rank-matches {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.rank-matches th {
+  padding: 4px 6px;
+  color: var(--muted);
+  font-weight: 700;
+  text-align: left;
+}
+.rank-matches td {
+  padding: 5px 6px;
+  border-top: 1px solid var(--border);
+}
+.rank-matches tr.win td:first-child {
+  color: var(--accent);
+  font-weight: 700;
+}
+.rank-matches tr.loss td:first-child {
+  color: var(--danger-text);
+  font-weight: 700;
+}
+.rank-matches td.plus {
+  color: var(--accent);
+  font-weight: 800;
+}
+.rank-matches td.minus {
+  color: var(--danger-text);
+  font-weight: 800;
+}
+.rank-matches em {
+  font-style: normal;
+  font-weight: 800;
+}
+.rank-matches em.up {
+  color: var(--accent);
+}
+.rank-matches em.down {
+  color: var(--danger-text);
+}
+.rank-matches-sum {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }

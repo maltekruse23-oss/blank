@@ -375,7 +375,7 @@ export const widgets: Record<WidgetId, Widget> = {
     title: 'ARAM',
     description: 'Top 3 im höchsten Schaden',
     icon: Swords,
-    page: 'aram',
+    page: 'rank',
     Body: AramBody,
   },
 };

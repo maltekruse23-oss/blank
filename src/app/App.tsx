@@ -18,10 +18,13 @@ import {
   Cpu,
   Package,
   Swords,
+  Medal,
   X,
 } from 'lucide-react';
 import { ProsPage } from '../features/pros/ProsPage';
 import { AramPage } from '../features/aram/AramPage';
+import { RankPage } from '../features/aram/RankPage';
+import { openSubTab } from '../components/SubTabs';
 import { useAram } from '../features/aram/useAram';
 import { useAramResult } from '../features/aram/useAramResult';
 import { useAramGroup } from '../features/aram/useAramGroup';
@@ -70,18 +73,27 @@ import { usePcStatus } from '../features/pc/usePcStatus';
 import { Guard, GuardNotice } from '../components/Guard';
 import { readPcStatus } from '../adapters/pc';
 export type Page =
-  'home' | 'twitch' | 'pros' | 'aram' | 'music' | 'devices' | 'pc' | 'apps' | 'settings';
+  'home' | 'twitch' | 'pros' | 'rank' | 'aram' | 'music' | 'devices' | 'pc' | 'apps' | 'settings';
+/**
+ * The pages in their sections (user's wish: Rang its own page, "Live" no longer over ARAM and
+ * Musik): ARAM Mayhem with the ladder (Rang) and the records (Rekorde), media (Twitch, Pros,
+ * Musik), the PC (Devices, PC, Apps). Keep in step with navPages (edit/layout.ts) and PAGES
+ * (flyout.rs).
+ */
 const navigation = [
   { id: 'home', label: 'Home', icon: LayoutGrid, section: 'Übersicht' },
-  { id: 'twitch', label: 'Twitch', icon: Radio, section: 'Live' },
-  { id: 'pros', label: 'Pros', icon: Trophy, section: 'Live' },
-  { id: 'aram', label: 'ARAM', icon: Swords, section: 'Live' },
-  { id: 'music', label: 'Musik', icon: MusicIcon, section: 'Live' },
+  { id: 'rank', label: 'Rang', icon: Medal, section: 'ARAM' },
+  { id: 'aram', label: 'Rekorde', icon: Swords, section: 'ARAM' },
+  { id: 'twitch', label: 'Twitch', icon: Radio, section: 'Medien' },
+  { id: 'pros', label: 'Pros', icon: Trophy, section: 'Medien' },
+  { id: 'music', label: 'Musik', icon: MusicIcon, section: 'Medien' },
   { id: 'devices', label: 'Devices', icon: Headphones, section: 'System' },
   { id: 'pc', label: 'PC', icon: Cpu, section: 'System' },
   { id: 'apps', label: 'Apps', icon: Package, section: 'System' },
 ] as const;
-const sections = ['Übersicht', 'Live', 'System'] as const;
+const sections = ['Übersicht', 'ARAM', 'Medien', 'System'] as const;
+/** The ARAM pages share the games of the League client. */
+const aramPages: Page[] = ['rank', 'aram'];
 /**
  * Page changes (user's wish: bold motion): the new page comes from the side of its navigation
  * entry with a spring, out of a slight blur and scale; the old one leaves the other way. `dir`: 1
@@ -206,7 +218,7 @@ export function App() {
   // ARAM Mayhem games from the League client, only while the page is open.
   const aram = useAram(
     aramAdapter,
-    page === 'aram',
+    aramPages.includes(page),
     aramPlayers.map((f) => f.puuid),
   );
   // The card after an ARAM Mayhem game: a popout in the background, otherwise here.
@@ -462,7 +474,7 @@ export function App() {
       <span className="badge active" title="Twitch, Akkustände und PC-Werte direkt von der Quelle">
         Live
       </span>
-    ) : page === 'aram' && aramAdapter.source === 'league' ? (
+    ) : aramPages.includes(page) && aramAdapter.source === 'league' ? (
       <span className="badge active" title="Spiele aus dem League-Client auf diesem PC">
         League
       </span>
@@ -510,14 +522,17 @@ export function App() {
             />
           ) : (
             <nav aria-label="Hauptnavigation" data-drag-region>
-              {sections.map((section) => (
-                <div className="nav-group" key={section} data-drag-region>
-                  <span className="sidebar-caption" data-drag-region>
-                    {section}
-                  </span>
-                  {shownNav(section).map(navButton)}
-                </div>
-              ))}
+              {/* A section whose pages are all hidden goes too (no lone caption). */}
+              {sections
+                .filter((section) => shownNav(section).length > 0)
+                .map((section) => (
+                  <div className="nav-group" key={section} data-drag-region>
+                    <span className="sidebar-caption" data-drag-region>
+                      {section}
+                    </span>
+                    {shownNav(section).map(navButton)}
+                  </div>
+                ))}
             </nav>
           )}
           <div className="sidebar-footer">
@@ -591,8 +606,8 @@ export function App() {
                         <TwitchPage twitch={twitch} watch={watch} watchName={watchName} />
                       )}
                       {page === 'pros' && <ProsPage twitch={twitch} />}
-                      {page === 'aram' && (
-                        <AramPage
+                      {page === 'rank' && (
+                        <RankPage
                           aram={aram}
                           adapter={aramAdapter}
                           friends={settings.preferences.aramFriends}
@@ -601,6 +616,19 @@ export function App() {
                           }
                           onShow={aramResult.show}
                           onPlayer={setAramPlayer}
+                          group={aramGroup}
+                        />
+                      )}
+                      {page === 'aram' && (
+                        <AramPage
+                          aram={aram}
+                          friends={settings.preferences.aramFriends}
+                          onShow={aramResult.show}
+                          onPlayer={setAramPlayer}
+                          onGroup={() => {
+                            openSubTab('rank', 'group');
+                            setPage('rank');
+                          }}
                           group={aramGroup}
                         />
                       )}
@@ -701,7 +729,7 @@ export function App() {
               <PatchNotes onClose={() => setNews(false)} />
             </Guard>
           )}
-          {aramPlayer && page === 'aram' && (
+          {aramPlayer && aramPages.includes(page) && (
             <Guard
               key="aram-player"
               name="Spieler-Übersicht"
@@ -722,7 +750,7 @@ export function App() {
                 onClose={aramResult.close}
                 onRanking={() => {
                   aramResult.close();
-                  setPage('aram');
+                  setPage('rank');
                 }}
               />
             </Guard>

@@ -158,26 +158,32 @@ export function readHomeLayout(raw: unknown): Tile[] {
 /** Pages in the sidebar, in their sections; Home first and always there. */
 export const navPages: Page[] = [
   'home',
+  'rank',
+  'aram',
   'twitch',
   'pros',
-  'aram',
   'music',
   'devices',
   'pc',
   'apps',
 ];
 
-/** The order of the pages (known ones, each once; missing ones after them). */
+/** The order of the pages (known ones, each once); a page missing from it (e.g. new in an update)
+ * goes to its place in the default order: before the first page that follows it there. */
 export function readNavOrder(raw: unknown): Page[] {
-  const known = Array.isArray(raw)
+  const order = Array.isArray(raw)
     ? [
         ...new Set(
           raw.filter((p): p is Page => typeof p === 'string' && navPages.includes(p as Page)),
         ),
       ]
     : [];
-  // Only the order within a section counts (sidebar); missing pages come last there.
-  return [...known, ...navPages.filter((page) => !known.includes(page))];
+  for (const [i, page] of navPages.entries()) {
+    if (order.includes(page)) continue;
+    const next = navPages.slice(i + 1).find((p) => order.includes(p));
+    order.splice(next ? order.indexOf(next) : order.length, 0, page);
+  }
+  return order;
 }
 
 /** Hidden pages (never Home). */

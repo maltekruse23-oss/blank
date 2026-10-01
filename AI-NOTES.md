@@ -19,7 +19,9 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
 - Stufen: **D, C, B, A, S, SS, SSS, MAYHEM**, eng an LoL-Ranked: Divisionen IV–I zu je 100 Punkten
   (MP), Auf- und Abstieg (Wahl des Benutzers), Schutz nach Aufstieg, 5 Einstufungsspiele, MAYHEM
   ohne Divisionen. Nur die Punkte je Spiel kommen aus der Note (gegen die Erwartung des Rangs).
-- Immer daran denken: soll später öffentlich werden und von LoL-Spielern genutzt werden.
+- Immer daran denken: soll später öffentlich werden und von LoL-Spielern genutzt werden. Die Regeln
+  folgen der LoL-Ranked-Referenz des Benutzers (Stand 2026); Abweichungen nur auf seine Wahl: eine
+  Apex-Stufe (MAYHEM), kein Verfall, Plus/Minus aus der Note statt aus Sieg/Niederlage.
 - Leistung zählt, Sieg kaum (Fun-Modus: manche Spiele sind nicht zu gewinnen). Spiel strecken,
   schnell pushen oder nichts tun darf nichts bringen.
 - Wappen: der eigene SVG-Entwurf gefiel nicht. Der Benutzer lässt sie von ChatGPT malen (Kristall-
@@ -85,6 +87,12 @@ Rechnung aus `aramRating.ts`, vorher Riot per Developer-Portal fragen.
   wurde, ist später weg.
 
 ## Verlauf
+
+- 01.10.2026: Release 0.9.1 (Seitenleiste neu, Rang eigene Seite, Ladder nach LoL-Referenz).
+
+- 30.09.2026 (7): Seitenleiste neu (Benutzerwunsch): Abschnitte Übersicht · ARAM (Rang, Rekorde) · Medien (Twitch, Pros, Musik) · System; Rang als eigene Seite mit Unterreitern Rangliste · Mein Verlauf · Gruppe; Rekorde mit Rekorde · Beste Spiele; eine Unterreiter-Logik für alle (`components/SubTabs.tsx`).
+
+- 30.09.2026 (6): Ladder nach der LoL-Ranked-Referenz des Benutzers (Datei `lol-ranked-kontext.md`, nicht im Repo): MP-Größen je Tier mit Form, Überlauf beim Abstieg, Landung 75/50/25, Einstufung bis SSS III 80, drei Saisons/Jahr mit Soft-Reset, Anzeige wie op.gg (S/N, Siegquote, Platz, Matchverlauf, frühere Saisons, Kletter-Hinweis). Wahl: nur MAYHEM als Apex, kein Verfall.
 
 - 30.09.2026: **Release 0.9.0** (Rang-Modus). Nativ geprüft: `aram.json` v3 mit allen zehn, Rang-Reiter, Karte, Home.
 
