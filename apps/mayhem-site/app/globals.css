@@ -48,6 +48,10 @@
   --tier-sss: #ff6b5c;
   --tier-mayhem: #ffd35a;
 
+  /* Sides of a game */
+  --side-blue: var(--grade-s);
+  --side-red: var(--down);
+
   /* Space, shape, motion */
   --gutter: 16px;
   --page: 1180px;
@@ -1236,6 +1240,15 @@ tr[data-place='3'] .place { color: var(--tier-d); }
   color: var(--faint);
 }
 
+.legend .to-game {
+  margin-left: auto;
+}
+
+.to-game {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .legend i {
   display: inline-block;
   width: 10px;
@@ -1255,6 +1268,268 @@ tr[data-place='3'] .place { color: var(--tier-d); }
 @media (max-width: 760px) {
   .lobby .teams {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Game ------------------------------------------------------------------------------ */
+
+[data-side='100'] { --side: var(--side-blue); }
+[data-side='200'] { --side: var(--side-red); }
+
+.game-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 28px 24px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, var(--panel) 30%, color-mix(in oklab, var(--panel) 55%, transparent)),
+    var(--splash, none) right 20% / cover no-repeat,
+    var(--panel);
+  margin-bottom: var(--gap);
+}
+
+.game-hero h1 {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 10px 0 0;
+  font: 800 clamp(34px, 6vw, 52px) / 1 var(--font-display);
+  letter-spacing: -0.03em;
+}
+
+.side-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--side);
+}
+
+.side-score small {
+  font: 700 13px/1 var(--font);
+  letter-spacing: 0.04em;
+}
+
+.side-score .vs {
+  margin-right: 4px;
+}
+
+.game-teams {
+  display: grid;
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+}
+
+.team-card .items {
+  flex-wrap: nowrap;
+}
+
+/* Fixed columns, so both teams line up. */
+.team-card .table {
+  table-layout: fixed;
+}
+
+.team-card th:nth-child(2) { width: 110px; }
+.team-card th:nth-child(3) { width: 120px; }
+.team-card th:nth-child(4) { width: 100px; }
+.team-card th:nth-child(5) { width: 90px; }
+.team-card th:nth-child(6) { width: 180px; }
+
+@media (max-width: 760px) {
+  .team-card th:nth-child(2) { width: 86px; }
+  .team-card th:nth-child(3) { width: 96px; }
+}
+
+.team-card {
+  border-top: 3px solid var(--side);
+  padding: 16px 0 4px;
+}
+
+.team-card h2 {
+  padding: 0 16px;
+}
+
+.table-wrap.flat {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.team-card tr[data-picked='true'] {
+  background: var(--accent-soft);
+}
+
+.team-card .who b {
+  max-width: 220px;
+}
+
+.team-card .who small {
+  display: block;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.grade-pick {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.grade-pick:hover,
+.grade-pick[aria-pressed='true'] {
+  border-color: var(--line-strong);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.card-head h2 {
+  margin: 0;
+}
+
+.compare {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compare li {
+  display: grid;
+  grid-template-columns: 24px minmax(70px, 150px) minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.compare .champ {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.compare .label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.compare .bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--panel-3);
+  overflow: hidden;
+}
+
+.compare .bar span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--side);
+  animation: grow var(--slow) var(--ease) both;
+  transform-origin: left;
+}
+
+.compare .value {
+  text-align: right;
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.explain .who {
+  gap: 14px;
+}
+
+.explain .who b {
+  font-size: 17px;
+}
+
+.explain .who small {
+  display: block;
+}
+
+.axes {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.axes li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  font-size: 13px;
+}
+
+.axes .axis {
+  grid-column: 1 / -1;
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--panel-3);
+}
+
+.axes .axis::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.axes .axis span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+}
+
+.axes .plus {
+  background: var(--up);
+}
+
+.axes .minus {
+  background: var(--down);
+}
+
+.axes .word {
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .game-hero {
+    padding: 22px 16px;
+  }
+
+  .team-card .who b {
+    max-width: 110px;
+  }
+
+  .compare li {
+    grid-template-columns: 24px minmax(0, 1fr) 72px 56px;
   }
 }
 

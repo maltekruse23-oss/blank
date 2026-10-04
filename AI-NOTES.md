@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 3 (Teil 1): Spiel-Seite — 04.10.2026
+
+- Neue Seite `apps/mayhem-site/app/spiel/[id]/page.tsx` und Endpunkt `GET /api/spiel/<gameId>` (`src/api.ts`, `game()`): Kopf mit Kills je Seite, Sieg/Niederlage, Datum, Dauer, Patch; beide Teams untereinander mit Riot-ID, Note (gleiche Regel für jeden Sitz), MVP, K/D/A, Schaden, Gold, Items; Vergleichsbalken (Schaden, Eingesteckt, Heilen & Schilde, Gold); „Warum diese Note“ mit den fünf Achsen gegen den Champion-Schnitt, Wahl per Klick auf die Note. `?p=<puuid>` hebt einen Spieler hervor (Link aus dem Matchverlauf des Profils: „Ganzes Spiel ansehen“).
+- Namen aller zehn aus dem Rohdatenarchiv (R2, gzip, `participantIdentities` mit gameName/tagLine). Ohne Archiv: Werte aus dem vollständigsten Upload, Namen nur der Hochladenden und ihrer Freunde (Hinweis auf der Seite). Nur Spiele mit mindestens einem Upload; reine Archiv-Spiele bleiben unsichtbar. PUUID nur bei Spielern mit eigenem Profil (Zeilen in `games`), sonst nie.
+- Reine Logik in `apps/mayhem-site/src/game.ts` (`gameView`, `seatEntry`), getestet in `src/features/aram/siteGame.test.ts` (auch: Note je Sitz = Note der Lobby-Ansicht im Profil).
+- Datenschutzseite nennt die Spiel-Seiten; Entfernen eines Namens vorerst per Issue an den Betreiber (kein Mechanismus im Code). Augment-Symbole fehlen: die Website hat nur Augment-IDs, Namen und Symbole kennt nur die App.
+- Lokal geprüft mit erfundenen Spielern (lokale D1 + lokales R2, ein Spiel archiviert, eins nicht): 1400 px und 375 px ohne Querscrollen. Data Dragon war in der Prüfumgebung gesperrt, Champion- und Item-Bilder deshalb nicht im Bild gesehen.
+
 ## Website Etappe 2: neue Gestaltung, Rangliste, Profil — 04.10.2026
 
 - `apps/mayhem-site/app/globals.css` neu: Tokens (Flächen, Text, Akzent, Farbe je Note `--grade-*` und Stufe `--tier-*`), keine festen Farben in Komponenten. Kopf mit Navigation und Spielersuche (`app/ui/header.tsx`), Fußzeile mit Riot-Hinweis (eigene Formulierung).
