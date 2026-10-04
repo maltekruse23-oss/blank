@@ -11,11 +11,29 @@ import { freshRecords, startView, TOP } from './start';
 import { membersOf, sessionsOf } from './group';
 import { decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
 import { findPlayer, withoutHidden } from './hidden';
+import { isFresh, snapshotKey, SNAPSHOT_MAX, type Snapshot } from './snapshot';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
 const fail = (status: number, message: string): never => { throw new ApiError(status, message); };
 const json = (data: unknown, status = 200) => Response.json(data, { status });
+/** A reading page from its snapshot (src/snapshot.ts), or computed and stored. The cursor is read
+ * before computing, so an upload during the computation makes the next request compute again. */
+async function cached(url: URL, make: () => Promise<Response>): Promise<Response> {
+    const key = snapshotKey(url.pathname.replace(/\/$/, ''), url.searchParams);
+    const cursor = (await rows<{ id: number }>('SELECT COALESCE(MAX(id),0) id FROM events'))[0].id;
+    const now = Date.now();
+    const stored = (await rows<Snapshot & { json: string }>('SELECT version,cursor,at,json FROM snapshots WHERE key=?', key))[0];
+    if (isFresh(stored, now, RATING_VERSION, cursor))
+        return new Response(stored.json, { headers: { 'Content-Type': 'application/json' } });
+    const response = await make();
+    if (!response.ok)
+        return response;
+    const text = await response.text();
+    if (text.length <= SNAPSHOT_MAX)
+        await query('INSERT INTO snapshots (key,version,cursor,at,json) VALUES (?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET version=excluded.version,cursor=excluded.cursor,at=excluded.at,json=excluded.json', key, RATING_VERSION, cursor, now, text).run();
+    return new Response(text, { status: response.status, headers: response.headers });
+}
 const codeCheck = (s: string) => /^[A-Za-z0-9]{12}$/.test(s) ? s : fail(400, 'Ungültiger Gruppencode');
 async function body(req: Request) { const reader = req.body?.getReader(); let bytes = 0; const chunks: Uint8Array[] = []; if (reader)
     for (;;) {
@@ -170,7 +188,7 @@ async function live(req: Request, url: URL) {
     catch { } };
     const stream = new ReadableStream<Uint8Array>({ start(ctrl) {
             controller = ctrl;
-            send(`retry: 3000\nevent: ready\ndata: ${JSON.stringify({ cursor, intervalMs: 2000 })}\n\n`);
+            send(`retry: 3000\nevent: ready\ndata: ${JSON.stringify({ cursor, intervalMs: 5000 })}\n\n`);
             const tick = async () => {
                 try {
                     const ev = await rows<{
@@ -207,7 +225,7 @@ async function live(req: Request, url: URL) {
                         stop();
                         return;
                     }
-                    timer = setTimeout(tick, 2000);
+                    timer = setTimeout(tick, 5000);
                 }
                 catch {
                     send('event: unavailable\ndata: {}\n\n');
@@ -249,7 +267,7 @@ async function hide(req: Request) {
     const id = findPlayer(b.name, uploaded.map(r => JSON.parse(r.json) as AramEntry), await archived(b.gameId)) ?? fail(404, 'Diese Riot-ID kommt in dem Spiel nicht vor. Bitte mit #Tag eingeben.');
     if ((await rows('SELECT 1 FROM games WHERE puuid=? LIMIT 1', id)).length)
         fail(409, 'Dieser Spieler lädt selbst hoch und hat ein Profil. Löschen geht in blank. mit dem eigenen Schlüssel.');
-    await db().batch([query('INSERT OR IGNORE INTO hidden_players (puuid,at) VALUES (?,?)', id, Date.now()), query("INSERT INTO events (kind,at) VALUES ('reset',?)", Date.now())]);
+    await db().batch([query('INSERT OR IGNORE INTO hidden_players (puuid,at) VALUES (?,?)', id, Date.now()), query('DELETE FROM snapshots'), query("INSERT INTO events (kind,at) VALUES ('reset',?)", Date.now())]);
     return json({ hidden: true });
 }
 /** The records (/rekorde): every category's best ten players with the game of their value, all time
@@ -425,13 +443,14 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         return upload(req, url);
     if (path === '/api/live' && method === 'GET')
         return live(req, url);
-    if (path === '/api/leaderboard' && method === 'GET') {
-        const c = await context(url);
-        const all = await entries(c.since, c.group?.code ?? null);
-        // Global stored matches, independent of group/season and player-entry duplicates.
-        const trackedGames = (await rows<{ count: number }>('SELECT COUNT(DISTINCT gameId) AS count FROM games'))[0].count;
-        return json({ ...c, ratingVersion: RATING_VERSION, trackedGames, players: await withIcons(standings(all, c.since)) });
-    }
+    if (path === '/api/leaderboard' && method === 'GET')
+        return cached(url, async () => {
+            const c = await context(url);
+            const all = await entries(c.since, c.group?.code ?? null);
+            // Global stored matches, independent of group/season and player-entry duplicates.
+            const trackedGames = (await rows<{ count: number }>('SELECT COUNT(DISTINCT gameId) AS count FROM games'))[0].count;
+            return json({ ...c, ratingVersion: RATING_VERSION, trackedGames, players: await withIcons(standings(all, c.since)) });
+        });
     if (path === '/api/games' && method === 'GET') {
         const code = url.searchParams.get('group');
         const g = code ? await group(code) : null;
@@ -451,16 +470,16 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         return uploadAugments(req);
     const gp = path.match(/^\/api\/gruppe\/([A-Za-z0-9]{12})$/);
     if (gp && method === 'GET')
-        return groupPage(gp[1]);
+        return cached(url, () => groupPage(gp[1]));
     if (path === '/api/start' && method === 'GET')
-        return start();
+        return cached(url, start);
     if (path === '/api/rekorde' && method === 'GET')
-        return records(url);
+        return cached(url, () => records(url));
     if (path === '/api/champions' && method === 'GET')
-        return champions(url);
+        return cached(url, () => champions(url));
     const cm = path.match(/^\/api\/champions\/([1-9][0-9]{0,4}|[A-Za-z][A-Za-z0-9]{0,29})$/);
     if (cm && method === 'GET')
-        return champion(url, cm[1]);
+        return cached(url, () => champion(url, cm[1]));
     const sm = path.match(/^\/api\/spiel\/([1-9][0-9]{0,12})$/);
     if (sm && method === 'GET')
         return json(await game(Number(sm[1])));
@@ -489,7 +508,7 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
                 e.with = e.with.filter(m => m.puuid !== id);
                 redactions.push(query('UPDATE games SET json=?,sourceHash=? WHERE gameId=? AND puuid=?', JSON.stringify(e), await hash(canonical(e)), row.gameId, row.puuid));
             }
-            await db().batch([...redactions, query('DELETE FROM games WHERE puuid=?', id), query('DELETE FROM reports WHERE uploader=?', id), query('DELETE FROM group_members WHERE puuid=?', id), query('DELETE FROM events WHERE puuid=?', id), query('DELETE FROM players WHERE puuid=?', id), query('UPDATE games SET disputed=CASE WHEN (SELECT COUNT(DISTINCT lobbyHash) FROM reports WHERE reports.gameId=games.gameId)>1 THEN 1 ELSE 0 END'), query("INSERT INTO events (kind,at) VALUES ('reset',?)", Date.now())]);
+            await db().batch([...redactions, query('DELETE FROM games WHERE puuid=?', id), query('DELETE FROM reports WHERE uploader=?', id), query('DELETE FROM group_members WHERE puuid=?', id), query('DELETE FROM events WHERE puuid=?', id), query('DELETE FROM players WHERE puuid=?', id), query('DELETE FROM snapshots'), query('UPDATE games SET disputed=CASE WHEN (SELECT COUNT(DISTINCT lobbyHash) FROM reports WHERE reports.gameId=games.gameId)>1 THEN 1 ELSE 0 END'), query("INSERT INTO events (kind,at) VALUES ('reset',?)", Date.now())]);
             return json({ deleted: true });
         }
     }

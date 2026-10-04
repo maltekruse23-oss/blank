@@ -7,8 +7,10 @@ const details={magic:0,physical:20000,trueDamage:0,mitigated:10000,doubles:2,tri
 const entry=(i=0)=>({gameId:8000000000+i,at:Date.now()-86400000+i*1000,seconds:1200,patch:'16.19',puuid:a,name:'Local Test#A',championId:22,champion:'Ashe',championName:'Ashe',win:true,...Object.fromEntries(['kills','deaths','assists','damage','taken','healed','shielded','gold'].map(k=>[k,lobby[0][k]])),level:18,items:[3006],augments:[],damageRank:10,teamShare:.2,multikill:2,pentas:0,details,with:[],lobby});
 const list=Array.from({length:7},(_,i)=>entry(i));const payload={entries:list,player:{puuid:a,name:'Local Test#A',icon:1},group:null};
 let r=await api('/api/games',{...payload,entries:[{...list[0],kills:1001}]});assert.equal(r.status,400);
+// Prime the stored pages (snapshots): the upload below must make them compute again.
+const before=(await api('/api/leaderboard')).data.trackedGames;assert.equal((await api('/api/leaderboard')).data.trackedGames,before);
 r=await api('/api/games',payload);assert.equal(r.status,200,JSON.stringify(r.data));const token=r.data.playerToken;assert.ok(token);assert.equal(r.headers.get('Access-Control-Allow-Origin'),'http://tauri.localhost');assert.deepEqual(r.data.results[6].rank,rankResult(list,a,list[6].gameId));
-r=await api('/api/leaderboard');assert.deepEqual(r.data.players.find(p=>p.puuid===a).rank,standings(list)[0].rank);
+r=await api('/api/leaderboard');assert.deepEqual(r.data.players.find(p=>p.puuid===a).rank,standings(list)[0].rank);assert.equal(r.data.trackedGames,before+7);
 r=await api('/api/games',payload,token);assert.ok(r.data.results.every(x=>!x.stored));
 r=await api('/api/games',{...payload,entries:[{...list[0],skin:0}]},token);assert.equal(r.data.results[0].stored,true);
 r=await api('/api/games',payload);assert.equal(r.status,401);
@@ -23,7 +25,7 @@ r=await api('/api/games');assert.equal(r.data.disputed.length,0,'you and lobby o
 const controller=new AbortController();const stream=await fetch(base+'/api/live',{signal:controller.signal,headers:{'cf-connecting-ip':'sse-test'}});assert.equal(stream.status,200);const reader=stream.body.getReader();let events=new TextDecoder().decode((await reader.read()).value);assert.match(events,/event: ready/);
 const conflicting={...peer,skin:1,lobby:peer.lobby.map(s=>s.championId===3?{...s,damage:s.damage+100}:s)};
 r=await api('/api/games',{entries:[conflicting],player:{puuid:b,name:'Local Test#B',icon:1},group:null},tokenB);assert.equal(r.status,200);assert.equal(r.data.results[0].rank,null);
-const deadline=Date.now()+8000;while(!events.includes('"disputed":true')&&Date.now()<deadline){events+=new TextDecoder().decode((await reader.read()).value);}controller.abort();assert.match(events,/event: game/);assert.match(events,/"disputed":true/);
+const deadline=Date.now()+12000;while(!events.includes('"disputed":true')&&Date.now()<deadline){events+=new TextDecoder().decode((await reader.read()).value);}controller.abort();assert.match(events,/event: game/);assert.match(events,/"disputed":true/);
 r=await api('/api/games');assert.equal(r.data.disputed.length,2);
 r=await api('/api/players/'+a);assert.equal(r.data.games,6);
 r=await api('/api/players/'+a,undefined,undefined,'DELETE');assert.equal(r.status,401);

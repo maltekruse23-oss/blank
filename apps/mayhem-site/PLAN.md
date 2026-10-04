@@ -43,7 +43,7 @@ und aram.zone. Übernommen werden nur Ideen, keine Assets.
   fällt weg. Damit rechnen App und Website mit genau demselben Code, Version 3.
 - Neue Saison-Zeile `v3`. Alle vorhandenen Spiele werden mit v3 neu gerechnet. Es wird nichts
   gelöscht, auch die alte Saison `v1` bleibt lesbar.
-- (Verschoben nach Etappe 5, bei ~3 Nutzern unnötig:) Ergebnisse zwischenspeichern. Nach jedem Upload oder Neustart einer Gruppe rechnet die
+- (Umgesetzt in Etappe 5, `src/snapshot.ts`, Migration 0005; gültig bis zum nächsten Ereignis, höchstens 5 Minuten:) Ergebnisse zwischenspeichern. Nach jedem Upload oder Neustart einer Gruppe rechnet die
   Seite die Stände einmal und legt sie als JSON in eine Tabelle `snapshots`
   (Version, Saison, Gruppe). Bisher wird bei jedem Aufruf alles neu gerechnet.
 - Ein Vergleichstest stellt sicher, dass App und Website für dieselben Spiele denselben Rang,

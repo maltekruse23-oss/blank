@@ -55,3 +55,7 @@ export const augments = sqliteTable('augments', {
 // Players without a profile who asked not to be named (/datenschutz/entfernen): only the PUUID,
 // never the name, so a new Riot ID stays hidden too.
 export const hiddenPlayers = sqliteTable('hidden_players', { puuid: text('puuid').primaryKey(), at: integer('at').notNull() });
+
+// Stored results of the reading pages (src/snapshot.ts): computed once, valid until the next event
+// or for five minutes. Only what the pages show anyway, so never more than the API gives out.
+export const snapshots = sqliteTable('snapshots', { key: text('key').primaryKey(), version: integer('version').notNull(), cursor: integer('cursor').notNull(), at: integer('at').notNull(), json: text('json').notNull() });

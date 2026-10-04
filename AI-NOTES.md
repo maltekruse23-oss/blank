@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 5 (Teil 1): Seiten zwischenspeichern — 04.10.2026
+
+- Rangliste, Startseite, Rekorde, Champions (auch einzeln) und Gruppenseite kommen aus der neuen Tabelle `snapshots` (Migration **0005**, beim Veröffentlichen über Codex mit anwenden). Logik `apps/mayhem-site/src/snapshot.ts` (`snapshotKey`, `isFresh`, Test `src/features/aram/siteSnapshot.test.ts`), `cached()` in `src/api.ts`.
+- Gültig, solange kein neues Ereignis in `events` steht (Upload, Neustart, Ausblenden, Beitritt, Löschen) und höchstens 5 Minuten (Zeitfenster der Startseite, Namens-/Symbolwechsel ohne neues Spiel). Der Ereignis-Stand wird vor dem Rechnen gelesen, ein Upload währenddessen rechnet beim nächsten Aufruf neu. Über 1,5 MB wird nicht gespeichert. Löschen eines Spielers und Ausblenden leeren die ganze Tabelle (keine alten Daten liegen herum).
+- Live-Strom fragt alle 5 s statt 2 s (PLAN.md). `tests/integration.mjs` prüft, dass ein Upload die gespeicherte Rangliste sofort ersetzt.
+- Spieler- und Spielseite bleiben ungespeichert (rechnen nur einen Spieler bzw. ein Spiel).
+
 ## Website Etappe 4 (Abschluss): Leerzustände und Handy — 04.10.2026
 
 - Alle Seiten mit leerer und gefüllter lokaler D1 bei 375 px und 320 px geprüft (Skript nicht im Repo; Playwright, Breite des Dokuments gegen Fensterbreite). Behoben: Navigation und Reiter (`.tabs`) brechen auf dem Handy um, statt Einträge unsichtbar seitlich zu verschieben; „So funktioniert's“ bei 320 px (Notenreihe, versteckte Tabellenüberschrift, `.table-wrap` jetzt `position: relative`); API-Anleitung (lange Adressen brechen um); Histogramm der Stufen zeigt auf schmalen Schirmen „M“ statt „MAYHEM“; Apex-Karten nennen je Stufe ihr LoL-Gegenstück.
