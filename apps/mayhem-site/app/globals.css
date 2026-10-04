@@ -1833,3 +1833,116 @@ pre {
     padding: 12px 14px;
   }
 }
+
+/* ---- Champions -------------------------------------------------------------------------- */
+
+.sort {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sort:hover,
+.sort[data-on='true'] {
+  color: var(--text);
+}
+
+.sort[data-on='true']::after {
+  content: ' ↓';
+}
+
+th[aria-sort='ascending'] .sort[data-on='true']::after {
+  content: ' ↑';
+}
+
+.champ-tools {
+  justify-content: flex-start;
+}
+
+.champ-tools select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+}
+
+.champ-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.champ-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.champ-title .champ {
+  width: 64px;
+  height: 64px;
+  flex: none;
+}
+
+.champ-title h1 {
+  margin: 6px 0 4px;
+  font: 800 clamp(30px, 5vw, 44px) / 1 var(--font-display);
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.champ-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.champ-games {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  --hue: var(--accent);
+}
+
+.champ-games li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(90deg, var(--panel-2) 45%, color-mix(in oklab, var(--panel-2) 60%, transparent)),
+    var(--splash, none) right 25% / cover no-repeat,
+    var(--panel-2);
+}
+
+.champ-games .who b {
+  max-width: 150px;
+}
+
+@media (max-width: 760px) {
+  .champ-title .champ {
+    width: 48px;
+    height: 48px;
+  }
+
+  .champ-title .grade-icon {
+    display: none;
+  }
+}
+
+.nowrap {
+  white-space: nowrap;
+}

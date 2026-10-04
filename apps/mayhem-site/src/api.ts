@@ -6,6 +6,7 @@ import type { AramEntry } from './adapters/aram';
 import { archiveRoute } from './archive';
 import { gameView, type RawGame } from './game';
 import { recordsView } from './records';
+import { championsView, championView } from './champions';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -238,13 +239,39 @@ async function records(url: URL) {
     const season = seasonOf(now);
     const all = await entries(scope === 'season' ? Math.max(c.since, season.start) : c.since, c.group?.code ?? null);
     const ids = [...new Set(all.map(e => e.puuid))];
+    return json({ scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, group: c.group, games: new Set(all.map(e => e.gameId)).size, players: ids.length, categories: recordsView(all, now, await playersOf(ids)) });
+}
+/** Current name and icon of these players (all of them have a profile). */
+async function playersOf(ids: string[]) {
     const players = new Map<string, { name: string; icon: number | null }>();
     for (let i = 0; i < ids.length; i += 50) {
         const part = ids.slice(i, i + 50);
         for (const r of await rows<{ puuid: string; name: string; icon: number | null }>(`SELECT puuid,name,icon FROM players WHERE puuid IN (${part.map(() => '?').join(',')})`, ...part))
             players.set(r.puuid, { name: r.name, icon: r.icon });
     }
-    return json({ scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, group: c.group, games: new Set(all.map(e => e.gameId)).size, players: ids.length, categories: recordsView(all, now, players) });
+    return players;
+}
+/** The games of the champions pages: all time or this season, optionally of one group. */
+async function championGames(url: URL) {
+    const c = await context(url);
+    const scope = url.searchParams.get('scope') ?? 'all';
+    if (scope !== 'all' && scope !== 'season')
+        fail(400, 'scope muss all oder season sein');
+    const season = seasonOf(Date.now());
+    const all = await entries(scope === 'season' ? Math.max(c.since, season.start) : c.since, c.group?.code ?? null);
+    return { scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, group: c.group, all };
+}
+/** All champions (/champions): every seat of the counted games, no names. */
+async function champions(url: URL) {
+    const { all, ...head } = await championGames(url);
+    return json({ ...head, games: new Set(all.map(e => e.gameId)).size, champions: championsView(all) });
+}
+/** One champion (/champions/<name>, by Data Dragon key or ID): only players with a profile. */
+async function champion(url: URL, name: string) {
+    const { all, ...head } = await championGames(url);
+    const championId = /^[0-9]+$/.test(name) ? Number(name) : all.find(e => e.champion.toLowerCase() === name.toLowerCase())?.championId ?? fail(404, 'Keine Spiele mit diesem Champion');
+    const view = championView(all, championId, await playersOf([...new Set(all.filter(e => e.championId === championId).map(e => e.puuid))]));
+    return json({ ...head, champion: view ?? fail(404, 'Keine Spiele mit diesem Champion') });
 }
 /** The archived raw game, or null (not archived, or the archive is unavailable: the page then
  * falls back to the uploads). */
@@ -331,6 +358,11 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
     }
     if (path === '/api/rekorde' && method === 'GET')
         return records(url);
+    if (path === '/api/champions' && method === 'GET')
+        return champions(url);
+    const cm = path.match(/^\/api\/champions\/([1-9][0-9]{0,4}|[A-Za-z][A-Za-z0-9]{0,29})$/);
+    if (cm && method === 'GET')
+        return champion(url, cm[1]);
     const sm = path.match(/^\/api\/spiel\/([1-9][0-9]{0,12})$/);
     if (sm && method === 'GET')
         return json(await game(Number(sm[1])));

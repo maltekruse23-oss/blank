@@ -9,6 +9,7 @@ import { Img } from './bits';
 const PAGES = [
   { href: '/', label: 'Rangliste' },
   { href: '/rekorde', label: 'Rekorde' },
+  { href: '/champions', label: 'Champions' },
   { href: '/api-guide', label: 'API' },
 ];
 

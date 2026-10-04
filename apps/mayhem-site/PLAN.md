@@ -3,7 +3,7 @@
 **Entscheidungen des Benutzers (04.10.2026):** Ränge sofort öffentlich (Riot-Risiko bekannt und
 bewusst in Kauf genommen; kein Schalter, keine Gruppen-Sperre). Alle zehn Spieler eines Spiels
 mit Riot-ID und eigenem Profil (wie op.gg). Daraus folgt: Datenschutzseite nennt das deutlich,
-jede Person kann ihre Daten entfernen lassen (Weg auf der Seite). Etappe 1 und 2 sind umgesetzt (Rangliste und Profil; Startseite folgt in Etappe 4, bis dahin ist / die Rangliste). Aus Etappe 3 stehen die Spiel-Seite `/spiel/<id>` und die Rekorde `/rekorde`; Champions folgen.
+jede Person kann ihre Daten entfernen lassen (Weg auf der Seite). Etappe 1 und 2 sind umgesetzt (Rangliste und Profil; Startseite folgt in Etappe 4, bis dahin ist / die Rangliste). Etappe 3 steht: Spiel-Seite `/spiel/<id>`, Rekorde `/rekorde` und Champions `/champions` mit `/champions/<name>`.
 
 Ziel: Die Website zum ARAM-Mayhem-Rangsystem und zu den Rekorden wird neu gebaut. Sie soll
 öffentlich und durchdacht sein und sich gut lesen. Der Plan stützt sich auf eine Prüfung des

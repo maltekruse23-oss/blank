@@ -142,6 +142,12 @@ export const itemImage = (d: Dragon | null, id: number) =>
   d ? `${CDN}/${d.version}/img/item/${id}.png` : undefined;
 export const profileImage = (d: Dragon | null, icon: number | null) =>
   d && icon !== null ? `${CDN}/${d.version}/img/profileicon/${icon}.png` : undefined;
+/** Data Dragon key of a champion: the uploaded one, otherwise from the list ('' while unknown). */
+export const championKey = (d: Dragon | null, c: { championId: number; champion: string }) =>
+  c.champion || d?.champions.get(c.championId)?.id || '';
+/** German name of a champion. */
+export const championLabel = (d: Dragon | null, c: { championId: number; champion: string; championName: string }) =>
+  d?.champions.get(c.championId)?.name ?? (c.championName || c.champion || `Champion ${c.championId}`);
 export const splashImage = (key: string, skin = 0) =>
   `${CDN}/img/champion/splash/${key}_${skin}.jpg`;
 

@@ -2,13 +2,12 @@
 // The records: one card per category in the colour of its kind, place 1 large with the splash of
 // the game and a link to it, places 2–10 below. Records from the last seven days are marked "Neu".
 import Link from 'next/link';
-import { useState } from 'react';
 import { seasonName } from '../../src/features/aram/aramRating';
 import type { RecordPlace, RecordView } from '../../src/records';
-import { Img, Tabs } from '../ui/bits';
+import { Img } from '../ui/bits';
+import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, date, de, profileImage, splashImage, splitName, useDragon, useLive } from '../ui/data';
 
-type Scope = 'all' | 'season';
 type Records = {
   scope: Scope;
   season: { id: string; year: number; number: number; start: number };
@@ -28,11 +27,9 @@ const championOf = (dragon: Dragon, p: RecordPlace) =>
   dragon?.champions.get(p.game.championId)?.name ?? (p.game.championName || p.game.champion || 'Champion');
 
 export default function RecordsPage() {
-  const [scope, setScope] = useState<Scope>('all');
-  const [group, setGroup] = useState('');
-  const [input, setInput] = useState('');
-  const query = new URLSearchParams({ scope, ...(group ? { group } : {}) });
-  const { data, error, live } = useLive<Records>('/api/rekorde?' + query.toString());
+  const filters = useFilters();
+  const { scope } = filters;
+  const { data, error, live } = useLive<Records>('/api/rekorde?' + filters.query);
   const dragon = useDragon();
 
   const shown = data?.categories.filter((c) => c.places.length) ?? [];
@@ -51,43 +48,7 @@ export default function RecordsPage() {
           <span className="live" data-on={live}>
             {live ? 'Live' : 'Aktualisiert alle 5 s'}
           </span>
-          <Tabs<Scope>
-            label="Zeitraum"
-            value={scope}
-            onChange={setScope}
-            options={[
-              { id: 'all', label: 'Alle Zeiten' },
-              { id: 'season', label: 'Diese Saison' },
-            ]}
-          />
-          <form
-            className="field"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setGroup(input.trim());
-            }}
-          >
-            <input
-              aria-label="Gruppencode"
-              placeholder="Gruppencode"
-              value={input}
-              maxLength={12}
-              onChange={(e) => setInput(e.target.value)}
-            />
-            <button className="button">{group ? 'Wechseln' : 'Gruppe'}</button>
-            {group && (
-              <button
-                type="button"
-                className="button"
-                onClick={() => {
-                  setGroup('');
-                  setInput('');
-                }}
-              >
-                Alle
-              </button>
-            )}
-          </form>
+          <Filters {...filters} />
         </div>
       </div>
 
