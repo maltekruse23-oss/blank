@@ -8,7 +8,7 @@ import ss from './emblems/ss.png';
 import sss from './emblems/sss.png';
 import mayhem from './emblems/mayhem.png';
 
-/** Approved Augment-v3 artwork; SSS has no floating triangles. Keep source PNGs unchanged. */
+/** The user's rank frames (04.10.2026), cut out with server/tools/emblems.mjs. */
 const EMBLEMS: Record<Tier['id'], string> = { d, c, b, a, s, ss, sss, mayhem };
 
 export const emblemOf = (tier: Tier) => EMBLEMS[tier.id];

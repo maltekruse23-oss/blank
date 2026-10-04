@@ -3428,8 +3428,7 @@ html[data-motion='normal'] .aram-gain {
   height: 68px;
 }
 .rank-emblem {
-  /* Approved artwork uses a black matte; screen removes it on our dark surfaces. */
-  mix-blend-mode: screen;
+  /* Transparent PNGs (server/tools/emblems.mjs takes the black matte off). */
   width: 68px;
   height: 68px;
   object-fit: contain;

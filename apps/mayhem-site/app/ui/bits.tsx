@@ -39,7 +39,8 @@ export function GradeChip({ grade, gain, small }: { grade: Grade; gain?: number 
   );
 }
 
-/** The rank's mark (letters in a gem until the rank icons are delivered). */
+/** The rank's mark: the user's rank frames (public/ranks, 256 px, transparent). The rank's name
+ * always stands next to it as text, so the image itself is decoration. */
 export function TierMark({ rank, size }: { rank: Rank | null; size?: number }) {
   const style = size ? ({ '--size': `${size}px` } as React.CSSProperties) : undefined;
   if (!rank)
@@ -49,15 +50,17 @@ export function TierMark({ rank, size }: { rank: Rank | null; size?: number }) {
       </span>
     );
   return (
-    <span
+    // eslint-disable-next-line @next/next/no-img-element -- static artwork, fixed size
+    <img
       className="tier-mark"
       data-tier={rank.tier.id}
-      data-len={rank.tier.name.length}
+      src={`/ranks/${rank.tier.id}.png`}
+      width={size ?? 44}
+      height={size ?? 44}
       style={style}
-      aria-hidden
-    >
-      {rank.tier.name}
-    </span>
+      alt=""
+      draggable={false}
+    />
   );
 }
 
