@@ -3,7 +3,7 @@
 // the leaderboard, loaded on first focus).
 import { useRouter, usePathname } from 'next/navigation';
 import { useRef, useState } from 'react';
-import { profileImage, splitName, useDragon, type Board } from './data';
+import { profileHref, profileImage, splitName, useDragon, type Board } from './data';
 import { Img } from './bits';
 
 const PAGES = [
@@ -57,7 +57,7 @@ export function Search({ big = false }: { big?: boolean }) {
   const go = (p: Found) => {
     setOpen(false);
     setQuery('');
-    router.push('/players/' + encodeURIComponent(p.puuid));
+    router.push(profileHref(p));
   };
 
   // The start page has its own large search.
@@ -103,7 +103,7 @@ export function Search({ big = false }: { big?: boolean }) {
               return (
                 <li key={p.puuid} role="option" aria-selected={i === active}>
                   <a
-                    href={'/players/' + encodeURIComponent(p.puuid)}
+                    href={profileHref(p)}
                     data-active={i === active}
                     onMouseDown={(e) => {
                       e.preventDefault();

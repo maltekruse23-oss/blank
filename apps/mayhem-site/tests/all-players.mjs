@@ -1,5 +1,5 @@
 // Local-only check of "everyone from the archive" (Etappe 7): eight fixture games through the archive
-// upload, then leaderboard, profile by public id, game page, backfill, hiding, records, start and
+// upload, then leaderboard, profile by public id and by Riot ID, game page, backfill, hiding, records, start and
 // champions. No PUUID of a player without a profile may appear. Run after `npm run build`.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -36,6 +36,10 @@ const someone = lb.body.players[0]; console.log('top', someone.puuid, someone.na
 const prof = await get('/api/players/'+someone.puuid); assert.equal(prof.status,200); console.log('profile', prof.body.puuid, prof.body.name, prof.body.games, prof.body.history.length);
 assert(!JSON.stringify(prof.body).includes('puuid-'), 'profile leaks no PUUID');
 assert.equal((await get('/api/players/a99999')).status,404);
+const bySlug = await get('/api/players/'+encodeURIComponent(someone.name.replace('#','-')));
+assert.equal(bySlug.status,200); assert.equal(bySlug.body.puuid, someone.puuid); console.log('by Riot ID', bySlug.body.name);
+assert.equal((await get('/api/players/'+encodeURIComponent(someone.name.replace('#','-').toLowerCase()))).status,200);
+assert.equal((await get('/api/players/Niemand-EUW')).status,404);
 const sp = await get('/api/spiel/3'); assert.equal(sp.status,200); console.log('game links', sp.body.players.map(p=>p.puuid).join(','));
 assert(!JSON.stringify(sp.body).includes('puuid-'));
 // backfill: drop the entries and read a page
@@ -46,7 +50,7 @@ assert.equal(c.n,80);
 const target = lb.body.players.find(p=>p.name==='Spieler 5#EUW');
 const h = await mf.dispatchFetch(base+'/api/ausblenden',{method:'POST',headers:{'Content-Type':'application/json','cf-connecting-ip':'y'},body:JSON.stringify({gameId:5,name:'Spieler 5#EUW'})});
 console.log('hide', h.status, await h.text());
-lb = await get('/api/leaderboard'); assert(!lb.body.players.some(p=>p.name==='Spieler 5#EUW')); assert.equal((await get('/api/players/'+target.puuid)).status,404);
+lb = await get('/api/leaderboard'); assert(!lb.body.players.some(p=>p.name==='Spieler 5#EUW')); assert.equal((await get('/api/players/'+target.puuid)).status,404); assert.equal((await get('/api/players/Spieler%205-EUW')).status,404);
 const rec = await get('/api/rekorde'); console.log('records', rec.status, rec.body.players, rec.body.categories?.length);
 const st = await get('/api/start'); console.log('start', st.status, st.body.top?.length);
 const ch = await get('/api/champions'); console.log('champions', ch.status, ch.body.champions?.length, ch.body.games);

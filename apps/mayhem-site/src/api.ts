@@ -11,7 +11,7 @@ import { championsView, championView } from './champions';
 import { freshRecords, startView, TOP } from './start';
 import { membersOf, sessionsOf } from './group';
 import { decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
-import { findPlayer, withoutHidden } from './hidden';
+import { findPlayer, riotKey, slugKey, withoutHidden } from './hidden';
 import { isFresh, snapshotKey, SNAPSHOT_MAX, type Snapshot } from './snapshot';
 import { ARCHIVE_ENTRY_VERSION, archiveIdOf, mergeEntries, publicId } from './archive-entries';
 import { indexPending } from './archive-index';
@@ -130,6 +130,26 @@ async function archiveOnly(since: number, code: string | null, player: string | 
         list.push({ ...entry, puuid: known ? r.puuid : publicId(r.id) });
     }
     return list;
+}
+/** The player behind a profile address: a public id (`a123`), a PUUID with a profile, or a Riot ID
+ * ("Name-EUW"; profiles first, then the newest archived game with that name). */
+async function findProfile(id: string): Promise<{ puuid: string; archiveId: number | null } | null> {
+    const archiveId = archiveIdOf(id);
+    if (archiveId !== null) {
+        const row = (await rows<{ puuid: string }>('SELECT puuid FROM archive_players WHERE id=?', archiveId))[0];
+        return row ? { puuid: row.puuid, archiveId } : null;
+    }
+    if (puuid.safeParse(id).success && (await rows('SELECT 1 FROM players WHERE puuid=?', id)).length)
+        return { puuid: id, archiveId: null };
+    const key = slugKey(id);
+    if (!key)
+        return null;
+    const registered = await registeredPlayers();
+    const profile = (await rows<{ puuid: string; name: string }>('SELECT puuid,name FROM players')).find(p => registered.has(p.puuid) && riotKey(p.name) === key);
+    if (profile)
+        return { puuid: profile.puuid, archiveId: null };
+    const archived = (await rows<{ playerId: number; puuid: string }>('SELECT e.playerId,p.puuid FROM archive_entries e JOIN archive_players p ON p.id=e.playerId WHERE e.search=? ORDER BY e.at DESC LIMIT 1', key))[0];
+    return archived ? { puuid: archived.puuid, archiveId: archived.playerId } : null;
 }
 /** All games the site knows: uploaded or archived. */
 async function trackedCount() { return (await rows<{ count: number }>('SELECT COUNT(*) AS count FROM (SELECT gameId FROM games UNION SELECT gameId FROM archive_entries)'))[0].count; }
@@ -553,23 +573,19 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         await indexSome();
         const c = await context(url);
         const id = decodeURIComponent(pm[1]);
-        const archiveId = archiveIdOf(id);
+        // By Riot ID ("Name-EUW", as op.gg), by PUUID (profiles, older links) or by public id.
+        const found = await findProfile(id) ?? fail(404, 'Spieler nicht gefunden');
         let head: { puuid: string; name: string; icon: number | null; lastSeen: number };
-        let own: string;
-        const inArchive = archiveId === null ? null : (await rows<{ puuid: string }>('SELECT puuid FROM archive_players WHERE id=?', archiveId))[0] ?? fail(404, 'Spieler nicht gefunden');
-        if (inArchive && !(await registeredPlayers()).has(inArchive.puuid)) {
-            // A player without a profile, by public id (src/archive-entries.ts); never the PUUID.
-            if ((await hiddenPlayers()).has(inArchive.puuid))
+        const own = found.puuid;
+        if (found.archiveId !== null && !(await registeredPlayers()).has(own)) {
+            // A player without a profile: shown under the public id, never the PUUID.
+            if ((await hiddenPlayers()).has(own))
                 fail(404, 'Spieler nicht gefunden');
-            const latest = (await rows<{ name: string | null; icon: number | null; at: number }>('SELECT name,icon,at FROM archive_entries WHERE playerId=? ORDER BY at DESC LIMIT 1', archiveId))[0] ?? fail(404, 'Spieler nicht gefunden');
-            head = { puuid: publicId(archiveId!), name: latest.name ?? '', icon: latest.icon, lastSeen: latest.at };
-            own = inArchive.puuid;
+            const latest = (await rows<{ name: string | null; icon: number | null; at: number }>('SELECT name,icon,at FROM archive_entries WHERE playerId=? ORDER BY at DESC LIMIT 1', found.archiveId))[0] ?? fail(404, 'Spieler nicht gefunden');
+            head = { puuid: publicId(found.archiveId), name: latest.name ?? '', icon: latest.icon, lastSeen: latest.at };
         }
-        else {
-            // A profile (also when an old public id belongs to someone who uploads by now).
-            own = inArchive?.puuid ?? puuid.parse(id);
+        else
             head = (await rows<typeof head>('SELECT puuid,name,icon,lastSeen FROM players WHERE puuid=?', own))[0] ?? fail(404, 'Spieler nicht gefunden');
-        }
         const s = standings(await entries(c.since, c.group?.code ?? null, own, false, true), c.since)[0];
         return json({ ...head, season: c.season, group: c.group, ...(s ? { ...open(s), puuid: head.puuid } : { rank: null, games: 0, wins: 0, placed: 0, climbing: false, average: null, seasons: [] }), history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.pct - a.mark.pct || a.entry.gameId - b.entry.gameId).slice(0, 5) });
     }

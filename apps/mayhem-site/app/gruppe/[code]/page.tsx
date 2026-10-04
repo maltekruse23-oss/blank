@@ -9,7 +9,7 @@ import { duelOf, type Member, type Session } from '../../../src/group';
 import { AXES } from '../../../src/insights';
 import { RECORDS } from '../../../src/records';
 import { GradeChip, Problem, Radar } from '../../ui/bits';
-import { date, de, splitName, useDragon, useLive, type PlayerSummary } from '../../ui/data';
+import { date, de, profileHref, splitName, useDragon, useLive, type PlayerSummary } from '../../ui/data';
 import { PlayerRow } from '../../ui/player-row';
 
 type GroupData = {
@@ -251,7 +251,7 @@ function Night({ session: s }: { session: Session }) {
       <ul>
         {s.players.map((p) => (
           <li key={p.puuid}>
-            <Link href={'/players/' + encodeURIComponent(p.puuid)}>{short(p.name)}</Link>
+            <Link href={profileHref(p)}>{short(p.name)}</Link>
             <span className="faint num">{p.games}×</span>
             <GradeChip grade={p.best} small />
             <span className={'num ' + (p.gain > 0 ? 'up' : p.gain < 0 ? 'down' : 'faint')}>

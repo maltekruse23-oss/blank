@@ -6,7 +6,7 @@ import { seasonName } from '../../src/features/aram/aramRating';
 import type { RecordPlace, RecordView } from '../../src/records';
 import { Img, Problem } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
-import { championImage, date, de, profileImage, splashImage, splitName, useDragon, useLive } from '../ui/data';
+import { championImage, date, de, profileHref, profileImage, splashImage, splitName, useDragon, useLive } from '../ui/data';
 
 type Records = {
   scope: Scope;
@@ -21,7 +21,7 @@ type Dragon = ReturnType<typeof useDragon>;
 const valueText = (category: RecordView, value: number) =>
   category.unit === 'seconds' ? `${de(value)} s` : de(value);
 const gameLink = (p: RecordPlace) => `/spiel/${p.game.gameId}?p=${encodeURIComponent(p.puuid)}`;
-const profileLink = (p: RecordPlace) => '/players/' + encodeURIComponent(p.puuid);
+const profileLink = (p: RecordPlace) => profileHref(p);
 const keyOf = (dragon: Dragon, p: RecordPlace) => p.game.champion || dragon?.champions.get(p.game.championId)?.id || '';
 const championOf = (dragon: Dragon, p: RecordPlace) =>
   dragon?.champions.get(p.game.championId)?.name ?? (p.game.championName || p.game.champion || 'Champion');

@@ -2,7 +2,7 @@
 // One compact row of a ladder (start page, group page): place, player, rank and Leistung Ø.
 import Link from 'next/link';
 import { GradeChip, Img, RankLine } from './bits';
-import { profileImage, splitName, useDragon, type PlayerSummary } from './data';
+import { profileHref, profileImage, splitName, useDragon, type PlayerSummary } from './data';
 
 export function PlayerRow({
   player: p,
@@ -17,7 +17,7 @@ export function PlayerRow({
   group?: string;
 }) {
   const { name, tag } = splitName(p.name);
-  const href = '/players/' + encodeURIComponent(p.puuid) + (group ? '?group=' + encodeURIComponent(group) : '');
+  const href = profileHref(p, group);
   return (
     <tr data-place={place}>
       <td className="place num">{place}</td>

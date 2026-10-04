@@ -49,11 +49,20 @@ import {
 type Tab = 'overview' | 'matches' | 'champions' | 'seasons';
 type Dragon = ReturnType<typeof useDragon>;
 
+/** The address part as typed (a Riot ID like "Name Zwei-EUW" may arrive still encoded). */
+function decoded(part: string) {
+  try {
+    return decodeURIComponent(part);
+  } catch {
+    return part;
+  }
+}
+
 export default function PlayerPage() {
   const params = useParams<{ puuid: string }>();
   const group = useSearchParams().get('group');
   const { data, error, missing } = useLive<Profile>(
-    '/api/players/' + encodeURIComponent(params.puuid) + (group ? '?group=' + encodeURIComponent(group) : ''),
+    '/api/players/' + encodeURIComponent(decoded(params.puuid)) + (group ? '?group=' + encodeURIComponent(group) : ''),
   );
   const dragon = useDragon();
   const [tab, setTab] = useState<Tab>('overview');

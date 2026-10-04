@@ -18,6 +18,7 @@ import {
   useAugments,
   useDragon,
   useLive,
+  profileHref,
 } from '../../ui/data';
 
 type Dragon = ReturnType<typeof useDragon>;
@@ -200,7 +201,7 @@ function Team(props: {
                       <span style={{ minWidth: 0 }}>
                         {name ? (
                           link ? (
-                            <Link href={'/players/' + encodeURIComponent(link)} title={name}>
+                            <Link href={profileHref({ puuid: link, name })} title={name}>
                               <b>{riot}</b>
                             </Link>
                           ) : (

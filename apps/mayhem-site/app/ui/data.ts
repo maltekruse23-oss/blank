@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../src/adapters/aram';
 import type { AugmentInfo } from '../../src/augments';
+import { riotSlug } from '../../src/hidden';
 import type { Grade, Performance } from '../../src/features/aram/aramPerformance';
 import type { Average, Rank, Season, Step } from '../../src/features/aram/aramRating';
 
@@ -221,3 +222,10 @@ export const splitName = (name: string) => {
   const i = name.lastIndexOf('#');
   return i > 0 ? { name: name.slice(0, i), tag: name.slice(i + 1) } : { name, tag: '' };
 };
+
+/** A player's profile address: by Riot ID ("/players/Name-EUW", as op.gg), by id only when no name
+ * is known. `group` keeps the group's view. */
+export function profileHref(p: { puuid: string; name?: string | null }, group?: string | null) {
+  const path = '/players/' + encodeURIComponent(p.name ? riotSlug(p.name) : p.puuid);
+  return group ? `${path}?group=${encodeURIComponent(group)}` : path;
+}
