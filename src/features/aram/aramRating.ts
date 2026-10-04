@@ -25,7 +25,7 @@ import { gradeOf, performanceOf, type Grade, type Performance } from './aramPerf
 export type { Role } from './aramPerformance.ts';
 export type Mark = Performance;
 
-export const RATING_VERSION = 2;
+export const RATING_VERSION = 3;
 /** Placement games before the first rank of a year (as in LoL). */
 export const PLACEMENT = 5;
 /** Games after the placement or a promotion to a new tier in which the tier cannot be lost. */
@@ -172,6 +172,8 @@ export const rankName = (rank: Rank) =>
  * Indicator shows it above the rank). */
 export const GAP_SCALE = 0.3;
 const GAP_EFFECT = 0.35;
+/** No single game moves more than this (extreme games on a far-off rank would reach 40). */
+export const MAX_SWING = 30;
 export const CLIMBING = 0.5;
 export const gapOf = (mu: number, ladder: number) => clamp((mu - muOf(ladder)) / GAP_SCALE, -1, 1);
 
@@ -187,7 +189,7 @@ export function pointsFor(y: number, ladder: number, mu: number) {
   const better = clamp((y - muOf(ladder)) / TAU, -1.2, 1.2);
   const gap = gapOf(mu, ladder);
   const raw = size * better * (better >= 0 ? 1 + GAP_EFFECT * gap : 1 - GAP_EFFECT * gap);
-  const points = Math.round(raw);
+  const points = clamp(Math.round(raw), -MAX_SWING, MAX_SWING);
   return points !== 0 ? points : better >= 0 ? 1 : -1;
 }
 

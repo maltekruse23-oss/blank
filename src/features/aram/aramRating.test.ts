@@ -251,6 +251,17 @@ describe('Rang: Stufen, Seltenheit, Punkte', () => {
     expect(better(3000, true)).toBe(30);
   });
 
+  it('kein Spiel bewegt mehr als 30 MP, auch extreme nicht', () => {
+    for (const ladder of [200, 1000, 1700, 2100, 3000]) {
+      for (const gap of [-1, 0, 1]) {
+        const mu = muOf(ladder) + gap * GAP_SCALE;
+        for (const g of [-5, -2, 0, 2, 5]) {
+          expect(Math.abs(pointsFor(muOf(ladder) + g, ladder, mu))).toBeLessThanOrEqual(30);
+        }
+      }
+    }
+  });
+
   it('versteckte Wertung über dem Rang: etwa +27/−13, darunter +13/−27', () => {
     const ladder = 1700;
     const over = muOf(ladder) + GAP_SCALE;
