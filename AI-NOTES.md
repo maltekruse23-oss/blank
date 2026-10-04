@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 5 (Abschluss): Barrierefreiheit, Rauchtest, Übergabe — 04.10.2026
+
+- axe (WCAG 2.1 AA + Best Practice) über alle Seiten bei 1400 und 375 px mit erfundenen Daten: einziger Befund war `--faint` (3,4–3,9 : 1), jetzt `#7e8f84` (≥ 4,5 : 1 auf allen Flächen; in der hervorgehobenen Zeile der Spiel-Seite gilt `--muted`). Suchfeld hat einen sichtbaren 2-px-Fokusring. Unbekannte Adressen zeigen `app/not-found.tsx` (deutsche Karte statt Englisch ohne CSS). Danach axe ohne Befund; Tastatur-Durchlauf: jeder Halt sichtbar und benannt. Skripte nicht im Repo (Playwright + axe-core im Scratch).
+- `apps/mayhem-site/tests/smoke.mjs`: jede Seite und jeder Lese-Endpunkt, leer bzw. wie die DB ist, 404/400-Fälle, dann drei erfundene Spieler in einer Gruppe (Spiele kurz nach dem Gruppenstart), Spiel-Seite gibt nur die PUUID des Spielers mit Profil heraus, am Ende gelöscht und überall weg (auch aus den gespeicherten Seiten).
+- Bekannt, auch auf main: ein zweiter Lauf von `tests/integration.mjs` gegen dieselbe laufende Vorschau scheitert mit „Your worker restarted mid-request“ (wrangler/miniflare lokal). Vorschau mit frischer D1 neu starten.
+- Übergabe an Codex: `apps/mayhem-site/DEPLOY.md` (Projekt-ID behalten, `public/downloads` übernehmen, Migrationen 0003–0005, Prüfungen danach). Nächste Etappe laut PLAN.md: 6 (App zeigt Ränge von der Website, dann Release 0.9.2).
+
 ## Website Etappe 5 (Teil 2): Aufräumen — 04.10.2026
 
 - Aus der Sites-Vorlage entfernt, weil nichts sie nutzt: `components/` (shadcn), `components.json`, `examples/`, `hooks/`, `lib/utils.ts`, drei Vorlagen-SVGs, Tailwind samt `postcss.config.mjs` (die Seite hat ihr eigenes CSS ohne Tailwind) und 21 ungenutzte Pakete. Gebautes CSS ist byte-gleich (MD5 vorher/nachher geprüft).
