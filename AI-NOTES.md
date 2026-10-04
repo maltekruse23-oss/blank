@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: neue Seite geplant, Etappe 1 (gleiche Wertung wie die App) — 04.10.2026
+
+- Plan der neuen öffentlichen Website: `apps/mayhem-site/PLAN.md` (Seiten, Gestaltung, Technik, Etappen 1–6). Benutzer: Ränge sofort öffentlich, alle zehn Spieler mit Riot-ID; die heutigen zehn Wappen werden Noten-Icons, neue Rang-Icons liefert der Benutzer.
+- Etappe 1: Die Website rechnet mit einer Kopie des App-Kerns (`aramRating.ts`, `aramPerformance.ts`, `aramBase.ts`, `championRoles.ts`; `node server/tools/sync-site-core.mjs`), `siteCore.test.ts` prüft Gleichheit. Alte Kopie v1 (`aramBias.ts`) entfernt. API gibt `wins`, `placed`, `climbing`, `average`, `seasons` und je Spiel die Note statt 0–10 aus; nie `hidden`. Neue Saison-Zeile `v3` entsteht beim ersten Aufruf von selbst, alte Daten bleiben. Lokal geprüft: `tests/integration.mjs` (Parität mit `standings`/`rankResult`) grün; lokale D1 vorher mit `wrangler d1 migrations apply DB --local` (temporäre Konfiguration mit `migrations_dir: drizzle`). Veröffentlichen nur über Codex/Sites.
+
 ## MP höchstens ±30 je Spiel — 04.10.2026 (RATING_VERSION 3)
 
 - `pointsFor` begrenzt jedes Spiel auf ±30 MP (`MAX_SWING`); vorher reichten extreme Spiele weit über dem oder unter dem Rang bis ±40. Normale Spiele (±25/±20/±30 je Stufe, +27/−13 über dem Rang) bleiben gleich. Grund: Benutzer sah −40 bei Niederlagen und Siegen. Geplant: Website-Rating auf denselben Kern bringen, App holt Ränge von der Website (Schritte 2–5 im Chat-Plan; Veröffentlichen der Website nur über Codex/Sites).
