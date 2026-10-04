@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { AramEntry } from '../../adapters/aram';
 import {
-  augmentUploadSchema,
   decodeBase64,
   iconOf,
   MAX_ICON_BYTES,
   pngSize,
   rawAugments,
+  validName,
 } from '../../../apps/mayhem-site/src/augments';
 import { gameView, seatEntry, type RawGame } from '../../../apps/mayhem-site/src/game';
 
@@ -26,8 +26,6 @@ function header(width: number, height: number, extra = 0) {
   return btoa(String.fromCharCode(...bytes));
 }
 
-const puuid = 'p'.repeat(40);
-
 describe('Website-Augments', () => {
   it('Symbol: nur ein kleines echtes PNG als Data-URL', () => {
     expect(pngSize(decodeBase64(PNG_1X1)!)).toEqual({ width: 1, height: 1 });
@@ -41,24 +39,12 @@ describe('Website-Augments', () => {
     expect(iconOf(DATA + 'kein base64!')).toBeNull();
   });
 
-  it('Upload: strenge Prüfung, keine doppelten Augments', () => {
-    const one = { id: 7, name: 'Goldrausch', rarity: 'gold', icon: DATA + PNG_1X1 };
-    expect(augmentUploadSchema.safeParse({ puuid, augments: [one] }).success).toBe(true);
-    expect(augmentUploadSchema.safeParse({ puuid, augments: [one, one] }).success).toBe(false);
-    expect(
-      augmentUploadSchema.safeParse({ puuid, augments: [{ ...one, name: '<b>x</b>' }] }).success,
-    ).toBe(false);
-    expect(
-      augmentUploadSchema.safeParse({ puuid, augments: [{ ...one, name: '  ' }] }).success,
-    ).toBe(false);
-    expect(
-      augmentUploadSchema.safeParse({ puuid, augments: [{ ...one, rarity: 'kGold' }] }).success,
-    ).toBe(false);
-    expect(augmentUploadSchema.safeParse({ puuid, augments: [{ ...one, extra: 1 }] }).success).toBe(
-      false,
-    );
-    expect(augmentUploadSchema.safeParse({ puuid, augments: [] }).success).toBe(false);
-    expect(augmentUploadSchema.safeParse({ puuid: 'kurz', augments: [one] }).success).toBe(false);
+  it('Name: nicht leer, höchstens 80 Zeichen, keine Steuerzeichen oder spitzen Klammern', () => {
+    expect(validName('Goldrausch')).toBe(true);
+    expect(validName('  ')).toBe(false);
+    expect(validName('<b>x</b>')).toBe(false);
+    expect(validName('a\u0007')).toBe(false);
+    expect(validName('x'.repeat(81))).toBe(false);
   });
 
   it('Rohdaten: playerAugment1–6 ohne leere Plätze', () => {

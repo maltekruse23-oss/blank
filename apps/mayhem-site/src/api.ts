@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import { db, query, rows, hash, secret, archiveBucket } from './storage';
-import { uploadSchema, groupSchema, memberSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
+import { uploadSchema, augmentUploadSchema, groupSchema, memberSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
 import { standings, rankResult, seasonOf, RATING_VERSION, CLIMBING } from './features/aram/aramRating';
 import type { AramEntry } from './adapters/aram';
 import { archiveRoute } from './archive';
 import { gameView, type RawGame } from './game';
 import { recordsView } from './records';
 import { championsView, championView } from './champions';
-import { augmentUploadSchema, decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
+import { decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }

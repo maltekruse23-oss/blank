@@ -3,7 +3,6 @@
 // uploads. Only augments that appear in an uploaded game are taken, every value strictly checked,
 // and an icon must be a small real PNG. Pure, tested in the app's repo
 // (src/features/aram/siteAugments.test.ts).
-import { z } from 'zod';
 
 export const RARITIES = ['prismatic', 'gold', 'silver', ''] as const;
 export type Rarity = (typeof RARITIES)[number];
@@ -54,32 +53,10 @@ export function iconOf(dataUrl: string): string | null {
   return text;
 }
 
-const name = z
-  .string()
-  .refine((s) => s.trim().length > 0 && [...s].length <= 80 && !/[\u0000-\u001f\u007f-\u009f<>]/u.test(s), 'Ungültiger Name');
-
-export const augmentUploadSchema = z
-  .object({
-    puuid: z.string().regex(/^[A-Za-z0-9_-]{36,100}$/),
-    augments: z
-      .array(
-        z
-          .object({
-            id: z.number().int().min(1).max(1000000),
-            name,
-            rarity: z.enum(RARITIES),
-            icon: z.string().max(40000).nullable(),
-          })
-          .strict(),
-      )
-      .min(1)
-      .max(MAX_PER_UPLOAD),
-  })
-  .strict()
-  .superRefine((b, c) => {
-    if (new Set(b.augments.map((a) => a.id)).size !== b.augments.length)
-      c.addIssue({ code: 'custom', message: 'Doppeltes Augment im Upload' });
-  });
+/** A name as the pages show it: not empty, at most 80 characters, no control characters or <>. */
+export function validName(name: string) {
+  return name.trim().length > 0 && [...name].length <= 80 && !/[\u0000-\u001f\u007f-\u009f<>]/u.test(name);
+}
 
 /** The augments of a participant of the client's raw game (playerAugment1–6, 0 = none). */
 export function rawAugments(stats: Partial<Record<string, number | boolean>>): number[] {

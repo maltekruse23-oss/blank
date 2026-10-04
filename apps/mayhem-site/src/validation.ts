@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_PER_UPLOAD, RARITIES, validName } from './augments';
 const n = (max = 100000000) => z.number().int().min(0).max(max);
 const plain = (max = 40) => z.string().refine(s => [...s].length <= max && !/[\u0000-\u001f\u007f-\u009f]/u.test(s), 'Text zu lang oder mit Steuerzeichen');
 export const puuid = z.string().regex(/^[A-Za-z0-9_-]{36,100}$/);
@@ -16,3 +17,6 @@ export function canonical(v: unknown): string { if (Array.isArray(v))
     return '[' + v.map(canonical).join(',') + ']'; if (v && typeof v === 'object')
     return '{' + Object.entries(v).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, v]) => JSON.stringify(k) + ':' + canonical(v)).join(',') + '}'; return JSON.stringify(v); }
 export function lobbyCanonical(e: z.infer<typeof entrySchema>) { return canonical((e.lobby ?? []).map(({ you, ...s }) => canonical(s)).sort()); }
+// Augments from blank. (POST /api/augments); the icon is checked in the handler (iconOf).
+export const augmentUploadSchema = z.object({ puuid, augments: z.array(z.object({ id: z.number().int().min(1).max(1000000), name: z.string().refine(validName, 'Ungültiger Name'), rarity: z.enum(RARITIES), icon: z.string().max(40000).nullable() }).strict()).min(1).max(MAX_PER_UPLOAD) }).strict().superRefine((b, c) => { if (new Set(b.augments.map(a => a.id)).size !== b.augments.length)
+    c.addIssue({ code: 'custom', message: 'Doppeltes Augment im Upload' }); });
