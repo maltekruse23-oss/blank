@@ -14,9 +14,17 @@ const raw: RawGame = {
   gameVersion: '16.19.712.1234',
   participantIdentities: [0, 1, 2].map((i) => ({
     participantId: i + 1,
-    player: i === 2 ? { puuid: pid(i), summonerName: 'Alt Name' } : { puuid: pid(i), gameName: `Spieler ${i}`, tagLine: 'EUW' },
+    player:
+      i === 2
+        ? { puuid: pid(i), summonerName: 'Alt Name' }
+        : { puuid: pid(i), gameName: `Spieler ${i}`, tagLine: 'EUW' },
   })),
-  participants: [0, 1, 2].map((i) => ({ participantId: i + 1, teamId: 100, championId: 10 + i, stats: { win: true } })),
+  participants: [0, 1, 2].map((i) => ({
+    participantId: i + 1,
+    teamId: 100,
+    championId: 10 + i,
+    stats: { win: true },
+  })),
 };
 
 const mate = (i: number): AramMate => ({
@@ -66,7 +74,8 @@ describe('Website: Namen ausblenden', () => {
     expect(riotKey('  Spieler  1 #euw ')).toBe('spieler 1#euw');
     expect(riotKey('Spieler 1#EUW')).toBe(riotKey('spieler 1#euw'));
     expect(riotKey('Alt Name')).toBe('alt name');
-    for (const bad of ['', '  ', '#EUW', 'Name#', 'a#b#c', 'x'.repeat(41), 'Na\u0000me#EUW']) expect(riotKey(bad)).toBeNull();
+    for (const bad of ['', '  ', '#EUW', 'Name#', 'a#b#c', 'x'.repeat(41), 'Na\u0000me#EUW'])
+      expect(riotKey(bad)).toBeNull();
   });
 
   it('findet die PUUID im Archiv, bei Hochladenden und ihren Freunden; der Tag muss stimmen', () => {
