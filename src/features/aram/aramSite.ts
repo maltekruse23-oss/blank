@@ -219,5 +219,20 @@ export function combine(local: Standing[], site: SiteBoard | null): Ranked[] {
   return [...all, ...local.filter((s) => !known.has(s.puuid)).map(fromLocal)];
 }
 
+/**
+ * The games one player's rank is computed from, for the card right after a game (before its
+ * upload): the website's games of the user's profile, plus the games on this PC it does not have
+ * yet. The website runs the same code over the same games, so the card shows the step the website
+ * will show. Null without the user's profile on the website (the card then computes locally).
+ */
+export function rankGames(site: SiteBoard | null, puuid: string, local: AramEntry[]) {
+  if (site?.me?.puuid !== puuid) return null;
+  const seen = new Set(site.me.history.map((s) => s.entry.gameId));
+  return [
+    ...site.me.history.map((s) => s.entry),
+    ...local.filter((e) => e.puuid === puuid && !seen.has(e.gameId)),
+  ];
+}
+
 export const isInvalid = (error: unknown) =>
   error instanceof Invalid || error instanceof SyntaxError;

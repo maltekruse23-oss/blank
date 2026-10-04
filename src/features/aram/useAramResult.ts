@@ -11,6 +11,8 @@ import type { Preferences } from '../settings/preferences';
 import { aramHighlight, type AramHighlight } from './aramHighlight';
 import { rankResult, type RankResult } from './aramRating';
 import { sinceGames } from './aramStats';
+import { rankGames, type SiteBoard } from './aramSite';
+import { boardForCard } from './useSiteRanks';
 
 export type AramResultView = {
   /** New for every showing, so the card builds up again. */
@@ -30,6 +32,8 @@ export function resultView(
   entry: AramEntry,
   data: AramData,
   friends: AramPlayer[],
+  /** The website's ranks (aramSite.ts): with the user's profile there, the step the website shows. */
+  site: SiteBoard | null = null,
 ): AramResultView {
   const players = [
     ...(data.me ? [data.me] : []),
@@ -46,8 +50,17 @@ export function resultView(
     augments,
     // Records only against the games that count (since the group's start).
     highlight: aramHighlight(entry, sinceGames(data.games, data.since), players),
-    rank: rankResult(data.games, entry.puuid, entry.gameId, data.since ?? 0),
+    rank: rankOf(entry, data, site),
   };
+}
+
+/** The game's step on the ladder: as the website counts it (all the user's uploaded games of the
+ * season), else from the games on this PC since the group's start. */
+function rankOf(entry: AramEntry, data: AramData, site: SiteBoard | null) {
+  const games = rankGames(site, entry.puuid, data.games);
+  return games
+    ? rankResult(games, entry.puuid, entry.gameId)
+    : rankResult(data.games, entry.puuid, entry.gameId, data.since ?? 0);
 }
 
 /**
@@ -72,13 +85,16 @@ export function useAramResult(
     () =>
       adapter.onResult((played) => {
         void (async () => {
-          const data = await adapter.data().catch(() => null);
+          const [data, site] = await Promise.all([
+            adapter.data().catch(() => null),
+            boardForCard().catch(() => null),
+          ]);
           const entry = data?.games.find(
             (g) => g.gameId === played.gameId && g.puuid === played.puuid,
           );
           if (!data || !entry) return;
           const p = latest.current;
-          const next = resultView(entry, data, latestPlayers.current);
+          const next = resultView(entry, data, latestPlayers.current, site);
           const popout =
             hasPopouts &&
             p.popouts &&

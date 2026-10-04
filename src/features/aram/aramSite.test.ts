@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AramEntry, AramSeat } from '../../adapters/aram';
-import { standings } from './aramRating';
-import { combine, fromLocal, parseBoard, parseProfile } from './aramSite';
+import { rankResult, standings } from './aramRating';
+import { combine, fromLocal, parseBoard, parseProfile, rankGames } from './aramSite';
 import { ladderPlace } from './RankHistory';
 import { open, summary } from '../../../apps/mayhem-site/src/summary';
 
@@ -156,5 +156,24 @@ describe('ranks from the website', () => {
     expect(() =>
       parseProfile(JSON.stringify({ ...JSON.parse(profileText('strong')), history: [{}] })),
     ).toThrow();
+  });
+
+  it('shows on the card after a game the step the website will show', () => {
+    // The website has all but the newest game; the newest is only on this PC (not uploaded yet).
+    const mine = games.filter((g) => g.puuid === 'strong');
+    const newest = mine[mine.length - 1];
+    const before = standings(mine.slice(0, -1))[0];
+    const site = {
+      players: parseBoard(boardText),
+      me: parseProfile(JSON.stringify({ icon: 7, ...open(before), history: before.history })),
+    };
+    const entries = rankGames(site, 'strong', games)!;
+    expect(entries.filter((e) => e.gameId === newest.gameId)).toHaveLength(1);
+    expect(rankResult(entries, 'strong', newest.gameId)).toEqual(
+      rankResult(mine, 'strong', newest.gameId),
+    );
+    // Another player's game, or no profile on the website: computed locally.
+    expect(rankGames(site, 'weak', games)).toBeNull();
+    expect(rankGames(null, 'strong', games)).toBeNull();
   });
 });
