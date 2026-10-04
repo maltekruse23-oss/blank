@@ -17,7 +17,7 @@
   /* Text */
   --text: #e9efea;
   --muted: #95a69a;
-  --faint: #66776c;
+  --faint: #7e8f84; /* ≥ 4.5:1 on every panel (WCAG AA) */
 
   /* Accent and states */
   --accent: #a7f36b;
@@ -224,6 +224,8 @@ select {
 
 .search input:focus {
   border-color: var(--accent);
+  /* a 2 px ring like :focus-visible elsewhere, a 1 px border alone is easy to miss */
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .search > svg {
@@ -1379,6 +1381,8 @@ tr[data-place='3'] .place { color: var(--tier-d); }
 
 .team-card tr[data-picked='true'] {
   background: var(--accent-soft);
+  /* faint text on the tinted row would fall below 4.5:1 */
+  --faint: var(--muted);
 }
 
 .team-card .who b {
