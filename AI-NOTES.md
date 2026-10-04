@@ -3,6 +3,16 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 7: alle Mayhem-Spieler — 04.10.2026
+
+- Ziel des Benutzers (auch oben in `apps/mayhem-site/PLAN.md`): mayhemstats.lol ist eine öffentliche Stats- und Rangseite für alle ARAM-Mayhem-Spieler, mit Namenssuche („bin ich in der Datenbank?“). Nicht wieder auf „nur Profile“ zurückdrehen.
+- Jedes archivierte Spiel ergibt zehn Einträge in `archive_entries` (`src/archive-entries.ts`, gleiche Form wie ein Upload, mit Lobby, Details, Augments), geschrieben beim Archiv-Upload (`src/archive.ts`) und für ältere Spiele bis zu 20 je Seitenaufruf (`indexPending` in `src/archive-index.ts`, aufgerufen aus `cached()` und dem Profil). `archive_indexed` merkt sich die Spiele samt `ARCHIVE_ENTRY_VERSION`; wird das Format geändert, die Version erhöhen, dann baut die Seite alles neu.
+- `entries(..., withArchive = true)` in `src/api.ts` mischt Uploads und Archiv (`mergeEntries`: Upload gewinnt, außer nur das Archiv hat alle zehn). Genutzt von Rangliste, Start, Rekorden, Champions, Gruppe, Profil und den Rang-Ergebnissen; `/api/games` und `/api/export` bleiben nur Uploads.
+- Spieler ohne Profil heißen nach außen `a<archive_players.id>` (`publicId`), nie mit PUUID; `/api/players/a123` liefert ihre Seite, die Spiel-Seite verlinkt sie (`links` in `gameView`). Ausgeblendete fehlen ganz. Wer sein Profil löscht, wird zusätzlich ausgeblendet, sonst käme er aus dem Archiv unter einer Nummer zurück.
+- Archiv-Einträge haben `champion: ''`; die Seiten nehmen den Champion aus Data Dragon (`championKey`/`championLabel`).
+- Tests: `src/features/aram/siteArchiveEntries.test.ts`, lokal `node apps/mayhem-site/tests/all-players.mjs` nach dem Build. Migration `0006_flaky_wasp.sql` (in `DEPLOY.md`).
+- Offen: Jede Seite parst alle Einträge; bei sehr vielen Spielen (deutlich über einige Tausend) wird das teuer, dann vorberechnete Ranglisten oder Seiten mit Blättern im Server. Riot-Antrag läuft noch; die öffentliche Rangliste fremder Spieler hat der Benutzer bewusst entschieden.
+
 ## Eigene Domain mayhemstats.lol — 04.10.2026
 
 - Der Benutzer hat `mayhemstats.lol` bei Porkbun gekauft. App (`aram_website.rs`, `aram_archive.rs`), Collector (`engine.rs`), API-Anleitung, `API.md` und die Archiv-Skripte zeigen jetzt auf `https://mayhemstats.lol`. Die Website selbst nutzt nur `url.origin` und läuft unter beiden Adressen.

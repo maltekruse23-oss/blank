@@ -57,7 +57,7 @@ Beispielantwort (Zeitpunkte/IDs sind illustrativ):
 
 ## GET /api/leaderboard?group=<code>&season=<id>
 
-group und season sind optional. Ohne group global; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Gruppen zählen ab ihrem eigenen Start. Sortierung ist exakt diejenige von standings(). Beispielantwort für einen noch leeren globalen Bestand.
+group und season sind optional. Ohne group global; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Gruppen zählen ab ihrem eigenen Start. Sortierung ist exakt diejenige von standings(). Gezählt werden alle Spieler aus hochgeladenen und archivierten Spielen (Rohdatenarchiv des Collectors), je Spieler und Spiel ein Eintrag; Spieler ohne eigenes Profil stehen dort unter einer öffentlichen Nummer (`puuid: "a123"`), nie mit ihrer PUUID, ausgeblendete gar nicht. `trackedGames` zählt hochgeladene und archivierte Spiele. Beispielantwort für einen noch leeren globalen Bestand.
 
 ```powershell
 curl.exe "$API/leaderboard?season=v1"
@@ -82,7 +82,7 @@ Beispielantwort (Zeitpunkte/IDs sind illustrativ):
 
 ## GET /api/spiel/<gameId>
 
-Ein Spiel mit allen zehn Spielern, nur wenn es mindestens einmal hochgeladen wurde (sonst 404). Liegt das Spiel im Rohdatenarchiv, kommen die Riot-IDs aller zehn von dort (`source: "archive"`); sonst die Werte aller zehn aus dem vollständigsten Upload und Namen nur der Hochladenden (`source: "uploads"`), dazu `named` (Freunde aus den Uploads nach Champion). `puuid` steht nur bei Spielern mit eigenem Profil, sonst `null`. Fehlende Werte (`level`, `items`) sind `null`, nie 0. `disputed` meldet widersprüchliche Uploads.
+Ein Spiel mit allen zehn Spielern, wenn es hochgeladen oder archiviert wurde (sonst 404). Liegt das Spiel im Rohdatenarchiv, kommen die Riot-IDs aller zehn von dort (`source: "archive"`); sonst die Werte aller zehn aus dem vollständigsten Upload und Namen nur der Hochladenden (`source: "uploads"`), dazu `named` (Freunde aus den Uploads nach Champion). `puuid` ist der Link zur Spielerseite: die PUUID bei Spielern mit eigenem Profil, sonst die öffentliche Nummer (`a123`), `null` bei ausgeblendeten. Fehlende Werte (`level`, `items`) sind `null`, nie 0. `disputed` meldet widersprüchliche Uploads.
 
 ```powershell
 curl.exe "$API/spiel/7000000001"
@@ -96,7 +96,7 @@ Namen, Seltenheit und kleine Symbole der Augments (Data Dragon hat keine Mayhem-
 
 ## GET /api/rekorde
 
-Die Rekorde: je Kategorie (gleiche Kategorien und Reihenfolge wie die Rangliste der App) die besten zehn Spieler mit dem Spiel ihres Werts. Nur hochgeladene, nicht umstrittene Spiele, also nur Spieler mit eigenem Profil; PUUIDs von Mitspielern ohne Profil kommen nie vor. Optional `scope=all` (Standard, alle Zeiten) oder `scope=season` (laufende Saison, drei pro Jahr) und `group` (ab dem Start der Gruppe). Gleichstand = gleicher Platz. Bei Summen (Pentakills) ist `game` das letzte Spiel, das dazu beitrug. `fresh`: das Spiel begann in den letzten sieben Tagen. Fehlende Werte älterer Spiele zählen nie als 0; eine Kategorie ohne Wert über 0 hat keine Plätze.
+Die Rekorde: je Kategorie (gleiche Kategorien und Reihenfolge wie die Rangliste der App) die besten zehn Spieler mit dem Spiel ihres Werts. Hochgeladene, nicht umstrittene und archivierte Spiele, also alle Spieler; Spieler ohne Profil unter ihrer öffentlichen Nummer, ihre PUUIDs kommen nie vor. Optional `scope=all` (Standard, alle Zeiten) oder `scope=season` (laufende Saison, drei pro Jahr) und `group` (ab dem Start der Gruppe). Gleichstand = gleicher Platz. Bei Summen (Pentakills) ist `game` das letzte Spiel, das dazu beitrug. `fresh`: das Spiel begann in den letzten sieben Tagen. Fehlende Werte älterer Spiele zählen nie als 0; eine Kategorie ohne Wert über 0 hat keine Plätze.
 
 ```powershell
 curl.exe "$API/rekorde?scope=season"
@@ -106,7 +106,7 @@ Antwort (gekürzt): `{ "scope", "season": { "id", "year", "number", "start" }, "
 
 ## GET /api/start
 
-Die Startseite: Kopfzahlen, die Top 10 der Rangliste (gleiche Form wie `players` bei /api/leaderboard), die drei besten Noten der letzten 24 Stunden, die Noten der laufenden Saison (Anzahl je Note F bis MAYHEM, ein Eintrag je Spieler und Spiel) und die Rekorde, deren Platz 1 in den letzten sieben Tagen entstand (höchstens vier, nur mit Platz 1). Alle Spieler, keine Gruppe. Nur hochgeladene, nicht umstrittene Spiele, also nur Spieler mit eigenem Profil.
+Die Startseite: Kopfzahlen, die Top 10 der Rangliste (gleiche Form wie `players` bei /api/leaderboard), die drei besten Noten der letzten 24 Stunden, die Noten der laufenden Saison (Anzahl je Note F bis MAYHEM, ein Eintrag je Spieler und Spiel) und die Rekorde, deren Platz 1 in den letzten sieben Tagen entstand (höchstens vier, nur mit Platz 1). Alle Spieler aus hochgeladenen und archivierten Spielen, keine Gruppe; Spieler ohne Profil unter ihrer öffentlichen Nummer.
 
 ```powershell
 curl.exe "$API/start"
@@ -124,9 +124,9 @@ curl.exe "$API/gruppe/ABCDEFGHJKLM"
 
 Antwort (gekürzt): `{ "group": { "code", "name", "since" }, "season", "players": [...], "members": [{ "puuid", "radar", "bests", "games": [{ "gameId", "at", "grade", "pct" }] }], "sessions": [{ "start", "end", "games", "players": [{ "puuid", "name", "games", "gain", "placements", "best" }] }] }`
 
-## GET /api/players/<puuid>
+## GET /api/players/<puuid oder a123>
 
-Rang, Saisonverlauf und fünf beste Spiele nach Note. Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.
+Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Statt der PUUID geht auch die öffentliche Nummer eines Spielers ohne Profil (`/api/players/a123`); die Antwort nennt dann diese Nummer als `puuid`, `icon` und `name` aus seinem neuesten Spiel. Gehört die Nummer inzwischen einem Spieler mit Profil, kommt dessen Profil. Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.
 
 ```powershell
 curl.exe "$API/players/$PUUID"

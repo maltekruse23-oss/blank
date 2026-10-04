@@ -31,6 +31,8 @@ import {
 import {
   ago,
   championImage,
+  championKey,
+  championLabel,
   date,
   de,
   duration,
@@ -248,9 +250,9 @@ function Match({ step, dragon, name }: { step: ProfileStep; dragon: Dragon; name
     <article className="match" data-g={step.mark.grade} data-open={open}>
       <button aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}>
         <GradeIcon grade={step.mark.grade} />
-        <Img className="champ lg" src={championImage(dragon, e.champion)} alt={e.championName || e.champion} size={44} />
+        <Img className="champ lg" src={championImage(dragon, championKey(dragon, e) || undefined)} alt={championLabel(dragon, e)} size={44} />
         <span className="title">
-          <b>{e.championName || e.champion}</b>
+          <b>{championLabel(dragon, e)}</b>
           <small>
             <span className={e.win ? 'up' : 'down'}>{e.win ? 'Sieg' : 'Niederlage'}</span> · {duration(e.seconds)} · {date(e.at)}
           </small>
@@ -385,8 +387,8 @@ function Champions({ steps, dragon }: { steps: ProfileStep[]; dragon: Dragon }) 
             <tr key={r.championId}>
               <td>
                 <span className="who">
-                  <Img className="champ" src={championImage(dragon, r.champion)} size={28} />
-                  <b>{r.championName}</b>
+                  <Img className="champ" src={championImage(dragon, championKey(dragon, r) || undefined)} size={28} />
+                  <b>{championLabel(dragon, r)}</b>
                 </span>
               </td>
               <td className="right num">{r.games}</td>

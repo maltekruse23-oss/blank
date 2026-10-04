@@ -1,5 +1,12 @@
 # blank. Mayhem – Plan für die neue Website (04.10.2026)
 
+**Ziel (Benutzer, 04.10.2026): mayhemstats.lol ist eine öffentliche Stats- und Rangseite für alle
+ARAM-Mayhem-Spieler.** Jeder, der in einem hochgeladenen oder archivierten Spiel vorkommt, steht
+mit Stats, Noten und Rang auf der Seite, auch ohne blank. oder Collector. Über die Suche kann man
+seinen Namen finden, sehen, ob man in der Datenbank ist, und seine Stats ansehen. Neue Funktionen
+sind für alle Spieler gedacht, nicht nur für Gruppen oder Hochladende. Wer nicht erscheinen will,
+blendet sich unter `/datenschutz/entfernen` aus.
+
 **Entscheidungen des Benutzers (04.10.2026):** Ränge sofort öffentlich (Riot-Risiko bekannt und
 bewusst in Kauf genommen; kein Schalter, keine Gruppen-Sperre). Alle zehn Spieler eines Spiels
 mit Riot-ID und eigenem Profil (wie op.gg). Daraus folgt: Datenschutzseite nennt das deutlich,
@@ -21,10 +28,10 @@ und aram.zone. Übernommen werden nur Ideen, keine Assets.
    Rekorde und Statistiken öffentlich. Der Rang ist nur für Gruppenmitglieder zu sehen, nach
    Anmeldung mit dem eigenen Schlüssel. Ein Schalter `PUBLIC_RANKS` gibt ihn später frei, ohne
    dass etwas umgebaut werden muss.
-2. **Wer erscheint.** Ein Profil bekommt nur, wer selbst hochlädt, also wer in blank. „Hochladen
-   erlauben“ geklickt hat oder den Collector nutzt. Die anderen neun Spieler eines Spiels
-   erscheinen nur als Champion mit Werten und Note, ohne Riot-ID und ohne Link. Grund:
-   Datenschutz und Riots Regel „keine Spieler de-anonymisieren“.
+2. **Wer erscheint.** ~~Ein Profil bekommt nur, wer selbst hochlädt.~~ Entschieden (siehe oben
+   und Etappe 7): alle Spieler aus hochgeladenen und archivierten Spielen, mit Riot-ID, Stats,
+   Rang und Spielerseite. Spieler ohne eigenes Profil werden über eine öffentliche Nummer
+   (`/players/a123`) verlinkt, nie über ihre PUUID. Ausblenden unter `/datenschutz/entfernen`.
 3. **Pflichtangaben.**
    - Riot-Hinweis („isn't endorsed by Riot Games …“, Legal Jibber Jabber) sichtbar in der
      Fußzeile.
@@ -193,6 +200,10 @@ und teilbar.
 5. Feinschliff: Leistung, Barrierefreiheit, Tests. Danach Übergabe an Codex zum Veröffentlichen
    (mit `public/downloads`).
 6. Die App zeigt Ränge von der Website (eine Wahrheit für alle). Dann Release 0.9.2.
+7. Alle Spieler: jeder aus einem archivierten Spiel bekommt Einträge (`archive_entries`, gebaut
+   beim Archiv-Upload und für ältere Spiele nach und nach beim Lesen), damit Rangliste, Suche,
+   Profil, Rekorde, Champions und Spiel-Seite alle Spieler zeigen. Rangliste mit „Weitere
+   anzeigen“ (50 je Klick).
 
 Was der Benutzer liefern oder entscheiden muss: die neuen Rang-Icons (8 Stück), die Freigabe
 der Riot-Anfrage, das Impressum ja/nein und das Veröffentlichen (über Codex).

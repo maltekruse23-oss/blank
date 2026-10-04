@@ -122,7 +122,8 @@ export function Search({ big = false }: { big?: boolean }) {
             })
           ) : (
             <li className="faint" style={{ padding: 8 }}>
-              Niemand gefunden.
+              Nicht in der Datenbank. Hier steht jeder aus einem Spiel, das blank. oder der Collector
+              hochgeladen hat.
             </li>
           )}
         </ul>

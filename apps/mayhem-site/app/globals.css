@@ -542,6 +542,13 @@ main {
   border-color: var(--accent);
 }
 
+/* "Show more" under a long table: full width, inside the table's frame. */
+.button.more {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 12px;
+}
+
 .live {
   display: inline-flex;
   align-items: center;

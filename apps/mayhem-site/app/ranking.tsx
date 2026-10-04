@@ -7,9 +7,12 @@ import { seasonName, seasonOf } from '../src/features/aram/aramRating';
 import { apexLines, distributionOf, topShare } from '../src/insights';
 import ArchiveCounter from './archive-counter';
 import { GradeChip, Histogram, Img, Problem, RankLine, Tabs, TierMark } from './ui/bits';
-import { championImage, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from './ui/data';
+import { championImage, championKey, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from './ui/data';
 
 type View = 'rank' | 'performance';
+
+/** Rows shown at first and added per click (everyone from the archive is on the board). */
+const PAGE = 50;
 
 /** MP needed from the apex line on (aramRating.ts: SSS from 2800, MAYHEM from 3200 on the ladder). */
 const APEX_MP = { sss: 400, mayhem: 800 } as const;
@@ -18,6 +21,7 @@ export default function Ranking() {
   const [view, setView] = useState<View>('rank');
   const [group, setGroup] = useState('');
   const [input, setInput] = useState('');
+  const [limit, setLimit] = useState(PAGE);
   const { data, error, live } = useLive<Board>('/api/leaderboard' + (group ? '?group=' + encodeURIComponent(group) : ''));
   const dragon = useDragon();
   const now = useNow();
@@ -53,6 +57,7 @@ export default function Ranking() {
             onSubmit={(e) => {
               e.preventDefault();
               setGroup(input.trim());
+              setLimit(PAGE);
             }}
           >
             <input
@@ -103,7 +108,10 @@ export default function Ranking() {
           <Tabs<View>
             label="Sortierung"
             value={view}
-            onChange={setView}
+            onChange={(v) => {
+              setView(v);
+              setLimit(PAGE);
+            }}
             options={[
               { id: 'rank', label: 'Nach Rang' },
               { id: 'performance', label: 'Nach Leistung Ø' },
@@ -122,11 +130,16 @@ export default function Ranking() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((p, i) => (
+                {sorted.slice(0, limit).map((p, i) => (
                   <Row key={p.puuid} player={p} place={i + 1} view={view} dragon={dragon} group={group} top={topShare(p.rank, ranks)} />
                 ))}
               </tbody>
             </table>
+            {sorted.length > limit && (
+              <button type="button" className="button more" onClick={() => setLimit((l) => l + PAGE)}>
+                Weitere {Math.min(PAGE, sorted.length - limit)} von {sorted.length - limit} anzeigen
+              </button>
+            )}
             {!data && !error && <p className="empty">Rangliste wird geladen …</p>}
             {data && sorted.length === 0 && (
               <p className="empty">
@@ -211,7 +224,7 @@ function Row({
       <td className="hide-sm">
         <div className="champs">
           {p.champions.map((c) => (
-            <Img key={c.championId} className="champ" src={championImage(dragon, c.champion)} alt={`${c.champion}, ${c.games} Spiele`} size={28} />
+            <Img key={c.championId} className="champ" src={championImage(dragon, championKey(dragon, c) || undefined)} alt={`${dragon?.champions.get(c.championId)?.name ?? c.champion}, ${c.games} Spiele`} size={28} />
           ))}
         </div>
       </td>

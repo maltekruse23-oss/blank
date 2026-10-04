@@ -1,6 +1,8 @@
 import { archiveBucket, archiveImportToken, db, query, rows } from './storage';
 import { MAX_RAW_BYTES, platform, validateMatch, validateTimeline } from './archive-validation';
 import { collectorAccess, enrollCollector, manageCollectors } from './archive-collectors';
+import { entryStatements } from './archive-index';
+import type { RawGame } from './game';
 
 class ArchiveError extends Error {
     constructor(public status: number, message: string) { super(message); }
@@ -85,6 +87,8 @@ async function upload(req: Request, timelineKey: string | null, contributor?: st
             statements.push(query('INSERT OR IGNORE INTO archive_participants (matchKey,participantId,playerId,teamId,championId) SELECT ?,?,id,?,? FROM archive_players WHERE puuid=? AND EXISTS (SELECT 1 FROM archive_matches WHERE matchKey=? AND detailsHash=?)',
                 matchKey, p.participantId, p.teamId, p.championId, p.puuid, matchKey, digest));
         }
+        // Every player of the game as an entry, for the pages (src/archive-index.ts).
+        statements.push(...entryStatements(matchKey, value as RawGame, now, digest));
     } else {
         statements.push(query('UPDATE archive_matches SET timelineHash=? WHERE matchKey=? AND timelineHash IS NULL', digest, matchKey));
     }

@@ -59,3 +59,20 @@ export const hiddenPlayers = sqliteTable('hidden_players', { puuid: text('puuid'
 // Stored results of the reading pages (src/snapshot.ts): computed once, valid until the next event
 // or for five minutes. Only what the pages show anyway, so never more than the API gives out.
 export const snapshots = sqliteTable('snapshots', { key: text('key').primaryKey(), version: integer('version').notNull(), cursor: integer('cursor').notNull(), at: integer('at').notNull(), json: text('json').notNull() });
+
+// Every player of an archived game as an entry (src/archive-entries.ts), so players without a
+// profile get grades, ranks and a profile too. Built from the archive on upload and, for older
+// games, a few at a time while the pages are read; rebuilt when ARCHIVE_ENTRY_VERSION changes.
+export const archiveEntries = sqliteTable('archive_entries', {
+    matchKey: text('matchKey').notNull().references(() => archiveMatches.matchKey),
+    playerId: integer('playerId').notNull().references(() => archivePlayers.id),
+    gameId: integer('gameId').notNull(), at: integer('at').notNull(),
+    /** Riot ID at the time of the game and its search form (src/hidden.ts, riotKey). */
+    name: text('name'), search: text('search'), icon: integer('icon'), json: text('json').notNull(),
+}, t => [primaryKey({ columns: [t.matchKey, t.playerId] }), index('archive_entries_player').on(t.playerId, t.at),
+    index('archive_entries_time').on(t.at), index('archive_entries_search').on(t.search)]);
+/** Which archived games have their entries (ok = 0: the stored answer could not be read). */
+export const archiveIndexed = sqliteTable('archive_indexed', {
+    matchKey: text('matchKey').primaryKey().references(() => archiveMatches.matchKey),
+    version: integer('version').notNull(), ok: integer('ok').notNull(), at: integer('at').notNull(),
+});

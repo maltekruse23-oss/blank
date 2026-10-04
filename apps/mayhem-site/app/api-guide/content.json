@@ -36,7 +36,7 @@
   },
   {
     "title": "GET /api/leaderboard?group=<code>&season=<id>",
-    "text": "group und season sind optional. Ohne group global; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Gruppen zählen ab ihrem eigenen Start. Sortierung ist exakt diejenige von standings(). Beispielantwort für einen noch leeren globalen Bestand.",
+    "text": "group und season sind optional. Ohne group global; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Gruppen zählen ab ihrem eigenen Start. Sortierung ist exakt diejenige von standings(). Gezählt werden alle Spieler aus hochgeladenen und archivierten Spielen (Rohdatenarchiv des Collectors), je Spieler und Spiel ein Eintrag; Spieler ohne eigenes Profil stehen dort unter einer öffentlichen Nummer (`puuid: \"a123\"`), nie mit ihrer PUUID, ausgeblendete gar nicht. Beispielantwort für einen noch leeren globalen Bestand.",
     "request": "curl.exe \"$API/leaderboard?season=v1\"\ncurl.exe \"$API/leaderboard?group=$GROUP&season=v1\"",
     "response": {
       "season": {
@@ -51,8 +51,8 @@
     }
   },
   {
-    "title": "GET /api/players/<puuid>",
-    "text": "Rang, Saisonverlauf und fünf beste Spiele nach Note. Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.",
+    "title": "GET /api/players/<puuid oder a123>",
+    "text": "Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Statt der PUUID geht auch die öffentliche Nummer eines Spielers ohne Profil (/api/players/a123). Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.",
     "request": "curl.exe \"$API/players/$PUUID\"\ncurl.exe \"$API/players/${PUUID}?group=$GROUP&season=v1\"",
     "response": {
       "puuid": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
