@@ -5,6 +5,7 @@
 // profile; nobody else's PUUID leaves the server. Pure, tested in the app's repo
 // (src/features/aram/siteGame.test.ts).
 import type { AramEntry, AramSeat } from './adapters/aram';
+import { rawAugments } from './augments';
 
 /** The parts of the client's match answer (/lol-match-history/v1/games/<id>) the page reads. */
 export type RawGame = {
@@ -33,6 +34,8 @@ export type GamePlayer = Omit<AramSeat, 'you'> & {
   /** Missing values stay null (never 0). */
   level: number | null;
   items: number[] | null;
+  /** Augment IDs in the order they were picked; null when no source has them. */
+  augments: number[] | null;
   /** Data Dragon key, when an entry of the game names it (for the fallback without archive). */
   champion: string | null;
 };
@@ -114,6 +117,7 @@ export function gameView(
         gold: num(s.goldEarned),
         level: maybe(s.champLevel),
         items: [0, 1, 2, 3, 4, 5, 6].map((n) => num(s[`item${n}`])),
+        augments: rawAugments(s),
       };
     });
     return {
@@ -156,6 +160,7 @@ export function gameView(
       win,
       level: own ? own.level : null,
       items: own ? own.items : null,
+      augments: own ? own.augments : null,
     };
   });
   return {
@@ -203,7 +208,7 @@ export function seatEntry(view: GameView, index: number): AramEntry {
     gold: p.gold,
     level: p.level ?? 0,
     items: p.items ?? [],
-    augments: [],
+    augments: p.augments ?? [],
     damageRank: 1,
     teamShare: 0,
     multikill: 0,

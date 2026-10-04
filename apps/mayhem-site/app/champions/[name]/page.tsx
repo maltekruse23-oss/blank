@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { seasonName } from '../../../src/features/aram/aramRating';
 import { MIN_GAMES, ROLES, type ChampionDetail, type ChampionGame } from '../../../src/champions';
-import { GradeChip, GradeIcon, Img } from '../../ui/bits';
+import { Augment, GradeChip, GradeIcon, Img } from '../../ui/bits';
 import { Filters, useFilters, type Scope } from '../../ui/filters';
 import {
   championImage,
@@ -18,6 +18,7 @@ import {
   profileImage,
   splashImage,
   splitName,
+  useAugments,
   useDragon,
   useLive,
 } from '../../ui/data';
@@ -226,6 +227,7 @@ function BestGames({ detail, dragon, champion }: { detail: ChampionDetail; drago
 }
 
 function Augments({ detail }: { detail: ChampionDetail }) {
+  const known = useAugments();
   return (
     <section className="card">
       <div className="card-head">
@@ -233,7 +235,7 @@ function Augments({ detail }: { detail: ChampionDetail }) {
       </div>
       {detail.augments.length ? (
         <>
-          <table className="table">
+          <table className="table augment-table">
             <thead>
               <tr>
                 <th>Augment</th>
@@ -244,13 +246,18 @@ function Augments({ detail }: { detail: ChampionDetail }) {
             <tbody>
               {detail.augments.map((a) => (
                 <tr key={a.id}>
-                  <td className="num muted">#{a.id}</td>
+                  <td>
+                    <span className="augment-name">
+                      <Augment id={a.id} info={known.get(a.id)} size={26} />
+                      {known.get(a.id)?.name ?? <span className="num muted">#{a.id}</span>}
+                    </span>
+                  </td>
                   <td className="right num">{a.games}</td>
                   <td>
                     {a.grade ? (
                       <GradeChip grade={a.grade} small />
                     ) : (
-                      <span className="faint nowrap" title={`Weniger als ${MIN_GAMES} gewertete Spiele`}>
+                      <span className="faint" title={`Weniger als ${MIN_GAMES} gewertete Spiele`}>
                         wenige Daten
                       </span>
                     )}
@@ -260,8 +267,8 @@ function Augments({ detail }: { detail: ChampionDetail }) {
             </tbody>
           </table>
           <p className="fine" style={{ marginTop: 10 }}>
-            Ø Note statt Siegquote, weil der Sieg nicht zählt. Namen und Symbole der Augments kennt bisher nur die App;
-            die Seite zeigt ihre Nummer.
+            Ø Note statt Siegquote, weil der Sieg nicht zählt. Namen und Symbole schickt blank. mit; ein Augment, das
+            noch niemand geschickt hat, steht mit seiner Nummer da.
           </p>
         </>
       ) : (

@@ -1,6 +1,6 @@
 //! Additive upload of confirmed local Mayhem entries to the user's existing public Site.
 //! Local games are never removed. Credentials live only in Windows Credential Manager.
-use super::{load, Entry, Player};
+use super::{load, Augment, Entry, Player};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -16,6 +16,9 @@ use tauri::{AppHandle, Emitter, Manager};
 const BASE: &str = "https://blank-mayhem.maltevfx.chatgpt.site";
 const SERVICE: &str = "blank.aram.website";
 const MAX_BODY: usize = 60_000;
+/// The Site takes icons up to 24 KB of PNG (as base64 in a data URL) and 40 augments a request.
+const MAX_AUGMENT_ICON: usize = "data:image/png;base64,".len() + 32_768;
+const AUGMENTS_PER_REQUEST: usize = 40;
 
 #[derive(Clone, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -37,6 +40,9 @@ struct Progress {
     enabled: bool,
     acknowledged: HashMap<String, String>,
     last_success: Option<u64>,
+    /// Augments the Site has with name and icon (it shows them on its pages).
+    #[serde(default)]
+    augments: Vec<u32>,
 }
 
 pub struct WebsiteState {
@@ -174,6 +180,53 @@ fn pending(games: &[Entry], p: &Progress) -> Result<Vec<Entry>, String> {
     Ok(result)
 }
 
+/// An augment the Site accepts: a name without control characters or angle brackets and a
+/// small PNG icon. Others are not sent (the Site shows their number).
+fn sendable(augment: &Augment) -> bool {
+    let name = augment.name.trim();
+    !name.is_empty()
+        && name.chars().count() <= 80
+        && !name
+            .chars()
+            .any(|c| c.is_control() || matches!(c, '<' | '>'))
+        && matches!(
+            augment.rarity.as_str(),
+            "prismatic" | "gold" | "silver" | ""
+        )
+        && augment.icon.as_ref().is_some_and(|icon| {
+            icon.starts_with("data:image/png;base64,") && icon.len() <= MAX_AUGMENT_ICON
+        })
+}
+
+/// Augments of games the Site has confirmed, that it does not have yet, by ID.
+fn missing_augments(games: &[Entry], augments: &HashMap<u32, Augment>, p: &Progress) -> Vec<u32> {
+    let mut ids: Vec<u32> = games
+        .iter()
+        .filter(|e| p.acknowledged.contains_key(&key(e)))
+        .flat_map(|e| e.augments.iter().copied())
+        .filter(|id| !p.augments.contains(id) && augments.get(id).is_some_and(sendable))
+        .collect();
+    ids.sort_unstable();
+    ids.dedup();
+    ids
+}
+
+fn augment_payload(
+    puuid: &str,
+    augments: &HashMap<u32, Augment>,
+    ids: &[u32],
+) -> Result<Vec<u8>, String> {
+    let list: Vec<_> = ids
+        .iter()
+        .filter_map(|id| augments.get(id).map(|a| (id, a)))
+        .map(|(id, a)| {
+            serde_json::json!({"id":id,"name":a.name.trim(),"rarity":a.rarity,"icon":a.icon})
+        })
+        .collect();
+    serde_json::to_vec(&serde_json::json!({"puuid":puuid,"augments":list}))
+        .map_err(|_| "Augments nicht lesbar.".into())
+}
+
 fn receipt_matches(answer: &serde_json::Value, expected: &[(u64, &str)]) -> bool {
     let Some(results) = answer["results"].as_array() else {
         return false;
@@ -214,12 +267,13 @@ async fn upload_snapshot(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     };
     let entries = pending(&stored.games, &progress)?;
+    let waiting = !missing_augments(&stored.games, &stored.augments, &progress).is_empty();
     publish(app, |s| {
         s.pending = entries.len();
         s.error = None;
         s.uploading = !entries.is_empty();
     });
-    if entries.is_empty() {
+    if entries.is_empty() && !waiting {
         return Ok(());
     }
     let token = credential(&me.puuid)?;
@@ -299,7 +353,69 @@ async fn upload_snapshot(app: &AppHandle) -> Result<(), String> {
             tokio::time::sleep(Duration::from_secs(3)).await;
         }
     }
+    // Names and icons of new augments, after the games (the Site takes only augments of games).
+    let augments = missing_augments(&stored.games, &stored.augments, &progress);
+    let mut offset = 0;
+    while offset < augments.len() && !state.paused.load(Ordering::SeqCst) {
+        let mut end = (offset + AUGMENTS_PER_REQUEST).min(augments.len());
+        let bytes = loop {
+            let bytes = augment_payload(&me.puuid, &stored.augments, &augments[offset..end])?;
+            if bytes.len() <= MAX_BODY || end == offset + 1 {
+                break bytes;
+            }
+            end -= 1;
+        };
+        let response = http
+            .post(format!("{BASE}/api/augments"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(bytes)
+            .send()
+            .await
+            .map_err(|_| "Website nicht erreichbar. Upload wird später wiederholt.")?;
+        let status = response.status().as_u16();
+        if status != 200 {
+            return Err(match status {
+                401 => {
+                    "Website-Schlüssel passt nicht zum Spieler. Upload pausiert; Schlüssel prüfen."
+                        .into()
+                }
+                429 => "Website-Limit erreicht. Upload wird später wiederholt.".into(),
+                _ => format!("Augment-Upload fehlgeschlagen (HTTP {status})."),
+            });
+        }
+        let answer: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|_| "Website-Antwort nicht lesbar.")?;
+        let have = confirmed_augments(&answer, &augments[offset..end]);
+        if !have.is_empty() {
+            let _write = state.progress_lock.lock().await;
+            // Re-read: the games above wrote it, and a pause may have come in between.
+            let mut current = read_progress(&state.path)?;
+            current.augments.extend(have);
+            current.augments.sort_unstable();
+            current.augments.dedup();
+            write_progress(&state.path, &current)?;
+        }
+        offset = end;
+    }
     Ok(())
+}
+
+/// The sent augments the Site confirms to have (with icon). The others are sent again later,
+/// e.g. when their game has not arrived there yet.
+fn confirmed_augments(answer: &serde_json::Value, sent: &[u32]) -> Vec<u32> {
+    answer["have"]
+        .as_array()
+        .map(|list| {
+            list.iter()
+                .filter_map(|v| v.as_u64())
+                .filter_map(|v| u32::try_from(v).ok())
+                .filter(|id| sent.contains(id))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 pub fn enqueue(app: &AppHandle) {
@@ -389,6 +505,66 @@ pub async fn aram_website(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const PNG: &str = "data:image/png;base64,iVBORw0KGgo=";
+
+    fn augment(name: &str, icon: Option<&str>) -> Augment {
+        Augment {
+            name: name.into(),
+            rarity: "gold".into(),
+            icon: icon.map(Into::into),
+        }
+    }
+
+    #[test]
+    fn only_named_augments_with_a_small_png_are_sent() {
+        assert!(sendable(&augment("Goldrausch", Some(PNG))));
+        assert!(!sendable(&augment("Goldrausch", None)));
+        assert!(!sendable(&augment("  ", Some(PNG))));
+        assert!(!sendable(&augment("<b>", Some(PNG))));
+        assert!(!sendable(&augment(
+            "Goldrausch",
+            Some("data:image/jpeg;base64,AAAA")
+        )));
+        let big = format!("{PNG}{}", "A".repeat(MAX_AUGMENT_ICON));
+        assert!(!sendable(&augment("Goldrausch", Some(&big))));
+        let mut odd = augment("Goldrausch", Some(PNG));
+        odd.rarity = "kGold".into();
+        assert!(!sendable(&odd));
+    }
+
+    #[test]
+    fn augments_go_up_only_for_confirmed_games_and_once() {
+        let mut entry = super::super::tests::sample_entry();
+        entry.augments = vec![7, 9, 11];
+        let augments = HashMap::from([
+            (7, augment("Sieben", Some(PNG))),
+            (9, augment("Neun", None)),
+            (11, augment("Elf", Some(PNG))),
+        ]);
+        let mut p = Progress::default();
+        // The Site takes augments only of its games: nothing before the game is confirmed.
+        assert!(missing_augments(std::slice::from_ref(&entry), &augments, &p).is_empty());
+        p.acknowledged.insert(key(&entry), "x".into());
+        let games = std::slice::from_ref(&entry);
+        assert_eq!(missing_augments(games, &augments, &p), vec![7, 11]);
+        p.augments.push(7);
+        assert_eq!(missing_augments(games, &augments, &p), vec![11]);
+
+        let body: serde_json::Value =
+            serde_json::from_slice(&augment_payload("me", &augments, &[7, 11]).unwrap()).unwrap();
+        assert_eq!(body["puuid"], "me");
+        assert_eq!(body["augments"][0]["id"], 7);
+        assert_eq!(body["augments"][1]["name"], "Elf");
+        assert_eq!(body["augments"][1]["icon"], PNG);
+    }
+
+    #[test]
+    fn only_sent_augments_count_as_confirmed() {
+        let answer = serde_json::json!({"have":[7, 11, 99]});
+        assert_eq!(confirmed_augments(&answer, &[7, 8, 11]), vec![7, 11]);
+        assert!(confirmed_augments(&serde_json::json!({"error":"x"}), &[7]).is_empty());
+    }
     #[test]
     fn only_complete_matching_receipts_acknowledge_games() {
         let expected = [(1, "player-a"), (2, "player-b")];

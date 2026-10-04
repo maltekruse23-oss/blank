@@ -4,7 +4,9 @@
 import type { ReactNode } from 'react';
 import type { Grade } from '../../src/features/aram/aramPerformance';
 import { rankName, TIERS, type Rank } from '../../src/features/aram/aramRating';
+import type { AugmentInfo } from '../../src/augments';
 import { AXES } from '../../src/insights';
+import { augmentImage } from './data';
 
 // ---- Grades and ranks ---------------------------------------------------------------------
 
@@ -92,6 +94,20 @@ export function RankLine({ rank, placed }: { rank: Rank | null; placed: number }
 export function Img({ src, className, alt = '', size }: { src?: string; className: string; alt?: string; size?: number }) {
   // eslint-disable-next-line @next/next/no-img-element -- images from Riot's CDN, no optimizer
   return src ? <img className={className} src={src} alt={alt} width={size} height={size} loading="lazy" /> : <span className={className} aria-hidden />;
+}
+
+/** An augment: its icon with a ring in the color of its rarity, the name as label. Unknown ones
+ * (blank. has not sent them yet) show their number. */
+export function Augment({ id, info, size = 22 }: { id: number; info: AugmentInfo | undefined; size?: number }) {
+  const label = info?.name ?? `Augment ${id}`;
+  return info?.icon ? (
+    // eslint-disable-next-line @next/next/no-img-element -- small icon from our own API
+    <img className="augment" data-rarity={info.rarity || undefined} src={augmentImage(id)} alt={label} title={label} width={size} height={size} loading="lazy" />
+  ) : (
+    <span className="augment none" data-rarity={info?.rarity || undefined} title={label} style={{ width: size, height: size }}>
+      {info ? info.name.slice(0, 1) : '?'}
+    </span>
+  );
 }
 
 // ---- Tabs -----------------------------------------------------------------------------------

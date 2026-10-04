@@ -90,6 +90,10 @@ curl.exe "$API/spiel/7000000001"
 
 Antwort (gekürzt): `{ "gameId", "at", "seconds", "patch", "source", "disputed", "players": [{ "team", "championId", "champion", "name", "puuid", "win", "kills", "deaths", "assists", "damage", "taken", "mitigated", "healed", "shielded", "gold", "level", "items" }], "named": [{ "champion", "name", "puuid" }] }`
 
+## GET /api/augments, GET /api/augments/<id>.png, POST /api/augments
+
+Namen, Seltenheit und kleine Symbole der Augments (Data Dragon hat keine Mayhem-Augments). GET /api/augments liefert `{"augments":{"<id>":{"name","rarity","icon":true|false}}}`, das Symbol kommt als PNG von /api/augments/<id>.png (außerhalb des Anfragelimits, einen Tag im Browser zwischengespeichert). blank. schickt nach dem Upload der Spiele die Augments dieser Spiele mit dem persönlichen Schlüssel: `{"puuid","augments":[{"id","name","rarity":"prismatic|gold|silver|","icon":"data:image/png;base64,…"|null}]}`, höchstens 40 pro Anfrage, Symbol ein echtes PNG bis 24 KB und 256 px. Angenommen werden nur Augments, die in einem hochgeladenen Spiel vorkommen; der erste Name bleibt, ein Symbol wird nur ergänzt, wenn noch keins da ist. Antwort `{"have":[IDs mit Symbol]}`.
+
 ## GET /api/rekorde
 
 Die Rekorde: je Kategorie (gleiche Kategorien und Reihenfolge wie die Rangliste der App) die besten zehn Spieler mit dem Spiel ihres Werts. Nur hochgeladene, nicht umstrittene Spiele, also nur Spieler mit eigenem Profil; PUUIDs von Mitspielern ohne Profil kommen nie vor. Optional `scope=all` (Standard, alle Zeiten) oder `scope=season` (laufende Saison, drei pro Jahr) und `group` (ab dem Start der Gruppe). Gleichstand = gleicher Platz. Bei Summen (Pentakills) ist `game` das letzte Spiel, das dazu beitrug. `fresh`: das Spiel begann in den letzten sieben Tagen. Fehlende Werte älterer Spiele zählen nie als 0; eine Kategorie ohne Wert über 0 hat keine Plätze.

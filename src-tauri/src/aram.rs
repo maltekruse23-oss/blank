@@ -1908,7 +1908,7 @@ mod tests {
     }
 
     /// One real entry of the test game, from an hour ago.
-    fn sample_entry() -> Entry {
+    pub(super) fn sample_entry() -> Entry {
         let tracked: HashSet<String> = [puuid(1)].into_iter().collect();
         let mut entry = entries(
             &from_history(&game()),

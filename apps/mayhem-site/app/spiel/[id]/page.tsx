@@ -1,13 +1,13 @@
 'use client';
-// One game: both teams with all ten Riot IDs, grade and MVP, K/D/A and items, comparison bars for
-// everyone and why a player got their grade (the five axes against the champion's usual game).
+// One game: both teams with all ten Riot IDs, grade and MVP, K/D/A, items and augments, comparison
+// bars for everyone and why a player got their grade (the five axes against the champion's usual game).
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { MIN_SECONDS, performanceOf } from '../../../src/features/aram/aramPerformance';
 import { seatEntry, type GamePlayer, type GameView } from '../../../src/game';
 import { AXES, axesOf, mvpOf } from '../../../src/insights';
-import { GradeChip, GradeIcon, Img, Tabs } from '../../ui/bits';
+import { Augment, GradeChip, GradeIcon, Img, Tabs } from '../../ui/bits';
 import {
   championImage,
   de,
@@ -15,6 +15,7 @@ import {
   itemImage,
   splashImage,
   splitName,
+  useAugments,
   useDragon,
   useLive,
 } from '../../ui/data';
@@ -160,6 +161,7 @@ function Team(props: {
   dragon: Dragon;
 }) {
   const { team, view, marks, mvp, shown, onPick, nameOf, linkOf, dragon } = props;
+  const augments = useAugments();
   const rows = view.players.map((p, i) => ({ p, i })).filter(({ p }) => p.team === team);
   const won = rows.some(({ p }) => p.win);
   return (
@@ -176,7 +178,7 @@ function Team(props: {
               <th className="right">K / D / A</th>
               <th className="right hide-sm">Schaden</th>
               <th className="right hide-sm">Gold</th>
-              <th className="hide-sm">Items</th>
+              <th className="hide-sm">Items &amp; Augments</th>
             </tr>
           </thead>
           <tbody>
@@ -236,6 +238,13 @@ function Team(props: {
                       </span>
                     ) : (
                       <span className="faint">–</span>
+                    )}
+                    {p.augments && p.augments.length > 0 && (
+                      <span className="augments" style={{ marginTop: 5 }}>
+                        {p.augments.map((id) => (
+                          <Augment key={id} id={id} info={augments.get(id)} />
+                        ))}
+                      </span>
                     )}
                   </td>
                 </tr>
