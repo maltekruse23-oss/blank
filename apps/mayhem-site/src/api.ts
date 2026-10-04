@@ -7,6 +7,7 @@ import { archiveRoute } from './archive';
 import { gameView, type RawGame } from './game';
 import { recordsView } from './records';
 import { championsView, championView } from './champions';
+import { augmentUploadSchema, decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -275,6 +276,41 @@ async function champion(url: URL, name: string) {
 }
 /** The archived raw game, or null (not archived, or the archive is unavailable: the page then
  * falls back to the uploads). */
+/** Names, rarity and whether an icon exists, for every known augment (GET /api/augments). */
+async function augmentList() {
+    const list = await rows<{ id: number; name: string; rarity: Rarity; icon: number }>('SELECT id,name,rarity,icon IS NOT NULL AS icon FROM augments');
+    const augments: Record<string, AugmentInfo> = {};
+    for (const a of list)
+        augments[a.id] = { name: a.name, rarity: a.rarity, icon: !!a.icon };
+    return Response.json({ augments }, { headers: { 'Cache-Control': 'public, max-age=300' } });
+}
+/** Augments from blank. (POST /api/augments): only with the player's key and only augments that
+ * appear in an uploaded game. The first name stays; an icon is added when there was none. */
+async function uploadAugments(req: Request) {
+    const b = augmentUploadSchema.parse(await body(req));
+    await authorize(req, b.puuid);
+    const ids = b.augments.map(a => a.id);
+    const seen = new Set((await rows<{ id: number }>(`SELECT DISTINCT CAST(j.value AS INTEGER) AS id FROM games, json_each(games.json,'$.augments') j WHERE CAST(j.value AS INTEGER) IN (${ids.map(() => '?').join(',')})`, ...ids)).map(r => r.id));
+    const now = Date.now();
+    const statements = b.augments.filter(a => seen.has(a.id)).map(a => {
+        const icon = a.icon === null ? null : iconOf(a.icon);
+        if (a.icon !== null && icon === null)
+            fail(400, `Symbol von Augment ${a.id} ist kein kleines PNG`);
+        return query('INSERT INTO augments (id,name,rarity,icon,receivedAt) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET icon=excluded.icon,receivedAt=excluded.receivedAt WHERE augments.icon IS NULL AND excluded.icon IS NOT NULL', a.id, a.name.trim(), a.rarity, icon, now);
+    });
+    if (statements.length)
+        await db().batch(statements);
+    const have = await rows<{ id: number }>(`SELECT id FROM augments WHERE icon IS NOT NULL AND id IN (${ids.map(() => '?').join(',')})`, ...ids);
+    return json({ have: have.map(r => r.id).sort((a, c) => a - c) });
+}
+/** One augment icon (GET /api/augments/<id>.png): outside the rate limit, cached by browsers. */
+async function augmentIcon(id: number) {
+    const icon = (await rows<{ icon: string | null }>('SELECT icon FROM augments WHERE id=?', id))[0]?.icon;
+    const bytes = icon ? decodeBase64(icon) : null;
+    if (!bytes)
+        return new Response('Nicht gefunden', { status: 404, headers: { 'Cache-Control': 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' } });
+    return new Response(bytes.buffer as ArrayBuffer, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'" } });
+}
 async function archived(gameId: number): Promise<RawGame | null> {
     try {
         const revision = (await rows<{ objectKey: string }>("SELECT r.objectKey FROM archive_matches m JOIN archive_revisions r ON r.matchKey=m.matchKey AND r.kind='details' AND r.sha256=m.detailsHash WHERE m.gameId=? AND m.queueId=2400 ORDER BY m.receivedAt LIMIT 1", gameId))[0];
@@ -299,6 +335,10 @@ export async function handle(req: Request) {
     try {
         if (!allowed)
             fail(403, 'Origin nicht erlaubt');
+        const icon = url.pathname.match(/^\/api\/augments\/([1-9][0-9]{0,6})\.png$/);
+        // Pages show many icons at once; they are only read, so they stay outside the rate limit.
+        if (icon && req.method === 'GET')
+            return await augmentIcon(Number(icon[1]));
         if (req.method === 'OPTIONS')
             response = new Response(null, { status: 204 });
         else {
@@ -356,6 +396,10 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
                 puuid: string;
             }>('SELECT gameId,puuid FROM games WHERE disputed=1 AND at>=? AND (? IS NULL OR puuid IN (SELECT puuid FROM group_members WHERE code=?))', Math.max(since, g?.since ?? 0), code, code), since: Math.max(since, g?.since ?? 0) });
     }
+    if (path === '/api/augments' && method === 'GET')
+        return augmentList();
+    if (path === '/api/augments' && method === 'POST')
+        return uploadAugments(req);
     if (path === '/api/rekorde' && method === 'GET')
         return records(url);
     if (path === '/api/champions' && method === 'GET')

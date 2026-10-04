@@ -44,3 +44,10 @@ export const archiveRevisions = sqliteTable('archive_revisions', {
     source: text('source').notNull(), collectorVersion: text('collectorVersion').notNull(),
     validationVersion: integer('validationVersion').notNull(),
 }, t => [primaryKey({ columns: [t.matchKey, t.kind, t.sha256] }), index('archive_revisions_received').on(t.receivedAt)]);
+
+// Names and small icons of augments, sent by blank. from the League client (the only source:
+// Data Dragon has no Mayhem augments). Game data, no personal data; the first complete value stays.
+export const augments = sqliteTable('augments', {
+    id: integer('id').primaryKey(), name: text('name').notNull(), rarity: text('rarity').notNull(),
+    icon: text('icon'), receivedAt: integer('receivedAt').notNull(),
+});

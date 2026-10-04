@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 3 (Rest): Augment-Namen und -Symbole — 04.10.2026
+
+- Quelle bleibt der League-Client (`cherry-augments.json`, wie für die App-Karten); Data Dragon hat keine Mayhem-Augments. Die App schickt nach den Spielen die Augments bestätigter Spiele mit Name, Seltenheit und Symbol an `POST /api/augments` (`aram_website.rs`: `missing_augments`, `sendable`, bestätigte IDs in `aram-website.json` → `augments`, also nur einmal). Wirkt erst mit der nächsten App-Version; bis dahin zeigt die Website die Nummer bzw. „?“.
+- Website: Tabelle `augments` (Migration 0003), `src/augments.ts` (strenge Prüfung: nur echte PNG bis 24 KB/256 px, Name ohne Steuerzeichen und `<>`, nur Augments aus hochgeladenen Spielen, erster Name bleibt), `GET /api/augments`, Symbol `GET /api/augments/<id>.png` außerhalb des Anfragelimits. Spiel-Seite: Augments aller zehn aus dem Archiv (`playerAugment1–6`), sonst der Hochladenden, unter den Items; Champion-Seite: Symbol und Name. Ring in der Farbe der Seltenheit.
+- Tests: `src/features/aram/siteAugments.test.ts`, Rust-Tests in `aram_website.rs` (nur unter Windows ausführbar; unter Linux nur `cargo check`/Clippy für das Windows-Ziel geprüft).
+- Lokal geprüft mit erfundenen Augments und Symbolen (lokale D1): 1400 px und 375 px ohne Querscrollen, keine Konsolenfehler.
+- Noch offen aus Etappe 3: eigener Weg zum Entfernen von Namen (bisher per Issue).
+
 ## Website Etappe 3 (Teil 3): Champions — 04.10.2026
 
 - Neue Seiten `apps/mayhem-site/app/champions/page.tsx` (in der Navigation) und `app/champions/[name]/page.tsx`, Endpunkte `GET /api/champions` und `GET /api/champions/<Data-Dragon-Key oder ID>` (`src/api.ts`). Zeitraum und Gruppencode wie bei den Rekorden (gemeinsam in `app/ui/filters.tsx`).

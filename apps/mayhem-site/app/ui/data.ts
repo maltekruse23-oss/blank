@@ -4,6 +4,7 @@
 // images only from Riot's CDN).
 import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../src/adapters/aram';
+import type { AugmentInfo } from '../../src/augments';
 import type { Grade, Performance } from '../../src/features/aram/aramPerformance';
 import type { Average, Rank, Season, Step } from '../../src/features/aram/aramRating';
 
@@ -150,6 +151,41 @@ export const championLabel = (d: Dragon | null, c: { championId: number; champio
   d?.champions.get(c.championId)?.name ?? (c.championName || c.champion || `Champion ${c.championId}`);
 export const splashImage = (key: string, skin = 0) =>
   `${CDN}/img/champion/splash/${key}_${skin}.jpg`;
+
+// ---- Augments (names and icons sent by blank., not on Data Dragon) ---------------------------
+
+let augments: Promise<Map<number, AugmentInfo>> | null = null;
+
+function loadAugments() {
+  augments ??= (async () => {
+    const response = await fetch('/api/augments');
+    if (!response.ok) throw new Error('Augments nicht verfügbar.');
+    const body = (await response.json()) as { augments: Record<string, AugmentInfo> };
+    return new Map(Object.entries(body.augments).map(([id, a]) => [Number(id), a]));
+  })().catch((error) => {
+    augments = null;
+    throw error;
+  });
+  return augments;
+}
+
+/** Names, rarity and icons of the known augments (empty while loading or unavailable). */
+export function useAugments() {
+  const [value, setValue] = useState<Map<number, AugmentInfo>>(() => new Map());
+  useEffect(() => {
+    let stop = false;
+    loadAugments().then(
+      (a) => !stop && setValue(a),
+      () => undefined,
+    );
+    return () => {
+      stop = true;
+    };
+  }, []);
+  return value;
+}
+
+export const augmentImage = (id: number) => `/api/augments/${id}.png`;
 
 /** The time of the first render (Date.now() must not run during rendering). */
 export function useNow() {
