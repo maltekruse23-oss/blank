@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Etappe 6 (Teil 1): neue Rang-Icons in App und Website — 04.10.2026
+
+- Der Benutzer hat die Rangrahmen F–MAYHEM geliefert (1254 px, schwarzer Hintergrund). Freigestellt (Benutzerwunsch: Hintergrund weg, keine runde Maske) mit `node server/tools/emblems.mjs <Ordner mit 01-F.png … 10-MAYHEM.png> <Ziel>`: neuer Zweig für schwarze Matte (`unmatte`): Hintergrund = fast schwarze Flächen am Rand oder größer als 0,1 % des Bildes (Löcher in Buchstaben), feine dunkle Linien der Kunst bleiben; am Rand Alpha aus der Helligkeit gegen das hellste Nachbarpixel der Kunst und Farbe durch Alpha geteilt, deshalb kein schwarzer Saum. Geprüft auf dunklem, hellem, rotem und Schachbrett-Grund und bei 48 px.
+- App: `src/features/aram/emblems/*.png` ersetzt (D–MAYHEM in `TierEmblem`; F/E liegen mit, ungenutzt), `mix-blend-mode: screen` an `.rank-emblem` entfällt (die Bilder sind jetzt durchsichtig).
+- Website: `TierMark` zeigt das Bild aus `public/ranks/<stufe>.png` statt der Buchstaben im Stein; ohne Rang bleibt das „?“. Die Noten-Icons (`public/grades/`, alte Wappen) bleiben unverändert, wie in PLAN.md vorgesehen.
+- Lokal geprüft: Rangliste, Profil, `/wertung` bei 1400 und 375 px ohne Querscrollen, alle Rang-Bilder geladen; App-Vorschau Rang/Mein Verlauf. Auf hellem Grund verlieren helle Buchstaben (D, MAYHEM) an Kontrast; App und Website sind dunkel.
+- Nächster Teil: die App liest die Ränge von der Website (eine Wahrheit für alle).
+
 ## Website Etappe 5 (Abschluss): Barrierefreiheit, Rauchtest, Übergabe — 04.10.2026
 
 - axe (WCAG 2.1 AA + Best Practice) über alle Seiten bei 1400 und 375 px mit erfundenen Daten: einziger Befund war `--faint` (3,4–3,9 : 1), jetzt `#7e8f84` (≥ 4,5 : 1 auf allen Flächen; in der hervorgehobenen Zeile der Spiel-Seite gilt `--muted`). Suchfeld hat einen sichtbaren 2-px-Fokusring. Unbekannte Adressen zeigen `app/not-found.tsx` (deutsche Karte statt Englisch ohne CSS). Danach axe ohne Befund; Tastatur-Durchlauf: jeder Halt sichtbar und benannt. Skripte nicht im Repo (Playwright + axe-core im Scratch).

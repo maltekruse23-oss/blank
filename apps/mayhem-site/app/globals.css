@@ -636,32 +636,22 @@ main {
   color: var(--c);
 }
 
-/* A rank's mark until the rank icons are delivered: the tier letters in a cut gem. */
+/* A rank's mark: the rank frames as transparent images; until placed a "?" in a stone. */
 .tier-mark {
   --size: 44px;
-  display: grid;
-  place-items: center;
   width: var(--size);
   height: var(--size);
   flex: none;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  background: linear-gradient(
-    160deg,
-    color-mix(in oklab, var(--c) 80%, white 20%),
-    color-mix(in oklab, var(--c) 45%, var(--bg)) 75%
-  );
-  color: var(--bg);
-  font: 900 calc(var(--size) * 0.36) / 1 var(--font-display);
-  letter-spacing: -0.02em;
+  object-fit: contain;
 }
 
-.tier-mark[data-len='2'] { font-size: calc(var(--size) * 0.3); }
-.tier-mark[data-len='3'] { font-size: calc(var(--size) * 0.25); }
-.tier-mark[data-len='6'] { font-size: calc(var(--size) * 0.15); }
-
 .tier-mark.none {
+  display: grid;
+  place-items: center;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   background: var(--panel-3);
   color: var(--faint);
+  font: 900 calc(var(--size) * 0.36) / 1 var(--font-display);
 }
 
 .mp-bar {

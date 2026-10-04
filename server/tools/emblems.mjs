@@ -1,5 +1,6 @@
 // Prepares the tier emblems (src/features/aram/emblems/*.png) from the drafts: removes a baked-in
-// checkerboard, crops to the emblem, pads to a square, writes 256 px RGBA PNGs. No libraries.
+// checkerboard, a magenta backdrop or a black matte, crops to the emblem, pads to a square, writes
+// 256 px RGBA PNGs. No libraries.
 // node server/tools/emblems.mjs <folder with 1-D.png … 8-MAYHEM.png> src/features/aram/emblems
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { inflateSync, deflateSync, crc32 } from 'node:zlib';
@@ -62,6 +63,98 @@ function decode(buf) {
   return { w, h, px: out };
 }
 
+/**
+ * Takes a black matte off: the backdrop is every nearly black area that touches the border or is
+ * large (holes inside letters and frames); small dark details inside the art stay. Along the edge
+ * the art was blended with black, so alpha there is the pixel's brightness against its brightest
+ * neighbour and the colour is divided by it again – no dark seam on light or coloured pages.
+ */
+function unmatte(w, h, px, bg, peak) {
+  const DARK = 22; // brightest channel of a backdrop pixel (the drafts' black is 0–3 with noise)
+  const BAND = 3; // pixels on both sides of the edge that get a soft alpha
+  const m = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) m[i] = peak(i);
+  const seen = new Uint8Array(w * h);
+  for (let start = 0; start < w * h; start++) {
+    if (seen[start] || m[start] > DARK) continue;
+    const piece = [start];
+    seen[start] = 1;
+    let border = false;
+    for (let k = 0; k < piece.length; k++) {
+      const i = piece[k],
+        x = i % w,
+        y = (i / w) | 0;
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) border = true;
+      for (const j of [
+        x > 0 ? i - 1 : -1,
+        x < w - 1 ? i + 1 : -1,
+        y > 0 ? i - w : -1,
+        y < h - 1 ? i + w : -1,
+      ])
+        if (j >= 0 && !seen[j] && m[j] <= DARK) ((seen[j] = 1), piece.push(j));
+    }
+    // About 0.1 % of the image: a hole in a letter, never a thin dark line of the art.
+    if (border || piece.length > (w * h) / 1000) for (const i of piece) bg[i] = 1;
+  }
+  // Distance (in steps, up to BAND) to the other side of the edge.
+  const dist = new Uint8Array(w * h).fill(255);
+  let front = [];
+  for (let i = 0; i < w * h; i++) {
+    const x = i % w,
+      y = (i / w) | 0;
+    const edge =
+      (x > 0 && bg[i - 1] !== bg[i]) ||
+      (x < w - 1 && bg[i + 1] !== bg[i]) ||
+      (y > 0 && bg[i - w] !== bg[i]) ||
+      (y < h - 1 && bg[i + w] !== bg[i]);
+    if (edge) ((dist[i] = 0), front.push(i));
+  }
+  for (let d = 1; d <= BAND; d++) {
+    const next = [];
+    for (const i of front) {
+      const x = i % w,
+        y = (i / w) | 0;
+      for (const j of [
+        x > 0 ? i - 1 : -1,
+        x < w - 1 ? i + 1 : -1,
+        y > 0 ? i - w : -1,
+        y < h - 1 ? i + w : -1,
+      ])
+        if (j >= 0 && dist[j] === 255) ((dist[j] = d), next.push(j));
+    }
+    front = next;
+  }
+  const R = BAND + 2;
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x,
+        o = i * 4;
+      if (dist[i] > BAND) {
+        px[o + 3] = bg[i] ? 0 : 255;
+        continue;
+      }
+      // The art's own brightness here: the brightest pixel of the art close by.
+      let ref = 0;
+      for (let dy = -R; dy <= R; dy++)
+        for (let dx = -R; dx <= R; dx++) {
+          const xx = x + dx,
+            yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+          const j = yy * w + xx;
+          if (!bg[j] && dist[j] >= 1) ref = Math.max(ref, m[j]);
+        }
+      if (ref <= DARK) {
+        px[o + 3] = bg[i] ? 0 : 255;
+        continue;
+      }
+      const alpha = Math.max(0, Math.min(1, (m[i] - 4) / (ref - 4)));
+      px[o + 3] = Math.round(alpha * 255);
+      if (alpha > 0)
+        for (let c = 0; c < 3; c++) px[o + c] = Math.min(255, Math.round(px[o + c] / alpha));
+    }
+  for (let i = 0; i < w * h; i++) bg[i] = px[i * 4 + 3] === 0 ? 1 : 0;
+}
+
 function encode(w, h, px) {
   const raw = Buffer.alloc(h * (w * 4 + 1));
   for (let y = 0; y < h; y++) px.copy(raw, y * (w * 4 + 1) + 1, y * w * 4, (y + 1) * w * 4);
@@ -100,8 +193,12 @@ for (const file of readdirSync(from).filter((f) => f.endsWith('.png'))) {
   // A plain magenta backdrop (asked for so): keyed out by how magenta a pixel is, the magenta
   // tint on the edges taken off. Otherwise a baked-in checkerboard.
   const keyed = px[0] > 200 && px[1] < 90 && px[2] > 200;
+  // A black matte (the rank frames of 04.10.2026): all four corners nearly black.
+  const peak = (i) => Math.max(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]);
+  const matte = !keyed && [0, w - 1, (h - 1) * w, h * w - 1].every((i) => peak(i) < 12);
   const bg = new Uint8Array(w * h);
-  if (keyed) {
+  if (matte) unmatte(w, h, px, bg, peak);
+  else if (keyed) {
     for (let i = 0; i < w * h; i++) {
       const o = i * 4;
       const spill = Math.max(0, Math.min(px[o], px[o + 2]) - px[o + 1]);
@@ -196,7 +293,12 @@ for (const file of readdirSync(from).filter((f) => f.endsWith('.png'))) {
         y = (i / w) | 0;
       return x < 3 || y < 3 || x > w - 4 || y > h - 4;
     });
-    if (piece.length < (w * h) / 400 || (touches && piece.length < (w * h) / 20))
+    // On a black matte only specks go: its frames have small separate parts (MAYHEM's crosses).
+    if (
+      matte
+        ? piece.length < 40
+        : piece.length < (w * h) / 400 || (touches && piece.length < (w * h) / 20)
+    )
       for (const i of piece) bg[i] = 1;
   }
   // Soft edge: pixels next to the backdrop get alpha by how grey-light they still are.
@@ -220,7 +322,7 @@ for (const file of readdirSync(from).filter((f) => f.endsWith('.png'))) {
           if (xx >= 0 && yy >= 0 && xx < w && yy < h && bg[yy * w + xx])
             near = Math.max(near, 3 - Math.max(Math.abs(dx), Math.abs(dy)));
         }
-      if (near && !keyed) {
+      if (near && !keyed && !matte) {
         const r = px[o],
           g = px[o + 1],
           b = px[o + 2];
