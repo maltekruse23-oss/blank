@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 4 (Abschluss): Leerzustände und Handy — 04.10.2026
+
+- Alle Seiten mit leerer und gefüllter lokaler D1 bei 375 px und 320 px geprüft (Skript nicht im Repo; Playwright, Breite des Dokuments gegen Fensterbreite). Behoben: Navigation und Reiter (`.tabs`) brechen auf dem Handy um, statt Einträge unsichtbar seitlich zu verschieben; „So funktioniert's“ bei 320 px (Notenreihe, versteckte Tabellenüberschrift, `.table-wrap` jetzt `position: relative`); API-Anleitung (lange Adressen brechen um); Histogramm der Stufen zeigt auf schmalen Schirmen „M“ statt „MAYHEM“; Apex-Karten nennen je Stufe ihr LoL-Gegenstück.
+- „Nicht gefunden“ (Spieler, Spiel, Gruppe, Champion, ungültige ID) ist eine eigene Karte mit „Zur Startseite“/„Zur Rangliste“ (`Problem` in `app/ui/bits.tsx`, `useLive` meldet `missing` bei 404); andere Fehler mit „Neu laden“.
+- Anfragelimit (30/min je IP) nur noch für Schreibzugriffe, wie in PLAN.md vorgesehen: Lesen der Seiten lief in der Prüfung nach wenigen Seitenwechseln in 429. `tests/integration.mjs` prüft beides; API.md, API-Anleitung und Datenschutzseite angepasst.
+- Etappe 4 damit fertig. Nächste: Etappe 5 (Feinschliff, Snapshots, Übergabe an Codex).
+
 ## Website Etappe 4 (Teil 3): Gruppe mit Duell — 04.10.2026
 
 - Neue Seite `apps/mayhem-site/app/gruppe/[code]/page.tsx` (Link „Zur Gruppenseite“ auf der Rangliste, sobald ein Gruppencode gesetzt ist): Rangliste der Gruppe (Zeile `app/ui/player-row.tsx`, auch auf der Startseite), Duell zweier Mitglieder (Radar beider Spieler übereinander – `Radar` hat dafür `compare` –, wer auf welcher Achse vorn liegt, Bestwerte je Rekord-Kategorie, gemeinsame Spiele mit Note Ø und „bessere Note im selben Spiel“), Spielabende (Pause über 3 h trennt; je Spieler Spiele, MP-Bilanz, beste Note; nur Einstufung = „Einstufung“).

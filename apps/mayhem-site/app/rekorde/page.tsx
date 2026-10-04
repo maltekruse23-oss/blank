@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { seasonName } from '../../src/features/aram/aramRating';
 import type { RecordPlace, RecordView } from '../../src/records';
-import { Img } from '../ui/bits';
+import { Img, Problem } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, date, de, profileImage, splashImage, splitName, useDragon, useLive } from '../ui/data';
 
@@ -52,7 +52,7 @@ export default function RecordsPage() {
         </div>
       </div>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <Problem message={error} />}
       {!data && !error && <p className="empty">Rekorde werden geladen …</p>}
 
       {data && !shown.length && (

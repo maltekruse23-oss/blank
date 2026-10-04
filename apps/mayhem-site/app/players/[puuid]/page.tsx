@@ -22,6 +22,7 @@ import {
   GradeIcon,
   Img,
   LadderChart,
+  Problem,
   Radar,
   Sparkline,
   Tabs,
@@ -49,14 +50,14 @@ type Dragon = ReturnType<typeof useDragon>;
 export default function PlayerPage() {
   const params = useParams<{ puuid: string }>();
   const group = useSearchParams().get('group');
-  const { data, error } = useLive<Profile>(
+  const { data, error, missing } = useLive<Profile>(
     '/api/players/' + encodeURIComponent(params.puuid) + (group ? '?group=' + encodeURIComponent(group) : ''),
   );
   const dragon = useDragon();
   const [tab, setTab] = useState<Tab>('overview');
   const now = useNow();
 
-  if (error) return <div className="error" role="alert">{error}</div>;
+  if (error) return <Problem message={error} missing={missing} />;
   if (!data) return <p className="empty">Spieler wird geladen …</p>;
 
   const history = data.history;

@@ -43,6 +43,8 @@ export type Profile = Omit<PlayerSummary, 'champions' | 'last6'> & {
 export function useLive<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState('');
+  /** The server says the thing asked for does not exist (404). */
+  const [missing, setMissing] = useState(false);
   const [live, setLive] = useState(false);
   useEffect(() => {
     if (!path) return;
@@ -58,6 +60,7 @@ export function useLive<T>(path: string | null) {
       try {
         const response = await fetch(path);
         const body = (await response.json()) as T & { error?: string };
+        if (!stop) setMissing(response.status === 404);
         if (!response.ok) throw new Error(body.error || 'Nicht verfügbar.');
         if (!stop) {
           setData(body);
@@ -91,7 +94,7 @@ export function useLive<T>(path: string | null) {
       clearInterval(timer);
     };
   }, [path]);
-  return { data, error, live };
+  return { data, error, live, missing };
 }
 
 // ---- Data Dragon --------------------------------------------------------------------------

@@ -316,7 +316,7 @@ Beispielantwort (Zeitpunkte/IDs sind illustrativ):
 
 ## CORS und Fehler
 
-http://tauri.localhost und die eigene Website sind erlaubt. Native HTTP-Aufrufe aus Rust ohne Origin funktionieren ebenfalls. OPTIONS kostet kein Anfragelimit. 400: ungültiges JSON oder Eintrag mit reasons; 401: falscher/fehlender Schlüssel; 403: fremder Origin; 404: Spieler/Gruppe/Saison fehlt; 409: Versions- oder Registrierungs-Konflikt; 413: mehr als 64 KB; 429: mehr als 30 Anfragen pro Minute/IP (Retry-After: 60); 503: Speicher/Dienst vorübergehend nicht verfügbar. Bei 400 wird der Upload vor den Spieländerungen verworfen.
+http://tauri.localhost und die eigene Website sind erlaubt. Native HTTP-Aufrufe aus Rust ohne Origin funktionieren ebenfalls. OPTIONS kostet kein Anfragelimit. 400: ungültiges JSON oder Eintrag mit reasons; 401: falscher/fehlender Schlüssel; 403: fremder Origin; 404: Spieler/Gruppe/Saison fehlt; 409: Versions- oder Registrierungs-Konflikt; 413: mehr als 64 KB; 429: mehr als 30 schreibende Anfragen (POST, DELETE) pro Minute/IP (Retry-After: 60); lesende Anfragen (GET) sind nicht begrenzt; 503: Speicher/Dienst vorübergehend nicht verfügbar. Bei 400 wird der Upload vor den Spieländerungen verworfen.
 
 ```powershell
 curl.exe -i -X OPTIONS "$API/games" -H "Origin: http://tauri.localhost" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type,authorization"

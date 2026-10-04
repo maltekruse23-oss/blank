@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { MIN_SECONDS, performanceOf } from '../../../src/features/aram/aramPerformance';
 import { seatEntry, type GamePlayer, type GameView } from '../../../src/game';
 import { AXES, axesOf, mvpOf } from '../../../src/insights';
-import { Augment, GradeChip, GradeIcon, Img, Tabs } from '../../ui/bits';
+import { Augment, GradeChip, GradeIcon, Img, Problem, Tabs } from '../../ui/bits';
 import {
   championImage,
   de,
@@ -35,15 +35,15 @@ const SIDES: Record<number, string> = { 100: 'Blaue Seite', 200: 'Rote Seite' };
 export default function GamePage() {
   const params = useParams<{ id: string }>();
   const focus = useSearchParams().get('p');
-  const { data, error } = useLive<GameView>(/^\d{1,13}$/.test(params.id) ? '/api/spiel/' + params.id : null);
+  const { data, error, missing } = useLive<GameView>(/^\d{1,13}$/.test(params.id) ? '/api/spiel/' + params.id : null);
   const dragon = useDragon();
   const [picked, setPicked] = useState<number | null>(null);
   const [measure, setMeasure] = useState<Measure>('damage');
 
   const marks = useMemo(() => (data ? data.players.map((_, i) => performanceOf(seatEntry(data, i))) : []), [data]);
 
-  if (!/^\d{1,13}$/.test(params.id)) return <div className="error" role="alert">Ungültige Spiel-ID.</div>;
-  if (error) return <div className="error" role="alert">{error}</div>;
+  if (!/^\d{1,13}$/.test(params.id)) return <Problem message="Spiel nicht gefunden" missing />;
+  if (error) return <Problem message={error} missing={missing} />;
   if (!data) return <p className="empty">Spiel wird geladen …</p>;
 
   const mvp = mvpOf(marks);

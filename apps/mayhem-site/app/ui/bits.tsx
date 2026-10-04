@@ -1,6 +1,7 @@
 'use client';
 // Small parts used on every page: grades, rank marks, images, tabs and the charts (plain SVG,
 // no chart library).
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { Grade } from '../../src/features/aram/aramPerformance';
 import { rankName, TIERS, type Rank } from '../../src/features/aram/aramRating';
@@ -89,6 +90,32 @@ export function RankLine({ rank, placed }: { rank: Rank | null; placed: number }
   );
 }
 
+// ---- Problems ----------------------------------------------------------------------------------
+
+/** What went wrong, in plain words: something that does not exist (a player, game, group or
+ * champion) with ways on, or a failed load with a way to try again. */
+export function Problem({ message, missing = false }: { message: string; missing?: boolean }) {
+  if (missing)
+    return (
+      <section className="card problem" role="alert">
+        <h1>{message}</h1>
+        <p className="muted">Der Link ist vielleicht falsch oder veraltet, oder die Daten wurden gelöscht oder ausgeblendet.</p>
+        <p className="problem-links">
+          <Link href="/">Zur Startseite</Link>
+          <Link href="/rangliste">Zur Rangliste</Link>
+        </p>
+      </section>
+    );
+  return (
+    <div className="error" role="alert">
+      {message}{' '}
+      <button type="button" className="link-button" onClick={() => window.location.reload()}>
+        Neu laden
+      </button>
+    </div>
+  );
+}
+
 // ---- Images ---------------------------------------------------------------------------------
 
 export function Img({ src, className, alt = '', size }: { src?: string; className: string; alt?: string; size?: number }) {
@@ -160,7 +187,16 @@ export function Histogram({ rows }: { rows: { tier: (typeof TIERS)[number]; play
           <div className="track">
             <div className="bar" style={{ height: `${(r.players / most) * 100}%`, animationDelay: `${i * 40}ms` }} />
           </div>
-          <span className="label">{r.tier.name}</span>
+          <span className="label">
+            {r.tier.name.length > 3 ? (
+              <>
+                <span className="long">{r.tier.name}</span>
+                <span className="short">{r.tier.name[0]}</span>
+              </>
+            ) : (
+              r.tier.name
+            )}
+          </span>
         </div>
       ))}
     </div>

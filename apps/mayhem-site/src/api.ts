@@ -386,7 +386,10 @@ export async function handle(req: Request) {
         if (req.method === 'OPTIONS')
             response = new Response(null, { status: 204 });
         else {
-            await rate(req);
+            // Only writes are limited (PLAN.md): reading pages polls and loads several parts at once,
+            // and a visitor clicking through the site must never see an error for it.
+            if (req.method !== 'GET')
+                await rate(req);
             await query('INSERT OR IGNORE INTO seasons (id,start,ratingVersion) VALUES (?,?,?)', `v${RATING_VERSION}`, 1577836800000, RATING_VERSION).run();
             response = await dispatch(req, url);
         }

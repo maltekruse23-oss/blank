@@ -7,7 +7,7 @@ import { useState } from 'react';
 import type { Role } from '../../src/features/aram/aramPerformance';
 import { seasonName } from '../../src/features/aram/aramRating';
 import { MIN_GAMES, ROLES, type ChampionStat } from '../../src/champions';
-import { GradeChip, Img } from '../ui/bits';
+import { GradeChip, Img, Problem } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, championKey, championLabel, de, useDragon, useLive } from '../ui/data';
 
@@ -77,7 +77,7 @@ export default function ChampionsPage() {
         </div>
       </div>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <Problem message={error} />}
 
       <section className="card">
         <div className="card-head champ-tools">
