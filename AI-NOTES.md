@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 3 (Teil 3): Champions — 04.10.2026
+
+- Neue Seiten `apps/mayhem-site/app/champions/page.tsx` (in der Navigation) und `app/champions/[name]/page.tsx`, Endpunkte `GET /api/champions` und `GET /api/champions/<Data-Dragon-Key oder ID>` (`src/api.ts`). Zeitraum und Gruppencode wie bei den Rekorden (gemeinsam in `app/ui/filters.tsx`).
+- Tabelle: Spiele, Note Ø, Anteil SSS/MAYHEM, Ø Schaden/Min, Rolle; sortierbar, Suche und Rollenfilter. Gezählt wird jeder Platz eines Spiels mit den Werten aller zehn (Lobby des vollständigsten Uploads, ohne Namen), Note nach derselben Regel wie überall (`lobbyPerformances`); Remakes nicht, Spiele ohne Lobby nur als Spiel ohne Note. Unter 5 gewerteten Spielen keine Werte („wenige Daten“, `MIN_GAMES`).
+- Champion-Seite: Bestenliste, Augments nach Ø Note (nicht Siegquote) und die fünf besten Spiele, nur aus hochgeladenen Spielen, also nur Spieler mit Profil; keine anderen PUUIDs. Augments erscheinen als Nummer (Namen/Symbole kennt nur die App, offen).
+- Reine Logik in `apps/mayhem-site/src/champions.ts`, getestet in `src/features/aram/siteChampions.test.ts`.
+- Lokal geprüft mit erfundenen Spielern (lokale D1): 1400 px und 375 px ohne Querscrollen. Data Dragon in der Prüfumgebung gesperrt, Bilder nicht im Bild gesehen. Die Konsolenmeldung „RSC prefetch setup error“ kommt von vinext-Links und erscheint genauso auf `/rekorde`.
+
 ## Website Etappe 3 (Teil 2): Rekorde — 04.10.2026
 
 - Neue Seite `apps/mayhem-site/app/rekorde/page.tsx` (in der Navigation) und Endpunkt `GET /api/rekorde` (`src/api.ts`, `records()`): je Kategorie eine Karte in der Farbe ihrer Art (Tokens `--game-*` wie in der App), Platz 1 groß mit Splash des gespielten Skins (Standard-Splash als Ersatzebene), Krone, Wert und „Spiel ansehen“ (`/spiel/<id>?p=<puuid>`), darunter Plätze 2–10 mit Link zum Profil und zum Spiel. Zeitraum „Alle Zeiten“ (Standard) oder „Diese Saison“ (`seasonOf`), Gruppencode wie auf der Rangliste. „Neu diese Woche“ als Leiste oben (Platz 1 aus den letzten sieben Tagen) und „Neu“ an jedem Platz.
