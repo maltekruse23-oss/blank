@@ -38,4 +38,15 @@ const preflight=await fetch(base+'/api/games',{method:'OPTIONS',headers:{Origin:
 const claimToken='c'.repeat(64);const future={...payload,entries:[{...entry(20),with:[{puuid:b,name:'Privacy#B',champion:'Olaf',championName:'Olaf',damage:1,kills:1,deaths:1,assists:1,sameTeam:true}]}]};
 r=await api('/api/games',future,claimToken);assert.equal(r.status,200);assert.equal(r.data.playerToken,claimToken);r=await api('/api/games',future,claimToken);assert.equal(r.status,200);assert.equal(r.data.results[0].stored,false);
 r=await api('/api/games',{entries:[{...peer,gameId:8000000020,at:future.entries[0].at}],player:{puuid:b,name:'Privacy#B',icon:1},group:null});const deleteB=r.data.playerToken;r=await api('/api/players/'+b,undefined,deleteB,'DELETE');assert.equal(r.status,200);r=await api('/api/export');const redacted=r.data.games.find(g=>g.entry.puuid===a);assert.equal(redacted.entry.with.length,0);assert.ok(!JSON.stringify(r.data).includes('Privacy#B'));await api('/api/players/'+a,undefined,claimToken,'DELETE');
-console.log('PASS: validation, original rating parity, quality, deduplication, auth, groups, lobby canonicalization, disputes, SSE, delete, CORS, 64 KB, 30/min. Local fixtures only.');
+// Namen ausblenden: a friend from an uploaded game, found by Riot ID, disappears from every answer; uploaders get 409; own uploading ends it.
+const friend='F'.repeat(40);const hideGame={...entry(30),with:[{puuid:friend,name:'Versteckt#F',champion:'Olaf',championName:'Olaf',damage:1,kills:1,deaths:1,assists:1,sameTeam:true}]};
+r=await api('/api/games',{...payload,entries:[hideGame]});assert.equal(r.status,200,JSON.stringify(r.data));const hideToken=r.data.playerToken;
+r=await api('/api/ausblenden',{gameId:hideGame.gameId,name:'Niemand#F'});assert.equal(r.status,404);
+r=await api('/api/ausblenden',{gameId:9999999,name:'Versteckt#F'});assert.equal(r.status,404);
+r=await api('/api/ausblenden',{gameId:hideGame.gameId,name:'Local Test#A'});assert.equal(r.status,409);
+r=await api('/api/ausblenden',{gameId:hideGame.gameId,name:' versteckt#f '});assert.equal(r.status,200,JSON.stringify(r.data));
+for(const path of ['/api/export','/api/games','/api/spiel/'+hideGame.gameId,'/api/players/'+a]){r=await api(path);assert.equal(r.status,200,path);assert.ok(!JSON.stringify(r.data).includes('Versteckt#F'),path);assert.ok(!JSON.stringify(r.data).includes(friend),path);}
+r=await api('/api/games',{entries:[{...peer,puuid:friend,name:'Versteckt#F',gameId:8000000031}],player:{puuid:friend,name:'Versteckt#F',icon:1},group:null});assert.equal(r.status,200,JSON.stringify(r.data));const friendToken=r.data.playerToken;
+r=await api('/api/export');assert.ok(JSON.stringify(r.data.games.find(g=>g.entry.gameId===hideGame.gameId)).includes('Versteckt#F'),'uploading oneself ends hiding');
+await api('/api/players/'+friend,undefined,friendToken,'DELETE');await api('/api/players/'+a,undefined,hideToken,'DELETE');
+console.log('PASS: validation, original rating parity, quality, deduplication, auth, groups, lobby canonicalization, disputes, SSE, delete, hiding names, CORS, 64 KB, 30/min. Local fixtures only.');

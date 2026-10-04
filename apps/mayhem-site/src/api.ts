@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { db, query, rows, hash, secret, archiveBucket } from './storage';
-import { uploadSchema, augmentUploadSchema, groupSchema, memberSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
+import { uploadSchema, augmentUploadSchema, groupSchema, memberSchema, hideSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
 import { standings, rankResult, seasonOf, RATING_VERSION, CLIMBING } from './features/aram/aramRating';
 import type { AramEntry } from './adapters/aram';
 import { archiveRoute } from './archive';
@@ -8,6 +8,7 @@ import { gameView, type RawGame } from './game';
 import { recordsView } from './records';
 import { championsView, championView } from './champions';
 import { decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
+import { findPlayer, withoutHidden } from './hidden';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -60,10 +61,12 @@ async function entries(since = 0, code: string | null = null, player: string | n
 } if (player) {
     sql += ' AND g.puuid=?';
     args.push(player);
-} sql += ' ORDER BY g.at,g.gameId,g.puuid'; return (await rows<{
+} sql += ' ORDER BY g.at,g.gameId,g.puuid'; const hidden = await hiddenPlayers(); return (await rows<{
     json: string;
     disputed: number;
-}>(sql, ...args)).map(r => ({ ...JSON.parse(r.json), ...(includeDisputed ? { disputed: !!r.disputed } : {}) })) as AramEntry[]; }
+}>(sql, ...args)).map(r => ({ ...withoutHidden(JSON.parse(r.json) as AramEntry, hidden), ...(includeDisputed ? { disputed: !!r.disputed } : {}) })) as AramEntry[]; }
+/** PUUIDs of players without a profile who asked not to be named (/datenschutz/entfernen). */
+async function hiddenPlayers() { return new Set((await rows<{ puuid: string }>('SELECT puuid FROM hidden_players')).map(r => r.puuid)); }
 type Standing = ReturnType<typeof standings>[number];
 async function withIcons(list: Standing[]) { const icons = new Map((await rows<{ puuid: string; icon: number }>('SELECT puuid,icon FROM players')).map(r => [r.puuid, r.icon])); return list.map(s => summary(s, icons.get(s.puuid) ?? null)); }
 /** What the site shows of a standing; never the hidden rating (Standing.hidden), only whether the form is above the rank. */
@@ -108,7 +111,8 @@ async function upload(req: Request, url: URL) {
     if (claimed.tokenHash !== tokenHash)
         fail(409, 'Spieler wurde gleichzeitig registriert');
     const now = Date.now();
-    const statements: D1PreparedStatement[] = [query('INSERT INTO players (puuid,name,icon,lastSeen,tokenHash) VALUES (?,?,?,?,?) ON CONFLICT(puuid) DO UPDATE SET name=excluded.name,icon=excluded.icon,lastSeen=excluded.lastSeen,tokenHash=COALESCE(players.tokenHash,excluded.tokenHash)', b.player.puuid, b.player.name, b.player.icon, now, tokenHash)];
+    // Uploading means being shown: an earlier wish not to be named ends here.
+    const statements: D1PreparedStatement[] = [query('INSERT INTO players (puuid,name,icon,lastSeen,tokenHash) VALUES (?,?,?,?,?) ON CONFLICT(puuid) DO UPDATE SET name=excluded.name,icon=excluded.icon,lastSeen=excluded.lastSeen,tokenHash=COALESCE(players.tokenHash,excluded.tokenHash)', b.player.puuid, b.player.name, b.player.icon, now, tokenHash), query('DELETE FROM hidden_players WHERE puuid=?', b.player.puuid)];
     if (g)
         statements.push(query('INSERT OR IGNORE INTO group_members (code,puuid) VALUES (?,?)', g.code, b.player.puuid));
     const storedIndexes: number[] = [];
@@ -176,6 +180,7 @@ async function live(req: Request, url: URL) {
                     if (ev.length) {
                         const fresh = await context(url);
                         const all = await entries(fresh.since, fresh.group?.code ?? null);
+                        const hidden = await hiddenPlayers();
                         const memberIds = fresh.group ? new Set((await rows<{
                             puuid: string;
                         }>('SELECT puuid FROM group_members WHERE code=?', fresh.group.code)).map(m => m.puuid)) : null;
@@ -192,7 +197,7 @@ async function live(req: Request, url: URL) {
                                 disputed: number;
                             }>('SELECT json,disputed FROM games WHERE gameId=? AND puuid=?', e.gameId, e.puuid))[0];
                             if (row)
-                                send(`id: ${cursor}\nevent: game\ndata: ${JSON.stringify({ entry: JSON.parse(row.json), disputed: !!row.disputed, rank: row.disputed ? null : rankResult(all, e.puuid!, e.gameId!, fresh.since) })}\n\n`);
+                                send(`id: ${cursor}\nevent: game\ndata: ${JSON.stringify({ entry: withoutHidden(JSON.parse(row.json) as AramEntry, hidden), disputed: !!row.disputed, rank: row.disputed ? null : rankResult(all, e.puuid!, e.gameId!, fresh.since) })}\n\n`);
                         }
                     }
                     send(`id: ${cursor}\nevent: heartbeat\ndata: {}\n\n`);
@@ -218,7 +223,8 @@ async function game(gameId: number) {
     const uploaded = await rows<{ json: string; disputed: number }>('SELECT json,disputed FROM games WHERE gameId=? ORDER BY quality DESC,puuid', gameId);
     if (!uploaded.length)
         fail(404, 'Spiel nicht gefunden');
-    const list = uploaded.map(r => JSON.parse(r.json) as AramEntry);
+    const hidden = await hiddenPlayers();
+    const list = uploaded.map(r => withoutHidden(JSON.parse(r.json) as AramEntry, hidden));
     const raw = await archived(gameId);
     const ids = [...new Set([...list.flatMap(e => [e.puuid, ...e.with.map(m => m.puuid)]), ...(raw?.participantIdentities.map(i => i.player.puuid) ?? [])])];
     const registered = new Set<string>();
@@ -227,7 +233,22 @@ async function game(gameId: number) {
         for (const r of await rows<{ puuid: string }>(`SELECT DISTINCT puuid FROM games WHERE puuid IN (${part.map(() => '?').join(',')})`, ...part))
             registered.add(r.puuid);
     }
-    return gameView(list, raw, registered, uploaded.some(r => r.disputed)) ?? fail(404, 'Spiel nicht gefunden');
+    return gameView(list, raw, registered, uploaded.some(r => r.disputed), hidden) ?? fail(404, 'Spiel nicht gefunden');
+}
+/** Not being named (POST /api/ausblenden, /datenschutz/entfernen): a Riot ID from one uploaded game
+ * disappears from every page and the API, in every game. No proof needed, because hiding only shows
+ * less; players with a profile are not hidden this way (they delete with their key). Only the PUUID
+ * is kept. Undoing is up to the operator, or the player uploads themselves. */
+async function hide(req: Request) {
+    const b = hideSchema.parse(await body(req));
+    const uploaded = await rows<{ json: string }>('SELECT json FROM games WHERE gameId=?', b.gameId);
+    if (!uploaded.length)
+        fail(404, 'Spiel nicht gefunden');
+    const id = findPlayer(b.name, uploaded.map(r => JSON.parse(r.json) as AramEntry), await archived(b.gameId)) ?? fail(404, 'Diese Riot-ID kommt in dem Spiel nicht vor. Bitte mit #Tag eingeben.');
+    if ((await rows('SELECT 1 FROM games WHERE puuid=? LIMIT 1', id)).length)
+        fail(409, 'Dieser Spieler lädt selbst hoch und hat ein Profil. Löschen geht in blank. mit dem eigenen Schlüssel.');
+    await db().batch([query('INSERT OR IGNORE INTO hidden_players (puuid,at) VALUES (?,?)', id, Date.now()), query("INSERT INTO events (kind,at) VALUES ('reset',?)", Date.now())]);
+    return json({ hidden: true });
 }
 /** The records (/rekorde): every category's best ten players with the game of their value, all time
  * or this season (seasonOf, three a year), optionally of one group from its start. */
@@ -398,6 +419,8 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
     }
     if (path === '/api/augments' && method === 'GET')
         return augmentList();
+    if (path === '/api/ausblenden' && method === 'POST')
+        return hide(req);
     if (path === '/api/augments' && method === 'POST')
         return uploadAugments(req);
     if (path === '/api/rekorde' && method === 'GET')
@@ -463,13 +486,14 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         return json({ code: g.code, puuid: b.puuid, joined: gm[2] === 'join' });
     }
     if (path === '/api/export' && method === 'GET') {
+        const hidden = await hiddenPlayers();
         return json({ exportedAt: Date.now(), ratingVersion: RATING_VERSION, seasons: await rows('SELECT * FROM seasons'), players: await rows('SELECT puuid,name,icon,lastSeen FROM players'), groups: await rows('SELECT code,name,since,createdAt FROM groups'), group_members: await rows('SELECT code,puuid FROM group_members'), games: (await rows<{
                 json: string;
                 quality: number;
                 receivedAt: number;
                 sourceHash: string;
                 disputed: number;
-            }>('SELECT json,quality,receivedAt,sourceHash,disputed FROM games')).map(({ json, ...metadata }) => ({ entry: JSON.parse(json), ...metadata, disputed: !!metadata.disputed })) });
+            }>('SELECT json,quality,receivedAt,sourceHash,disputed FROM games')).map(({ json, ...metadata }) => ({ entry: withoutHidden(JSON.parse(json) as AramEntry, hidden), ...metadata, disputed: !!metadata.disputed })) });
     }
     return fail(404, 'Endpunkt nicht gefunden');
 }

@@ -127,6 +127,10 @@ export default function GamePage() {
           />
         ))}
       </div>
+      <p className="fine game-hide">
+        Du stehst hier und möchtest nicht genannt werden?{' '}
+        <Link href={`/datenschutz/entfernen?spiel=${data.gameId}`}>Namen ausblenden</Link>
+      </p>
 
       <div className="grid cols-main">
         <div className="card">

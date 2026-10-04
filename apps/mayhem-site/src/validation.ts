@@ -12,6 +12,7 @@ export const uploadSchema = z.object({ entries: z.array(entrySchema).min(1).max(
     c.addIssue({ code: 'custom', message: 'Doppelter Spielerschlüssel im Upload' }); });
 export const groupSchema = z.object({ name: plain().refine(s => s.length > 0) }).strict();
 export const memberSchema = z.object({ puuid }).strict();
+export const hideSchema = z.object({ gameId: z.number().int().min(1).lt(10000000000000), name: plain().refine(s => s.trim().length > 0) }).strict();
 export function quality(e: z.infer<typeof entrySchema>) { return (e.provisional ? 1 : !e.details ? 2 : e.lobby?.length ? 4 : 3) + (e.skin !== undefined ? .5 : 0); }
 export function canonical(v: unknown): string { if (Array.isArray(v))
     return '[' + v.map(canonical).join(',') + ']'; if (v && typeof v === 'object')

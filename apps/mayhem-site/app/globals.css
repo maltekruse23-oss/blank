@@ -1763,6 +1763,46 @@ tr[data-place='3'] .place { color: var(--tier-d); }
 
 /* ---- Plain text pages (Datenschutz, API) ---------------------------------------------- */
 
+.game-hide {
+  margin: calc(var(--gap) * -0.5) 0 var(--gap);
+}
+
+.hide-form {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+  max-width: 420px;
+}
+
+.hide-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.hide-form input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  min-width: 0;
+}
+
+.hide-form .error {
+  margin: 0;
+}
+
+.hide-form .button {
+  justify-self: start;
+}
+
+.hide-form .button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .prose {
   max-width: 760px;
 }

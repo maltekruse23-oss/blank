@@ -77,20 +77,23 @@ const byTeam = (players: GamePlayer[]) =>
 
 /**
  * The game from its raw archive and the uploaded entries (both optional, at least one needed).
- * `registered` holds the PUUIDs that may be linked.
+ * `registered` holds the PUUIDs that may be linked, `hidden` those who asked not to be named
+ * (only without a profile: registered players stay named).
  */
 export function gameView(
   entries: AramEntry[],
   raw: RawGame | null,
   registered: ReadonlySet<string>,
   disputed = false,
+  hidden: ReadonlySet<string> = new Set(),
 ): GameView | null {
   const keep = (puuid: string | undefined) => (puuid && registered.has(puuid) ? puuid : null);
+  const shown = (puuid: string | undefined) => !puuid || registered.has(puuid) || !hidden.has(puuid);
   const keys = new Map(entries.filter((e) => e.champion).map((e) => [e.championId, e.champion]));
   const named = dedupe(
     entries.flatMap((e) => [
-      ...(e.champion ? [{ champion: e.champion, name: e.name, puuid: keep(e.puuid) }] : []),
-      ...e.with.filter((m) => m.champion).map((m) => ({ champion: m.champion, name: m.name, puuid: keep(m.puuid) })),
+      ...(e.champion && shown(e.puuid) ? [{ champion: e.champion, name: e.name, puuid: keep(e.puuid) }] : []),
+      ...e.with.filter((m) => m.champion && shown(m.puuid)).map((m) => ({ champion: m.champion, name: m.name, puuid: keep(m.puuid) })),
     ]),
   );
 
@@ -103,7 +106,7 @@ export function gameView(
         team: p.teamId,
         championId: p.championId,
         champion: keys.get(p.championId) ?? null,
-        name: id ? riotId(id) : null,
+        name: id && shown(id.puuid) ? riotId(id) : null,
         puuid: keep(id?.puuid),
         win: s.win === true,
         kills: num(s.kills),

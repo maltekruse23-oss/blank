@@ -51,3 +51,7 @@ export const augments = sqliteTable('augments', {
     id: integer('id').primaryKey(), name: text('name').notNull(), rarity: text('rarity').notNull(),
     icon: text('icon'), receivedAt: integer('receivedAt').notNull(),
 });
+
+// Players without a profile who asked not to be named (/datenschutz/entfernen): only the PUUID,
+// never the name, so a new Riot ID stays hidden too.
+export const hiddenPlayers = sqliteTable('hidden_players', { puuid: text('puuid').primaryKey(), at: integer('at').notNull() });
