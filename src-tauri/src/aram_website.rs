@@ -502,6 +502,103 @@ pub async fn aram_website(
     Ok(result)
 }
 
+/// The largest answer of the Site that is read (the whole leaderboard or one player's season).
+const MAX_ANSWER: usize = 16 * 1024 * 1024;
+
+/// The Site's ranks as it computes them (Etappe 6, one truth for everyone): the global leaderboard
+/// and the user's own ranked profile, as JSON text the app checks strictly. Only while the upload
+/// is allowed (nothing goes to the Site before that click); only the user's own PUUID is sent,
+/// friends are found in the public leaderboard on this PC.
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SiteRanks {
+    pub enabled: bool,
+    pub board: Option<String>,
+    /// None: the Site has no profile of the user (yet).
+    pub me: Option<String>,
+}
+
+/// A PUUID that may stand in the Site's address as it is.
+fn plain_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 100
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
+async fn read_json(http: &reqwest::Client, path: &str) -> Result<Option<String>, String> {
+    let response = http
+        .get(format!("{BASE}{path}"))
+        .send()
+        .await
+        .map_err(|_| "Website nicht erreichbar.")?;
+    match response.status().as_u16() {
+        200 => {}
+        404 => return Ok(None),
+        status => return Err(format!("Ränge der Website nicht lesbar (HTTP {status}).")),
+    }
+    if response
+        .content_length()
+        .is_some_and(|n| n > MAX_ANSWER as u64)
+    {
+        return Err("Antwort der Website zu groß.".into());
+    }
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|_| "Antwort der Website unvollständig.")?;
+    if bytes.len() > MAX_ANSWER {
+        return Err("Antwort der Website zu groß.".into());
+    }
+    String::from_utf8(bytes.to_vec())
+        .map(Some)
+        .map_err(|_| "Antwort der Website nicht lesbar.".into())
+}
+
+#[tauri::command]
+pub async fn aram_site_ranks(app: AppHandle) -> Result<SiteRanks, String> {
+    if !enabled(&app) {
+        return Ok(SiteRanks::default());
+    }
+    let me = {
+        let aram = app.state::<super::AramState>();
+        let _guard = aram.lock.lock().await;
+        load(&aram.path)?.me.map(|me| me.puuid)
+    };
+    let http = site_client()?;
+    let board = read_json(&http, "/api/leaderboard").await?;
+    let me = match me.filter(|id| plain_id(id)) {
+        Some(id) => read_json(&http, &format!("/api/players/{id}")).await?,
+        None => None,
+    };
+    Ok(SiteRanks {
+        enabled: true,
+        board,
+        me,
+    })
+}
+
+/// One player's ranked profile from the Site, for the player dialog. The app asks only for players
+/// the public leaderboard already lists.
+#[tauri::command]
+pub async fn aram_site_profile(app: AppHandle, puuid: String) -> Result<Option<String>, String> {
+    if !enabled(&app) || !plain_id(&puuid) {
+        return Ok(None);
+    }
+    read_json(&site_client()?, &format!("/api/players/{puuid}")).await
+}
+
+fn site_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(20))
+        .user_agent(concat!("blank/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .map_err(|_| "Website-Verbindung nicht verfügbar.".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -514,6 +611,16 @@ mod tests {
             rarity: "gold".into(),
             icon: icon.map(Into::into),
         }
+    }
+
+    #[test]
+    fn only_plain_puuids_go_into_the_address() {
+        assert!(plain_id(&"a".repeat(78)));
+        assert!(plain_id("Ab-9_x"));
+        assert!(!plain_id(""));
+        assert!(!plain_id("a/../b"));
+        assert!(!plain_id("a?x=1"));
+        assert!(!plain_id(&"a".repeat(101)));
     }
 
     #[test]

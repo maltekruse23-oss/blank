@@ -36,6 +36,8 @@ import { placeColor } from '../aram/AramRanking';
 import { PLACEMENT, rankName, standings } from '../aram/aramRating';
 import { sinceGames } from '../aram/aramStats';
 import { TierEmblem } from '../aram/TierEmblem';
+import { combine } from '../aram/aramSite';
+import { boardOf, useSiteRanks } from '../aram/useSiteRanks';
 import type { WidgetId } from '../edit/layout';
 
 export type WidgetContext = {
@@ -261,6 +263,7 @@ function MusicBody({ music, navigate }: WidgetContext) {
  * ARAM games (asks the League client nothing). */
 function AramBody({ aramFriends }: WidgetContext) {
   const [data, setData] = useState<AramData | null>(null);
+  const site = boardOf(useSiteRanks());
   useEffect(() => {
     let active = true;
     void aramAdapter.data().then(
@@ -283,7 +286,9 @@ function AramBody({ aramFriends }: WidgetContext) {
   if (rows.length === 0) return <small>Noch keine ARAM-Mayhem-Spiele</small>;
   const top = rows[0]!.value ?? 1;
   const mine = data.me
-    ? standings(sinceGames(data.games, data.since)).find((s) => s.puuid === data.me!.puuid)
+    ? combine(standings(sinceGames(data.games, data.since)), site).find(
+        (s) => s.puuid === data.me!.puuid,
+      )
     : undefined;
   return (
     <>

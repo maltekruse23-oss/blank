@@ -7,6 +7,8 @@ const COMMANDS: &[&str] = &[
     "aram_data",
     "aram_sync",
     "aram_website",
+    "aram_site_ranks",
+    "aram_site_profile",
     "aram_friends",
     "aram_reset",
     "aram_set_since",

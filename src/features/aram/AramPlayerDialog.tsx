@@ -14,6 +14,7 @@ import { placeColor } from './AramRanking';
 import { categoryIcons } from './aramIcons';
 import { playerOverview, type Standing } from './aramPlayer';
 import { day, number, percent } from './format';
+import { useSiteProfile } from './useSiteRanks';
 import { RankHistory } from './RankHistory';
 
 /** What the overview of a player needs, taken when it opens (from the ARAM page). */
@@ -49,6 +50,7 @@ function Medal({ standing, count }: { standing: Standing; count: number }) {
  */
 export function AramPlayerDialog({ view, onClose }: { view: AramPlayerView; onClose: () => void }) {
   const { player, players, games, meId } = view;
+  const site = useSiteProfile(player.puuid);
   const overview = useMemo(() => playerOverview(player, players, games), [player, players, games]);
   const { name, tag } = splitRiotId(player.name);
   const dialog = useRef<HTMLDivElement>(null);
@@ -118,7 +120,7 @@ export function AramPlayerDialog({ view, onClose }: { view: AramPlayerView; onCl
             <p className="section-note">Noch keine Spiele, die zählen.</p>
           ) : (
             <>
-              <RankHistory games={games} puuid={player.puuid} />
+              <RankHistory games={games} puuid={player.puuid} site={site} />
               <dl className="aram-player-overall">
                 {overview.overall.map((standing) => {
                   const Icon = categoryIcons[standing.category.id];

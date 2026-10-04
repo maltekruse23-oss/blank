@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { db, query, rows, hash, secret, archiveBucket } from './storage';
 import { uploadSchema, augmentUploadSchema, groupSchema, memberSchema, hideSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
-import { standings, rankResult, seasonOf, RATING_VERSION, CLIMBING } from './features/aram/aramRating';
+import { standings, rankResult, seasonOf, RATING_VERSION } from './features/aram/aramRating';
+import { open, summary, type Standing } from './summary';
 import type { AramEntry } from './adapters/aram';
 import { archiveRoute } from './archive';
 import { gameView, type RawGame } from './game';
@@ -87,13 +88,7 @@ async function entries(since = 0, code: string | null = null, player: string | n
 }>(sql, ...args)).map(r => ({ ...withoutHidden(JSON.parse(r.json) as AramEntry, hidden), ...(includeDisputed ? { disputed: !!r.disputed } : {}) })) as AramEntry[]; }
 /** PUUIDs of players without a profile who asked not to be named (/datenschutz/entfernen). */
 async function hiddenPlayers() { return new Set((await rows<{ puuid: string }>('SELECT puuid FROM hidden_players')).map(r => r.puuid)); }
-type Standing = ReturnType<typeof standings>[number];
 async function withIcons(list: Standing[]) { const icons = new Map((await rows<{ puuid: string; icon: number }>('SELECT puuid,icon FROM players')).map(r => [r.puuid, r.icon])); return list.map(s => summary(s, icons.get(s.puuid) ?? null)); }
-/** What the site shows of a standing; never the hidden rating (Standing.hidden), only whether the form is above the rank. */
-const open = (s: Standing) => ({ puuid: s.puuid, name: s.name, rank: s.rank, games: s.games, wins: s.wins, placed: s.placed, climbing: s.rank !== null && s.form >= CLIMBING, average: s.average, seasons: s.seasons });
-/** The three most played champions of a standing (DDragon key and ID). */
-const topChampions = (s: Standing) => { const by = new Map<number, { championId: number; champion: string; games: number }>(); for (const h of s.history) { const c = by.get(h.entry.championId) ?? { championId: h.entry.championId, champion: h.entry.champion, games: 0 }; c.games += 1; by.set(h.entry.championId, c); } return [...by.values()].sort((a, b) => b.games - a.games || a.championId - b.championId).slice(0, 3); };
-const summary = (s: Standing, icon: number | null = null) => ({ ...open(s), icon, champions: topChampions(s), last6: s.history.slice(-6).map(h => ({ gameId: h.entry.gameId, at: h.entry.at, gain: h.gain, grade: h.mark.grade, change: h.change })) });
 async function rate(req: Request) { const ip = req.headers.get('cf-connecting-ip') ?? 'local'; const now = Date.now(), bucket = Math.floor(now / 60000); const key = await hash(`${bucket}:${ip}`); const results = await db().batch([query('DELETE FROM rate_limits WHERE expires<=?', now), query('INSERT INTO rate_limits (key,expires,count) VALUES (?,?,1) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count', key, (bucket + 1) * 60000)]); const count = (results[1].results[0] as {
     count: number;
 }).count; if (count > 30)

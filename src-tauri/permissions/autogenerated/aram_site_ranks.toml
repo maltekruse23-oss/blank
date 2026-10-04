@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-aram-site-ranks"
+description = "Enables the aram_site_ranks command without any pre-configured scope."
+commands.allow = ["aram_site_ranks"]
+
+[[permission]]
+identifier = "deny-aram-site-ranks"
+description = "Denies the aram_site_ranks command without any pre-configured scope."
+commands.deny = ["aram_site_ranks"]
