@@ -17,7 +17,10 @@ function raw(duration = 18 * 60): RawGame {
     gameVersion: '16.19.712.1234',
     participantIdentities: CHAMPS.map((_, i) => ({
       participantId: i + 1,
-      player: i === 9 ? { puuid: pid(i), gameName: '', tagLine: '', summonerName: 'Alt' } : { puuid: pid(i), gameName: `Spieler ${i}`, tagLine: 'EUW' },
+      player:
+        i === 9
+          ? { puuid: pid(i), gameName: '', tagLine: '', summonerName: 'Alt' }
+          : { puuid: pid(i), gameName: `Spieler ${i}`, tagLine: 'EUW' },
     })),
     // Red side first: the page still shows blue first.
     participants: CHAMPS.map((championId, i) => ({
@@ -91,7 +94,17 @@ function entry(r: RawGame): AramEntry {
     pentas: 0,
     details: null,
     with: [
-      { puuid: pid(1), name: 'Spieler 1#EUW', champion: 'Malphite', championName: 'Malphite', damage: 22_000, kills: 6, deaths: 6, assists: 11, sameTeam: true },
+      {
+        puuid: pid(1),
+        name: 'Spieler 1#EUW',
+        champion: 'Malphite',
+        championName: 'Malphite',
+        damage: 22_000,
+        kills: 6,
+        deaths: 6,
+        assists: 11,
+        sameTeam: true,
+      },
     ],
     lobby,
   };
@@ -103,11 +116,17 @@ describe('Website-Spielseite', () => {
     expect(view.source).toBe('archive');
     expect(view.players).toHaveLength(10);
     expect(view.players.every((p) => p.name)).toBe(true);
-    expect(view.players.map((p) => p.team)).toEqual([100, 100, 100, 100, 100, 200, 200, 200, 200, 200]);
+    expect(view.players.map((p) => p.team)).toEqual([
+      100, 100, 100, 100, 100, 200, 200, 200, 200, 200,
+    ]);
     expect(view.players.filter((p) => p.puuid).map((p) => p.puuid)).toEqual([pid(0)]);
     expect(JSON.stringify(view)).not.toContain(pid(5));
     // The friend has no profile: named, but without PUUID.
-    expect(view.named.find((n) => n.champion === 'Malphite')).toEqual({ champion: 'Malphite', name: 'Spieler 1#EUW', puuid: null });
+    expect(view.named.find((n) => n.champion === 'Malphite')).toEqual({
+      champion: 'Malphite',
+      name: 'Spieler 1#EUW',
+      puuid: null,
+    });
     expect(view.patch).toBe('16.19');
     expect(view.players[0].items).toEqual([3089, 0, 0, 0, 0, 0, 2052]);
   });
