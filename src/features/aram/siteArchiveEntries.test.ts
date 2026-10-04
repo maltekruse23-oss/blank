@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { AramEntry } from '../../adapters/aram';
-import { archiveEntries, archiveIdOf, mergeEntries, publicId } from '../../../apps/mayhem-site/src/archive-entries';
+import {
+  archiveEntries,
+  archiveIdOf,
+  mergeEntries,
+  publicId,
+} from '../../../apps/mayhem-site/src/archive-entries';
 import { gameView, seatEntry, type RawGame } from '../../../apps/mayhem-site/src/game';
 import { standings } from './aramRating';
 import { performanceOf } from './aramPerformance';
@@ -93,7 +98,9 @@ describe('archiveEntries', () => {
   });
 
   it('gives a player without a profile a rank after five archived games', () => {
-    const games = [1, 2, 3, 4, 5].map((n) => archiveEntries(raw(n, 1_790_000_000_000 + n * 3_600_000))[2].entry);
+    const games = [1, 2, 3, 4, 5].map(
+      (n) => archiveEntries(raw(n, 1_790_000_000_000 + n * 3_600_000))[2].entry,
+    );
     const s = standings(games)[0];
     expect(s.puuid).toBe(pid(2));
     expect(s.games).toBe(5);
@@ -116,13 +123,22 @@ describe('public ids', () => {
   });
 
   it('link everyone on the game page, registered players by PUUID, others by public id', () => {
-    const view = gameView([], raw(), new Set([pid(0)]), false, new Set([pid(1)]), new Map(CHAMPS.map((_, i) => [pid(i), publicId(i + 1)])))!;
+    const view = gameView(
+      [],
+      raw(),
+      new Set([pid(0)]),
+      false,
+      new Set([pid(1)]),
+      new Map(CHAMPS.map((_, i) => [pid(i), publicId(i + 1)])),
+    )!;
     const by = (i: number) => view.players.find((p) => p.championId === CHAMPS[i])!;
     expect(by(0).puuid).toBe(pid(0));
     expect(by(1).puuid).toBeNull(); // asked not to be named
     expect(by(1).name).toBeNull();
     expect(by(2).puuid).toBe('a3');
-    expect(view.players.every((p) => p.puuid === null || p.puuid === pid(0) || p.puuid.startsWith('a'))).toBe(true);
+    expect(
+      view.players.every((p) => p.puuid === null || p.puuid === pid(0) || p.puuid.startsWith('a')),
+    ).toBe(true);
   });
 });
 
@@ -140,7 +156,9 @@ describe('mergeEntries', () => {
   });
 
   it('adds the other players and sorts like the uploads', () => {
-    const others = archiveEntries(raw()).slice(1).map((a) => a.entry);
+    const others = archiveEntries(raw())
+      .slice(1)
+      .map((a) => a.entry);
     const later = archiveEntries(raw(8, 1_790_000_100_000))[0].entry;
     const merged = mergeEntries([later, archived], others);
     expect(merged).toHaveLength(11);
