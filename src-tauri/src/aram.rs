@@ -1126,8 +1126,13 @@ async fn sync(
             if game.queue_id != MAYHEM_QUEUE {
                 continue;
             }
-            // Keep the complete response before reducing it to ranking entries.
-            archive::capture(app, &raw)?;
+            // Keep the complete response before reducing it to ranking entries; only with the
+            // upload allowed, and a failing archive never stops the ranking.
+            if website::enabled(app) {
+                if let Err(error) = archive::capture(app, &raw) {
+                    website::publish(app, |s| s.error = Some(error));
+                }
+            }
             let mut summary = from_history(&game);
             add_noted_skins(&mut summary);
             for entry in entries(&summary, &tracked, &champions, &friends, false) {

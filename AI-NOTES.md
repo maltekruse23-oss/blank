@@ -3,6 +3,16 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website-Upload nur auf Klick — 04.10.2026 (Prüfung von PR #13)
+
+- Upload (`aram_website.rs`) ist standardmäßig **aus**; erst „Hochladen erlauben“ unter den
+  ARAM-Hinweisen (`AramWebsite.tsx`, sagt, was öffentlich wird) schaltet ihn ein. Grund: jede
+  blank.-Installation von Freunden hätte nach dem Update ungefragt ihre Spiele samt Freunden
+  hochgeladen. Wer den Upload schon eingeschaltet hatte (`aram-website.json`), behält ihn.
+- Das Rohdatenarchiv sammelt nur bei erlaubtem Upload; ein Archivfehler (voll, unvollständiges
+  Spiel) erscheint nur als Hinweis – vorher brach er den ganzen Ranglisten-Abgleich ab.
+- Wappen auf 256 px verkleinert (je ~50 KB statt ~800 KB; Website-Kopien unverändert).
+
 ## Rangicons — 04.10.2026
 
 Freigegebene Augment-v3-PNGs in `src/features/aram/emblems/` eingebaut, SSS ohne die zwei

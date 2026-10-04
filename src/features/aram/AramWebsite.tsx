@@ -43,6 +43,20 @@ export function AramWebsite() {
       setError('Website-Upload konnte nicht umgestellt werden.');
     }
   };
+  // Off by default; nothing leaves the PC before this click (friends get the same app).
+  if (status && !status.enabled) {
+    return (
+      <p className="aram-note" role="status">
+        Website-Upload aus. Erlaubst du ihn, gehen deine gespeicherten Mayhem-Spiele (auch die
+        deiner Freunde, mit Riot-ID) und die vollständigen Spieldaten aller zehn Spieler an die
+        Mayhem-Website; dort sind sie öffentlich zu sehen. Jederzeit pausierbar.{' '}
+        <button className="text-link" onClick={() => void change()}>
+          Hochladen erlauben
+        </button>
+        {error && <> · {error}</>}
+      </p>
+    );
+  }
   return (
     <p className="aram-note" role="status">
       Website:{' '}

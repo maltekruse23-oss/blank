@@ -30,22 +30,13 @@ pub struct Status {
     pub error: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 struct Progress {
+    /// Off until the user allows it with a click: friends' apps update too.
     enabled: bool,
     acknowledged: HashMap<String, String>,
     last_success: Option<u64>,
-}
-
-impl Default for Progress {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            acknowledged: HashMap::new(),
-            last_success: None,
-        }
-    }
 }
 
 pub struct WebsiteState {
