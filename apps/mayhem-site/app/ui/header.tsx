@@ -16,7 +16,7 @@ export function Nav() {
   return (
     <nav className="nav" aria-label="Seiten">
       {PAGES.map((p) => (
-        <a key={p.href} href={p.href} aria-current={(p.href === '/' ? path === '/' || path.startsWith('/players') : path.startsWith(p.href)) ? 'page' : undefined}>
+        <a key={p.href} href={p.href} aria-current={(p.href === '/' ? path === '/' || path.startsWith('/players') || path.startsWith('/spiel') : path.startsWith(p.href)) ? 'page' : undefined}>
           {p.label}
         </a>
       ))}

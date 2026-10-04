@@ -290,7 +290,13 @@ function Match({ step, dragon, name }: { step: ProfileStep; dragon: Dragon; name
 /** All ten of a game: grade (same rule for everyone), MVP, damage, taken and healing. */
 function Lobby({ id, entry, dragon, name }: { id: string; entry: AramEntry; dragon: Dragon; name: string }) {
   const lobby = entry.lobby ?? [];
-  if (!lobby.length) return <div id={id} className="lobby faint">Für dieses Spiel fehlen die Werte der anderen.</div>;
+  const page = `/spiel/${entry.gameId}?p=${encodeURIComponent(entry.puuid)}`;
+  if (!lobby.length)
+    return (
+      <div id={id} className="lobby faint">
+        Für dieses Spiel fehlen die Werte der anderen. <Link className="to-game" href={page}>Spiel ansehen →</Link>
+      </div>
+    );
   const marks = lobbyPerformances(entry);
   const mvp = mvpOf(marks);
   const max = {
@@ -313,6 +319,9 @@ function Lobby({ id, entry, dragon, name }: { id: string; entry: AramEntry; drag
         <span>
           <span className="mvp">MVP</span> beste Note im Spiel
         </span>
+        <Link className="to-game" href={page}>
+          Ganzes Spiel ansehen →
+        </Link>
       </div>
       <div className="teams">
         {teams.map((team) => (

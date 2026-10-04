@@ -80,6 +80,16 @@ Beispielantwort (Zeitpunkte/IDs sind illustrativ):
 }
 ```
 
+## GET /api/spiel/<gameId>
+
+Ein Spiel mit allen zehn Spielern, nur wenn es mindestens einmal hochgeladen wurde (sonst 404). Liegt das Spiel im Rohdatenarchiv, kommen die Riot-IDs aller zehn von dort (`source: "archive"`); sonst die Werte aller zehn aus dem vollständigsten Upload und Namen nur der Hochladenden (`source: "uploads"`), dazu `named` (Freunde aus den Uploads nach Champion). `puuid` steht nur bei Spielern mit eigenem Profil, sonst `null`. Fehlende Werte (`level`, `items`) sind `null`, nie 0. `disputed` meldet widersprüchliche Uploads.
+
+```powershell
+curl.exe "$API/spiel/7000000001"
+```
+
+Antwort (gekürzt): `{ "gameId", "at", "seconds", "patch", "source", "disputed", "players": [{ "team", "championId", "champion", "name", "puuid", "win", "kills", "deaths", "assists", "damage", "taken", "mitigated", "healed", "shielded", "gold", "level", "items" }], "named": [{ "champion", "name", "puuid" }] }`
+
 ## GET /api/players/<puuid>
 
 Rang, Saisonverlauf und fünf beste Spiele nach Note. Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.

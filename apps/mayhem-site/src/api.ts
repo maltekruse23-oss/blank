@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { db, query, rows, hash, secret } from './storage';
+import { db, query, rows, hash, secret, archiveBucket } from './storage';
 import { uploadSchema, groupSchema, memberSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
 import { standings, rankResult, RATING_VERSION, CLIMBING } from './features/aram/aramRating';
 import type { AramEntry } from './adapters/aram';
 import { archiveRoute } from './archive';
+import { gameView, type RawGame } from './game';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -208,6 +209,41 @@ async function live(req: Request, url: URL) {
         }, cancel() { stop(); } });
     return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' } });
 }
+/** One game with all ten players (/spiel/<id>). Only games someone uploaded; the names come from the
+ * raw archive when it holds the game, and no PUUID of a player without a profile leaves here. */
+async function game(gameId: number) {
+    const uploaded = await rows<{ json: string; disputed: number }>('SELECT json,disputed FROM games WHERE gameId=? ORDER BY quality DESC,puuid', gameId);
+    if (!uploaded.length)
+        fail(404, 'Spiel nicht gefunden');
+    const list = uploaded.map(r => JSON.parse(r.json) as AramEntry);
+    const raw = await archived(gameId);
+    const ids = [...new Set([...list.flatMap(e => [e.puuid, ...e.with.map(m => m.puuid)]), ...(raw?.participantIdentities.map(i => i.player.puuid) ?? [])])];
+    const registered = new Set<string>();
+    for (let i = 0; i < ids.length; i += 50) {
+        const part = ids.slice(i, i + 50);
+        for (const r of await rows<{ puuid: string }>(`SELECT DISTINCT puuid FROM games WHERE puuid IN (${part.map(() => '?').join(',')})`, ...part))
+            registered.add(r.puuid);
+    }
+    return gameView(list, raw, registered, uploaded.some(r => r.disputed)) ?? fail(404, 'Spiel nicht gefunden');
+}
+/** The archived raw game, or null (not archived, or the archive is unavailable: the page then
+ * falls back to the uploads). */
+async function archived(gameId: number): Promise<RawGame | null> {
+    try {
+        const revision = (await rows<{ objectKey: string }>("SELECT r.objectKey FROM archive_matches m JOIN archive_revisions r ON r.matchKey=m.matchKey AND r.kind='details' AND r.sha256=m.detailsHash WHERE m.gameId=? AND m.queueId=2400 ORDER BY m.receivedAt LIMIT 1", gameId))[0];
+        if (!revision)
+            return null;
+        const object = await archiveBucket().get(revision.objectKey);
+        if (!object)
+            return null;
+        const text = await new Response(object.body.pipeThrough(new DecompressionStream('gzip'))).text();
+        const value = JSON.parse(text) as RawGame;
+        return value.gameId === gameId && Array.isArray(value.participants) && Array.isArray(value.participantIdentities) ? value : null;
+    }
+    catch {
+        return null;
+    }
+}
 export async function handle(req: Request) {
     const url = new URL(req.url);
     const origin = req.headers.get('origin');
@@ -273,6 +309,9 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
                 puuid: string;
             }>('SELECT gameId,puuid FROM games WHERE disputed=1 AND at>=? AND (? IS NULL OR puuid IN (SELECT puuid FROM group_members WHERE code=?))', Math.max(since, g?.since ?? 0), code, code), since: Math.max(since, g?.since ?? 0) });
     }
+    const sm = path.match(/^\/api\/spiel\/([1-9][0-9]{0,12})$/);
+    if (sm && method === 'GET')
+        return json(await game(Number(sm[1])));
     const pm = path.match(/^\/api\/players\/([^/]+)$/);
     if (pm) {
         const id = puuid.parse(decodeURIComponent(pm[1]));
