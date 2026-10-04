@@ -114,6 +114,16 @@ curl.exe "$API/start"
 
 Antwort (gekürzt): `{ "season", "trackedGames", "players", "seasonGames", "grades": [{ "grade", "games" }], "today": [{ "puuid", "name", "grade", "gameId", "at", "seconds", "championId", "champion", "championName", "skin", "kills", "deaths", "assists", "damage" }], "top": [...], "records": [...] }`
 
+## GET /api/gruppe/<code>
+
+Die Gruppenseite: die Rangliste der Gruppe (gleiche Form wie `players` bei /api/leaderboard?group=…), je Mitglied, was das Duell braucht (`radar`: die fünf Notenachsen der letzten 20 Spiele, `bests`: Bestwert je Rekord-Kategorie, nur Werte über 0, `games`: gewertete Spiele mit Note), und die letzten sechs Spielabende (Spiele mit höchstens drei Stunden Pause, je Spieler Spiele, MP-Bilanz, Einstufungsspiele und beste Note). Nur Mitglieder und nur Spiele ab dem Start der Gruppe.
+
+```powershell
+curl.exe "$API/gruppe/ABCDEFGHJKLM"
+```
+
+Antwort (gekürzt): `{ "group": { "code", "name", "since" }, "season", "players": [...], "members": [{ "puuid", "radar", "bests", "games": [{ "gameId", "at", "grade", "pct" }] }], "sessions": [{ "start", "end", "games", "players": [{ "puuid", "name", "games", "gain", "placements", "best" }] }] }`
+
 ## GET /api/players/<puuid>
 
 Rang, Saisonverlauf und fünf beste Spiele nach Note. Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.

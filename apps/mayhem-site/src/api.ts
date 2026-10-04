@@ -8,6 +8,7 @@ import { gameView, type RawGame } from './game';
 import { recordsView } from './records';
 import { championsView, championView } from './champions';
 import { freshRecords, startView, TOP } from './start';
+import { membersOf, sessionsOf } from './group';
 import { decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
 import { findPlayer, withoutHidden } from './hidden';
 class ApiError extends Error {
@@ -276,6 +277,15 @@ async function start() {
     const view = startView(list, now, seasonOf(now).start);
     return json({ season: c.season, trackedGames, ...view, top: await withIcons(list.slice(0, TOP)), records: freshRecords(recordsView(all, now, await playersOf(ids))) });
 }
+/** A group's page (/gruppe/<code>): its ladder, what the duel needs of every member and its game
+ * nights. Only members, from the group's start on. */
+async function groupPage(code: string) {
+    const url = new URL('http://x/');
+    url.searchParams.set('group', code);
+    const c = await context(url);
+    const list = standings(await entries(c.since, c.group!.code), c.since);
+    return json({ group: c.group, season: c.season, players: await withIcons(list), members: membersOf(list), sessions: sessionsOf(list) });
+}
 /** Current name and icon of these players (all of them have a profile). */
 async function playersOf(ids: string[]) {
     const players = new Map<string, { name: string; icon: number | null }>();
@@ -436,6 +446,9 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         return hide(req);
     if (path === '/api/augments' && method === 'POST')
         return uploadAugments(req);
+    const gp = path.match(/^\/api\/gruppe\/([A-Za-z0-9]{12})$/);
+    if (gp && method === 'GET')
+        return groupPage(gp[1]);
     if (path === '/api/start' && method === 'GET')
         return start();
     if (path === '/api/rekorde' && method === 'GET')

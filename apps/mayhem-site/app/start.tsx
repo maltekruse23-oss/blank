@@ -7,14 +7,14 @@ import { seasonName, seasonOf } from '../src/features/aram/aramRating';
 import { gradeShares } from '../src/explain';
 import type { RecordView } from '../src/records';
 import type { DayGame, StartView } from '../src/start';
-import { GradeChip, GradeIcon, Img, RankLine } from './ui/bits';
+import { GradeIcon } from './ui/bits';
+import { PlayerRow } from './ui/player-row';
 import { Search } from './ui/header';
 import {
   ago,
   championKey,
   championLabel,
   de,
-  profileImage,
   splashImage,
   splitName,
   useDragon,
@@ -34,8 +34,6 @@ type Dragon = ReturnType<typeof useDragon>;
 const RARE = gradeShares()
   .filter((g) => g.grade === 'SSS' || g.grade === 'MAYHEM')
   .reduce((t, g) => t + g.share, 0);
-
-const profileLink = (puuid: string) => '/players/' + encodeURIComponent(puuid);
 
 export default function StartPage() {
   const { data, error } = useLive<Start>('/api/start');
@@ -107,7 +105,7 @@ export default function StartPage() {
                     </thead>
                     <tbody>
                       {data.top.map((p, i) => (
-                        <TopRow key={p.puuid} player={p} place={i + 1} dragon={dragon} />
+                        <PlayerRow key={p.puuid} player={p} place={i + 1} dragon={dragon} />
                       ))}
                     </tbody>
                   </table>
@@ -179,28 +177,6 @@ function DayCard({ game: g, place, dragon, now }: { game: DayGame; place: number
         </div>
       </Link>
     </li>
-  );
-}
-
-function TopRow({ player: p, place, dragon }: { player: PlayerSummary; place: number; dragon: Dragon }) {
-  const { name, tag } = splitName(p.name);
-  return (
-    <tr data-place={place}>
-      <td className="place num">{place}</td>
-      <td>
-        <Link className="who" href={profileLink(p.puuid)}>
-          <Img className="avatar" src={profileImage(dragon, p.icon)} size={34} />
-          <span>
-            <b>{name}</b>
-            {tag && <span className="faint">#{tag}</span>}
-          </span>
-        </Link>
-      </td>
-      <td>
-        <RankLine rank={p.rank} placed={p.placed} />
-      </td>
-      <td className="hide-sm">{p.average ? <GradeChip grade={p.average.grade} /> : <span className="faint">–</span>}</td>
-    </tr>
   );
 }
 
