@@ -3,7 +3,7 @@
 **Entscheidungen des Benutzers (04.10.2026):** Ränge sofort öffentlich (Riot-Risiko bekannt und
 bewusst in Kauf genommen; kein Schalter, keine Gruppen-Sperre). Alle zehn Spieler eines Spiels
 mit Riot-ID und eigenem Profil (wie op.gg). Daraus folgt: Datenschutzseite nennt das deutlich,
-jede Person kann ihre Daten entfernen lassen (Weg auf der Seite). Etappe 1 und 2 sind umgesetzt (Rangliste und Profil; Startseite seit Etappe 4 unter /, die Rangliste unter /rangliste). Etappe 3 steht: Spiel-Seite `/spiel/<id>`, Rekorde `/rekorde` und Champions `/champions` mit `/champions/<name>`, Namen ausblenden `/datenschutz/entfernen`. Etappe 4 steht: „So funktioniert's“ `/wertung`, Startseite `/`, Gruppe `/gruppe/<code>` mit Duell und Spielabenden, Leerzustände und Handy über alle Seiten. Das Anfragelimit gilt nur noch für Schreibzugriffe. Nächste Etappe: 5.
+jede Person kann ihre Daten entfernen lassen (Weg auf der Seite). Etappe 1 und 2 sind umgesetzt (Rangliste und Profil; Startseite seit Etappe 4 unter /, die Rangliste unter /rangliste). Etappe 3 steht: Spiel-Seite `/spiel/<id>`, Rekorde `/rekorde` und Champions `/champions` mit `/champions/<name>`, Namen ausblenden `/datenschutz/entfernen`. Etappe 4 steht: „So funktioniert's“ `/wertung`, Startseite `/`, Gruppe `/gruppe/<code>` mit Duell und Spielabenden, Leerzustände und Handy über alle Seiten. Das Anfragelimit gilt nur noch für Schreibzugriffe. Etappe 5 steht: gespeicherte Ergebnisse (`snapshots`), Aufräumen, Barrierefreiheit (axe ohne Befund), Rauchtest `tests/smoke.mjs`, Übergabe an Codex in `DEPLOY.md`. Nächste Etappe: 6 (die App zeigt Ränge von der Website).
 
 Ziel: Die Website zum ARAM-Mayhem-Rangsystem und zu den Rekorden wird neu gebaut. Sie soll
 öffentlich und durchdacht sein und sich gut lesen. Der Plan stützt sich auf eine Prüfung des
@@ -43,7 +43,7 @@ und aram.zone. Übernommen werden nur Ideen, keine Assets.
   fällt weg. Damit rechnen App und Website mit genau demselben Code, Version 3.
 - Neue Saison-Zeile `v3`. Alle vorhandenen Spiele werden mit v3 neu gerechnet. Es wird nichts
   gelöscht, auch die alte Saison `v1` bleibt lesbar.
-- (Verschoben nach Etappe 5, bei ~3 Nutzern unnötig:) Ergebnisse zwischenspeichern. Nach jedem Upload oder Neustart einer Gruppe rechnet die
+- (Umgesetzt in Etappe 5, `src/snapshot.ts`, Migration 0005; gültig bis zum nächsten Ereignis, höchstens 5 Minuten:) Ergebnisse zwischenspeichern. Nach jedem Upload oder Neustart einer Gruppe rechnet die
   Seite die Stände einmal und legt sie als JSON in eine Tabelle `snapshots`
   (Version, Saison, Gruppe). Bisher wird bei jedem Aufruf alles neu gerechnet.
 - Ein Vergleichstest stellt sicher, dass App und Website für dieselben Spiele denselben Rang,

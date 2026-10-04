@@ -3,6 +3,27 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 5 (Abschluss): Barrierefreiheit, Rauchtest, Übergabe — 04.10.2026
+
+- axe (WCAG 2.1 AA + Best Practice) über alle Seiten bei 1400 und 375 px mit erfundenen Daten: einziger Befund war `--faint` (3,4–3,9 : 1), jetzt `#7e8f84` (≥ 4,5 : 1 auf allen Flächen; in der hervorgehobenen Zeile der Spiel-Seite gilt `--muted`). Suchfeld hat einen sichtbaren 2-px-Fokusring. Unbekannte Adressen zeigen `app/not-found.tsx` (deutsche Karte statt Englisch ohne CSS). Danach axe ohne Befund; Tastatur-Durchlauf: jeder Halt sichtbar und benannt. Skripte nicht im Repo (Playwright + axe-core im Scratch).
+- `apps/mayhem-site/tests/smoke.mjs`: jede Seite und jeder Lese-Endpunkt, leer bzw. wie die DB ist, 404/400-Fälle, dann drei erfundene Spieler in einer Gruppe (Spiele kurz nach dem Gruppenstart), Spiel-Seite gibt nur die PUUID des Spielers mit Profil heraus, am Ende gelöscht und überall weg (auch aus den gespeicherten Seiten).
+- Bekannt, auch auf main: ein zweiter Lauf von `tests/integration.mjs` gegen dieselbe laufende Vorschau scheitert mit „Your worker restarted mid-request“ (wrangler/miniflare lokal). Vorschau mit frischer D1 neu starten.
+- Übergabe an Codex: `apps/mayhem-site/DEPLOY.md` (Projekt-ID behalten, `public/downloads` übernehmen, Migrationen 0003–0005, Prüfungen danach). Nächste Etappe laut PLAN.md: 6 (App zeigt Ränge von der Website, dann Release 0.9.2).
+
+## Website Etappe 5 (Teil 2): Aufräumen — 04.10.2026
+
+- Aus der Sites-Vorlage entfernt, weil nichts sie nutzt: `components/` (shadcn), `components.json`, `examples/`, `hooks/`, `lib/utils.ts`, drei Vorlagen-SVGs, Tailwind samt `postcss.config.mjs` (die Seite hat ihr eigenes CSS ohne Tailwind) und 21 ungenutzte Pakete. Gebautes CSS ist byte-gleich (MD5 vorher/nachher geprüft).
+- Bleibt: `lib/connector*`, `build/`, `scripts/` (Sites-Hosting und Vorschau brauchen sie).
+- Paketname **nicht** geändert: wrangler nimmt ihn als Worker-Namen (`dist/server/wrangler.json`), ein neuer Name könnte beim Veröffentlichen eine zweite Site anlegen. Nur zusammen mit Codex beim Veröffentlichen ändern, falls gewünscht.
+- Lokale Prüfung: `wrangler d1 execute` nie gegen die laufende Vorschau (der Worker startet dann mitten in Anfragen neu); erst Server stoppen, Migrationen anwenden, starten, ein paar Sekunden warten.
+
+## Website Etappe 5 (Teil 1): Seiten zwischenspeichern — 04.10.2026
+
+- Rangliste, Startseite, Rekorde, Champions (auch einzeln) und Gruppenseite kommen aus der neuen Tabelle `snapshots` (Migration **0005**, beim Veröffentlichen über Codex mit anwenden). Logik `apps/mayhem-site/src/snapshot.ts` (`snapshotKey`, `isFresh`, Test `src/features/aram/siteSnapshot.test.ts`), `cached()` in `src/api.ts`.
+- Gültig, solange kein neues Ereignis in `events` steht (Upload, Neustart, Ausblenden, Beitritt, Löschen) und höchstens 5 Minuten (Zeitfenster der Startseite, Namens-/Symbolwechsel ohne neues Spiel). Der Ereignis-Stand wird vor dem Rechnen gelesen, ein Upload währenddessen rechnet beim nächsten Aufruf neu. Über 1,5 MB wird nicht gespeichert. Löschen eines Spielers und Ausblenden leeren die ganze Tabelle (keine alten Daten liegen herum).
+- Live-Strom fragt alle 5 s statt 2 s (PLAN.md). `tests/integration.mjs` prüft, dass ein Upload die gespeicherte Rangliste sofort ersetzt.
+- Spieler- und Spielseite bleiben ungespeichert (rechnen nur einen Spieler bzw. ein Spiel).
+
 ## Website Etappe 4 (Abschluss): Leerzustände und Handy — 04.10.2026
 
 - Alle Seiten mit leerer und gefüllter lokaler D1 bei 375 px und 320 px geprüft (Skript nicht im Repo; Playwright, Breite des Dokuments gegen Fensterbreite). Behoben: Navigation und Reiter (`.tabs`) brechen auf dem Handy um, statt Einträge unsichtbar seitlich zu verschieben; „So funktioniert's“ bei 320 px (Notenreihe, versteckte Tabellenüberschrift, `.table-wrap` jetzt `position: relative`); API-Anleitung (lange Adressen brechen um); Histogramm der Stufen zeigt auf schmalen Schirmen „M“ statt „MAYHEM“; Apex-Karten nennen je Stufe ihr LoL-Gegenstück.
