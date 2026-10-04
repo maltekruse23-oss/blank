@@ -6,6 +6,11 @@ nicht selbst.
 ## Ziel
 
 - Bestehende Site: `https://blank-mayhem.maltevfx.chatgpt.site`
+- Eigene Domain: `https://mayhemstats.lol` (gekauft bei Porkbun). Mit der bestehenden Site
+  verbinden und dem Benutzer die nötigen DNS-Einträge nennen; er setzt sie bei Porkbun. Die
+  alte Adresse soll weiter antworten (ältere App-Versionen nutzen sie). Erst wenn
+  `https://mayhemstats.lol/api/leaderboard` antwortet, die App mit der neuen Adresse
+  veröffentlichen.
 - Bestehende Projekt-ID: `appgprj_6abe43cac45c819180fa43cf60e293e1` (`.openai/hosting.json`).
   Keine neue Site und keine neue, leere Datenbank anlegen.
 - Paketname (`site-creator-vinext-starter`) nicht ändern: wrangler nimmt ihn als Worker-Namen.

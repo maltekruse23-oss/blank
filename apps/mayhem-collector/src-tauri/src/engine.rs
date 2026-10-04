@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-const SITE: &str = "https://blank-mayhem.maltevfx.chatgpt.site";
+const SITE: &str = "https://mayhemstats.lol";
 const MAX_RAW: usize = 2 * 1024 * 1024;
 const MAX_QUEUE: u64 = 128 * 1024 * 1024;
 pub fn now() -> u64 {

@@ -9,7 +9,7 @@ use std::{
 };
 use tauri::{AppHandle, Manager};
 
-const BASE: &str = "https://blank-mayhem.maltevfx.chatgpt.site/api/archive/matches";
+const BASE: &str = "https://mayhemstats.lol/api/archive/matches";
 const MAX_RAW: usize = 2 * 1024 * 1024;
 const MAX_OUTBOX: u64 = 256 * 1024 * 1024;
 
