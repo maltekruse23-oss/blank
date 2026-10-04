@@ -1,2 +1,5 @@
-import Board from './board';
-export default function Page() { return <Board />; }
+import Ranking from './ranking';
+
+export default function Page() {
+  return <Ranking />;
+}
