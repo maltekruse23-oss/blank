@@ -10,6 +10,7 @@ const PAGES = [
   { href: '/', label: 'Rangliste' },
   { href: '/rekorde', label: 'Rekorde' },
   { href: '/champions', label: 'Champions' },
+  { href: '/wertung', label: "So funktioniert's" },
   { href: '/api-guide', label: 'API' },
 ];
 

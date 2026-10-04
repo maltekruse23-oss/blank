@@ -2026,3 +2026,173 @@ th[aria-sort='ascending'] .sort[data-on='true']::after {
 .augment-table td {
   padding-inline: 6px;
 }
+
+/* ---- So funktioniert's ------------------------------------------------------------------ */
+
+.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.howto {
+  display: grid;
+  gap: 40px;
+}
+
+.howto .page-head {
+  margin-bottom: -16px;
+}
+
+.howto-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.howto-toc a {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.howto-toc a:hover {
+  border-color: var(--line-strong);
+  color: var(--accent);
+}
+
+.howto-section {
+  display: grid;
+  gap: var(--gap);
+  scroll-margin-top: 90px;
+}
+
+.howto-section > h2 {
+  margin: 0;
+  font: 800 26px/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.howto-section > p {
+  margin: 0;
+  max-width: 760px;
+  color: var(--muted);
+}
+
+.howto-section > p.lead {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.howto-section .card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.howto-section .card p {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+
+.howto-section .card p:last-child {
+  margin-bottom: 0;
+}
+
+.weights {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weights li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  font-size: 14px;
+}
+
+.weight-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--panel-3);
+  overflow: hidden;
+}
+
+.weight-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transform-origin: left;
+  animation: grow var(--slow) var(--ease) both;
+}
+
+.grade-scale {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grade-scale li {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--c) 8%, var(--panel-2));
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.grade-scale b {
+  color: var(--c);
+  font: 800 13px/1 var(--font-display);
+}
+
+@media (max-width: 760px) {
+  .grade-scale {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.faq {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.faq details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+}
+
+.faq summary {
+  padding: 12px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.faq summary:hover {
+  color: var(--accent);
+}
+
+.faq details p {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--muted);
+}
