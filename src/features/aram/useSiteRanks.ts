@@ -135,3 +135,28 @@ export function useSiteProfile(puuid: string): SiteBoard | null {
   const full = own ?? (profile?.puuid === puuid ? profile : null);
   return board && full ? { players: board.players, me: full } : null;
 }
+
+/** How long the card after a game waits for the website when nothing is known yet. */
+const CARD_WAIT_MS = 3000;
+
+/**
+ * The website's board for the card after a game (blank. is usually in the background then): the
+ * last answer, however old – games the website does not have yet come from this PC
+ * (aramSite.ts, rankGames) – and a fresh look for next time. Without any answer yet one short
+ * look; offline or slow, the card computes locally.
+ */
+export async function boardForCard(): Promise<SiteBoard | null> {
+  const known = cached?.value.status === 'ready' ? cached.value.board : null;
+  if (known) {
+    refresh();
+    return known;
+  }
+  const value = await Promise.race([
+    load(),
+    new Promise<null>((done) => setTimeout(() => done(null), CARD_WAIT_MS)),
+  ]);
+  if (value?.status !== 'ready') return null;
+  cached = { at: Date.now(), value };
+  for (const l of listeners) l(value);
+  return value.board;
+}

@@ -3,11 +3,17 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Etappe 6 (Teil 3): Karte nach dem Spiel mit dem Rang der Website — 04.10.2026
+
+- Die Karte (Rang-Band `RankStrip`, Popout und Dialog, auch „Ansehen“) rechnet den Schritt jetzt aus den Spielen des eigenen Website-Profils plus den Spielen auf diesem PC, die die Website noch nicht hat (`rankGames` in `aramSite.ts`; gleicher Code, gleiche Spiele, also derselbe Schritt, den die Website nach dem Upload zeigt). Ohne Profil auf der Website oder ohne Upload-Erlaubnis wie bisher lokal ab dem Gruppenstart.
+- Beim Spielende nimmt `boardForCard` (`useSiteRanks.ts`) die letzte Antwort der Website, egal wie alt (neuere Spiele kommen ja vom PC), und schaut im Hintergrund neu; ohne jede Antwort ein Blick mit höchstens 3 s Wartezeit, sonst lokal.
+- Test: `aramSite.test.ts` („shows on the card after a game …“): Website ohne das neueste Spiel + neuestes Spiel vom PC = Schritt aus allen Spielen. Etappe 6 ist damit fertig; Release 0.9.2 macht der Benutzer.
+
 ## Etappe 6 (Teil 2): die App zeigt die Ränge der Website — 04.10.2026
 
 - Mit erlaubtem Website-Upload liest die App die Ränge von der Website (eine Wahrheit für alle): Rust `aram_site_ranks` (`aram_website.rs`) holt `GET /api/leaderboard` (global, laufende Rating-Saison) und das eigene Profil `GET /api/players/<eigene PUUID>`; `aram_site_profile` holt das Profil eines Spielers für den Spieler-Dialog, die App fragt nur nach Spielern, die die öffentliche Rangliste schon zeigt. Ohne Upload-Erlaubnis geht nichts an die Website und alles bleibt lokal. Antwort ≤ 16 MB, nur GET, keine Weiterleitungen, PUUID nur aus Buchstaben, Ziffern, `-`, `_`.
 - Frontend: `src/adapters/aramSite.ts`, Prüfung und Zusammenführung `src/features/aram/aramSite.ts` (`parseBoard`, `parseProfile` streng; `combine`: Website für alle, die sie kennt, sonst lokal; `Ranked` statt `Standing` in Rangliste, Mein Verlauf, Spieler-Dialog und Home-Widget), Hook `useSiteRanks.ts` (gemeinsamer Stand für Home und Rang, beim Öffnen, beim Zurückkehren höchstens alle 2 min und nach bestätigtem Upload; kein Polling, nichts bei verstecktem Fenster). Rang-Seite nennt die Quelle („Ränge von der Website · Stand“, bei Fehler der Hinweis auf die lokale Rechnung).
-- Folge: der Rang ist global (alle hochgeladenen Spiele der Saison), ein Neustart der App-Gruppe setzt ihn nicht mehr zurück, solange die Website antwortet. Die Karte nach dem Spiel (`RankStrip`, `rankResult`) rechnet weiter lokal, weil sie vor dem Upload erscheint – offener Punkt.
+- Folge: der Rang ist global (alle hochgeladenen Spiele der Saison), ein Neustart der App-Gruppe setzt ihn nicht mehr zurück, solange die Website antwortet. Die Karte nach dem Spiel: siehe Teil 3.
 - Website: `open`/`summary` aus `src/api.ts` nach `apps/mayhem-site/src/summary.ts` verschoben (gleiches Verhalten), damit `src/features/aram/aramSite.test.ts` die App genau gegen diese Form prüft (gleicher Rang, Spiele, Form, letzte Spiele, Verlauf).
 - Geprüft: `pnpm build/lint/test`, Website tsc/lint, `cargo check` und Clippy für `x86_64-pc-windows-msvc` unter Linux (Rust-Tests nur in der CI unter Windows).
 

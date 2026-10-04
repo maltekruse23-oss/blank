@@ -48,7 +48,7 @@ export function RankPage({
   const alone = friends.length === 0 && !group.view;
   const { tab, dir, choose } = useSubTab<RankTab>('rank', tabs, alone ? 'group' : 'ladder');
   const showGame = (entry: (typeof games)[number]) =>
-    data && onShow(resultView(entry, { ...data, since }, players));
+    data && onShow(resultView(entry, { ...data, since }, players, site));
   const showPlayer = (player: AramPlayer) =>
     onPlayer({ player, players, games, meId: me?.puuid ?? null, showGame });
 

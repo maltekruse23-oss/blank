@@ -9,6 +9,7 @@ import { bestGames } from './aramStats';
 import type { AramHook } from './useAram';
 import type { AramGroupHook } from './useAramGroup';
 import { resultView, type AramResultView } from './useAramResult';
+import { boardOf, useSiteRanks } from './useSiteRanks';
 
 export type RecordsTab = 'records' | 'best';
 const tabs = [
@@ -40,10 +41,11 @@ export function AramPage({
   onGroup: () => void;
 }) {
   const view = aramView(aram, group, friends);
+  const site = boardOf(useSiteRanks());
   const { data, me, players, games, since } = view;
   const { tab, dir, choose } = useSubTab<RecordsTab>('aram', tabs, 'records');
   const showGame = (entry: AramEntry) =>
-    data && onShow(resultView(entry, { ...data, since }, players));
+    data && onShow(resultView(entry, { ...data, since }, players, site));
   const showPlayer = (player: AramPlayer) =>
     onPlayer({ player, players, games, meId: me?.puuid ?? null, showGame });
 
