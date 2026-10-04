@@ -104,6 +104,16 @@ curl.exe "$API/rekorde?scope=season"
 
 Antwort (gekürzt): `{ "scope", "season": { "id", "year", "number", "start" }, "group", "games", "players", "categories": [{ "id", "hue", "title", "note", "kind", "unit", "places": [{ "place", "puuid", "name", "icon", "value", "fresh", "game": { "gameId", "at", "seconds", "championId", "champion", "championName", "skin" } }] }] }`
 
+## GET /api/start
+
+Die Startseite: Kopfzahlen, die Top 10 der Rangliste (gleiche Form wie `players` bei /api/leaderboard), die drei besten Noten der letzten 24 Stunden, die Noten der laufenden Saison (Anzahl je Note F bis MAYHEM, ein Eintrag je Spieler und Spiel) und die Rekorde, deren Platz 1 in den letzten sieben Tagen entstand (höchstens vier, nur mit Platz 1). Alle Spieler, keine Gruppe. Nur hochgeladene, nicht umstrittene Spiele, also nur Spieler mit eigenem Profil.
+
+```powershell
+curl.exe "$API/start"
+```
+
+Antwort (gekürzt): `{ "season", "trackedGames", "players", "seasonGames", "grades": [{ "grade", "games" }], "today": [{ "puuid", "name", "grade", "gameId", "at", "seconds", "championId", "champion", "championName", "skin", "kills", "deaths", "assists", "damage" }], "top": [...], "records": [...] }`
+
 ## GET /api/players/<puuid>
 
 Rang, Saisonverlauf und fünf beste Spiele nach Note. Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.

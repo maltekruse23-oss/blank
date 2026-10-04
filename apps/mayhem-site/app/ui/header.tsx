@@ -7,7 +7,7 @@ import { profileImage, splitName, useDragon, type Board } from './data';
 import { Img } from './bits';
 
 const PAGES = [
-  { href: '/', label: 'Rangliste' },
+  { href: '/rangliste', label: 'Rangliste' },
   { href: '/rekorde', label: 'Rekorde' },
   { href: '/champions', label: 'Champions' },
   { href: '/wertung', label: "So funktioniert's" },
@@ -19,7 +19,7 @@ export function Nav() {
   return (
     <nav className="nav" aria-label="Seiten">
       {PAGES.map((p) => (
-        <a key={p.href} href={p.href} aria-current={(p.href === '/' ? path === '/' || path.startsWith('/players') || path.startsWith('/spiel') : path.startsWith(p.href)) ? 'page' : undefined}>
+        <a key={p.href} href={p.href} aria-current={(p.href === '/rangliste' ? path.startsWith('/rangliste') || path.startsWith('/players') || path.startsWith('/spiel') : path.startsWith(p.href)) ? 'page' : undefined}>
           {p.label}
         </a>
       ))}
@@ -29,7 +29,10 @@ export function Nav() {
 
 type Found = Board['players'][number];
 
-export function Search() {
+/** `big`: the large search on the start page (its own id for the list of hits). */
+export function Search({ big = false }: { big?: boolean }) {
+  const hitsId = big ? 'start-search-hits' : 'search-hits';
+  const path = usePathname();
   const router = useRouter();
   const dragon = useDragon();
   const [players, setPlayers] = useState<Found[] | null>(null);
@@ -57,8 +60,10 @@ export function Search() {
     router.push('/players/' + encodeURIComponent(p.puuid));
   };
 
+  // The start page has its own large search.
+  if (!big && path === '/') return <div className="search" aria-hidden />;
   return (
-    <div className="search">
+    <div className={big ? 'search big' : 'search'}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
         <circle cx="11" cy="11" r="7" />
         <path d="m20 20-3.5-3.5" />
@@ -69,7 +74,7 @@ export function Search() {
         aria-label="Spieler suchen"
         role="combobox"
         aria-expanded={open && hits.length > 0}
-        aria-controls="search-hits"
+        aria-controls={hitsId}
         value={query}
         onFocus={() => {
           setOpen(true);
@@ -91,7 +96,7 @@ export function Search() {
         }}
       />
       {open && q && players && (
-        <ul id="search-hits" role="listbox">
+        <ul id={hitsId} role="listbox">
           {hits.length ? (
             hits.map((p, i) => {
               const { name, tag } = splitName(p.name);
