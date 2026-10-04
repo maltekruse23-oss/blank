@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Eigene Domain mayhemstats.lol — 04.10.2026
+
+- Der Benutzer hat `mayhemstats.lol` bei Porkbun gekauft. App (`aram_website.rs`, `aram_archive.rs`), Collector (`engine.rs`), API-Anleitung, `API.md` und die Archiv-Skripte zeigen jetzt auf `https://mayhemstats.lol`. Die Website selbst nutzt nur `url.origin` und läuft unter beiden Adressen.
+- Reihenfolge: Codex verbindet die Domain (`DEPLOY.md`), der Benutzer setzt die DNS-Einträge, erst wenn `https://mayhemstats.lol/api/leaderboard` antwortet, mergen und ein App-Release bauen. Die alte `*.chatgpt.site`-Adresse muss für ältere App-Versionen weiter antworten.
+- Riot-Anfrage: Antragstext und Impressum-Vorlage liegen in einem Claude-Dokument des Benutzers (nicht im Repo); Product URL dort `https://mayhemstats.lol`. Riots Antwort steht noch aus.
+- Riot verlangt zur Prüfung `https://mayhemstats.lol/riot.txt` mit genau dem Code aus dem Antrag (`apps/mayhem-site/public/riot.txt`, ohne Zeilenumbruch). Nicht löschen, solange der Antrag läuft; danach „Verify URL“ im Riot-Portal.
+
 ## Etappe 6 (Teil 3): Karte nach dem Spiel mit dem Rang der Website — 04.10.2026
 
 - Die Karte (Rang-Band `RankStrip`, Popout und Dialog, auch „Ansehen“) rechnet den Schritt jetzt aus den Spielen des eigenen Website-Profils plus den Spielen auf diesem PC, die die Website noch nicht hat (`rankGames` in `aramSite.ts`; gleicher Code, gleiche Spiele, also derselbe Schritt, den die Website nach dem Upload zeigt). Ohne Profil auf der Website oder ohne Upload-Erlaubnis wie bisher lokal ab dem Gruppenstart.

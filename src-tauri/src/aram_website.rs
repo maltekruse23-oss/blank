@@ -13,7 +13,7 @@ use std::{
 };
 use tauri::{AppHandle, Emitter, Manager};
 
-const BASE: &str = "https://blank-mayhem.maltevfx.chatgpt.site";
+const BASE: &str = "https://mayhemstats.lol";
 const SERVICE: &str = "blank.aram.website";
 const MAX_BODY: usize = 60_000;
 /// The Site takes icons up to 24 KB of PNG (as base64 in a data URL) and 40 augments a request.

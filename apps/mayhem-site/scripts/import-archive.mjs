@@ -9,7 +9,7 @@ const args = process.argv.slice(2);
 const upload = args.includes('--upload');
 const source = args.find(a => !a.startsWith('--'));
 if (!source || args.some(a => a.startsWith('--') && a !== '--upload')) throw new Error('Usage: node scripts/import-archive.mjs <saved-run-directory> [--upload]');
-const origin = 'https://blank-mayhem.maltevfx.chatgpt.site';
+const origin = 'https://mayhemstats.lol';
 const manifest = JSON.parse(fs.readFileSync(path.join(source, 'archive-manifest.json')));
 const requests = JSON.parse(fs.readFileSync(path.join(source, 'requests.json')));
 const selected = requests.filter(r => r.label.startsWith('detail-'));

@@ -1,15 +1,15 @@
 # blank. Mayhem – API und Betrieb
 
-Basis: https://blank-mayhem.maltevfx.chatgpt.site/api
+Basis: https://mayhemstats.lol/api
 
-Website: https://blank-mayhem.maltevfx.chatgpt.site
+Website: https://mayhemstats.lol
 
 ## Verbindung und Schlüssel
 
-HTTPS-Basis: https://blank-mayhem.maltevfx.chatgpt.site/api. JSON; maximal 65.536 UTF-8-Bytes pro Schreibanfrage. Beispiele sind für PowerShell 7 mit curl.exe. In upload.json stehen echte AramEntry-Werte aus blank.; die Beispieldatei enthält ausschließlich erfundene Testwerte und darf nicht als echtes Spiel hochgeladen werden. Beim ersten Upload kann die App einen vorher sicher gespeicherten, kryptografisch zufälligen Schlüssel mit 64 Hex-Zeichen als Bearer mitsenden. Ohne Schlüssel erzeugt der Server einen und liefert playerToken einmalig zurück. Bei allen weiteren Uploads derselben player.puuid sowie join, leave und DELETE muss dieser Schlüssel mitgeschickt werden. Gruppen-restart braucht den separaten adminToken. Kein globaler Schlüssel gehört in Browser-Code oder eine veröffentlichte EXE. Diese Erstregistrierung beweist keine Riot-Identität.
+HTTPS-Basis: https://mayhemstats.lol/api. JSON; maximal 65.536 UTF-8-Bytes pro Schreibanfrage. Beispiele sind für PowerShell 7 mit curl.exe. In upload.json stehen echte AramEntry-Werte aus blank.; die Beispieldatei enthält ausschließlich erfundene Testwerte und darf nicht als echtes Spiel hochgeladen werden. Beim ersten Upload kann die App einen vorher sicher gespeicherten, kryptografisch zufälligen Schlüssel mit 64 Hex-Zeichen als Bearer mitsenden. Ohne Schlüssel erzeugt der Server einen und liefert playerToken einmalig zurück. Bei allen weiteren Uploads derselben player.puuid sowie join, leave und DELETE muss dieser Schlüssel mitgeschickt werden. Gruppen-restart braucht den separaten adminToken. Kein globaler Schlüssel gehört in Browser-Code oder eine veröffentlichte EXE. Diese Erstregistrierung beweist keine Riot-Identität.
 
 ```powershell
-$API = "https://blank-mayhem.maltevfx.chatgpt.site/api"
+$API = "https://mayhemstats.lol/api"
 $PUUID = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 $GROUP = "AbCdEf123456"
 $TOKEN = "PERSOENLICHER_SCHLUESSEL"

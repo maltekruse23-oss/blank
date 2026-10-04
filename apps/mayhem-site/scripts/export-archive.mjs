@@ -9,7 +9,7 @@ const token = process.env.ARCHIVE_IMPORT_TOKEN;
 if (!destination || process.argv.length !== 3) throw new Error('Usage: node scripts/export-archive.mjs <new-backup-directory>');
 if (!/^[a-f0-9]{64}$/.test(token ?? '')) throw new Error('Private ARCHIVE_IMPORT_TOKEN environment variable required');
 if (fs.existsSync(destination)) throw new Error('Use a new backup directory; existing backups are never overwritten');
-const base = 'https://blank-mayhem.maltevfx.chatgpt.site';
+const base = 'https://mayhemstats.lol';
 const headers = { Authorization:`Bearer ${token}` };
 async function get(route) {
     const r = await fetch(base + route, { headers, redirect:'error', signal:AbortSignal.timeout(30000) });
