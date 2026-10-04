@@ -1,12 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { climbing, gradeShares, RULES, seasonStarts, tiers, weights } from '../../../apps/mayhem-site/src/explain';
+import {
+  climbing,
+  gradeShares,
+  RULES,
+  seasonStarts,
+  tiers,
+  weights,
+} from '../../../apps/mayhem-site/src/explain';
 
 // The website's "So funktioniert's" (apps/mayhem-site/src/explain.ts): every number on the page
 // comes from the rating core, so it says what the calculation does.
 describe('website explanation', () => {
   it('lists the ten grades with shares that add up to all games', () => {
     const grades = gradeShares();
-    expect(grades.map((g) => g.grade)).toEqual(['F', 'E', 'D', 'C', 'B', 'A', 'S', 'SS', 'SSS', 'MAYHEM']);
+    expect(grades.map((g) => g.grade)).toEqual([
+      'F',
+      'E',
+      'D',
+      'C',
+      'B',
+      'A',
+      'S',
+      'SS',
+      'SSS',
+      'MAYHEM',
+    ]);
     expect(grades.reduce((t, g) => t + g.share, 0)).toBeCloseTo(1, 9);
     expect(grades[0].share).toBeCloseTo(0.03, 9);
     expect(grades[9].share).toBeCloseTo(0.003, 9);
@@ -31,7 +49,14 @@ describe('website explanation', () => {
   });
 
   it('names the rules of the ladder', () => {
-    expect(RULES).toEqual({ placement: 5, placementCap: 'S I', shield: 3, maxSwing: 30, averageGames: 20, remakeMinutes: 8 });
+    expect(RULES).toEqual({
+      placement: 5,
+      placementCap: 'S I',
+      shield: 3,
+      maxSwing: 30,
+      averageGames: 20,
+      remakeMinutes: 8,
+    });
     // S: usual ±20; a hidden rating well above the rank gives more and takes less.
     expect(climbing(4)).toEqual({ up: 27, down: -13 });
     expect(seasonStarts(2026)).toEqual(['8. Januar', '29. April', '29. Juli']);
