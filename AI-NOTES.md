@@ -1,5 +1,65 @@
 # Notizen für die nächste KI
 
+Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
+Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
+
+## Rangicons — 04.10.2026
+
+Freigegebene Augment-v3-PNGs in `src/features/aram/emblems/` eingebaut, SSS ohne die zwei
+schwebenden Dreiecke. Dieselben Dateien für die bestehende Website. Zehn Assets vorhanden;
+die aktuelle Berechnung verwendet weiterhin acht Stufen D bis MAYHEM. F/E sind nur vorbereitet.
+Keine Änderungen an MMR, Ranggrenzen, Datenbank oder Uploads. PNGs unverändert mit schwarzem
+Hintergrund, 1254 × 1254 Pixel; nicht durch das alte Aufbereitungsskript laufen lassen.
+Die Darstellung nutzt `mix-blend-mode: screen` für `.rank-emblem` und auf der Website für
+Emblem-Bilder: Schwarz verschwindet auf den dunklen Oberflächen. Die PNG-Dateien selbst
+haben weiterhin einen schwarzen Hintergrund. Generierte Freistellungsversuche wurden wegen
+Artefakten bzw. eingebranntem Schachbrett verworfen und sind nicht integriert.
+Vorherige Assets und betroffene Notizen vor der Änderung extern gesichert.
+
+## Automatisches Rohdatenarchiv — 03.10.2026
+
+Benutzerauftrag: Sicherungen zurückstellen; neue Mayhem-Matches automatisch mit vollständigen
+Rohdaten auf der bestehenden Website archivieren. `aram_archive.rs` hängt an den bereits
+vorhandenen Matchdetail-Abrufen: originale Antwortbytes vor der Reduktion auf Ranglisteneinträge
+in einer dauerhaften Outbox im App-Konfigurationsordner sichern. Keine zusätzlichen LCU-Abfragen,
+kein Crawler, keine Timeline-Abfrage und kein MMR-Umbau. Bestehende Freunde bleiben im bisherigen
+Sync-Umfang; alte bereits vollständig gespeicherte Matches werden nicht nachträglich abgefragt.
+
+Upload mit 5 Sekunden Abstand, SHA-256-Bestätigung, Wiederholungen und bestehendem Pause-Schalter.
+Outbox begrenzt auf 256 MB; bei Problemen bleiben Rohdaten erhalten. Erst nach bestätigter
+Archivierung wird die lokale Warteschlangendatei durch einen kleinen Beleg ersetzt. Die UI zählt
+archivierte Matches und offene Archiv-Uploads getrennt von Ranglisteneinträgen. Automatische
+Backups sind weiterhin nicht eingerichtet.
+
+Privater Pilot: Archivschlüssel nur in Windows Credential Manager (`blank.aram.archive`, `import`),
+nicht in Code/EXE/Frontend. `examples/configure_archive.rs` nimmt ihn einmalig über stdin entgegen
+und überschreibt keinen anderen vorhandenen Schlüssel. Für weitere Nutzer ist noch eine eigene
+begrenzte Berechtigungslösung nötig; den administrativen Pilotschlüssel nicht verteilen.
+
+Native und Frontend-Prüfungen bestanden; Live-Upload eines bereits archivierten echten Matches
+bestätigt, Zähler unverändert. Windows-EXE gebaut und nach ausdrücklicher Freigabe am 03.10.2026
+in die vorhandene Installation übernommen und neu gestartet. Neuer Prozess mit Fenster `blank.`
+antwortet; installierte EXE stimmt per SHA-256 mit dem Build überein. Echter neuer Spielabschluss
+mit dieser EXE bleibt zu prüfen. Kein Commit/Push/Release.
+Vorherige Quelldateien und gezielte Rücknahme liegen im Aufgabenordner `outputs/automatic-archive`.
+
+## Isolierter LCU-Test — 02.10.2026
+
+Auf Benutzerauftrag wurde `src-tauri/src/aram_lcu_probe.rs` ergänzt, ausschließlich über
+`#[cfg(test)]` in `aram.rs` eingebunden und standardmäßig ignoriert. Nutzt das vorhandene
+`Lcu::connect()` und dessen HTTP-Client; keine Produktionslogik oder Datenstruktur geändert.
+Ein manueller Lauf mit sieben GETs lieferte siebenmal HTTP 200: Ein Nicht-Freund aus einem
+gespeicherten Queue-2400-Spiel hatte 21 Mayhem-Spiele in seiner History. Ein zusätzliches
+Mayhem-Spiel ohne den eingeloggten Account lieferte zehn PUUIDs, davon acht außerhalb des
+Seed-Spiels, Teilnehmerstatistiken und eine Timeline mit 20 Frames/149 Events.
+Das belegt genau einen Entdeckungsschritt, keine flächendeckende Erfassung oder Skalierbarkeit.
+Rohdaten bleiben außerhalb des öffentlichen Repos. `aram.json` war nach dem Lauf bytegleich.
+Wiederholung: `BLANK_LCU_PROBE_OUTPUT` auf einen neuen externen Ordner und
+`BLANK_LCU_PROBE_STORE` auf die vorhandene `aram.json` setzen, dann in `src-tauri`
+`cargo test --lib foreign_mayhem_history_probe -- --ignored --nocapture` ausführen.
+Entfernen: Testdatei und zugehörige vierzeilige Moduldeklaration aus `aram.rs` löschen.
+Kein Crawler, kein MMR-System, kein Commit, kein Push, kein Release.
+
 Übergabe zwischen KI-Sitzungen (Claude, ChatGPT/Codex …), die an blank. weiterarbeiten. Die Regeln
 stehen in `CLAUDE.md` (zuerst lesen, gilt für alle), Prüfstände in `VALIDATION.md`, Bedienung in
 `README.md`. Hier steht nur, **woran gerade gearbeitet wird, was entschieden ist und was offen
@@ -77,6 +137,8 @@ Rechnung aus `aramRating.ts`, vorher Riot per Developer-Portal fragen.
 
 ## Verlauf
 
+- 04.10.2026: Rangsystem neu (Vorgaben des Benutzers): Note F–MAYHEM je Spiel nach Champion-Vergleich statt Plätze, versteckte Wertung (Kalman), Rang nach 5 Spielen, Apex-Tor für SSS/MAYHEM, Leistungs-Wertung; `aramBias.ts` und `mark-bias.ts` ersetzt durch `aramBase.ts` und `perf-base.ts`.
+
 - 01.10.2026: Release 0.9.1 (Seitenleiste neu, Rang eigene Seite, Ladder nach LoL-Referenz).
 
 - 30.09.2026 (7): Seitenleiste neu (Benutzerwunsch): Abschnitte Übersicht · ARAM (Rang, Rekorde) · Medien (Twitch, Pros, Musik) · System; Rang als eigene Seite mit Unterreitern Rangliste · Mein Verlauf · Gruppe; Rekorde mit Rekorde · Beste Spiele; eine Unterreiter-Logik für alle (`components/SubTabs.tsx`).
@@ -97,4 +159,3 @@ Rechnung aus `aramRating.ts`, vorher Riot per Developer-Portal fragen.
 - 30.09.2026: Store-Bilder und Opera-Teil in `extension/STORE.md`; `aram.json` v3 (Werte aller
   zehn); Mayhem-Wertung mit Tests, Rollen und Ausgleich; Riot-API-Prüfung (kein Mayhem); diese
   Notizen angelegt.
-- 04.10.2026: Rangsystem neu (Vorgaben des Benutzers): Note F–MAYHEM je Spiel nach Champion-Vergleich statt Plätze, versteckte Wertung (Kalman), Rang nach 5 Spielen, Apex-Tor für SSS/MAYHEM, Leistungs-Wertung; `aramBias.ts` und `mark-bias.ts` ersetzt durch `aramBase.ts` und `perf-base.ts`.

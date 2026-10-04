@@ -6,6 +6,7 @@ import { countedGames, sinceGames } from './aramStats';
 import { day } from './format';
 import type { AramHook } from './useAram';
 import type { AramGroupHook } from './useAramGroup';
+import { AramWebsite } from './AramWebsite';
 
 /** What both ARAM pages (Rang, Rekorde) show: the players on the list and the games that count. */
 export type AramView = {
@@ -65,6 +66,7 @@ export function AramNotes({ aram, view }: { aram: AramHook; view: AramView }) {
     : [];
   return (
     <>
+      <AramWebsite />
       {state.status === 'ready' && state.staleBecause && (
         <div className="notice" role="status">
           Aktualisierung fehlgeschlagen: {state.staleBecause}

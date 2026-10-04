@@ -1,0 +1,4 @@
+/* Preserve approved artwork while removing its black matte on the dark Site surfaces. */
+img[src^="/emblems/"] {
+  mix-blend-mode: screen;
+}

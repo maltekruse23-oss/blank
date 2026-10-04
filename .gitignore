@@ -9,3 +9,8 @@ src-tauri/gen/
 *.log
 .DS_Store
 .idea/
+apps/**/target/
+apps/**/gen/
+apps/**/.wrangler/
+apps/**/.sites-runtime/
+apps/mayhem-site/public/downloads/

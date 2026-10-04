@@ -96,6 +96,11 @@ pub fn run() {
             app.manage(aram::AramState::new(app.handle())?);
             #[cfg(windows)]
             {
+                app.manage(aram::website::WebsiteState::new(app.handle())?);
+                aram::website::enqueue(app.handle());
+            }
+            #[cfg(windows)]
+            {
                 app.manage(update::UpdateState::default());
                 update::clean_up();
                 autostart::repair();
@@ -178,6 +183,7 @@ pub fn run() {
             aram::aram_data,
             #[cfg(windows)]
             aram::aram_sync,
+            aram::website::aram_website,
             #[cfg(windows)]
             aram::aram_friends,
             #[cfg(windows)]
