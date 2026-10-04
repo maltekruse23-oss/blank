@@ -39,9 +39,10 @@ export default function HidePage() {
       <span className="eyebrow">BLANK. / DATENSCHUTZ</span>
       <h1>Namen ausblenden.</h1>
       <p>
-        Gib ein Spiel an, in dem du mitgespielt hast, und deine Riot-ID. Danach erscheint dein Name auf keiner Seite und
-        in keiner Antwort der API mehr, in allen Spielen, auch in künftigen. Deine Werte bleiben anonym in den Spielen,
-        dort steht dann der Champion statt deines Namens.
+        Gib ein Spiel an, in dem du mitgespielt hast, und deine Riot-ID. Danach erscheinen dein Name und deine
+        Spielerseite auf keiner Seite und in keiner Antwort der API mehr, auch nicht in Rangliste und Suche, in allen
+        Spielen, auch in künftigen. Deine Werte bleiben anonym in den Spielen, dort steht dann der Champion statt
+        deines Namens.
       </p>
       {state.done ? (
         <div className="notice" role="status">

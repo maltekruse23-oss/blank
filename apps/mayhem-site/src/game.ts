@@ -1,8 +1,8 @@
 // One game for the page /spiel/<id>: all ten players with their Riot IDs. The names come from the
 // raw archive (the client's full answer for the game); without it, the uploaded entries give the
 // values of all ten, but names only of the uploaders and their friends in the game.
-// Only registered players (those who upload themselves) keep their PUUID, for the link to their
-// profile; nobody else's PUUID leaves the server. Pure, tested in the app's repo
+// Registered players (those who upload themselves) keep their PUUID for the link to their profile;
+// everyone else from the archive is linked by a public id (`a<number>`), never by their PUUID. Pure, tested in the app's repo
 // (src/features/aram/siteGame.test.ts).
 import type { AramEntry, AramSeat } from './adapters/aram';
 import { rawAugments } from './augments';
@@ -28,7 +28,8 @@ export type RawGame = {
 export type GamePlayer = Omit<AramSeat, 'you'> & {
   /** Riot ID ("Name#TAG"); null when no source names this player. */
   name: string | null;
-  /** Only for registered players (they have a profile); never anyone else's. */
+  /** Link to the profile: the PUUID of a registered player, the public id of anyone else from the
+   * archive (src/archive-entries.ts); null for players who asked not to be named. */
   puuid: string | null;
   win: boolean;
   /** Missing values stay null (never 0). */
@@ -78,7 +79,7 @@ const byTeam = (players: GamePlayer[]) =>
 /**
  * The game from its raw archive and the uploaded entries (both optional, at least one needed).
  * `registered` holds the PUUIDs that may be linked, `hidden` those who asked not to be named
- * (only without a profile: registered players stay named).
+ * (only without a profile: registered players stay named), `links` the public ids of the others.
  */
 export function gameView(
   entries: AramEntry[],
@@ -86,8 +87,10 @@ export function gameView(
   registered: ReadonlySet<string>,
   disputed = false,
   hidden: ReadonlySet<string> = new Set(),
+  links: ReadonlyMap<string, string> = new Map(),
 ): GameView | null {
-  const keep = (puuid: string | undefined) => (puuid && registered.has(puuid) ? puuid : null);
+  const keep = (puuid: string | undefined) =>
+    !puuid ? null : registered.has(puuid) ? puuid : hidden.has(puuid) ? null : (links.get(puuid) ?? null);
   const shown = (puuid: string | undefined) => !puuid || registered.has(puuid) || !hidden.has(puuid);
   const keys = new Map(entries.filter((e) => e.champion).map((e) => [e.championId, e.champion]));
   const named = dedupe(
