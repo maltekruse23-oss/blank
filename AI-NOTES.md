@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 3 (Teil 2): Rekorde — 04.10.2026
+
+- Neue Seite `apps/mayhem-site/app/rekorde/page.tsx` (in der Navigation) und Endpunkt `GET /api/rekorde` (`src/api.ts`, `records()`): je Kategorie eine Karte in der Farbe ihrer Art (Tokens `--game-*` wie in der App), Platz 1 groß mit Splash des gespielten Skins (Standard-Splash als Ersatzebene), Krone, Wert und „Spiel ansehen“ (`/spiel/<id>?p=<puuid>`), darunter Plätze 2–10 mit Link zum Profil und zum Spiel. Zeitraum „Alle Zeiten“ (Standard) oder „Diese Saison“ (`seasonOf`), Gruppencode wie auf der Rangliste. „Neu diese Woche“ als Leiste oben (Platz 1 aus den letzten sieben Tagen) und „Neu“ an jedem Platz.
+- Reine Logik in `apps/mayhem-site/src/records.ts` (`RECORDS`, `recordsView`), getestet in `src/features/aram/siteRecords.test.ts`: gleiche Kategorien, Reihenfolge und Werte wie `recordCategories`/`ranking` der App, Gleichstand = gleicher Platz, fehlende Details nie 0, keine PUUIDs aus `with`. Neue Rekord-Kategorie in der App → auch in `RECORDS` (Test schlägt sonst fehl).
+- Nur Spiele aus `games` (Hochladende), also nur Spieler mit Profil; Name und Symbol aus `players`.
+- Lokal geprüft mit erfundenen Spielern (lokale D1): 1400 px und 375 px ohne Querscrollen, keine Fehler in der Konsole. Data Dragon in der Prüfumgebung gesperrt, Splash und Champion-Bilder deshalb nicht im Bild gesehen.
+
 ## Website Etappe 3 (Teil 1): Spiel-Seite — 04.10.2026
 
 - Neue Seite `apps/mayhem-site/app/spiel/[id]/page.tsx` und Endpunkt `GET /api/spiel/<gameId>` (`src/api.ts`, `game()`): Kopf mit Kills je Seite, Sieg/Niederlage, Datum, Dauer, Patch; beide Teams untereinander mit Riot-ID, Note (gleiche Regel für jeden Sitz), MVP, K/D/A, Schaden, Gold, Items; Vergleichsbalken (Schaden, Eingesteckt, Heilen & Schilde, Gold); „Warum diese Note“ mit den fünf Achsen gegen den Champion-Schnitt, Wahl per Klick auf die Note. `?p=<puuid>` hebt einen Spieler hervor (Link aus dem Matchverlauf des Profils: „Ganzes Spiel ansehen“).

@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { db, query, rows, hash, secret, archiveBucket } from './storage';
 import { uploadSchema, groupSchema, memberSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
-import { standings, rankResult, RATING_VERSION, CLIMBING } from './features/aram/aramRating';
+import { standings, rankResult, seasonOf, RATING_VERSION, CLIMBING } from './features/aram/aramRating';
 import type { AramEntry } from './adapters/aram';
 import { archiveRoute } from './archive';
 import { gameView, type RawGame } from './game';
+import { recordsView } from './records';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -226,6 +227,25 @@ async function game(gameId: number) {
     }
     return gameView(list, raw, registered, uploaded.some(r => r.disputed)) ?? fail(404, 'Spiel nicht gefunden');
 }
+/** The records (/rekorde): every category's best ten players with the game of their value, all time
+ * or this season (seasonOf, three a year), optionally of one group from its start. */
+async function records(url: URL) {
+    const c = await context(url);
+    const scope = url.searchParams.get('scope') ?? 'all';
+    if (scope !== 'all' && scope !== 'season')
+        fail(400, 'scope muss all oder season sein');
+    const now = Date.now();
+    const season = seasonOf(now);
+    const all = await entries(scope === 'season' ? Math.max(c.since, season.start) : c.since, c.group?.code ?? null);
+    const ids = [...new Set(all.map(e => e.puuid))];
+    const players = new Map<string, { name: string; icon: number | null }>();
+    for (let i = 0; i < ids.length; i += 50) {
+        const part = ids.slice(i, i + 50);
+        for (const r of await rows<{ puuid: string; name: string; icon: number | null }>(`SELECT puuid,name,icon FROM players WHERE puuid IN (${part.map(() => '?').join(',')})`, ...part))
+            players.set(r.puuid, { name: r.name, icon: r.icon });
+    }
+    return json({ scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, group: c.group, games: new Set(all.map(e => e.gameId)).size, players: ids.length, categories: recordsView(all, now, players) });
+}
 /** The archived raw game, or null (not archived, or the archive is unavailable: the page then
  * falls back to the uploads). */
 async function archived(gameId: number): Promise<RawGame | null> {
@@ -309,6 +329,8 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
                 puuid: string;
             }>('SELECT gameId,puuid FROM games WHERE disputed=1 AND at>=? AND (? IS NULL OR puuid IN (SELECT puuid FROM group_members WHERE code=?))', Math.max(since, g?.since ?? 0), code, code), since: Math.max(since, g?.since ?? 0) });
     }
+    if (path === '/api/rekorde' && method === 'GET')
+        return records(url);
     const sm = path.match(/^\/api\/spiel\/([1-9][0-9]{0,12})$/);
     if (sm && method === 'GET')
         return json(await game(Number(sm[1])));
