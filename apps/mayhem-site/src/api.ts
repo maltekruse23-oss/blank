@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { db, query, rows, hash, secret } from './storage';
 import { uploadSchema, groupSchema, memberSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
-import { standings, rankResult, RATING_VERSION } from './features/aram/aramRating';
+import { standings, rankResult, RATING_VERSION, CLIMBING } from './features/aram/aramRating';
 import type { AramEntry } from './adapters/aram';
 import { archiveRoute } from './archive';
 class ApiError extends Error {
@@ -60,7 +60,10 @@ async function entries(since = 0, code: string | null = null, player: string | n
     json: string;
     disputed: number;
 }>(sql, ...args)).map(r => ({ ...JSON.parse(r.json), ...(includeDisputed ? { disputed: !!r.disputed } : {}) })) as AramEntry[]; }
-const summary = (s: ReturnType<typeof standings>[number]) => ({ puuid: s.puuid, name: s.name, rank: s.rank, games: s.games, last6: s.history.slice(-6).map(h => ({ gameId: h.entry.gameId, at: h.entry.at, gain: h.gain, mark: h.mark.value, change: h.change })) });
+type Standing = ReturnType<typeof standings>[number];
+/** What the site shows of a standing; never the hidden rating (Standing.hidden), only whether the form is above the rank. */
+const open = (s: Standing) => ({ puuid: s.puuid, name: s.name, rank: s.rank, games: s.games, wins: s.wins, placed: s.placed, climbing: s.rank !== null && s.form >= CLIMBING, average: s.average, seasons: s.seasons });
+const summary = (s: Standing) => ({ ...open(s), last6: s.history.slice(-6).map(h => ({ gameId: h.entry.gameId, at: h.entry.at, gain: h.gain, grade: h.mark.grade, change: h.change })) });
 async function rate(req: Request) { const ip = req.headers.get('cf-connecting-ip') ?? 'local'; const now = Date.now(), bucket = Math.floor(now / 60000); const key = await hash(`${bucket}:${ip}`); const results = await db().batch([query('DELETE FROM rate_limits WHERE expires<=?', now), query('INSERT INTO rate_limits (key,expires,count) VALUES (?,?,1) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count', key, (bucket + 1) * 60000)]); const count = (results[1].results[0] as {
     count: number;
 }).count; if (count > 30)
@@ -277,7 +280,7 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
                 fail(404, 'Spieler nicht gefunden');
             const all = await entries(c.since, c.group?.code ?? null, id);
             const s = standings(all, c.since)[0];
-            return json({ ...p, season: c.season, group: c.group, rank: s?.rank ?? null, games: s?.games ?? 0, history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.value - a.mark.value || a.entry.gameId - b.entry.gameId).slice(0, 5) });
+            return json({ ...p, season: c.season, group: c.group, ...(s ? open(s) : { rank: null, games: 0, wins: 0, placed: 0, climbing: false, average: null, seasons: [] }), history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.pct - a.mark.pct || a.entry.gameId - b.entry.gameId).slice(0, 5) });
         }
         if (method === 'DELETE') {
             await authorize(req, id);
