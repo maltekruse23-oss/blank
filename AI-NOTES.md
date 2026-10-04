@@ -3,6 +3,16 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 2: neue Gestaltung, Rangliste, Profil — 04.10.2026
+
+- `apps/mayhem-site/app/globals.css` neu: Tokens (Flächen, Text, Akzent, Farbe je Note `--grade-*` und Stufe `--tier-*`), keine festen Farben in Komponenten. Kopf mit Navigation und Spielersuche (`app/ui/header.tsx`), Fußzeile mit Riot-Hinweis (eigene Formulierung).
+- Rangliste (`app/ranking.tsx`): Apex-Karten (MAYHEM ab 800 MP, SSS ab 400 MP), Tabelle nach Rang oder Leistung Ø, Champions, Form (letzte 6 Noten), Verteilung als Histogramm, „So zählt es“, Mitmachen (Archiv-Zähler, Collector).
+- Profil (`app/players/[puuid]/page.tsx`): Rang-Karte, MP-Verlauf der Saison mit Stufenlinien und Auf-/Abstieg, Radar der fünf Notenachsen (Abstand zum Champion-Schnitt, letzte 20), Spielstil-Abzeichen, Form, Matchverlauf zum Aufklappen auf alle zehn (Note je Sitz nach derselben Regel, MVP = beste Note), Champions-Tabelle, Saisons.
+- Reine Ansichten in `apps/mayhem-site/src/insights.ts`, getestet in `src/features/aram/siteInsights.test.ts`. API: Leaderboard liefert zusätzlich `icon` und `champions` (Top 3).
+- Rang-Zeichen bis zu den neuen Rang-Icons des Benutzers: Buchstaben in einer Stein-Form in Stufenfarbe (`TierMark`). Die zehn Wappen liegen als Noten-Icons in `public/grades/` (256 px); `public/emblems` entfernt.
+- Namen in einem Spiel: nur Spieler aus `with` (Freunde im Spiel) und der Spieler selbst; die anderen erscheinen mit Champion-Namen, weil `lobby` keine Riot-IDs enthält (Benutzerwunsch Riot-IDs aller zehn: braucht die Rohdaten aus dem Archiv, Etappe 3).
+- Lokal geprüft mit echten Spielen aus der App (nur lokale D1): Desktop 1400 px und Handy 375 px ohne Querscrollen, Integrationstest grün, Build grün.
+
 ## Website: neue Seite geplant, Etappe 1 (gleiche Wertung wie die App) — 04.10.2026
 
 - Plan der neuen öffentlichen Website: `apps/mayhem-site/PLAN.md` (Seiten, Gestaltung, Technik, Etappen 1–6). Benutzer: Ränge sofort öffentlich, alle zehn Spieler mit Riot-ID; die heutigen zehn Wappen werden Noten-Icons, neue Rang-Icons liefert der Benutzer.

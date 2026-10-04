@@ -1,0 +1,247 @@
+'use client';
+// Small parts used on every page: grades, rank marks, images, tabs and the charts (plain SVG,
+// no chart library).
+import type { ReactNode } from 'react';
+import type { Grade } from '../../src/features/aram/aramPerformance';
+import { rankName, TIERS, type Rank } from '../../src/features/aram/aramRating';
+import { AXES } from '../../src/insights';
+
+// ---- Grades and ranks ---------------------------------------------------------------------
+
+export function GradeIcon({ grade, size = 46 }: { grade: Grade; size?: number }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- static artwork, fixed size
+    <img
+      className="grade-icon"
+      src={`/grades/${grade.toLowerCase()}.png`}
+      width={size}
+      height={size}
+      alt={`Note ${grade}`}
+    />
+  );
+}
+
+export function GradeChip({ grade, gain, small }: { grade: Grade; gain?: number | null; small?: boolean }) {
+  const title = gain === undefined || gain === null ? `Note ${grade}` : `Note ${grade}, ${gain > 0 ? '+' : ''}${gain} MP`;
+  return (
+    <span className={'grade' + (gain !== undefined ? ' gain' : '') + (small ? ' sm' : '')} data-g={grade} title={title}>
+      {grade}
+      {gain !== undefined && gain !== null && (
+        <em className={gain > 0 ? 'up' : 'down'}>
+          {gain > 0 ? '+' : '−'}
+          {Math.abs(gain)}
+        </em>
+      )}
+    </span>
+  );
+}
+
+/** The rank's mark (letters in a gem until the rank icons are delivered). */
+export function TierMark({ rank, size }: { rank: Rank | null; size?: number }) {
+  const style = size ? ({ '--size': `${size}px` } as React.CSSProperties) : undefined;
+  if (!rank)
+    return (
+      <span className="tier-mark none" style={style} aria-hidden>
+        ?
+      </span>
+    );
+  return (
+    <span
+      className="tier-mark"
+      data-tier={rank.tier.id}
+      data-len={rank.tier.name.length}
+      style={style}
+      aria-hidden
+    >
+      {rank.tier.name}
+    </span>
+  );
+}
+
+/** Share of the current division that is filled, 0–100 (always full from the apex line on). */
+export const fillOf = (rank: Rank) => (rank.division === null ? 100 : rank.points);
+
+export function RankLine({ rank, placed }: { rank: Rank | null; placed: number }) {
+  return (
+    <div className="rank-cell" data-tier={rank?.tier.id}>
+      <TierMark rank={rank} />
+      <div>
+        {rank ? (
+          <>
+            <b className="tier-text">{rankName(rank)}</b>{' '}
+            <span className="muted num">{rank.points} MP</span>
+            <div className="mp-bar" aria-hidden>
+              <span style={{ width: `${fillOf(rank)}%` }} />
+            </div>
+          </>
+        ) : (
+          <>
+            <b className="muted">Einstufung</b> <span className="faint num">{placed}/5</span>
+            <div className="mp-bar" aria-hidden>
+              <span style={{ width: `${placed * 20}%`, background: 'var(--faint)' }} />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- Images ---------------------------------------------------------------------------------
+
+export function Img({ src, className, alt = '', size }: { src?: string; className: string; alt?: string; size?: number }) {
+  // eslint-disable-next-line @next/next/no-img-element -- images from Riot's CDN, no optimizer
+  return src ? <img className={className} src={src} alt={alt} width={size} height={size} loading="lazy" /> : <span className={className} aria-hidden />;
+}
+
+// ---- Tabs -----------------------------------------------------------------------------------
+
+export function Tabs<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  options: { id: T; label: ReactNode }[];
+  onChange: (id: T) => void;
+  label: string;
+}) {
+  return (
+    <div className="tabs" role="tablist" aria-label={label}>
+      {options.map((o, i) => (
+        <button
+          key={o.id}
+          role="tab"
+          aria-selected={o.id === value}
+          tabIndex={o.id === value ? 0 : -1}
+          onClick={() => onChange(o.id)}
+          onKeyDown={(e) => {
+            const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+            if (!step) return;
+            const next = options[(i + step + options.length) % options.length];
+            onChange(next.id);
+            (e.currentTarget.parentElement?.children[(i + step + options.length) % options.length] as HTMLElement)?.focus();
+          }}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ---- Charts ---------------------------------------------------------------------------------
+
+/** How many players are in each tier. */
+export function Histogram({ rows }: { rows: { tier: (typeof TIERS)[number]; players: number }[] }) {
+  const most = Math.max(1, ...rows.map((r) => r.players));
+  return (
+    <div className="histogram" style={{ '--n': rows.length } as React.CSSProperties} role="img" aria-label={rows.map((r) => `${r.tier.name}: ${r.players}`).join(', ')}>
+      {rows.map((r, i) => (
+        <div key={r.tier.id} data-tier={r.tier.id}>
+          <span className="num">{r.players || ''}</span>
+          <div className="track">
+            <div className="bar" style={{ height: `${(r.players / most) * 100}%`, animationDelay: `${i * 40}ms` }} />
+          </div>
+          <span className="label">{r.tier.name}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The way through the season: the ladder after each game, tier lines, rise and fall marked. */
+export function LadderChart({ points }: { points: { ladder: number; change: string | null }[] }) {
+  const W = 640;
+  const H = 200;
+  if (points.length < 2) return <p className="empty">Der Verlauf erscheint ab zwei gewerteten Spielen.</p>;
+  const values = points.map((p) => p.ladder);
+  const low = Math.max(0, Math.floor((Math.min(...values) - 60) / 100) * 100);
+  const high = Math.ceil((Math.max(...values) + 60) / 100) * 100;
+  const x = (i: number) => 30 + (i / (points.length - 1)) * (W - 40);
+  const y = (v: number) => 10 + (1 - (v - low) / Math.max(1, high - low)) * (H - 30);
+  const line = points.map((p, i) => `${x(i).toFixed(1)},${y(p.ladder).toFixed(1)}`).join(' ');
+  const tierLines = TIERS.map((t, i) => ({ tier: t, at: i * 400 })).filter((t) => t.at > low && t.at < high);
+  return (
+    <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="MP-Verlauf der Saison">
+      {[0.25, 0.5, 0.75].map((f) => (
+        <line key={f} className="grid-line" x1={30} x2={W - 10} y1={10 + f * (H - 30)} y2={10 + f * (H - 30)} />
+      ))}
+      {tierLines.map((t) => (
+        <g key={t.tier.id} data-tier={t.tier.id}>
+          <line className="grid-line tier" x1={30} x2={W - 10} y1={y(t.at)} y2={y(t.at)} />
+          <text className="tier-label" x={0} y={y(t.at) + 4}>
+            {t.tier.name}
+          </text>
+        </g>
+      ))}
+      <polygon className="area" points={`${x(0)},${H - 20} ${line} ${x(points.length - 1)},${H - 20}`} />
+      <polyline className="line" points={line} />
+      {points.map((p, i) =>
+        p.change === 'promoted' || p.change === 'demoted' ? (
+          <circle key={i} className={p.change === 'promoted' ? 'dot-up' : 'dot-down'} cx={x(i)} cy={y(p.ladder)} r={4.5}>
+            <title>{p.change === 'promoted' ? 'Aufstieg' : 'Abstieg'}</title>
+          </circle>
+        ) : null,
+      )}
+      <text x={30} y={H - 4}>
+        Spiel 1
+      </text>
+      <text x={W - 10} y={H - 4} textAnchor="end">
+        Spiel {points.length}
+      </text>
+    </svg>
+  );
+}
+
+/** A small line of values 0–1 (the form: percentiles of the last games). */
+export function Sparkline({ values, height = 46 }: { values: number[]; height?: number }) {
+  const W = 300;
+  if (values.length < 2) return null;
+  const x = (i: number) => (i / (values.length - 1)) * W;
+  const y = (v: number) => 4 + (1 - v) * (height - 8);
+  const line = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  return (
+    <svg className="chart" viewBox={`0 0 ${W} ${height}`} role="img" aria-label="Form der letzten Spiele">
+      <line className="grid-line" x1={0} x2={W} y1={y(0.5)} y2={y(0.5)} />
+      <polygon className="area" points={`0,${height} ${line} ${W},${height}`} />
+      <polyline className="line" points={line} />
+    </svg>
+  );
+}
+
+/** The five axes of the grade: outside = better than the champion usually is. */
+export function Radar({ values }: { values: number[] }) {
+  const S = 320;
+  const c = S / 2;
+  const R = 92;
+  const labels = Object.values(AXES);
+  const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / labels.length;
+  // −2 … +2 spreads mapped to 0 … R (0 = the champion's usual game, the dashed ring).
+  const r = (v: number) => (Math.max(-2, Math.min(2, v)) + 2) / 4 * R;
+  const pt = (i: number, radius: number) => `${(c + Math.cos(angle(i)) * radius).toFixed(1)},${(c + Math.sin(angle(i)) * radius).toFixed(1)}`;
+  const ring = (radius: number) => labels.map((_, i) => pt(i, radius)).join(' ');
+  return (
+    <svg className="chart radar" viewBox={`0 0 ${S} ${S}`} role="img" aria-label={labels.map((l, i) => `${l}: ${values[i] >= 0 ? '+' : ''}${values[i].toFixed(1)}`).join(', ')}>
+      {[1, 0.75, 0.25].map((f) => (
+        <polygon key={f} className="ring" points={ring(R * f)} />
+      ))}
+      <polygon className="zero" points={ring(R / 2)} />
+      {labels.map((_, i) => (
+        <line key={i} x1={c} y1={c} x2={c + Math.cos(angle(i)) * R} y2={c + Math.sin(angle(i)) * R} />
+      ))}
+      <polygon className="shape" points={values.map((v, i) => pt(i, r(v))).join(' ')} />
+      {labels.map((l, i) => {
+        const a = angle(i);
+        const tx = c + Math.cos(a) * (R + 16);
+        const ty = c + Math.sin(a) * (R + 16) + 4;
+        return (
+          <text key={l} x={tx} y={ty} textAnchor={Math.abs(Math.cos(a)) < 0.2 ? 'middle' : Math.cos(a) > 0 ? 'start' : 'end'}>
+            {l}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
