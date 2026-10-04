@@ -1,28 +1,31 @@
 import type { CSSProperties } from 'react';
 import { splitRiotId, type AramEntry, type AramPlayer } from '../../adapters/aram';
-import { CLIMBING, PLACEMENT, rankName, standings, type Standing, type Step } from './aramRating';
+import { PLACEMENT, rankName, standings } from './aramRating';
+import { combine, type Last, type Ranked, type SiteBoard } from './aramSite';
 import { TrendingUp } from 'lucide-react';
 import { ladderPlace, record } from './RankHistory';
 import { GradeBadge } from './GradeBadge';
 import { TierEmblem } from './TierEmblem';
 
 const signed = (value: number) => (value > 0 ? `+${value}` : `−${Math.abs(value)}`);
-const LAST = 6;
 
 /** The Mayhem ladder of everyone on the list (aramRating.ts), close to LoL ranked: tier with
- * division, points (MP), the way to the next division and the points of the latest games. */
+ * division, points (MP), the way to the next division and the points of the latest games. With
+ * the website upload allowed, the ranks come from the website (aramSite.ts). */
 export function AramRank({
   players,
   games,
   meId,
+  site,
   onPlayer,
 }: {
   players: AramPlayer[];
   games: AramEntry[];
   meId: string | null;
+  site: SiteBoard | null;
   onPlayer: (player: AramPlayer) => void;
 }) {
-  const all = standings(games);
+  const all = combine(standings(games), site);
   const byPuuid = new Map(all.map((s) => [s.puuid, s]));
   const rows = players
     .map((player) => ({ player, standing: byPuuid.get(player.puuid) ?? null }))
@@ -69,14 +72,13 @@ function RankRow({
   place: number | null;
   top: number | null;
   player: AramPlayer;
-  standing: Standing | null;
+  standing: Ranked | null;
   me: boolean;
   onClick: () => void;
 }) {
   const { name } = splitRiotId(player.name);
   const rank = standing?.rank ?? null;
-  const history = standing?.history ?? [];
-  const last = history.slice(-LAST).reverse();
+  const last = [...(standing?.last ?? [])].reverse();
   return (
     <button className={`rank-row ${me ? 'me' : ''}`} onClick={onClick}>
       <span className="rank-place">{place ?? ''}</span>
@@ -112,7 +114,7 @@ function RankRow({
             <span className="rank-tier">
               <b>{rankName(rank)}</b>
               <span className="rank-value">{rank.points} MP</span>
-              {standing!.form >= CLIMBING && (
+              {standing!.climbing && (
                 <span
                   className="rank-climb small"
                   title="Form über dem Rang – du steigst schneller"
@@ -137,8 +139,8 @@ function RankRow({
         )}
       </span>
       <span className="rank-marks" aria-label="Letzte Spiele">
-        {last.map((step) => (
-          <GameChip key={step.entry.gameId} step={step} />
+        {last.map((game) => (
+          <GameChip key={game.gameId} game={game} />
         ))}
       </span>
     </button>
@@ -146,25 +148,24 @@ function RankRow({
 }
 
 /** A game: its grade, and the points once the player has a rank. */
-function GameChip({ step }: { step: Step }) {
-  const tone = step.gain === null ? '' : step.gain > 0 ? 'high' : 'low';
+function GameChip({ game }: { game: Last }) {
+  const tone = game.gain === null ? '' : game.gain > 0 ? 'high' : 'low';
   const change =
-    step.change === 'promoted'
+    game.change === 'promoted'
       ? ' · Aufstieg'
-      : step.change === 'demoted'
+      : game.change === 'demoted'
         ? ' · Abstieg'
-        : step.change === 'placed'
+        : game.change === 'placed'
           ? ' · eingestuft'
           : '';
+  const result = game.win === undefined ? '' : game.win ? ' · Sieg' : ' · Niederlage';
   return (
     <span
-      className={`rank-mark ${tone} ${step.change ?? ''}`}
-      title={`${step.entry.championName || 'Spiel'} · Note ${step.mark.grade} · ${
-        step.mark.win ? 'Sieg' : 'Niederlage'
-      }${change}`}
+      className={`rank-mark ${tone} ${game.change ?? ''}`}
+      title={`${game.champion || 'Spiel'} · Note ${game.grade}${result}${change}`}
     >
-      <GradeBadge grade={step.mark.grade} />
-      {step.gain !== null && <span>{signed(step.gain)}</span>}
+      <GradeBadge grade={game.grade} />
+      {game.gain !== null && <span>{signed(game.gain)}</span>}
     </span>
   );
 }

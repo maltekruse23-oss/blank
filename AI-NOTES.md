@@ -3,13 +3,20 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Etappe 6 (Teil 2): die App zeigt die Ränge der Website — 04.10.2026
+
+- Mit erlaubtem Website-Upload liest die App die Ränge von der Website (eine Wahrheit für alle): Rust `aram_site_ranks` (`aram_website.rs`) holt `GET /api/leaderboard` (global, laufende Rating-Saison) und das eigene Profil `GET /api/players/<eigene PUUID>`; `aram_site_profile` holt das Profil eines Spielers für den Spieler-Dialog, die App fragt nur nach Spielern, die die öffentliche Rangliste schon zeigt. Ohne Upload-Erlaubnis geht nichts an die Website und alles bleibt lokal. Antwort ≤ 16 MB, nur GET, keine Weiterleitungen, PUUID nur aus Buchstaben, Ziffern, `-`, `_`.
+- Frontend: `src/adapters/aramSite.ts`, Prüfung und Zusammenführung `src/features/aram/aramSite.ts` (`parseBoard`, `parseProfile` streng; `combine`: Website für alle, die sie kennt, sonst lokal; `Ranked` statt `Standing` in Rangliste, Mein Verlauf, Spieler-Dialog und Home-Widget), Hook `useSiteRanks.ts` (gemeinsamer Stand für Home und Rang, beim Öffnen, beim Zurückkehren höchstens alle 2 min und nach bestätigtem Upload; kein Polling, nichts bei verstecktem Fenster). Rang-Seite nennt die Quelle („Ränge von der Website · Stand“, bei Fehler der Hinweis auf die lokale Rechnung).
+- Folge: der Rang ist global (alle hochgeladenen Spiele der Saison), ein Neustart der App-Gruppe setzt ihn nicht mehr zurück, solange die Website antwortet. Die Karte nach dem Spiel (`RankStrip`, `rankResult`) rechnet weiter lokal, weil sie vor dem Upload erscheint – offener Punkt.
+- Website: `open`/`summary` aus `src/api.ts` nach `apps/mayhem-site/src/summary.ts` verschoben (gleiches Verhalten), damit `src/features/aram/aramSite.test.ts` die App genau gegen diese Form prüft (gleicher Rang, Spiele, Form, letzte Spiele, Verlauf).
+- Geprüft: `pnpm build/lint/test`, Website tsc/lint, `cargo check` und Clippy für `x86_64-pc-windows-msvc` unter Linux (Rust-Tests nur in der CI unter Windows).
+
 ## Etappe 6 (Teil 1): neue Rang-Icons in App und Website — 04.10.2026
 
 - Der Benutzer hat die Rangrahmen F–MAYHEM geliefert (1254 px, schwarzer Hintergrund). Freigestellt (Benutzerwunsch: Hintergrund weg, keine runde Maske) mit `node server/tools/emblems.mjs <Ordner mit 01-F.png … 10-MAYHEM.png> <Ziel>`: neuer Zweig für schwarze Matte (`unmatte`): Hintergrund = fast schwarze Flächen am Rand oder größer als 0,1 % des Bildes (Löcher in Buchstaben), feine dunkle Linien der Kunst bleiben; am Rand Alpha aus der Helligkeit gegen das hellste Nachbarpixel der Kunst und Farbe durch Alpha geteilt, deshalb kein schwarzer Saum. Geprüft auf dunklem, hellem, rotem und Schachbrett-Grund und bei 48 px.
-- App: `src/features/aram/emblems/*.png` ersetzt (D–MAYHEM in `TierEmblem`; F/E liegen mit, ungenutzt), `mix-blend-mode: screen` an `.rank-emblem` entfällt (die Bilder sind jetzt durchsichtig).
+- App: `src/features/aram/emblems/*.png` ersetzt (D–MAYHEM in `TierEmblem`; F/E liegen mit, ungenutzt – Benutzer: die neuen Icons nur für Ränge, die Noten/Leistung haben eigene Icons), `mix-blend-mode: screen` an `.rank-emblem` entfällt (die Bilder sind jetzt durchsichtig).
 - Website: `TierMark` zeigt das Bild aus `public/ranks/<stufe>.png` statt der Buchstaben im Stein; ohne Rang bleibt das „?“. Die Noten-Icons (`public/grades/`, alte Wappen) bleiben unverändert, wie in PLAN.md vorgesehen.
 - Lokal geprüft: Rangliste, Profil, `/wertung` bei 1400 und 375 px ohne Querscrollen, alle Rang-Bilder geladen; App-Vorschau Rang/Mein Verlauf. Auf hellem Grund verlieren helle Buchstaben (D, MAYHEM) an Kontrast; App und Website sind dunkel.
-- Nächster Teil: die App liest die Ränge von der Website (eine Wahrheit für alle).
 
 ## Website Etappe 5 (Abschluss): Barrierefreiheit, Rauchtest, Übergabe — 04.10.2026
 

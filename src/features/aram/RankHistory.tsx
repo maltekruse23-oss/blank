@@ -1,15 +1,8 @@
 import type { CSSProperties } from 'react';
 import { TrendingUp } from 'lucide-react';
 import type { AramEntry } from '../../adapters/aram';
-import {
-  CLIMBING,
-  PLACEMENT,
-  rankName,
-  seasonName,
-  seasonOf,
-  standings,
-  type Standing,
-} from './aramRating';
+import { PLACEMENT, rankName, seasonName, seasonOf, standings, type Standing } from './aramRating';
+import { combine, type SiteBoard } from './aramSite';
 import { GradeBadge } from './GradeBadge';
 import { TierEmblem } from './TierEmblem';
 
@@ -25,8 +18,9 @@ export const record = (s: Pick<Standing, 'games' | 'wins'>) =>
     : `${s.wins}S ${s.games - s.wins}N · ${Math.round((s.wins / s.games) * 100)} %`;
 
 /** Place on the ladder and top share, as on third-party sites ("Platz 2 · Top 20 %"). */
-export function ladderPlace(all: Standing[], puuid: string) {
-  const ranked = all.filter((s) => s.rank);
+export function ladderPlace(all: Pick<Standing, 'puuid' | 'rank'>[], puuid: string) {
+  // Highest first (the website's players and local ones may stand side by side).
+  const ranked = all.filter((s) => s.rank).sort((a, b) => b.rank!.ladder - a.rank!.ladder);
   const index = ranked.findIndex((s) => s.puuid === puuid);
   if (index < 0) return null;
   return {
@@ -44,8 +38,17 @@ export function ladderPlace(all: Standing[], puuid: string) {
  * emblem, rank and points, wins/losses, place, the climb hint, earlier seasons, and the match
  * history with the points of each game and the rank after it.
  */
-export function RankHistory({ games, puuid }: { games: AramEntry[]; puuid: string }) {
-  const all = standings(games);
+export function RankHistory({
+  games,
+  puuid,
+  site,
+}: {
+  games: AramEntry[];
+  puuid: string;
+  /** The website's ranks (aramSite.ts): with the user's profile there, its games and points. */
+  site: SiteBoard | null;
+}) {
+  const all = combine(standings(games), site);
   const standing = all.find((s) => s.puuid === puuid);
   if (!standing || standing.history.length === 0) return null;
   const { rank } = standing;
@@ -105,7 +108,7 @@ export function RankHistory({ games, puuid }: { games: AramEntry[]; puuid: strin
             )}
           </span>
         </div>
-        {rank && standing.form >= CLIMBING && (
+        {rank && standing.climbing && (
           <span
             className="rank-climb"
             title="Deine Form liegt über deinem Rang – du steigst schneller"

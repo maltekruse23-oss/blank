@@ -10,6 +10,7 @@ import type { AramGroupHook } from './useAramGroup';
 import { RankHistory } from './RankHistory';
 import type { AramResultView } from './useAramResult';
 import { resultView } from './useAramResult';
+import { boardOf, useSiteRanks, type SiteRanks } from './useSiteRanks';
 
 export type RankTab = 'ladder' | 'mine' | 'group';
 const tabs = [
@@ -40,6 +41,8 @@ export function RankPage({
   group: AramGroupHook;
 }) {
   const view = aramView(aram, group, friends);
+  const ranks = useSiteRanks();
+  const site = boardOf(ranks);
   const { data, me, players, games, since } = view;
   // Nobody to compare with yet: the group first.
   const alone = friends.length === 0 && !group.view;
@@ -69,17 +72,19 @@ export function RankPage({
             ) : (
               <>
                 <AloneNote players={players} onGroup={() => choose('group')} />
+                <SiteNote ranks={ranks} />
                 <AramRank
                   players={players}
                   games={games}
                   meId={me?.puuid ?? null}
+                  site={site}
                   onPlayer={showPlayer}
                 />
               </>
             ))}
           {tab === 'mine' &&
             (me && games.some((g) => g.puuid === me.puuid) ? (
-              <RankHistory games={games} puuid={me.puuid} />
+              <RankHistory games={games} puuid={me.puuid} site={site} />
             ) : (
               <AramEmpty client={data.client} />
             ))}
@@ -99,4 +104,22 @@ export function RankPage({
       )}
     </div>
   );
+}
+
+/** Where the ranks come from: the website (one truth for everyone) or, without it, this PC. */
+function SiteNote({ ranks }: { ranks: SiteRanks }) {
+  if (ranks.status === 'ready')
+    return (
+      <p className="aram-note" role="status">
+        Ränge von der Website · Stand{' '}
+        {new Date(ranks.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+      </p>
+    );
+  if (ranks.status === 'error')
+    return (
+      <p className="aram-note" role="status">
+        {ranks.message} Die Ränge sind aus den Spielen auf diesem PC berechnet.
+      </p>
+    );
+  return null;
 }
