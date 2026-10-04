@@ -13,12 +13,7 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
 
 **Entschieden (vom Benutzer):**
 
-- Keine LoL-Ränge (Eisen … Challenger), kein LP, keine verdeckte Skill-Wertung: Riots
-  Entwickler-Richtlinien verbieten „Alternativen zur offiziellen Rangliste, z. B. MMR- oder
-  Elo-Rechner“. Stattdessen „Weg B“: offene Leistungsnote je Spiel, Ladder wie Ranked, eigene Stufen.
-- Stufen: **D, C, B, A, S, SS, SSS, MAYHEM**, eng an LoL-Ranked: Divisionen IV–I zu je 100 Punkten
-  (MP), Auf- und Abstieg (Wahl des Benutzers), Schutz nach Aufstieg, 5 Einstufungsspiele, MAYHEM
-  ohne Divisionen. Nur die Punkte je Spiel kommen aus der Note (gegen die Erwartung des Rangs).
+- Neufassung 04.10.2026 (Vorgaben des Benutzers): versteckte Wertung (MMR) ab Spiel 1, nie sichtbar; sichtbarer Rang erst nach 5 Spielen, Einstufung höchstens S I (= Emerald I); SSS und MAYHEM so schwer wie Grandmaster und Challenger (Apex ohne Divisionen); Note F–MAYHEM je Spiel unabhängig vom Rang; Leistungs-Wertung = Durchschnitt der Noten; Sieg/Niederlage völlig egal; alle Stats zählen (kein Platz 1–10, damit Supporter und fast gleich gute Spieler nicht bestraft werden). Stufen D, C, B, A, S, SS, SSS, MAYHEM = Iron+Bronze, Silver, Gold, Platinum, Emerald, Diamond+Master, Grandmaster, Challenger nach Seltenheit; Divisionen IV–I zu 100 MP bis SS. Riots Richtlinien verbieten Alternativen zur offiziellen Rangliste (MMR/Elo): die versteckte Wertung ist nur intern, vor einer öffentlichen Version Riot fragen.
 - Immer daran denken: soll später öffentlich werden und von LoL-Spielern genutzt werden. Die Regeln
   folgen der LoL-Ranked-Referenz des Benutzers (Stand 2026); Abweichungen nur auf seine Wahl: eine
   Apex-Stufe (MAYHEM), kein Verfall, Plus/Minus aus der Note statt aus Sieg/Niederlage.
@@ -36,25 +31,19 @@ Wunsch des Benutzers: echte Ränge wie in einem Ranked-Modus, später vielleicht
    `src-tauri/src/aram.rs`, Typ `AramSeat` in `src/adapters/aram.ts`), nachgeholt solange der
    Client die Spiele hat, geht über die Gruppe mit (`quality`/`gameQuality`), passt in eine
    Gruppen-Nachricht (Test).
-2. Wertung `src/features/aram/aramRating.ts` (Tests in `aramRating.test.ts`): Note 0–10 je Spiel
-   aus Plätzen unter allen zehn (Schaden, Team-Anteil, Beteiligung, Einstecken, Heilen, wenig Tode
-   nur mit Beteiligung), Gewichte je Rolle (`championRoles.ts`), Sieg ±0,3, Ausgleich je
-   Champion/Rolle (`aramBias.ts`), Ladder mit `rankOf`, `pointsFor`, `applyPoints`, `placementLadder`. `standings()` ist deterministisch (gleiche Spiele → bei allen gleiches Ergebnis).
-3. Werkzeuge in `server/tools/`: `champion-roles.mjs` (Rollen aus Data Dragon neu erzeugen),
-   `mark-bias.ts` (Ausgleich aus den Spielen des League-Clients neu messen, je Saison;
-   `node server/tools/mark-bias.ts`, Client muss offen sein), `check-mayhem.mjs` (prüft Riots
-   Web-API mit eigenem Entwickler-Schlüssel in `RIOT_API_KEY`).
+2. Note je Spiel `src/features/aram/aramPerformance.ts`: alle Stats als Anteil der Lobby, verglichen mit dem, was der Champion üblicherweise erreicht (`aramBase.ts`, erzeugt mit `node server/tools/perf-base.ts`, Client offen, je Saison neu), stufenlos, als Perzentil → F…MAYHEM. Rang `aramRating.ts`: versteckte Wertung (`updateMmr`, Kalman), Rang erst nach 5 Spielen, MP aus dem Abstand der Note zur Erwartung des Rangs, LoL-Größen, Lücke versteckte Wertung–Rang (+27/−13), Apex-Tor (`gateOf`), Saisons. `standings()` ist deterministisch. Tests: `aramRating.test.ts`.
+3. Werkzeuge in `server/tools/`: `champion-roles.mjs` (Rollen aus Data Dragon), `perf-base.ts` (Tabelle der Champions aus den Spielen des Clients), `emblems.mjs`, `check-mayhem.mjs` (Riots Web-API mit eigenem Entwickler-Schlüssel in `RIOT_API_KEY`).
 
-4. Etappe 3: Reiter „Rang“ (erster Reiter der ARAM-Seite, `AramRank.tsx`): je Spieler Wappen, Stufe,
-   Platz, Rang mit Division, MP, Fortschritt, MP der letzten 6 Spiele; in der Einstufung (< 5 Spiele) die
-   vorläufige Stufe blass. Die Vorschau hat dafür erfundene Zehner-Spiele (`mockLobby` in `mock.ts`).
+4. Oberfläche: Seite „Rang“ (Unterreiter Rangliste · Mein Verlauf · Gruppe), Noten-Abzeichen (`GradeBadge.tsx`) auf der Rangliste, im Verlauf und auf der Karte nach dem Spiel, Leistung Ø; vor dem Rang nur „?“ und „Einstufung n/5".
 
 5. Etappe 4: Rang-Band auf der Karte nach dem Spiel (`RankStrip.tsx`, auch im Popout und im Dialog), eigener
    Rang im ARAM-Widget auf Home. Wappen einzeln in `TierEmblem.tsx` (das Popout lädt nicht die Rang-Seite).
 
 **Nächste Schritte:**
 
-- Etappe 5: Saisons (Start = Gruppen-Start, `RATING_VERSION` gehört zur Saison).
+- CC-Zeit (und weitere Werte) in `AramSeat`/`aram.json` v4 aufnehmen und ins Gewicht setzen (`RATING_VERSION` 3); die Rechnung läuft bisher ohne CC.
+- Kalibrierung: `SKILL_SD` (0,70) und `TAU` (0,89) stammen von nur 8 Spielern mit ≥ 8 Spielen; mit mehr Daten neu messen, die Stufen hängen daran.
+- Runde „Hidden MMR“ nativ prüfen, sobald die neue Version läuft (Karte nach einem echten Spiel, Popout).
 - Nachsehen: Aufstiegs-Animation und Popout-Karte mit Band nach einem echten Spiel (nativ noch nicht im Bild gesehen).
 
 **Öffentliche Version: derzeit nicht möglich.** Geprüft am 30.09.2026 mit Entwickler-Schlüssel:
@@ -108,3 +97,4 @@ Rechnung aus `aramRating.ts`, vorher Riot per Developer-Portal fragen.
 - 30.09.2026: Store-Bilder und Opera-Teil in `extension/STORE.md`; `aram.json` v3 (Werte aller
   zehn); Mayhem-Wertung mit Tests, Rollen und Ausgleich; Riot-API-Prüfung (kein Mayhem); diese
   Notizen angelegt.
+- 04.10.2026: Rangsystem neu (Vorgaben des Benutzers): Note F–MAYHEM je Spiel nach Champion-Vergleich statt Plätze, versteckte Wertung (Kalman), Rang nach 5 Spielen, Apex-Tor für SSS/MAYHEM, Leistungs-Wertung; `aramBias.ts` und `mark-bias.ts` ersetzt durch `aramBase.ts` und `perf-base.ts`.

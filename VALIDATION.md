@@ -55,6 +55,16 @@ Geprüft am 30.09.2026 in der Cloud; nicht nativ.
 - Vollbild (`fullscreen.rs`): Die Prüfung lief nur einmal 40 ms nach der letzten Fensteränderung. Windows' Vollbild-Meldung hinkt hinterher – beim Wechsel ins Vollbild stand sie noch auf „kein Vollbild“ (das Popout blieb), beim Verlassen noch auf „Vollbild“ (das Popout ging). Jetzt: weitere Prüfungen nach 250 und 750 ms, solange nichts Neues passiert, und Windows' Meldung zählt nur, wenn das aktive Fenster den Bildschirm noch deckt. `cargo check` und `cargo clippy --target x86_64-pc-windows-msvc` ohne Warnung, `cargo fmt --check`; die Rust-Tests laufen nur unter Windows (Release-Ablauf). **Nativ zu prüfen:** Video in Chrome/Opera ins Vollbild und zurück, Spiel im Vollbild, Vollbild auf dem anderen Bildschirm.
 - Kein ×: im nachgebildeten Popout-Fenster (Browser, Tauri-Befehle nachgebildet) für Musik normal und kompakt, Vorschau-Meldung und Akku-Warnung kein Schließen-Knopf mehr; Meldungen gehen auf Klick (Klicks auf ihre Knöpfe lösen nur deren Aktion aus).
 - Kompakt: statt Zurück/Pause/Weiter ein Balken (72 × 4 px, Akzentfarbe), Beispiel-Titel bei 1:13 von 3:34 ≈ ein Drittel; ohne Länge nichts.
+
+## ARAM: Rangsystem neu mit versteckter Wertung (Benutzerauftrag, 04.10.2026)
+
+Geprüft in der Cloud-/Vorschau-Umgebung am 04.10.2026 mit den Spielen des League-Clients auf diesem PC (119 Spiele, 1180 Spielerzeilen, 14 Spieler der Liste mit 213 Spielen); nicht nativ in der App.
+
+- Fairness der Note: Ø Perzentil nach Rolle Fighter 50 %, Marksman 50 %, Mage 50 %, Tank 50 %, Support 49 %, Assassin 51 %; Supporter liegen im Schaden im Schnitt auf Platz 7,6 von 10 und bekommen trotzdem Ø 49 % (mit dem alten Platz-Weg wären sie hinten). Notenverteilung nahe der Soll-Verteilung (F 3,5 % / 3,0 %, E 6,8 / 7,0, D 14,6 / 15,0, C 19,3 / 20,0, B 20,8 / 20,0, A 17,3 / 17,0, S 10,8 / 11,0, SS 5,6 / 5,5, SSS 1,2 / 1,2, MAYHEM 0,3 / 0,3).
+- Tests (`pnpm test`, 94): mehr Leistung = höhere Note, jede Stat zählt, Sieg/Niederlage ändern nichts, die Länge des Spiels ändert nichts, fast gleiche Spiele = fast gleiche Noten (kein Abgrund), Supporter mit Support-Werten nicht bestraft, Remake/abwesend; versteckte Wertung ab Spiel 1 und sicherer mit jedem Spiel; Rang erst nach 5 Spielen, Einstufung höchstens S I auch mit Traum-Spielen, SSS/MAYHEM so selten wie Grandmaster/Challenger (0,09 % und 0,03 %), MP in LoL-Größen und +27/−13 über dem Rang, stufenlose Punkte, Überlauf, Landung 75/50/25, Schutz, Saisons und Soft-Reset, gleiche Spiele in anderer Reihenfolge = gleiches Ergebnis.
+- Probelauf an den echten Spielen: die Spieler ordnen sich nach Leistung (Háwk S III · Ø A, Du B I · Ø B, get me out B II · Ø B, BronzeOlaf D III · Ø D); sichtbarer Rang und versteckte Wertung stimmen bei Spielern mit vielen Spielen überein.
+- **Offen:** nativ in der App (Karte nach einem echten Spiel, Popout), Kalibrierung von `SKILL_SD`/`TAU` (nur 8 Spieler mit ≥ 8 Spielen), CC-Zeit ist noch nicht in den gespeicherten Daten.
+
 - `pnpm build`, `pnpm test`, `pnpm format:check`.
 
 ## Settings leichter zu finden und aufgeräumt (Benutzerauftrag nach der Einschätzung)

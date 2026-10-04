@@ -1,272 +1,219 @@
 /**
- * Mayhem rating (user's wish: a rank mode that fits a fun mode). Not a skill estimate like MMR
- * (Riot forbids alternatives to its ranked ladder): every game gets an open performance mark
- * 0–10 against the other nine in the same game. The ladder is close to LoL ranked (user's wish:
- * later public for LoL players): tiers with divisions IV–I, 0–100 points per division, promotion,
- * demotion with a shield, placement games, seasons; only the points per game come from the mark
- * (measured against what the current rank expects) instead of win or loss. Rules after LoL ranked
- * 2026 (the user's reference): overflow on demotion, landing at 75/50/25 by form, shield after a
- * tier promotion, placements up to SSS III 80, three seasons a year with a soft reset at a new year.
+ * The Mayhem ladder (user's wish, 04.10.2026), close to LoL ranked, with a hidden rating:
  *
- * - Relative to the lobby: shares and places among all ten, so stretching a game to farm damage or
- *   ending it fast changes nothing (everyone farms more in a long game).
- * - By role (Data Dragon): a tank counts what it takes, a support what it heals and shields.
- * - Every value is a place among ten, so no single value can carry more than its weight; not
- *   dying only counts together with being part of the fights (doing nothing never pays).
- * - A win or loss moves the mark only a little (some Mayhem games cannot be won).
+ * 1. Every game gets a performance (aramPerformance.ts): a grade F–MAYHEM and a continuous score
+ *    `y`, independent of rank, win or loss and of the place among the ten.
+ * 2. HIDDEN RATING (MMR, shown to nobody): an estimate of the player's usual `y` with its
+ *    uncertainty (Kalman / Glicko style). It moves from game 1 on and with every game; at first a
+ *    lot, later less.
+ * 3. VISIBLE RANK only after PLACEMENT games of the player (never higher than S I, "Emerald I"):
+ *    it starts where the hidden rating sits. Then every game gives or takes MP (0–100 per
+ *    division): how much better or worse than what the rank expects, in LoL's sizes. A hidden
+ *    rating above the rank gives more MP and takes less (about +27/−13), below it the other way
+ *    round – the rank finds its place by itself.
+ * 4. Rarity like LoL: the tiers are cut from the usual distribution of skill; SSS and MAYHEM are
+ *    apex tiers without divisions (like Grandmaster and Challenger): they need many MP, a hidden
+ *    rating in their band and a certain one.
  *
- * Pure and deterministic: the same games give everyone the same marks and tiers; a server can use
- * the same code later. Change the rules only with a new RATING_VERSION (new season).
+ * Pure and deterministic: the same games give everyone the same results, in any order of arrival;
+ * a server can use the same code later. Change the rules only with a new RATING_VERSION (new
+ * season). The hidden rating is internal and never put into the interface.
  */
-import type { AramEntry, AramSeat } from '../../adapters/aram';
-import { CHAMPION_BIAS, ROLE_BIAS } from './aramBias.ts';
-import { CHAMPION_ROLES } from './championRoles.ts';
+import type { AramEntry } from '../../adapters/aram';
+import { gradeOf, performanceOf, type Grade, type Performance } from './aramPerformance.ts';
 
-export type Role = 'Assassin' | 'Fighter' | 'Mage' | 'Marksman' | 'Support' | 'Tank';
+export type { Role } from './aramPerformance.ts';
+export type Mark = Performance;
 
-export const RATING_VERSION = 1;
-
-/** Riot's queue of ARAM Mayhem. */
-export const MAYHEM_QUEUE = 2400;
-
-type Metric = 'damage' | 'share' | 'involved' | 'frontline' | 'care' | 'alive';
-
-/** What counts how much, by role; each row sums to 1. */
-const WEIGHTS: Record<Role, Record<Metric, number>> = {
-  Mage: { damage: 0.2, share: 0.35, involved: 0.25, frontline: 0.05, care: 0, alive: 0.15 },
-  Marksman: { damage: 0.2, share: 0.35, involved: 0.25, frontline: 0.05, care: 0, alive: 0.15 },
-  Assassin: { damage: 0.2, share: 0.35, involved: 0.25, frontline: 0.05, care: 0, alive: 0.15 },
-  Fighter: { damage: 0.15, share: 0.25, involved: 0.25, frontline: 0.2, care: 0, alive: 0.15 },
-  Tank: { damage: 0.05, share: 0.1, involved: 0.3, frontline: 0.4, care: 0.05, alive: 0.1 },
-  Support: { damage: 0.05, share: 0.1, involved: 0.35, frontline: 0.05, care: 0.35, alive: 0.1 },
-};
-
-/** A win or a loss moves the mark by this much only. */
-export const WIN_BONUS = 0.3;
-/** Shorter games are remakes or early surrenders: no mark. */
-export const MIN_SECONDS = 5 * 60;
-/** Less gold than this share of the game's median: away from keyboard, no mark. */
-const AFK_GOLD = 0.4;
-
-export type MarkPart = { metric: Metric; place: number; weight: number; points: number };
-
-export type Mark = {
-  /** 0–10, one decimal. */
-  value: number;
-  role: Role;
-  win: boolean;
-  /** What made the mark, biggest share first. */
-  parts: MarkPart[];
-};
-
-export const roleOf = (championId: number): Role => CHAMPION_ROLES[championId] ?? 'Fighter';
-
-/** Place of a value among all ten as 0 (worst) … 1 (best); ties share their place. */
-function standing(values: number[], index: number, higherIsBetter = true) {
-  const own = values[index];
-  let below = 0;
-  let equal = 0;
-  values.forEach((v, i) => {
-    if (i === index) return;
-    if (v === own) equal += 1;
-    else if (higherIsBetter ? v < own : v > own) below += 1;
-  });
-  return values.length < 2 ? 0.5 : (below + equal / 2) / (values.length - 1);
-}
-
-const teamSum = (lobby: AramSeat[], team: number, value: (s: AramSeat) => number) =>
-  lobby.filter((s) => s.team === team).reduce((sum, s) => sum + value(s), 0);
-
-function median(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-/** How much a champion's marks lie above the average of all in Mayhem (its own when played often
- * enough, else its role's): taken off, so strong champions and roles bring no advantage. */
-export const biasOf = (championId: number) =>
-  CHAMPION_BIAS[championId] ?? ROLE_BIAS[roleOf(championId)] ?? 0;
-
-const finite = (value: number) => (Number.isFinite(value) ? value : 0);
-
-/** The mark of one game, or null when the game does not count (no values of all ten, remake,
- * away from keyboard). `neutral`: without the champion's balance (to measure it). */
-export function markGame(entry: AramEntry, neutral = false): Mark | null {
-  const lobby = (entry.lobby ?? []).map((s) => ({
-    ...s,
-    kills: finite(s.kills),
-    deaths: finite(s.deaths),
-    assists: finite(s.assists),
-    damage: finite(s.damage),
-    taken: finite(s.taken),
-    mitigated: finite(s.mitigated),
-    healed: finite(s.healed),
-    shielded: finite(s.shielded),
-    gold: finite(s.gold),
-  }));
-  const index = lobby.findIndex((s) => s.you);
-  if (index < 0 || lobby.length < 6 || entry.seconds < MIN_SECONDS) return null;
-  const golds = lobby.map((s) => s.gold);
-  if (lobby[index].gold < AFK_GOLD * median(golds)) return null;
-
-  const ratio = (a: number, b: number) => (b > 0 ? a / b : 0);
-  const values: Record<Metric, number[]> = {
-    damage: lobby.map((s) => s.damage),
-    share: lobby.map((s) =>
-      ratio(
-        s.damage,
-        teamSum(lobby, s.team, (o) => o.damage),
-      ),
-    ),
-    involved: lobby.map((s) =>
-      ratio(
-        s.kills + s.assists,
-        teamSum(lobby, s.team, (o) => o.kills),
-      ),
-    ),
-    frontline: lobby.map((s) => s.taken + s.mitigated),
-    care: lobby.map((s) => s.healed + s.shielded),
-    alive: lobby.map((s) => s.deaths),
-  };
-  const role = roleOf(entry.championId);
-  const weights = WEIGHTS[role];
-  const involved = standing(values.involved, index);
-  const parts = (Object.keys(weights) as Metric[])
-    .filter((metric) => weights[metric] > 0)
-    .map((metric) => {
-      const place = standing(values[metric], index, metric !== 'alive');
-      // Not dying only counts as far as the player took part in the fights.
-      const earned = metric === 'alive' ? place * involved : place;
-      return { metric, place, weight: weights[metric], points: 10 * weights[metric] * earned };
-    })
-    .sort((a, b) => b.points - a.points || a.metric.localeCompare(b.metric));
-  const raw =
-    parts.reduce((sum, p) => sum + p.points, 0) +
-    (entry.win ? WIN_BONUS : -WIN_BONUS) -
-    (neutral ? 0 : biasOf(entry.championId));
-  const value = Math.round(Math.min(10, Math.max(0, raw)) * 10) / 10;
-  return { value, role, win: entry.win, parts };
-}
-
+export const RATING_VERSION = 2;
 /** Placement games before the first rank of a year (as in LoL). */
 export const PLACEMENT = 5;
-/** Games after a promotion to a new tier in which it cannot be lost (as in LoL). */
+/** Games after the placement or a promotion to a new tier in which the tier cannot be lost. */
 export const SHIELD_GAMES = 3;
-/** Recent games that make the form (like LoL's MMR against the rank, but open). */
-export const FORM_GAMES = 10;
 
-/** The tiers (user's choice: short grades as in action games; D–SSS stand for Iron–Diamond, MAYHEM
- * for the apex), the mark each expects at its start (within a tier it rises to the next) and the
+// --- Hidden rating -----------------------------------------------------------------------
+
+/** How far apart players' usual scores are (the spread of skill; measured, to be re-measured with
+ * more games – the tiers are cut from it). */
+export const SKILL_SD = 0.7;
+/** How much one game varies around a player's usual score. */
+export const TAU = 0.89;
+/** Variance added per game, so the rating never freezes. */
+const DRIFT = 0.004;
+/** A new year keeps this share of the hidden rating and becomes uncertain again. */
+const SOFT_KEEP = 0.7;
+const SOFT_VARIANCE = 0.25;
+
+export type Mmr = { mu: number; variance: number };
+export const INITIAL_MMR: Mmr = { mu: 0, variance: SKILL_SD ** 2 };
+
+const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
+
+/** One game moves the hidden rating towards the game's score, by the share of uncertainty. */
+export function updateMmr(m: Mmr, y: number): Mmr {
+  const predicted = m.variance + DRIFT;
+  const k = predicted / (predicted + TAU ** 2);
+  return { mu: m.mu + k * (clamp(y, -3, 3) - m.mu), variance: (1 - k) * predicted };
+}
+
+// --- Tiers and the ladder ----------------------------------------------------------------
+
+/** The tiers (user's choice: short grades; D = Iron+Bronze, C = Silver, B = Gold, A = Platinum,
+ * S = Emerald, SS = Diamond+Master, SSS = Grandmaster, MAYHEM = Challenger) and the size of the
  * points of a game there (LoL: about ±25 below Emerald, ±20 in Emerald and Diamond, ±30 apex). */
 export const TIERS = [
-  { id: 'd', name: 'D', expects: 3.0, points: 25 },
-  { id: 'c', name: 'C', expects: 3.6, points: 25 },
-  { id: 'b', name: 'B', expects: 4.3, points: 25 },
-  { id: 'a', name: 'A', expects: 5, points: 25 },
-  { id: 's', name: 'S', expects: 5.7, points: 25 },
-  { id: 'ss', name: 'SS', expects: 6.4, points: 20 },
-  { id: 'sss', name: 'SSS', expects: 7.1, points: 20 },
-  { id: 'mayhem', name: 'MAYHEM', expects: 7.8, points: 30 },
+  { id: 'd', name: 'D', points: 25 },
+  { id: 'c', name: 'C', points: 25 },
+  { id: 'b', name: 'B', points: 25 },
+  { id: 'a', name: 'A', points: 25 },
+  { id: 's', name: 'S', points: 20 },
+  { id: 'ss', name: 'SS', points: 20 },
+  { id: 'sss', name: 'SSS', points: 30 },
+  { id: 'mayhem', name: 'MAYHEM', points: 30 },
 ] as const;
 
 export type Tier = (typeof TIERS)[number];
 export const DIVISION_NAMES = ['I', 'II', 'III', 'IV'] as const;
 
-/** Each tier below the top has four divisions of 100 points; the top tier has only points. */
-const TIER_SPAN = 400;
-const TOP = (TIERS.length - 1) * TIER_SPAN;
-/** Placements never place higher than SSS III 80 (LoL: about Diamond III 80). */
-export const PLACEMENT_CAP = 6 * TIER_SPAN + 180;
-/** The soft reset at a new year starts at most at SS I 0 (LoL: at most Emerald I). */
-export const SOFT_RESET_CAP = 5 * TIER_SPAN + 300;
+/** D–SS have four divisions of 100 MP (ladder 0–2399); from here on only open MP, as the apex. */
+const APEX = 2400;
+/** SSS needs 400 MP above the apex line and a hidden rating in its band, MAYHEM 800 MP (as
+ * Grandmaster 400 and Challenger 800 LP). */
+const SSS_AT = 2800;
+const MAYHEM_AT = 3200;
+/** Placements and the new year never put a player higher than S I (LoL: Emerald I). */
+export const PLACEMENT_CAP = 1900;
+/** An apex tier needs this certainty of the hidden rating (a spread of at most this). */
+const APEX_SIGMA = 0.3;
+
+/** Where the tiers begin, as a place in the usual distribution of skill (standard-normal
+ * z-values from LoL's rarity: Silver from the best 80.9 %, … Grandmaster 0.09 %, Challenger
+ * 0.03 %), and the hidden rating that belongs to the start of each ladder step. */
+const NODES: readonly (readonly [number, number])[] = (
+  [
+    [0, -1.9],
+    [400, -0.875],
+    [800, -0.2],
+    [1200, 0.44],
+    [1600, 1.02],
+    [2000, 1.68],
+    [2800, 3.12],
+    [3200, 3.43],
+    [4000, 3.73],
+  ] as const
+).map(([ladder, z]) => [ladder, z * SKILL_SD] as const);
+
+/** The hidden rating a ladder place stands for (what that rank expects of a player). */
+export function muOf(ladder: number) {
+  const l = Math.max(0, ladder);
+  let i = 0;
+  while (i < NODES.length - 2 && l > NODES[i + 1][0]) i += 1;
+  const [l0, m0] = NODES[i];
+  const [l1, m1] = NODES[i + 1];
+  return m0 + ((l - l0) / (l1 - l0)) * (m1 - m0);
+}
+
+/** The ladder place that belongs to a hidden rating (0 at the very bottom). */
+export function ladderOfMu(mu: number) {
+  if (mu <= NODES[0][1]) return 0;
+  let i = 0;
+  while (i < NODES.length - 2 && mu > NODES[i + 1][1]) i += 1;
+  const [l0, m0] = NODES[i];
+  const [l1, m1] = NODES[i + 1];
+  return l0 + ((mu - m0) / (m1 - m0)) * (l1 - l0);
+}
 
 export type Rank = {
   tier: Tier;
-  /** 4 (IV) … 1 (I); null in the top tier. */
+  /** 4 (IV) … 1 (I); null from the apex line on. */
   division: number | null;
-  /** 0–99 in a division, open-ended in the top tier. */
+  /** 0–99 in a division; from the apex line on the open MP above it. */
   points: number;
   /** One number for the whole ladder (sorting, the way up). */
   ladder: number;
 };
 
-export function rankOf(ladder: number): Rank {
-  const l = Math.max(0, Math.round(ladder));
-  if (l >= TOP)
-    return { tier: TIERS[TIERS.length - 1], division: null, points: l - TOP, ladder: l };
-  const tier = Math.floor(l / TIER_SPAN);
+export type Gate = { sss: boolean; mayhem: boolean };
+
+/** The apex tiers are only shown to those whose hidden rating and its certainty fit. */
+export function gateOf(ladder: number, m: Mmr): Gate {
+  const sure = Math.sqrt(m.variance) <= APEX_SIGMA;
   return {
-    tier: TIERS[tier],
-    division: 4 - Math.floor((l % TIER_SPAN) / 100),
-    points: l % 100,
+    sss: sure && ladder >= SSS_AT && m.mu >= muOf(SSS_AT),
+    mayhem: sure && ladder >= MAYHEM_AT && m.mu >= muOf(MAYHEM_AT),
+  };
+}
+
+const zoneOf = (ladder: number) =>
+  ladder < APEX ? Math.floor(ladder / 400) : ladder < SSS_AT ? 5 : ladder < MAYHEM_AT ? 6 : 7;
+
+export function rankOf(ladder: number, gate?: Gate): Rank {
+  const l = Math.max(0, Math.round(ladder));
+  let zone = zoneOf(l);
+  if (gate && zone === 7 && !gate.mayhem) zone = 6;
+  if (gate && zone === 6 && !gate.sss) zone = 5;
+  return {
+    tier: TIERS[zone],
+    division: l < APEX ? 4 - Math.floor((l % 400) / 100) : null,
+    points: l < APEX ? l % 100 : l - APEX,
     ladder: l,
   };
 }
 
-/** "S II", "MAYHEM". */
+/** "S II", "SS", "MAYHEM". */
 export const rankName = (rank: Rank) =>
   rank.division === null
     ? rank.tier.name
     : `${rank.tier.name} ${DIVISION_NAMES[rank.division - 1]}`;
 
-const tierIndex = (ladder: number) => Math.min(TIERS.length - 1, Math.floor(ladder / TIER_SPAN));
+// --- Points per game ---------------------------------------------------------------------
 
-/** The mark a rank expects: the higher, the more is needed for points. */
-export function expectedMark(ladder: number) {
-  if (ladder >= TOP) return TIERS[TIERS.length - 1].expects + ((ladder - TOP) / TIER_SPAN) * 0.7;
-  const tier = tierIndex(ladder);
-  const within = (ladder - tier * TIER_SPAN) / TIER_SPAN;
-  return TIERS[tier].expects + (TIERS[tier + 1].expects - TIERS[tier].expects) * within;
-}
-
-/** The form: how far the recent marks lie above what the rank expects (−2 … +2). Like LoL's MMR
- * against the rank, but open and only from the player's own games. */
-export function formOf(recent: number[], ladder: number) {
-  if (recent.length === 0) return 0;
-  const mean = recent.reduce((s, m) => s + m, 0) / recent.length;
-  return Math.max(-2, Math.min(2, mean - expectedMark(ladder)));
-}
+/** How far the hidden rating lies above (+) or below (−) the rank, −1 … +1 (LoL's Climb
+ * Indicator shows it above the rank). */
+export const GAP_SCALE = 0.3;
+const GAP_EFFECT = 0.35;
+export const CLIMBING = 0.5;
+export const gapOf = (mu: number, ladder: number) => clamp((mu - muOf(ladder)) / GAP_SCALE, -1, 1);
 
 /**
- * Points for a game, in LoL's sizes (user's wish): a game at or above what the rank expects counts
- * as won, below as lost (the mark decides, not the result). The size comes from the tier and the
- * form: playing above the rank gives more and loses less (about +27/−13), below it the other way
- * round. A very clear game adds a little.
+ * Points for a game, in LoL's sizes: how much better or worse the game was than what the rank
+ * expects, in game spreads, times the size of the tier. Smooth (almost equal games give almost
+ * equal points, no cliffs); win or loss do not count. A hidden rating above the rank gives more
+ * and takes less (gap 1: ×1.35 and ×0.65, e.g. +27/−13 where ±20 is usual), below it the other
+ * way round. Never zero.
  */
-export function pointsFor(mark: number, ladder: number, form: number) {
-  const base = TIERS[tierIndex(ladder)].points;
-  const beyond = mark - expectedMark(ladder);
-  const extra = Math.min(4, Math.max(0, (Math.abs(beyond) - 1) * 3));
-  const low = Math.max(5, base - 12);
-  const high = base + 12;
-  if (beyond >= 0) return Math.round(Math.min(high, Math.max(low, base + 5 * form + extra)));
-  return -Math.round(Math.min(high, Math.max(low, base - 5 * form + extra)));
-}
-
-/** Where the placement games put a player: the rank whose expectation their mean mark meets. */
-export function placementLadder(marks: number[], cap = PLACEMENT_CAP) {
-  const mean = marks.reduce((s, m) => s + m, 0) / marks.length;
-  let ladder = 0;
-  while (ladder < cap && expectedMark(ladder + 1) <= mean) ladder += 1;
-  return ladder;
+export function pointsFor(y: number, ladder: number, mu: number) {
+  const size = TIERS[zoneOf(ladder)].points;
+  const better = clamp((y - muOf(ladder)) / TAU, -1.2, 1.2);
+  const gap = gapOf(mu, ladder);
+  const raw = size * better * (better >= 0 ? 1 + GAP_EFFECT * gap : 1 - GAP_EFFECT * gap);
+  const points = Math.round(raw);
+  return points !== 0 ? points : better >= 0 ? 1 : -1;
 }
 
 /**
  * One game on the ladder, as in LoL: 100 points promote at once and the rest carries over; losing
  * points inside a tier overflows into the division below (10 − 25 → 85); falling out of a tier
- * lands at 75, 50 or 25 points by the form; a new tier is kept for SHIELD_GAMES games.
+ * lands at 75, 50 or 25 points by the gap; a new tier is kept for SHIELD_GAMES games; from the
+ * apex line on only open points count.
  */
-export function applyPoints(ladder: number, gain: number, shield: number, form: number) {
+export function applyPoints(ladder: number, gain: number, shield: number, gap: number) {
   const next = ladder + gain;
   if (gain >= 0) return next;
-  const tierStart = ladder >= TOP ? TOP : tierIndex(ladder) * TIER_SPAN;
+  if (ladder >= APEX) return Math.max(0, next);
+  const tierStart = Math.floor(ladder / 400) * 400;
   if (next >= tierStart) return next;
   if (tierStart === 0) return 0;
   if (shield > 0) return tierStart;
-  const landing = form >= 0 ? 75 : form >= -1 ? 50 : 25;
+  const landing = gap >= 0 ? 75 : gap >= -0.5 ? 50 : 25;
   return tierStart - 100 + landing;
 }
+
+/** Where the placements put a player: the place of the hidden rating, never higher than S I. */
+export const placementLadder = (m: Mmr) =>
+  Math.min(PLACEMENT_CAP, Math.max(0, Math.round(ladderOfMu(m.mu))));
+
+// --- Seasons -----------------------------------------------------------------------------
 
 /** Seasons as in LoL (user's wish): three a year, starting 8 January, 29 April and 29 July (UTC);
  * the rank carries over between them, a new year starts with a soft reset and new placements. */
@@ -299,9 +246,12 @@ export function seasonOf(at: number): Season {
 export const seasonName = (season: Pick<Season, 'year' | 'number'>) =>
   `Saison ${season.number} · ${season.year}`;
 
+// --- Everyone's ladder -------------------------------------------------------------------
+
 export type Step = {
   entry: AramEntry;
-  mark: Mark;
+  /** The game's performance (grade F–MAYHEM). */
+  mark: Performance;
   /** Points of this game; null for placement games. */
   gain: number | null;
   before: Rank | null;
@@ -309,6 +259,10 @@ export type Step = {
   change: 'placed' | 'promoted' | 'demoted' | null;
   season: string;
 };
+
+/** The average of the last games' performance (the "performance ranking", independent of rank). */
+export type Average = { games: number; pct: number; grade: Grade };
+export const AVERAGE_GAMES = 20;
 
 export type Standing = {
   puuid: string;
@@ -320,18 +274,21 @@ export type Standing = {
   rank: Rank | null;
   /** Placement games played this year (0–5). */
   placed: number;
-  /** Form against the rank (−2 … +2); from CLIMBING on shown like LoL's Climb Indicator. */
+  /** Gap of the hidden rating to the rank (−1 … +1); from CLIMBING on "form above the rank". */
   form: number;
+  /** Average performance of the last games. */
+  average: Average | null;
   /** Final ranks of earlier seasons, newest first. */
   seasons: { season: Season; rank: Rank }[];
   /** Every counted game with the rank before and after it, oldest first. */
   history: Step[];
+  /** The hidden rating – for tests and the server; never shown. */
+  hidden: Mmr;
 };
 
-/** Form from which the rank shows "climbing" (like LoL's Climb Indicator). */
-export const CLIMBING = 0.5;
-
-const division = (rank: Rank) => (rank.ladder >= TOP ? TOP : Math.floor(rank.ladder / 100));
+/** A rank's step: one count per division, the apex as one step after SS I, then SSS, MAYHEM. */
+const stepOf = (rank: Rank) =>
+  TIERS.indexOf(rank.tier) * 10 + (rank.division === null ? 4 : 4 - rank.division);
 
 /** Everyone's ladder from the collected games (only games from `since` on); the same games in any
  * order give the same result. */
@@ -348,39 +305,43 @@ export function standings(entries: AramEntry[], since = 0): Standing[] {
     list.sort((a, b) => a.at - b.at || a.gameId - b.gameId);
     const history: Step[] = [];
     const seasons: { season: Season; rank: Rank }[] = [];
+    const pcts: number[] = [];
+    let mmr = INITIAL_MMR;
     let ladder: number | null = null;
-    let placing: number[] = [];
-    let recent: number[] = [];
+    let placing = 0;
     let shield = 0;
     let season: Season | null = null;
     let games = 0;
     let wins = 0;
-    // A new year: the soft reset from the last rank, then new placements.
-    let seed: number | null = null;
+    const shown = (l: number) => rankOf(l, gateOf(l, mmr));
     for (const entry of list) {
-      const mark = markGame(entry);
+      const mark = performanceOf(entry);
       if (!mark) continue;
       const now = seasonOf(entry.at);
       if (season && now.id !== season.id) {
-        if (ladder !== null) seasons.unshift({ season, rank: rankOf(ladder) });
+        if (ladder !== null) seasons.unshift({ season, rank: shown(ladder) });
         if (now.year !== season.year) {
-          seed = ladder === null ? null : Math.min(SOFT_RESET_CAP, Math.max(0, ladder - TIER_SPAN));
+          // New year: a soft reset, then new placements.
+          mmr = { mu: mmr.mu * SOFT_KEEP, variance: Math.max(mmr.variance, SOFT_VARIANCE) };
           ladder = null;
-          placing = [];
+          placing = 0;
           games = 0;
           wins = 0;
+          shield = 0;
         }
       }
       season = now;
       games += 1;
       if (entry.win) wins += 1;
-      recent = [...recent, mark.value].slice(-FORM_GAMES);
+      pcts.push(mark.pct);
+      // The points use the rating from before this game, as in LoL.
+      const before = mmr;
+      mmr = updateMmr(mmr, mark.y);
       if (ladder === null) {
-        placing.push(mark.value);
-        const placed = placing.length === PLACEMENT;
+        placing += 1;
+        const placed = placing === PLACEMENT;
         if (placed) {
-          const found = placementLadder(placing);
-          ladder = seed === null ? found : Math.min(PLACEMENT_CAP, Math.round((seed + found) / 2));
+          ladder = placementLadder(mmr);
           shield = SHIELD_GAMES;
         }
         history.push({
@@ -388,37 +349,36 @@ export function standings(entries: AramEntry[], since = 0): Standing[] {
           mark,
           gain: null,
           before: null,
-          after: placed ? rankOf(ladder!) : null,
+          after: placed ? shown(ladder!) : null,
           change: placed ? 'placed' : null,
           season: now.id,
         });
         continue;
       }
-      const before = rankOf(ladder);
-      const form = formOf(recent, ladder);
-      const gain = pointsFor(mark.value, ladder, form);
-      ladder = applyPoints(ladder, gain, shield, form);
+      const from = shown(ladder);
+      const gain = pointsFor(mark.y, ladder, before.mu);
+      ladder = applyPoints(ladder, gain, shield, gapOf(before.mu, ladder));
       shield = Math.max(0, shield - 1);
-      const after = rankOf(ladder);
-      if (after.tier !== before.tier && after.ladder > before.ladder) shield = SHIELD_GAMES;
+      const to = shown(ladder);
+      if (to.tier !== from.tier && to.ladder > from.ladder) shield = SHIELD_GAMES;
       const change =
-        division(after) > division(before)
-          ? 'promoted'
-          : division(after) < division(before)
-            ? 'demoted'
-            : null;
-      history.push({ entry, mark, gain, before, after, change, season: now.id });
+        stepOf(to) > stepOf(from) ? 'promoted' : stepOf(to) < stepOf(from) ? 'demoted' : null;
+      history.push({ entry, mark, gain, before: from, after: to, change, season: now.id });
     }
+    const last = pcts.slice(-AVERAGE_GAMES);
+    const meanPct = last.reduce((s, p) => s + p, 0) / (last.length || 1);
     result.push({
       puuid,
       name: list[list.length - 1].name,
       games,
       wins,
-      rank: ladder === null ? null : rankOf(ladder),
-      placed: ladder === null ? placing.length : PLACEMENT,
-      form: ladder === null ? 0 : formOf(recent, ladder),
+      rank: ladder === null ? null : shown(ladder),
+      placed: ladder === null ? placing : PLACEMENT,
+      form: ladder === null ? 0 : gapOf(mmr.mu, ladder),
+      average: last.length ? { games: last.length, pct: meanPct, grade: gradeOf(meanPct) } : null,
       seasons,
       history,
+      hidden: mmr,
     });
   }
   // Plain comparisons: the same order on every PC.
@@ -430,44 +390,44 @@ export function standings(entries: AramEntry[], since = 0): Standing[] {
   );
 }
 
-/** The placement games of the year up to a step ("3/5"): the steps without points before it. */
-function placementCount(history: Step[], index: number) {
-  let count = 0;
-  for (let i = index; i >= 0 && history[i].gain === null; i--) count += 1;
-  return count;
-}
-
 /** What one game did on the ladder, for the card after the game (small: goes to the popout). */
 export type RankResult = {
-  mark: number;
+  grade: Grade;
+  /** Share of all measured games that were worse (0–1). */
+  pct: number;
   /** Points of the game; null in the placement games. */
   gain: number | null;
   before: Rank | null;
   after: Rank | null;
   change: Step['change'];
-  /** Counted games up to this one (placement: "3/5"). */
+  /** Placement games played up to this one (0 once placed). */
   games: number;
 };
 
 /** The step of one player's game on the ladder (only games from `since` on), or null when the game
- * does not count (no values of all ten, remake, away). */
+ * does not count (no values of all ten, remake). */
 export function rankResult(
   entries: AramEntry[],
   puuid: string,
   gameId: number,
   since = 0,
 ): RankResult | null {
-  const own = entries.filter((e) => e.puuid === puuid);
-  const standing = standings(own, since)[0];
+  const standing = standings(
+    entries.filter((e) => e.puuid === puuid),
+    since,
+  )[0];
   const index = standing?.history.findIndex((h) => h.entry.gameId === gameId) ?? -1;
   if (!standing || index < 0) return null;
   const step = standing.history[index];
+  let count = 0;
+  for (let i = index; i >= 0 && standing.history[i].gain === null; i--) count += 1;
   return {
-    mark: step.mark.value,
+    grade: step.mark.grade,
+    pct: step.mark.pct,
     gain: step.gain,
     before: step.before,
     after: step.after,
     change: step.change,
-    games: placementCount(standing.history, index),
+    games: step.gain === null ? count : 0,
   };
 }

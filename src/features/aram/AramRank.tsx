@@ -1,21 +1,11 @@
 import type { CSSProperties } from 'react';
 import { splitRiotId, type AramEntry, type AramPlayer } from '../../adapters/aram';
-import {
-  CLIMBING,
-  PLACEMENT,
-  placementLadder,
-  rankName,
-  rankOf,
-  standings,
-  type Rank,
-  type Standing,
-  type Step,
-} from './aramRating';
+import { CLIMBING, PLACEMENT, rankName, standings, type Standing, type Step } from './aramRating';
 import { TrendingUp } from 'lucide-react';
 import { ladderPlace, record } from './RankHistory';
+import { GradeBadge } from './GradeBadge';
 import { TierEmblem } from './TierEmblem';
 
-const mark = (value: number) => value.toFixed(1).replace('.', ',');
 const signed = (value: number) => (value > 0 ? `+${value}` : `−${Math.abs(value)}`);
 const LAST = 6;
 
@@ -86,10 +76,6 @@ function RankRow({
   const { name } = splitRiotId(player.name);
   const rank = standing?.rank ?? null;
   const history = standing?.history ?? [];
-  const soFar: Rank | null =
-    !rank && (standing?.placed ?? 0) > 0
-      ? rankOf(placementLadder(history.slice(-standing!.placed).map((h) => h.mark.value)))
-      : null;
   const last = history.slice(-LAST).reverse();
   return (
     <button className={`rank-row ${me ? 'me' : ''}`} onClick={onClick}>
@@ -97,8 +83,6 @@ function RankRow({
       <span className="rank-emblem-box">
         {rank ? (
           <TierEmblem tier={rank.tier} size={64} />
-        ) : soFar ? (
-          <TierEmblem tier={soFar.tier} size={64} provisional />
         ) : (
           <span className="rank-placing" aria-hidden="true">
             ?
@@ -112,6 +96,16 @@ function RankRow({
             <span className="rank-record"> · {record(standing)}</span>
           )}
           {top !== null && <span className="rank-record"> · Top {top} %</span>}
+          {standing?.average && (
+            <span className="rank-record">
+              {' '}
+              · Leistung Ø{' '}
+              <GradeBadge
+                grade={standing.average.grade}
+                title={`Durchschnitt der letzten ${standing.average.games} Spiele`}
+              />
+            </span>
+          )}
         </span>
         {rank ? (
           <>
@@ -151,18 +145,9 @@ function RankRow({
   );
 }
 
-/** A game's points (or, in the placement games, its mark), with the mark in the tooltip. */
+/** A game: its grade, and the points once the player has a rank. */
 function GameChip({ step }: { step: Step }) {
-  const tone =
-    step.gain === null
-      ? step.mark.value >= 7
-        ? 'high'
-        : step.mark.value < 4
-          ? 'low'
-          : ''
-      : step.gain > 0
-        ? 'high'
-        : 'low';
+  const tone = step.gain === null ? '' : step.gain > 0 ? 'high' : 'low';
   const change =
     step.change === 'promoted'
       ? ' · Aufstieg'
@@ -174,11 +159,12 @@ function GameChip({ step }: { step: Step }) {
   return (
     <span
       className={`rank-mark ${tone} ${step.change ?? ''}`}
-      title={`${step.entry.championName || 'Spiel'} · Note ${mark(step.mark.value)} · ${
+      title={`${step.entry.championName || 'Spiel'} · Note ${step.mark.grade} · ${
         step.mark.win ? 'Sieg' : 'Niederlage'
       }${change}`}
     >
-      {step.gain === null ? mark(step.mark.value) : signed(step.gain)}
+      <GradeBadge grade={step.mark.grade} />
+      {step.gain !== null && <span>{signed(step.gain)}</span>}
     </span>
   );
 }
