@@ -150,7 +150,7 @@ export default function Ranking() {
               Jedes Spiel bekommt eine Note von <GradeChip grade="F" /> bis <GradeChip grade="MAYHEM" />. Nach 5
               Spielen gibt es einen Rang; danach bringt jede Note MP – mehr, je besser sie über der Erwartung
               deines Rangs liegt, höchstens ±30 pro Spiel. D bis SS haben vier Divisionen zu je 100 MP, SSS und
-              MAYHEM sind so selten wie Grandmaster und Challenger.
+              MAYHEM sind so selten wie Grandmaster und Challenger. <a href="/wertung">Mehr dazu</a>
             </p>
           </div>
           <div className="card">

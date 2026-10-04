@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 4 (Teil 1): So funktioniert's — 04.10.2026
+
+- Neue Seite `apps/mayhem-site/app/wertung/page.tsx` (in der Navigation, „Mehr dazu“ unter „So zählt es“ auf der Rangliste): Note (fünf Achsen mit Gewicht, Champion-Vergleich, Supporter, Remake/abwesend, Seltenheit jeder Note mit Noten-Icon), Leistung Ø, Rang (Stufen mit Aufbau, Anteil, LoL-Gegenstück, MP je Spiel), MP je Spiel (Kletter-Beispiel, Aufstieg/Abstieg, Schutz), Saisons, versteckte Wertung (nie gezeigt), häufige Fragen.
+- Jede Zahl kommt aus dem Rechenkern (`apps/mayhem-site/src/explain.ts`: Anteile aus `GRADES`, Gewichte aus `WEIGHTS`, Stufen-Anfänge und Seltenheit aus `rankOf`/`muOf`/`phi`, Kletter-Beispiel aus `pointsFor`, Saisonstarts aus `seasonOf`); Test `src/features/aram/siteExplain.test.ts`. Ändert sich die Wertung, ändert sich die Seite mit; nur die LoL-Gegenstücke und Texte stehen fest in der Seite.
+- Keine Daten, keine API, keine Migration. Lokal geprüft: 1400 px und 375 px ohne Querscrollen, Tabelle passt auf dem Handy.
+- Nächste Teile von Etappe 4 laut PLAN.md: Startseite, Gruppe mit Duell, Leerzustände, Handy.
+
 ## Website Etappe 3 (Abschluss): Namen ausblenden — 04.10.2026
 
 - Seite `apps/mayhem-site/app/datenschutz/entfernen/page.tsx` (Link unter jeder Spiel-Seite, `?spiel=<id>` vorausgefüllt, und von der Datenschutzseite), Endpunkt `POST /api/ausblenden` `{ gameId, name }` (`src/api.ts`, `hide()`): die Riot-ID muss in diesem hochgeladenen Spiel vorkommen (Archiv, Hochladende, ihre Freunde in `with`; Tag nötig, Groß-/Kleinschreibung egal), gespeichert wird nur die PUUID in `hidden_players` (Migration 0004, beim Veröffentlichen über Codex anwenden).
