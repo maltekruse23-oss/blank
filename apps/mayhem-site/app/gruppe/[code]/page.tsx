@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { duelOf, type Member, type Session } from '../../../src/group';
 import { AXES } from '../../../src/insights';
 import { RECORDS } from '../../../src/records';
-import { GradeChip, Radar } from '../../ui/bits';
+import { GradeChip, Problem, Radar } from '../../ui/bits';
 import { date, de, splitName, useDragon, useLive, type PlayerSummary } from '../../ui/data';
 import { PlayerRow } from '../../ui/player-row';
 
@@ -23,7 +23,7 @@ const short = (name: string) => splitName(name).name;
 
 export default function GroupPage() {
   const { code } = useParams<{ code: string }>();
-  const { data, error, live } = useLive<GroupData>('/api/gruppe/' + encodeURIComponent(code));
+  const { data, error, live, missing } = useLive<GroupData>('/api/gruppe/' + encodeURIComponent(code));
   const dragon = useDragon();
 
   return (
@@ -43,11 +43,7 @@ export default function GroupPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="error" role="alert">
-          {error}
-        </div>
-      )}
+      {error && <Problem message={error} missing={missing} />}
       {!data && !error && <p className="empty">Gruppe wird geladen …</p>}
 
       {data && !data.players.length && (

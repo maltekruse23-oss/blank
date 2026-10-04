@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { seasonName } from '../../../src/features/aram/aramRating';
 import { MIN_GAMES, ROLES, type ChampionDetail, type ChampionGame } from '../../../src/champions';
-import { Augment, GradeChip, GradeIcon, Img } from '../../ui/bits';
+import { Augment, GradeChip, GradeIcon, Img, Problem } from '../../ui/bits';
 import { Filters, useFilters, type Scope } from '../../ui/filters';
 import {
   championImage,
@@ -39,10 +39,10 @@ export default function ChampionPage() {
   const params = useParams<{ name: string }>();
   const name = params.name;
   const filters = useFilters();
-  const { data, error } = useLive<Detail>(VALID.test(name) ? `/api/champions/${name}?${filters.query}` : null);
+  const { data, error, missing } = useLive<Detail>(VALID.test(name) ? `/api/champions/${name}?${filters.query}` : null);
   const dragon = useDragon();
 
-  if (!VALID.test(name)) return <div className="error" role="alert">Unbekannter Champion.</div>;
+  if (!VALID.test(name)) return <Problem message="Unbekannter Champion" missing />;
 
   const c = data?.champion;
   const key = c ? championKey(dragon, c) : /^[0-9]+$/.test(name) ? '' : name;
@@ -75,7 +75,7 @@ export default function ChampionPage() {
         </div>
       </section>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <Problem message={error} missing={missing} />}
       {!data && !error && <p className="empty">Champion wird geladen …</p>}
 
       {c && (

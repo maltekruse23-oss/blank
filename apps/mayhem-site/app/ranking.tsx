@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { seasonName, seasonOf } from '../src/features/aram/aramRating';
 import { apexLines, distributionOf, topShare } from '../src/insights';
 import ArchiveCounter from './archive-counter';
-import { GradeChip, Histogram, Img, RankLine, Tabs, TierMark } from './ui/bits';
+import { GradeChip, Histogram, Img, Problem, RankLine, Tabs, TierMark } from './ui/bits';
 import { championImage, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from './ui/data';
 
 type View = 'rank' | 'performance';
@@ -79,7 +79,7 @@ export default function Ranking() {
         </div>
       </div>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <Problem message={error} />}
 
       <div className="apex" style={{ marginBottom: 'var(--gap)' }}>
         {apexLines(ranks).map((a) => (
@@ -91,7 +91,7 @@ export default function Ranking() {
                 {a.lowest === null ? `ab ${APEX_MP[a.tier.id as keyof typeof APEX_MP]} MP` : `ab ${a.lowest} MP`}
               </strong>
               <span className="muted">
-                {a.players === 0 ? 'Noch niemand – so selten wie Challenger und Grandmaster' : `${a.players} Spieler`}
+                {a.players === 0 ? `Noch niemand – so selten wie ${a.tier.id === 'mayhem' ? 'Challenger' : 'Grandmaster'}` : `${a.players} Spieler`}
               </span>
             </div>
           </div>

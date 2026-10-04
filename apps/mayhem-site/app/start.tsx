@@ -7,7 +7,7 @@ import { seasonName, seasonOf } from '../src/features/aram/aramRating';
 import { gradeShares } from '../src/explain';
 import type { RecordView } from '../src/records';
 import type { DayGame, StartView } from '../src/start';
-import { GradeIcon } from './ui/bits';
+import { GradeIcon, Problem } from './ui/bits';
 import { PlayerRow } from './ui/player-row';
 import { Search } from './ui/header';
 import {
@@ -63,7 +63,7 @@ export default function StartPage() {
         </dl>
       </section>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <Problem message={error} />}
       {!data && !error && <p className="empty">Wird geladen …</p>}
 
       {data && (
