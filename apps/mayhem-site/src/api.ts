@@ -167,7 +167,7 @@ async function upload(req: Request, url: URL) {
     return json({ results: b.entries.map((e, i) => ({ gameId: e.gameId, puuid: e.puuid, stored: result[storedIndexes[i]].results.length > 0, rank: rankResult(all, e.puuid, e.gameId, c.since) })), ...(playerToken ? { playerToken } : {}), season: c.season, group: c.group });
 }
 async function live(req: Request, url: URL) {
-    const c = await context(url);
+    await context(url); // rejects an unknown season or group before the stream opens
     const last = req.headers.get('last-event-id') ?? url.searchParams.get('cursor');
     let cursor = last ? Number(last) : (await rows<{
         id: number;

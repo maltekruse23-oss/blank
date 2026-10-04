@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 5 (Teil 2): Aufräumen — 04.10.2026
+
+- Aus der Sites-Vorlage entfernt, weil nichts sie nutzt: `components/` (shadcn), `components.json`, `examples/`, `hooks/`, `lib/utils.ts`, drei Vorlagen-SVGs, Tailwind samt `postcss.config.mjs` (die Seite hat ihr eigenes CSS ohne Tailwind) und 21 ungenutzte Pakete. Gebautes CSS ist byte-gleich (MD5 vorher/nachher geprüft).
+- Bleibt: `lib/connector*`, `build/`, `scripts/` (Sites-Hosting und Vorschau brauchen sie).
+- Paketname **nicht** geändert: wrangler nimmt ihn als Worker-Namen (`dist/server/wrangler.json`), ein neuer Name könnte beim Veröffentlichen eine zweite Site anlegen. Nur zusammen mit Codex beim Veröffentlichen ändern, falls gewünscht.
+- Lokale Prüfung: `wrangler d1 execute` nie gegen die laufende Vorschau (der Worker startet dann mitten in Anfragen neu); erst Server stoppen, Migrationen anwenden, starten, ein paar Sekunden warten.
+
 ## Website Etappe 5 (Teil 1): Seiten zwischenspeichern — 04.10.2026
 
 - Rangliste, Startseite, Rekorde, Champions (auch einzeln) und Gruppenseite kommen aus der neuen Tabelle `snapshots` (Migration **0005**, beim Veröffentlichen über Codex mit anwenden). Logik `apps/mayhem-site/src/snapshot.ts` (`snapshotKey`, `isFresh`, Test `src/features/aram/siteSnapshot.test.ts`), `cached()` in `src/api.ts`.

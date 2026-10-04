@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import {standings,rankResult} from '../src/features/aram/aramRating.ts';
 const base='http://127.0.0.1:5173';let serial=0;const api=async(path,body,token,method=body?'POST':'GET',ip)=>{const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json','Origin':'http://tauri.localhost','cf-connecting-ip':ip??`test-${++serial}`,...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})});let data=await r.json();return {status:r.status,data,headers:r.headers};};
 const a='A'.repeat(40),b='B'.repeat(40);const lobby=Array.from({length:10},(_,i)=>({you:i===0,team:i<5?100:200,championId:i===0?22:i+1,kills:10+i,deaths:4,assists:15,damage:20000+i*1000,taken:18000,mitigated:10000,healed:500,shielded:0,gold:14000}));
