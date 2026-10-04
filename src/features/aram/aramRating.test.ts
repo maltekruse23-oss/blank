@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { AramEntry, AramSeat } from '../../adapters/aram';
+import { gradeOf, performanceOf, phi } from './aramPerformance';
 import {
   applyPoints,
-  expectedMark,
-  markGame,
+  GAP_SCALE,
+  INITIAL_MMR,
+  ladderOfMu,
+  muOf,
   PLACEMENT,
   PLACEMENT_CAP,
   placementLadder,
@@ -13,11 +16,13 @@ import {
   rankResult,
   seasonOf,
   SHIELD_GAMES,
+  SKILL_SD,
   standings,
-  WIN_BONUS,
+  TAU,
+  updateMmr,
 } from './aramRating';
 
-// Champion IDs by role (championRoles.ts): 103 Ahri (Mage), 54 Malphite (Tank), 16 Soraka (Support).
+// Champion IDs (championRoles.ts): 103 Ahri (Mage), 54 Malphite (Tank), 16 Soraka (Support).
 const MAGE = 103;
 const TANK = 54;
 const SUPPORT = 16;
@@ -84,146 +89,263 @@ function game(you: Partial<AramSeat>, extra: Partial<AramEntry> = {}): AramEntry
   };
 }
 
-/** Everyone's values times a factor (a longer or shorter game); counts only by whole factors. */
-const scaled = (entry: AramEntry, factor: number, seconds: number): AramEntry => ({
-  ...entry,
-  seconds,
-  lobby: entry.lobby!.map((s) => ({
-    ...s,
-    kills: Number.isInteger(factor) ? s.kills * factor : s.kills,
-    deaths: Number.isInteger(factor) ? s.deaths * factor : s.deaths,
-    assists: Number.isInteger(factor) ? s.assists * factor : s.assists,
-    damage: s.damage * factor,
-    taken: s.taken * factor,
-    mitigated: s.mitigated * factor,
-    healed: s.healed * factor,
-    gold: s.gold * factor,
-  })),
+const y = (you: Partial<AramSeat>, extra: Partial<AramEntry> = {}) =>
+  performanceOf(game(you, extra))!.y;
+
+const strong = { damage: 90_000, kills: 25, assists: 30, deaths: 3 };
+const idle = { damage: 3_000, kills: 0, assists: 1, deaths: 10, healed: 0, taken: 5_000 };
+
+describe('Spiel-Note: F bis MAYHEM, stufenlos und fair', () => {
+  it('mehr Leistung = höhere Note, jede Stat zählt', () => {
+    expect(y(strong)).toBeGreaterThan(y({}));
+    expect(y({})).toBeGreaterThan(y(idle));
+    expect(y({ damage: 60_000 })).toBeGreaterThan(y({ damage: 30_000 }));
+    expect(y({ assists: 40 })).toBeGreaterThan(y({ assists: 20 }));
+    expect(y({ deaths: 2 })).toBeGreaterThan(y({ deaths: 14 }));
+  });
+
+  it('starkes Spiel hoch, Nichtstun ganz unten', () => {
+    expect(performanceOf(game(strong))!.pct).toBeGreaterThan(0.9);
+    expect(performanceOf(game(idle))!.pct).toBeLessThan(0.1);
+  });
+
+  it('Sieg oder Niederlage ändern nichts', () => {
+    expect(y(strong, { win: true })).toBe(y(strong, { win: false }));
+  });
+
+  it('die Länge des Spiels ändert nichts (alle Werte größer = gleiche Anteile)', () => {
+    const doubled = game(strong, { seconds: 36 * 60 });
+    doubled.lobby = doubled.lobby!.map((s) => ({
+      ...s,
+      kills: s.kills * 2,
+      deaths: s.deaths * 2,
+      assists: s.assists * 2,
+      damage: s.damage * 2,
+      taken: s.taken * 2,
+      mitigated: s.mitigated * 2,
+      healed: s.healed * 2,
+      gold: s.gold * 2,
+    }));
+    expect(performanceOf(doubled)!.y).toBeCloseTo(y(strong), 6);
+  });
+
+  it('fast gleiche Spiele bekommen fast gleiche Noten (kein Abgrund wie bei Plätzen)', () => {
+    for (const damage of [20_000, 45_000, 80_000])
+      expect(Math.abs(y({ damage: damage * 1.01 }) - y({ damage }))).toBeLessThan(0.03);
+  });
+
+  it('ein Supporter mit Support-Werten wird nicht für wenig Schaden bestraft', () => {
+    // Last place in damage, but the most healing and shielding, many assists, few deaths.
+    const support = {
+      championId: SUPPORT,
+      damage: 2_000,
+      kills: 3,
+      assists: 38,
+      deaths: 4,
+      healed: 30_000,
+      shielded: 5_000,
+      taken: 30_000,
+    };
+    expect(performanceOf(game(support))!.pct).toBeGreaterThan(0.55);
+    // More damage does not make a useless support game better than the support game above.
+    const pointless = {
+      championId: SUPPORT,
+      damage: 30_000,
+      kills: 5,
+      assists: 8,
+      deaths: 12,
+      healed: 500,
+      taken: 30_000,
+    };
+    expect(y(support)).toBeGreaterThan(y(pointless));
+  });
+
+  it('Noten aus dem Perzentil: F ganz unten, MAYHEM ganz oben', () => {
+    expect(gradeOf(0.01)).toBe('F');
+    expect(gradeOf(0.5)).toBe('B');
+    expect(gradeOf(0.9)).toBe('S');
+    expect(gradeOf(0.999)).toBe('MAYHEM');
+    for (let p = 0; p < 1; p += 0.01) expect(gradeOf(p)).toBeTruthy();
+    expect(phi(0)).toBeCloseTo(0.5, 6);
+    expect(phi(1.96)).toBeCloseTo(0.975, 3);
+  });
+
+  it('Remake, fehlende Werte zählen nicht, abwesend ist F', () => {
+    expect(performanceOf(game(strong, { seconds: 7 * 60 }))).toBeNull();
+    expect(performanceOf(game(strong, { lobby: undefined }))).toBeNull();
+    const away = performanceOf(game({ ...strong, gold: 2_000 }))!;
+    expect(away.grade).toBe('F');
+    expect(away.afk).toBe(true);
+  });
 });
 
-describe('Mayhem-Wertung: Note je Spiel', () => {
-  const strong = game({ damage: 60_000, kills: 20, assists: 30, deaths: 5 });
-
-  it('Spiel strecken oder schnell beenden ändert nichts', () => {
-    const base = markGame(strong)!.value;
-    expect(markGame(scaled(strong, 2, 36 * 60))!.value).toBe(base);
-    expect(markGame(scaled(strong, 0.5, 9 * 60))!.value).toBe(base);
-  });
-
-  it('Nichtstun lohnt sich nicht, auch ohne Tode', () => {
-    const idle = markGame(game({ damage: 4_000, kills: 0, assists: 1, deaths: 0 }))!;
-    expect(idle.value).toBeLessThan(2.5);
-    expect(markGame(strong)!.value).toBeGreaterThan(7);
-  });
-
-  it('nur Schaden farmen trägt höchstens sein Gewicht', () => {
-    const farmer = markGame(game({ damage: 200_000, kills: 0, assists: 2, deaths: 25 }))!;
-    expect(farmer.value).toBeLessThan(6);
-  });
-
-  it('Sieg oder Niederlage ändern die Note nur wenig', () => {
-    const lost = markGame(strong)!.value;
-    const won = markGame({ ...strong, win: true })!.value;
-    expect(Math.round((won - lost) * 10) / 10).toBe(2 * WIN_BONUS);
-  });
-
-  it('ein Tank zählt, was er einsteckt, ein Supporter, was er heilt', () => {
-    const front = { damage: 12_000, taken: 90_000, mitigated: 80_000, assists: 30, kills: 3 };
-    expect(markGame(game({ ...front, championId: TANK }))!.value).toBeGreaterThan(
-      markGame(game({ ...front, championId: MAGE }))!.value,
-    );
-    const care = { damage: 8_000, healed: 60_000, shielded: 20_000, assists: 35, kills: 1 };
-    expect(markGame(game({ ...care, championId: SUPPORT }))!.value).toBeGreaterThan(
-      markGame(game({ ...care, championId: MAGE }))!.value,
-    );
-  });
-
-  it('Remake, Abwesenheit und Spiele ohne Werte aller zehn zählen nicht', () => {
-    expect(markGame({ ...strong, seconds: 4 * 60 })).toBeNull();
-    expect(markGame(game({ gold: 2_000 }))).toBeNull();
-    expect(markGame({ ...strong, lobby: undefined })).toBeNull();
-  });
-
-  it('die Note liegt immer zwischen 0 und 10', () => {
-    for (const you of [
-      { damage: 0, kills: 0, assists: 0, deaths: 40 },
-      { damage: 1e6, kills: 90, assists: 90, deaths: 0 },
-    ]) {
-      const mark = markGame(game(you))!;
-      expect(mark.value).toBeGreaterThanOrEqual(0);
-      expect(mark.value).toBeLessThanOrEqual(10);
+describe('Versteckte Wertung (MMR)', () => {
+  it('bewegt sich schon ab Spiel 1 und wird mit jedem Spiel sicherer', () => {
+    const first = updateMmr(INITIAL_MMR, 1);
+    expect(first.mu).toBeGreaterThan(0.2);
+    expect(first.variance).toBeLessThan(INITIAL_MMR.variance);
+    let m = first;
+    let last = m.variance;
+    for (let i = 0; i < 20; i++) {
+      m = updateMmr(m, 1);
+      expect(m.variance).toBeLessThan(last);
+      last = m.variance;
     }
   });
+
+  it('anfangs große Schritte, später kleine', () => {
+    const step = (m: typeof INITIAL_MMR) => updateMmr(m, 1).mu - m.mu;
+    let m = INITIAL_MMR;
+    const early = step(m);
+    for (let i = 0; i < 30; i++) m = updateMmr(m, 1);
+    expect(early).toBeGreaterThan(step(m) * 3);
+  });
+
+  it('nähert sich der echten Leistung', () => {
+    let m = INITIAL_MMR;
+    for (let i = 0; i < 60; i++) m = updateMmr(m, 0.8);
+    expect(m.mu).toBeGreaterThan(0.7);
+    expect(m.mu).toBeLessThanOrEqual(0.8);
+  });
 });
 
-describe('Mayhem-Wertung: Ladder wie LoL-Ranked 2026', () => {
-  it('Stufen mit Divisionen IV–I, oben nur Punkte', () => {
+describe('Rang: Stufen, Seltenheit, Punkte', () => {
+  it('D bis SS mit Divisionen IV–I, danach offene MP', () => {
     expect(rankName(rankOf(0))).toBe('D IV');
     expect(rankName(rankOf(399))).toBe('D I');
-    expect(rankOf(399).points).toBe(99);
-    expect(rankName(rankOf(1650))).toBe('S IV');
     expect(rankName(rankOf(1750))).toBe('S III');
-    expect(rankName(rankOf(2800))).toBe('MAYHEM');
-    expect(rankOf(3050)).toMatchObject({ division: null, points: 250 });
+    expect(rankName(rankOf(2399))).toBe('SS I');
+    expect(rankOf(2450)).toMatchObject({ division: null, points: 50 });
+    expect(rankName(rankOf(2450))).toBe('SS');
+    expect(rankName(rankOf(2800))).toBe('SSS');
+    expect(rankName(rankOf(3300))).toBe('MAYHEM');
   });
 
-  it('höherer Rang erwartet mehr', () => {
-    for (let l = 0; l < 3600; l += 50)
-      expect(expectedMark(l + 50)).toBeGreaterThan(expectedMark(l));
+  it('SSS und MAYHEM so selten wie Grandmaster und Challenger', () => {
+    const above = (ladder: number) => 1 - phi(muOf(ladder) / SKILL_SD);
+    expect(above(2800)).toBeCloseTo(0.0009, 4);
+    expect(above(3200)).toBeCloseTo(0.0003, 4);
+    expect(above(2000)).toBeCloseTo(0.0468, 3);
+    // From the start of the ladder to the apex, each step is rarer.
+    for (let l = 0; l < 3200; l += 100) expect(muOf(l + 100)).toBeGreaterThan(muOf(l));
+    expect(ladderOfMu(muOf(1234))).toBeCloseTo(1234, 3);
   });
 
-  it('MP in LoL-Größen: etwa ±25 bis S, ±20 in SS/SSS, ±30 in MAYHEM', () => {
-    const at = (l: number, above: boolean) =>
-      pointsFor(expectedMark(l) + (above ? 0.5 : -0.5), l, 0);
-    expect(at(800, true)).toBe(25);
-    expect(at(800, false)).toBe(-25);
-    expect(at(2100, true)).toBe(20);
-    expect(at(2500, false)).toBe(-20);
-    expect(at(2900, true)).toBe(30);
+  it('SSS und MAYHEM nur mit passender, sicherer versteckter Wertung', () => {
+    // 800 MP above the apex line, but the hidden rating is only average and uncertain: SS.
+    const entries = Array.from({ length: 6 }, (_, i) =>
+      game({ ...strong }, { gameId: 10 + i, at: 1_790_000_000_000 + i * 1e6 }),
+    );
+    const s = standings(entries)[0];
+    expect(s.rank!.tier.id).not.toBe('sss');
+    expect(s.rank!.tier.id).not.toBe('mayhem');
   });
 
-  it('Form über dem Rang: mehr Plus, weniger Minus (etwa +27/−13), darunter umgekehrt', () => {
-    const l = 2100;
-    const good = 1.4;
-    expect(pointsFor(expectedMark(l) + 0.2, l, good)).toBe(27);
-    expect(pointsFor(expectedMark(l) - 0.2, l, good)).toBe(-13);
-    expect(pointsFor(expectedMark(l) + 0.2, l, -good)).toBe(13);
-    expect(pointsFor(expectedMark(l) - 0.2, l, -good)).toBe(-27);
-    // Never zero, never out of range.
-    for (let m = 0; m <= 10; m += 0.5)
-      for (const f of [-2, 0, 2]) {
-        const p = pointsFor(m, 800, f);
-        expect(Math.abs(p)).toBeGreaterThanOrEqual(5);
-        expect(Math.abs(p)).toBeLessThanOrEqual(37);
-      }
+  it('MP in LoL-Größen: ±25 bis A, ±20 in S/SS, ±30 im Apex', () => {
+    const better = (ladder: number, up: boolean) =>
+      pointsFor(muOf(ladder) + (up ? TAU : -TAU), ladder, muOf(ladder));
+    expect(better(200, true)).toBe(25);
+    expect(better(200, false)).toBe(-25);
+    expect(better(1700, true)).toBe(20);
+    expect(better(2100, false)).toBe(-20);
+    expect(better(3000, true)).toBe(30);
+  });
+
+  it('versteckte Wertung über dem Rang: etwa +27/−13, darunter +13/−27', () => {
+    const ladder = 1700;
+    const over = muOf(ladder) + GAP_SCALE;
+    const under = muOf(ladder) - GAP_SCALE;
+    expect(pointsFor(muOf(ladder) + TAU, ladder, over)).toBe(27);
+    expect(pointsFor(muOf(ladder) - TAU, ladder, over)).toBe(-13);
+    expect(pointsFor(muOf(ladder) + TAU, ladder, under)).toBe(13);
+    expect(pointsFor(muOf(ladder) - TAU, ladder, under)).toBe(-27);
+  });
+
+  it('Punkte sind stufenlos: fast gleiche Spiele, fast gleiche Punkte; nie 0', () => {
+    const ladder = 1000;
+    let last = pointsFor(-3, ladder, muOf(ladder));
+    for (let g = -3; g <= 4; g += 0.01) {
+      const p = pointsFor(g, ladder, muOf(ladder));
+      // Only at the zero line the "never zero" rule jumps from −1 to +1.
+      expect(Math.abs(p - last)).toBeLessThanOrEqual(2);
+      expect(p).not.toBe(0);
+      last = p;
+    }
   });
 
   it('Aufstieg mit Übertrag, Abstieg mit Überlauf (10 − 25 → 85)', () => {
     expect(applyPoints(390, 25, 0, 0)).toBe(415);
     expect(applyPoints(510, -25, 0, 0)).toBe(485);
-    expect(rankName(rankOf(485))).toBe('C IV');
     expect(rankOf(485).points).toBe(85);
+    expect(rankName(rankOf(485))).toBe('C IV');
     expect(applyPoints(0, -25, 0, 0)).toBe(0);
   });
 
-  it('Stufen-Abstieg landet je nach Form bei 75, 50 oder 25', () => {
+  it('Stufen-Abstieg landet je nach Abstand bei 75, 50 oder 25; Schutz nach Aufstieg', () => {
     expect(applyPoints(810, -25, 0, 0.3)).toBe(775);
-    expect(applyPoints(810, -25, 0, -0.5)).toBe(750);
-    expect(applyPoints(810, -25, 0, -1.5)).toBe(725);
-    expect(applyPoints(2810, -30, 0, 0)).toBe(2775);
-  });
-
-  it('nach einem Stufen-Aufstieg Schutz vor dem Stufen-Abstieg', () => {
+    expect(applyPoints(810, -25, 0, -0.3)).toBe(750);
+    expect(applyPoints(810, -25, 0, -0.9)).toBe(725);
     expect(applyPoints(810, -25, SHIELD_GAMES, 0)).toBe(800);
-    // Inside the tier the overflow still happens.
     expect(applyPoints(910, -25, SHIELD_GAMES, 0)).toBe(885);
+    // From the apex line on only open points count.
+    expect(applyPoints(2810, -30, 0, 0)).toBe(2780);
+  });
+});
+
+describe('Einstufung und Saisons', () => {
+  const run = (n: number, you: Partial<AramSeat>, from = 1_790_000_000_000) =>
+    Array.from({ length: n }, (_, i) => game(you, { gameId: 100 + i, at: from + i * 3_600_000 }));
+
+  it('sichtbarer Rang erst nach 5 Spielen, die versteckte Wertung läuft ab Spiel 1', () => {
+    for (let n = 1; n < PLACEMENT; n++) {
+      const s = standings(run(n, strong))[0];
+      expect(s.rank).toBeNull();
+      expect(s.placed).toBe(n);
+      expect(s.hidden.mu).toBeGreaterThan(0);
+    }
+    const s = standings(run(PLACEMENT, strong))[0];
+    expect(s.rank).not.toBeNull();
+    expect(s.history[PLACEMENT - 1].change).toBe('placed');
   });
 
-  it('Einstufung nach 5 Spielen, höchstens SSS III 80', () => {
-    expect(placementLadder([3, 3, 3, 3, 3])).toBe(0);
-    const top = rankOf(placementLadder([10, 10, 10, 10, 10]));
-    expect(rankName(top)).toBe('SSS III');
-    expect(top.points).toBe(80);
+  it('nie höher eingestuft als S I (Emerald I), auch mit Traum-Spielen', () => {
+    const dream = { damage: 400_000, kills: 60, assists: 80, deaths: 0, healed: 200_000 };
+    const s = standings(run(PLACEMENT, dream))[0];
+    expect(s.rank!.ladder).toBeLessThanOrEqual(PLACEMENT_CAP);
+    expect(rankName(s.rank!)).toBe('S I');
+    expect(placementLadder({ mu: 3, variance: 0.1 })).toBe(PLACEMENT_CAP);
+  });
+
+  it('nach der Einstufung gibt es MP, ein starker Spieler klettert', () => {
+    const s = standings(run(30, strong))[0];
+    expect(s.history[PLACEMENT].gain).not.toBeNull();
+    expect(s.rank!.ladder).toBeGreaterThan(s.history[PLACEMENT - 1].after!.ladder);
+  });
+
+  it('Sieg oder Niederlage ändern Rang und versteckte Wertung nicht', () => {
+    const wins = run(12, strong).map((g) => ({ ...g, win: true }));
+    const losses = run(12, strong).map((g) => ({ ...g, win: false }));
+    const a = standings(wins)[0];
+    const b = standings(losses)[0];
+    expect(a.rank).toEqual(b.rank);
+    expect(a.hidden).toEqual(b.hidden);
+  });
+
+  it('gleiche Spiele in anderer Reihenfolge ergeben bei allen dasselbe', () => {
+    const games = Array.from({ length: 14 }, (_, i) =>
+      game(
+        { damage: 20_000 + ((i * 7) % 5) * 9_000, assists: 10 + ((i * 3) % 7) * 4 },
+        { gameId: 10 + i, at: 1_790_000_000_000 + i * 1e6 },
+      ),
+    );
+    expect(standings(games)).toEqual(standings([...games].reverse()));
+  });
+
+  it('Durchschnitt der Leistung (Leistungs-Wertung) unabhängig vom Rang', () => {
+    const s = standings(run(30, strong))[0];
+    expect(s.average!.games).toBe(20);
+    expect(s.average!.pct).toBeGreaterThan(0.9);
+    expect(standings(run(30, idle))[0].average!.pct).toBeLessThan(0.15);
   });
 
   it('drei Saisons pro Jahr wie LoL', () => {
@@ -233,71 +355,36 @@ describe('Mayhem-Wertung: Ladder wie LoL-Ranked 2026', () => {
     expect(seasonOf(Date.UTC(2026, 8, 30)).id).toBe('2026-3');
   });
 
-  it('Rang bleibt zwischen Saisons, Soft-Reset und neue Einstufung zum neuen Jahr', () => {
-    const at = (y: number, m: number, d: number, i: number) => Date.UTC(y, m, d) + i * 3_600_000;
-    const strong = { damage: 90_000, kills: 25, assists: 30, deaths: 3 };
-    const season2 = Array.from({ length: 8 }, (_, i) =>
-      game(strong, { gameId: 100 + i, at: at(2026, 4, 1, i) }),
-    );
-    const season3 = [game(strong, { gameId: 200, at: at(2026, 7, 1, 0) })];
-    const nextYear = Array.from({ length: 5 }, (_, i) =>
-      game(strong, { gameId: 300 + i, at: at(2027, 1, 1, i) }),
-    );
-    const s3 = standings([...season2, ...season3])[0];
-    expect(s3.seasons.map((s) => s.season.id)).toEqual(['2026-2']);
-    expect(s3.history.at(-1)!.gain).not.toBeNull();
-    const firstOfYear = standings([...season2, ...season3, ...nextYear.slice(0, 1)])[0];
-    expect(firstOfYear.rank).toBeNull();
-    expect(firstOfYear.placed).toBe(1);
-    const placed = standings([...season2, ...season3, ...nextYear])[0];
+  it('Rang bleibt zwischen Saisons, zum neuen Jahr Soft-Reset und neue Einstufung', () => {
+    const at = (y: number, m: number, d: number) => Date.UTC(y, m, d);
+    const season2 = run(10, strong, at(2026, 4, 1));
+    const season3 = run(1, strong, at(2026, 7, 1)).map((g) => ({ ...g, gameId: 500 }));
+    const year = run(PLACEMENT, strong, at(2027, 1, 1)).map((g, i) => ({ ...g, gameId: 600 + i }));
+    const mid = standings([...season2, ...season3])[0];
+    expect(mid.seasons.map((s) => s.season.id)).toEqual(['2026-2']);
+    expect(mid.history.at(-1)!.gain).not.toBeNull();
+    const first = standings([...season2, ...season3, year[0]])[0];
+    expect(first.rank).toBeNull();
+    expect(first.placed).toBe(1);
+    expect(first.hidden.variance).toBeGreaterThanOrEqual(0.25 - 0.1);
+    const placed = standings([...season2, ...season3, ...year])[0];
     expect(placed.rank).not.toBeNull();
     expect(placed.rank!.ladder).toBeLessThanOrEqual(PLACEMENT_CAP);
     expect(placed.seasons[0].season.id).toBe('2026-3');
   });
 
-  it('Siege, Niederlagen und Form', () => {
-    const games = Array.from({ length: 8 }, (_, i) =>
-      game(
-        { damage: 60_000 },
-        { gameId: 10 + i, at: 1_790_000_000_000 + i * 1e6, win: i % 2 === 0 },
-      ),
-    );
-    const s = standings(games)[0];
-    expect(s.games).toBe(8);
-    expect(s.wins).toBe(4);
-    expect(s.form).toBeGreaterThanOrEqual(-2);
-    expect(s.form).toBeLessThanOrEqual(2);
-  });
-
-  it('gleiche Spiele in anderer Reihenfolge ergeben bei allen dasselbe', () => {
-    const games = Array.from({ length: 12 }, (_, i) =>
-      game(
-        { damage: 20_000 + ((i * 7) % 5) * 9_000 },
-        { gameId: 10 + i, at: 1_790_000_000_000 + i * 1e6 },
-      ),
-    );
-    const a = standings(games);
-    const b = standings([...games].reverse());
-    expect(a).toEqual(b);
-    expect(a[0].history[PLACEMENT - 1].change).toBe('placed');
-    expect(a[0].history[PLACEMENT].gain).not.toBeNull();
-    expect(standings(games.slice(0, PLACEMENT - 1))[0].rank).toBeNull();
-  });
-
   it('Schritt eines Spiels für die Karte: Einstufung, dann Punkte', () => {
-    const games = Array.from({ length: 7 }, (_, i) =>
-      game({ damage: 30_000 + i * 4_000 }, { gameId: 50 + i, at: 1_790_000_000_000 + i * 1e6 }),
-    );
-    expect(rankResult(games, 'p1', 52)).toMatchObject({ gain: null, after: null, games: 3 });
-    const fifth = rankResult(games, 'p1', 54)!;
+    const games = run(7, strong);
+    expect(rankResult(games, 'p1', 102)).toMatchObject({ gain: null, after: null, games: 3 });
+    const fifth = rankResult(games, 'p1', 104)!;
     expect(fifth.change).toBe('placed');
-    const sixth = rankResult(games, 'p1', 55)!;
+    const sixth = rankResult(games, 'p1', 105)!;
     expect(sixth.gain).not.toBeNull();
     expect(sixth.before).toEqual(fifth.after);
     expect(rankResult(games, 'p1', 999)).toBeNull();
   });
 
-  it('nur Spiele ab Saisonstart der Gruppe', () => {
+  it('nur Spiele ab Start der Gruppe', () => {
     const games = [
       game({}, { at: 1_790_000_000_000 }),
       game({}, { gameId: 2, at: 1_790_000_100_000 }),

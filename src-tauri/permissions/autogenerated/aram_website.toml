@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-aram-website"
+description = "Enables the aram_website command without any pre-configured scope."
+commands.allow = ["aram_website"]
+
+[[permission]]
+identifier = "deny-aram-website"
+description = "Denies the aram_website command without any pre-configured scope."
+commands.deny = ["aram_website"]

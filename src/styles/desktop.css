@@ -3428,6 +3428,8 @@ html[data-motion='normal'] .aram-gain {
   height: 68px;
 }
 .rank-emblem {
+  /* Approved artwork uses a black matte; screen removes it on our dark surfaces. */
+  mix-blend-mode: screen;
   width: 68px;
   height: 68px;
   object-fit: contain;
@@ -3792,4 +3794,59 @@ html[data-motion='normal'] .aram-gain {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* The grade of a game, F–MAYHEM (GradeBadge.tsx): independent of the rank. */
+.grade-badge {
+  --grade: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 1px 5px;
+  border-radius: calc(6px * var(--radius-scale));
+  background: color-mix(in srgb, var(--grade) 18%, transparent);
+  color: var(--grade);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  line-height: 1.5;
+}
+.grade-badge.large {
+  min-width: 34px;
+  padding: 3px 8px;
+  font-size: 15px;
+}
+.grade-badge.bad {
+  --grade: var(--danger-text);
+}
+.grade-badge.mid {
+  --grade: var(--text);
+}
+.grade-badge.good {
+  --grade: var(--accent);
+}
+.grade-badge.top {
+  --grade: var(--rank-1);
+}
+.grade-badge.peak {
+  --grade: var(--rank-1);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--rank-1) 30%, transparent),
+    color-mix(in srgb, var(--accent) 30%, transparent)
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rank-1) 45%, transparent);
+}
+.rank-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 3px;
+}
+.rank-mark .grade-badge {
+  min-width: 18px;
+}
+.rank-record .grade-badge {
+  vertical-align: baseline;
 }

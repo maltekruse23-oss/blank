@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "Only collector status and its own Windows startup setting.",
+  "windows": ["main"],
+  "permissions": ["allow-status", "allow-autostart"]
+}

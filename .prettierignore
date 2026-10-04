@@ -4,3 +4,5 @@ src-tauri/target
 src-tauri/gen
 pnpm-lock.yaml
 .claude/skills
+# Independent projects retain their own formatting and validation.
+apps

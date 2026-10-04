@@ -30,6 +30,11 @@ use std::{
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 
+#[path = "aram_archive.rs"]
+mod archive;
+#[path = "aram_website.rs"]
+pub mod website;
+
 /// Queue of ARAM: Mayhem (the only mode that counts, user's choice).
 const MAYHEM_QUEUE: i64 = 2400;
 /// The client's history: the last 20 games, whatever range is asked for.
@@ -390,6 +395,11 @@ impl Lcu {
     }
 
     async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
+        serde_json::from_slice(&self.get_bytes(path).await?)
+            .map_err(|_| "Unerwartete Antwort des League-Clients.".to_string())
+    }
+
+    async fn get_bytes(&self, path: &str) -> Result<Vec<u8>, String> {
         let response = self
             .http
             .get(format!("{}{path}", self.base))
@@ -405,8 +415,9 @@ impl Lcu {
             ));
         }
         response
-            .json::<T>()
+            .bytes()
             .await
+            .map(|bytes| bytes.to_vec())
             .map_err(|_| "Unerwartete Antwort des League-Clients.".to_string())
     }
 
@@ -1039,6 +1050,7 @@ fn now_ms() -> u64 {
 /// Fetches new Mayhem games of the user and the friends; returns the players whose history the
 /// client did not give out, and the new results.
 async fn sync(
+    app: &AppHandle,
     lcu: &Lcu,
     stored: &mut Stored,
     friends: &[String],
@@ -1102,14 +1114,24 @@ async fn sync(
         let friends = friend_set(lcu).await;
         let tracked: HashSet<String> = tracked.into_iter().collect();
         for id in wanted {
-            let Ok(game) = lcu
-                .get::<Game>(&format!("/lol-match-history/v1/games/{id}"))
+            let Ok(raw) = lcu
+                .get_bytes(&format!("/lol-match-history/v1/games/{id}"))
                 .await
             else {
                 continue;
             };
+            let Ok(game) = serde_json::from_slice::<Game>(&raw) else {
+                continue;
+            };
             if game.queue_id != MAYHEM_QUEUE {
                 continue;
+            }
+            // Keep the complete response before reducing it to ranking entries; only with the
+            // upload allowed, and a failing archive never stops the ranking.
+            if website::enabled(app) {
+                if let Err(error) = archive::capture(app, &raw) {
+                    website::publish(app, |s| s.error = Some(error));
+                }
             }
             let mut summary = from_history(&game);
             add_noted_skins(&mut summary);
@@ -1544,8 +1566,9 @@ async fn sync_in_background(app: &AppHandle) -> Result<(Option<String>, Vec<Entr
     };
     let mut stored = load(&state.path)?;
     let friends = stored.friends.clone();
-    let (_, added) = sync(&lcu, &mut stored, &friends).await?;
+    let (_, added) = sync(app, &lcu, &mut stored, &friends).await?;
     save(&state.path, &stored)?;
+    website::enqueue(app);
     if !added.is_empty() {
         let _ = app.emit("aram-updated", ());
     }
@@ -1580,11 +1603,12 @@ pub async fn aram_sync(
             .take(MAX_FRIENDS)
             .collect();
         let friends = stored.friends.clone();
-        let (missing, _) = sync(&lcu, &mut stored, &friends).await?;
+        let (missing, _) = sync(&app, &lcu, &mut stored, &friends).await?;
         save(&state.path, &stored)?;
         data(stored, true, missing)
     };
     catch_up(&app).await;
+    website::enqueue(&app);
     Ok(result)
 }
 
@@ -1657,6 +1681,7 @@ pub async fn aram_merge(
         save(&state.path, &stored)?;
         let _ = app.emit("aram-updated", ());
     }
+    website::enqueue(&app);
     Ok(changed)
 }
 
@@ -1794,6 +1819,10 @@ pub async fn aram_friends() -> Result<Vec<Player>, String> {
     list.dedup_by(|a, b| a.puuid == b.puuid);
     Ok(list)
 }
+
+#[cfg(test)]
+#[path = "aram_lcu_probe.rs"]
+mod lcu_probe;
 
 #[cfg(test)]
 mod tests {

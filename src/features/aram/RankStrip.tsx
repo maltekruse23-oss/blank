@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { spring } from '../../design/motion';
 import type { ResultMotion } from './AramResult';
 import { PLACEMENT, rankName, type Rank, type RankResult } from './aramRating';
+import { GradeBadge } from './GradeBadge';
 import { TierEmblem } from './TierEmblem';
 
 /** Height of the strip on the card (CSS px). */
@@ -12,7 +13,6 @@ export const RANK_STRIP = 54;
 const RUN = 1.3;
 
 const fill = (rank: Rank | null) => (!rank ? 0 : rank.division === null ? 1 : rank.points / 100);
-const mark = (value: number) => value.toFixed(1).replace('.', ',');
 
 /**
  * The game on the ladder, on the card after the game (user's wish: MP gain and promotion with an
@@ -100,7 +100,7 @@ export function RankStrip({
           ) : null}
         </span>
         {placing ? (
-          <span className="rank-strip-note">Note {mark(rank.mark)}</span>
+          <span className="rank-strip-note">Dein Rang kommt nach {PLACEMENT} Spielen</span>
         ) : (
           <span className="rank-progress rank-strip-bar">
             <motion.span
@@ -115,6 +115,7 @@ export function RankStrip({
           </span>
         )}
       </span>
+      <GradeBadge grade={rank.grade} size="large" title="Note dieses Spiels" />
       {rank.gain !== null && (
         <span className={`rank-strip-gain ${rank.gain > 0 ? 'plus' : 'minus'}`}>
           <Points value={rank.gain} run={run} delay={delay} />

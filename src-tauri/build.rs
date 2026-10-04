@@ -6,6 +6,7 @@ const COMMANDS: &[&str] = &[
     "apps_cancel",
     "aram_data",
     "aram_sync",
+    "aram_website",
     "aram_friends",
     "aram_reset",
     "aram_set_since",

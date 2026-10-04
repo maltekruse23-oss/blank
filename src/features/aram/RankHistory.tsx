@@ -10,9 +10,9 @@ import {
   standings,
   type Standing,
 } from './aramRating';
+import { GradeBadge } from './GradeBadge';
 import { TierEmblem } from './TierEmblem';
 
-const mark = (value: number) => value.toFixed(1).replace('.', ',');
 const signed = (value: number) => (value > 0 ? `+${value}` : `−${Math.abs(value)}`);
 const HISTORY = 20;
 /** Ranked players from which the top share is shown. */
@@ -93,6 +93,16 @@ export function RankHistory({ games, puuid }: { games: AramEntry[]; puuid: strin
             {record(standing)}
             {at && ` · Platz ${at.place}`}
             {at?.top != null && ` · Top ${at.top} %`}
+            {standing.average && (
+              <>
+                {' '}
+                · Leistung Ø{' '}
+                <GradeBadge
+                  grade={standing.average.grade}
+                  title={`Durchschnitt der letzten ${standing.average.games} Spiele`}
+                />
+              </>
+            )}
           </span>
         </div>
         {rank && standing.form >= CLIMBING && (
@@ -135,7 +145,9 @@ export function RankHistory({ games, puuid }: { games: AramEntry[]; puuid: strin
               <td>
                 {step.entry.kills}/{step.entry.deaths}/{step.entry.assists}
               </td>
-              <td>{mark(step.mark.value)}</td>
+              <td>
+                <GradeBadge grade={step.mark.grade} />
+              </td>
               <td className={step.gain === null ? '' : step.gain > 0 ? 'plus' : 'minus'}>
                 {step.gain === null ? 'Einstufung' : signed(step.gain)}
               </td>

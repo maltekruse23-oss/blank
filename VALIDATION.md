@@ -1,5 +1,47 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 04.10.2026: freigegebene Rangicons
+
+- Acht aktive Icons D bis MAYHEM aus Augment-v3 ersetzt; F/E als unbenutzte Assets vorbereitet.
+- SSS ohne schwebende Dreiecke. Originalgrafiken unverändert; schwarzer Hintergrund wird
+  auf den dunklen UI-Flächen mittels CSS `mix-blend-mode: screen` ausgeblendet.
+- `pnpm install --frozen-lockfile`, Build, Lint und 86 Tests bestanden.
+- Tauri-Release-Build einschließlich CSS-Korrektur bestanden. Rangliste in Browser-Vorschau
+  mit SSS geprüft: keine schwarze Kachel, Rangtext/MP unverändert.
+- Installierte Desktop-EXE aktualisiert; Sicherung vor dem Icon-Austausch vorhanden.
+- Keine neue native Screenshot-Prüfung: native Computersteuerung steht hier nicht zur Verfügung.
+
+## Nachtrag 03.10.2026: automatische Rohdaten-Uploads
+
+- Neue Outbox: Rohbytes unverändert, Duplikate auch nach erneutem Einlesen vermieden;
+  andere Queues/unvollständige Identitäten abgelehnt; Belege müssen Match und SHA-256 bestätigen.
+- Rust-Suite: 69 bestanden, zwei damalige manuelle Tests ignoriert; anschließend zusätzlicher
+  ausdrücklich gestarteter Live-Test bestanden (nur identisches bereits archiviertes Match).
+- Live-Zähler nach Test: weiterhin 50 Matches, 415 Spieler, 0 Timelines.
+- `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm lint`, `pnpm test` erfolgreich
+  (86 Frontend-Tests). Rust Clippy mit `--all-targets -- -D warnings` bestanden.
+- `pnpm desktop:build`: Windows-Release-EXE erfolgreich mit Tauri gebaut.
+- Nach ausdrücklicher Freigabe Installation aktualisiert und neu gestartet: EXE-Hash entspricht
+  dem Build, Prozess antwortet und besitzt das Hauptfenster `blank.`. Keine neue Fehlermeldung
+  im bestehenden Fehlerprotokoll beim Start. Echter neuer Spielabschluss und dessen automatischer
+  Upload bleiben zu prüfen. Automatische Sicherungen bewusst zurückgestellt.
+
+## Nachtrag 02.10.2026: isolierte fremde Mayhem-History
+
+Manueller, ignorierter Rust-Test `aram::lcu_probe::foreign_mayhem_history_probe` über die
+vorhandene LCU-Verbindung erfolgreich: sieben GETs, alle HTTP 200. Fremde PUUID aus einem
+bereits gespeicherten Mayhem-Match, nicht aktueller Account und nicht in dessen Freundesliste.
+History: 21 Spiele, alle Queue 2400, jeweilige Einzelidentität stimmt mit der Ziel-PUUID überein.
+Weiteres Match ohne eigenen Account: zehn Teilnehmer-PUUIDs und Statistiken, acht neue PUUIDs
+gegenüber dem Seed; Timeline: 20 Frames, 149 Events, Teilnehmer-Frames für IDs 1–10.
+Der Bereich `begIndex=0&endIndex=20` lieferte in diesem Lauf 21 Einträge; die ältere Angabe
+„20 Spiele“ beschreibt diesen aktuellen Befund nicht exakt. Weitere Seiten wurden nicht geprüft.
+`aram.json` blieb bytegleich. Kein Crawler, keine Datenbankänderung und kein regulärer App-Aufruf.
+Rust-Regressionssuite: 65 bestanden, zwei manuelle Tests ignoriert. Der neue Live-Test wurde
+zusätzlich ausdrücklich ausgeführt und bestand. Keine neue Release-EXE erzeugt.
+Zusätzlich: `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm lint` erfolgreich;
+`pnpm test`: 86 Tests in acht Dateien bestanden.
+
 ## Vor jedem Release (auf Windows, ca. 10 Minuten)
 
 Mit der neuen `blank.exe` (`pnpm desktop:build` oder das Artefakt eines manuellen Laufs von „Release“ unter Actions) nacheinander:
@@ -12,6 +54,15 @@ Mit der neuen `blank.exe` (`pnpm desktop:build` oder das Artefakt eines manuelle
 6. Zahnrad → System → Fehlerbericht → Kopieren und einfügen: „Keine Fehler aufgezeichnet“ oder nur Erklärbares.
 7. Update aus der vorigen Version: „Nach Updates suchen“ → „Jetzt aktualisieren“ → Neustart mit „Neu in Version …“.
 8. Wenn vorhanden, Windows 10: Popouts „In der Taskleiste“ → rechts neben dem Infobereich, nicht über „Start“.
+
+## ARAM: Rangsystem neu mit versteckter Wertung (Benutzerauftrag, 04.10.2026)
+
+Geprüft in der Cloud-/Vorschau-Umgebung am 04.10.2026 mit den Spielen des League-Clients auf diesem PC (119 Spiele, 1180 Spielerzeilen, 14 Spieler der Liste mit 213 Spielen); nicht nativ in der App.
+
+- Fairness der Note: Ø Perzentil nach Rolle Fighter 50 %, Marksman 50 %, Mage 50 %, Tank 50 %, Support 49 %, Assassin 51 %; Supporter liegen im Schaden im Schnitt auf Platz 7,6 von 10 und bekommen trotzdem Ø 49 % (mit dem alten Platz-Weg wären sie hinten). Notenverteilung nahe der Soll-Verteilung (F 3,5 % / 3,0 %, E 6,8 / 7,0, D 14,6 / 15,0, C 19,3 / 20,0, B 20,8 / 20,0, A 17,3 / 17,0, S 10,8 / 11,0, SS 5,6 / 5,5, SSS 1,2 / 1,2, MAYHEM 0,3 / 0,3).
+- Tests (`pnpm test`, 94): mehr Leistung = höhere Note, jede Stat zählt, Sieg/Niederlage ändern nichts, die Länge des Spiels ändert nichts, fast gleiche Spiele = fast gleiche Noten (kein Abgrund), Supporter mit Support-Werten nicht bestraft, Remake/abwesend; versteckte Wertung ab Spiel 1 und sicherer mit jedem Spiel; Rang erst nach 5 Spielen, Einstufung höchstens S I auch mit Traum-Spielen, SSS/MAYHEM so selten wie Grandmaster/Challenger (0,09 % und 0,03 %), MP in LoL-Größen und +27/−13 über dem Rang, stufenlose Punkte, Überlauf, Landung 75/50/25, Schutz, Saisons und Soft-Reset, gleiche Spiele in anderer Reihenfolge = gleiches Ergebnis.
+- Probelauf an den echten Spielen: die Spieler ordnen sich nach Leistung (Háwk S III · Ø A, Du B I · Ø B, get me out B II · Ø B, BronzeOlaf D III · Ø D); sichtbarer Rang und versteckte Wertung stimmen bei Spielern mit vielen Spielen überein.
+- **Offen:** nativ in der App (Karte nach einem echten Spiel, Popout), Kalibrierung von `SKILL_SD`/`TAU` (nur 8 Spieler mit ≥ 8 Spielen), CC-Zeit ist noch nicht in den gespeicherten Daten.
 
 ## ARAM: Rang-Modus (Benutzerauftrag, 0.9.0)
 
