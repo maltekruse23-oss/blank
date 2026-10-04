@@ -1,5 +1,5 @@
-import Ranking from './ranking';
+import StartPage from './start';
 
 export default function Page() {
-  return <Ranking />;
+  return <StartPage />;
 }

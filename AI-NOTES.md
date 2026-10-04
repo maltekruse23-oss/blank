@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 4 (Teil 2): Startseite — 04.10.2026
+
+- `/` ist jetzt die Startseite (`apps/mayhem-site/app/start.tsx`), die Rangliste zieht nach `/rangliste` (Navigation, „Zur Rangliste“ nach dem Ausblenden). Profile und Spiele markieren weiter „Rangliste“ in der Navigation.
+- Inhalt: große Suche (die Suche im Kopf entfällt auf `/`), Kopfzahlen (Spiele, Spieler, MAYHEM-Noten der Saison), Spiele des Tages (drei beste Noten der letzten 24 h mit Splash, Link aufs Spiel), Top 10 der Rangliste, Noten der Saison als Histogramm, neue Rekorde der Woche (Platz 1 der letzten sieben Tage, höchstens vier). Ränge sind öffentlich (Benutzerentscheidung), deshalb Top 10 nach Rang.
+- Endpunkt `GET /api/start` (`src/api.ts`, `start()`), reine Logik `src/start.ts` (`startView`, `freshRecords`), Test `src/features/aram/siteStart.test.ts`. Nur Spiele aus `games`, also nur Spieler mit Profil. Keine Migration.
+- Lokal geprüft mit acht erfundenen Spielern (lokale D1): leer und gefüllt, 1400 px und 375 px ohne Querscrollen.
+
 ## Website Etappe 4 (Teil 1): So funktioniert's — 04.10.2026
 
 - Neue Seite `apps/mayhem-site/app/wertung/page.tsx` (in der Navigation, „Mehr dazu“ unter „So zählt es“ auf der Rangliste): Note (fünf Achsen mit Gewicht, Champion-Vergleich, Supporter, Remake/abwesend, Seltenheit jeder Note mit Noten-Icon), Leistung Ø, Rang (Stufen mit Aufbau, Anteil, LoL-Gegenstück, MP je Spiel), MP je Spiel (Kletter-Beispiel, Aufstieg/Abstieg, Schutz), Saisons, versteckte Wertung (nie gezeigt), häufige Fragen.

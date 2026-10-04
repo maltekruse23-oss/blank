@@ -7,6 +7,7 @@ import { archiveRoute } from './archive';
 import { gameView, type RawGame } from './game';
 import { recordsView } from './records';
 import { championsView, championView } from './champions';
+import { freshRecords, startView, TOP } from './start';
 import { decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
 import { findPlayer, withoutHidden } from './hidden';
 class ApiError extends Error {
@@ -263,6 +264,18 @@ async function records(url: URL) {
     const ids = [...new Set(all.map(e => e.puuid))];
     return json({ scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, group: c.group, games: new Set(all.map(e => e.gameId)).size, players: ids.length, categories: recordsView(all, now, await playersOf(ids)) });
 }
+/** The start page (/): head numbers, the top ten of the ladder, the games of the day, the grades of
+ * the season and this week's new records. All players, no group. */
+async function start() {
+    const c = await context(new URL('http://x/'));
+    const now = Date.now();
+    const all = await entries(c.since);
+    const list = standings(all, c.since);
+    const trackedGames = (await rows<{ count: number }>('SELECT COUNT(DISTINCT gameId) AS count FROM games'))[0].count;
+    const ids = [...new Set(all.map(e => e.puuid))];
+    const view = startView(list, now, seasonOf(now).start);
+    return json({ season: c.season, trackedGames, ...view, top: await withIcons(list.slice(0, TOP)), records: freshRecords(recordsView(all, now, await playersOf(ids))) });
+}
 /** Current name and icon of these players (all of them have a profile). */
 async function playersOf(ids: string[]) {
     const players = new Map<string, { name: string; icon: number | null }>();
@@ -423,6 +436,8 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         return hide(req);
     if (path === '/api/augments' && method === 'POST')
         return uploadAugments(req);
+    if (path === '/api/start' && method === 'GET')
+        return start();
     if (path === '/api/rekorde' && method === 'GET')
         return records(url);
     if (path === '/api/champions' && method === 'GET')

@@ -45,7 +45,7 @@ export default function HidePage() {
       </p>
       {state.done ? (
         <div className="notice" role="status">
-          Erledigt. Dein Name ist ausgeblendet. <Link href="/">Zur Rangliste</Link>
+          Erledigt. Dein Name ist ausgeblendet. <Link href="/rangliste">Zur Rangliste</Link>
         </div>
       ) : (
         <form
