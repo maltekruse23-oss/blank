@@ -227,8 +227,9 @@ export function Sparkline({ values, height = 46 }: { values: number[]; height?: 
   );
 }
 
-/** The five axes of the grade: outside = better than the champion usually is. */
-export function Radar({ values }: { values: number[] }) {
+/** The five axes of the grade: outside = better than the champion usually is. `compare` draws a
+ * second player (the duel). */
+export function Radar({ values, compare }: { values: number[]; compare?: number[] | null }) {
   const S = 320;
   const c = S / 2;
   const R = 92;
@@ -247,6 +248,7 @@ export function Radar({ values }: { values: number[] }) {
       {labels.map((_, i) => (
         <line key={i} x1={c} y1={c} x2={c + Math.cos(angle(i)) * R} y2={c + Math.sin(angle(i)) * R} />
       ))}
+      {compare && <polygon className="shape second" points={compare.map((v, i) => pt(i, r(v))).join(' ')} />}
       <polygon className="shape" points={values.map((v, i) => pt(i, r(v))).join(' ')} />
       {labels.map((l, i) => {
         const a = angle(i);

@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 4 (Teil 3): Gruppe mit Duell — 04.10.2026
+
+- Neue Seite `apps/mayhem-site/app/gruppe/[code]/page.tsx` (Link „Zur Gruppenseite“ auf der Rangliste, sobald ein Gruppencode gesetzt ist): Rangliste der Gruppe (Zeile `app/ui/player-row.tsx`, auch auf der Startseite), Duell zweier Mitglieder (Radar beider Spieler übereinander – `Radar` hat dafür `compare` –, wer auf welcher Achse vorn liegt, Bestwerte je Rekord-Kategorie, gemeinsame Spiele mit Note Ø und „bessere Note im selben Spiel“), Spielabende (Pause über 3 h trennt; je Spieler Spiele, MP-Bilanz, beste Note; nur Einstufung = „Einstufung“).
+- Endpunkt `GET /api/gruppe/<12 Zeichen>` (`src/api.ts`, `groupPage()`), reine Logik `src/group.ts` (`membersOf`, `duelOf`, `sessionsOf`), Test `src/features/aram/siteGroup.test.ts`. Nur Mitglieder ab dem Start der Gruppe, also nur Spieler mit Profil. Keine Migration.
+- Lokal geprüft mit einer erfundenen Gruppe aus vier Spielern und gemeinsamen Spielen (lokale D1): 1400 px und 375 px ohne Querscrollen, unbekannter Code zeigt „Gruppe nicht gefunden“.
+- Offen in Etappe 4: Leerzustände und Handy über alle Seiten.
+
 ## Website Etappe 4 (Teil 2): Startseite — 04.10.2026
 
 - `/` ist jetzt die Startseite (`apps/mayhem-site/app/start.tsx`), die Rangliste zieht nach `/rangliste` (Navigation, „Zur Rangliste“ nach dem Ausblenden). Profile und Spiele markieren weiter „Rangliste“ in der Navigation.

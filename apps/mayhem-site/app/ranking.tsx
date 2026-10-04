@@ -38,6 +38,11 @@ export default function Ranking() {
         <div>
           <span className="eyebrow">ARAM: Mayhem · {seasonName(seasonOf(now))}</span>
           <h1>{data?.group ? data.group.name : 'Rangliste'}</h1>
+          {data?.group && (
+            <Link className="to-game" href={'/gruppe/' + encodeURIComponent(data.group.code)}>
+              Zur Gruppenseite mit Duell und Spielabenden
+            </Link>
+          )}
         </div>
         <div className="side">
           <span className="live" data-on={live}>
