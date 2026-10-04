@@ -31,7 +31,7 @@ r=await api('/api/players/'+b,undefined,tokenB,'DELETE');assert.equal(r.status,2
 r=await api('/api/players/'+a);assert.equal(r.data.games,7,'deleting conflicting report resolves dispute');
 r=await api(`/api/groups/${group.data.code}/leave`,{puuid:a},token);assert.equal(r.data.joined,false);
 r=await api('/api/players/'+a,undefined,token,'DELETE');assert.equal(r.status,200);
-const rateTestIp='rate-test-'+Date.now();for(let i=0;i<31;i++){r=await api('/api/leaderboard',undefined,undefined,'GET',rateTestIp);assert.equal(r.status,i<30?200:429);}
+const rateTestIp='rate-test-'+Date.now();for(let i=0;i<31;i++){r=await api('/api/leaderboard',undefined,undefined,'GET',rateTestIp);assert.equal(r.status,200,'reading is never limited');}for(let i=0;i<31;i++){r=await api('/api/ausblenden',{},undefined,'POST',rateTestIp);assert.equal(r.status,i<30?400:429);}
 const oversize=await fetch(base+'/api/games',{method:'POST',headers:{'Content-Type':'application/json','cf-connecting-ip':'size-test'},body:' '.repeat(65537)});assert.equal(oversize.status,413);
 const preflight=await fetch(base+'/api/games',{method:'OPTIONS',headers:{Origin:'http://tauri.localhost','Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type,authorization'}});assert.equal(preflight.status,204);assert.equal(preflight.headers.get('Access-Control-Allow-Origin'),'http://tauri.localhost');
 
