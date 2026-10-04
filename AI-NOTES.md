@@ -3,13 +3,19 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website Etappe 3 (Abschluss): Namen ausblenden — 04.10.2026
+
+- Seite `apps/mayhem-site/app/datenschutz/entfernen/page.tsx` (Link unter jeder Spiel-Seite, `?spiel=<id>` vorausgefüllt, und von der Datenschutzseite), Endpunkt `POST /api/ausblenden` `{ gameId, name }` (`src/api.ts`, `hide()`): die Riot-ID muss in diesem hochgeladenen Spiel vorkommen (Archiv, Hochladende, ihre Freunde in `with`; Tag nötig, Groß-/Kleinschreibung egal), gespeichert wird nur die PUUID in `hidden_players` (Migration 0004, beim Veröffentlichen über Codex anwenden).
+- Missbrauchssicher, weil Ausblenden nur weniger zeigt: kein Identitätsnachweis nötig. Spieler mit Profil (Zeilen in `games`) werden so nie ausgeblendet (409, sie löschen mit ihrem Schlüssel). Wer selbst hochlädt, wird wieder genannt (Upload löscht die Zeile). Wieder einblenden sonst nur der Betreiber (`DELETE FROM hidden_players WHERE puuid=…`).
+- Wirkung überall: `entries()` (Rangliste, Profil, Rekorde, Champions, `/api/games`), Live-Strom, Export, Spiel-Seite (`gameView(…, hidden)`: Name `null`, Werte bleiben). Logik in `src/hidden.ts`, getestet in `src/features/aram/siteHidden.test.ts` und im Integrationstest.
+- Lokal geprüft (lokale D1): Integrationstest grün, Formular mit Fehler und Erfolg, 1400 px und 375 px ohne Querscrollen.
+
 ## Website Etappe 3 (Rest): Augment-Namen und -Symbole — 04.10.2026
 
 - Quelle bleibt der League-Client (`cherry-augments.json`, wie für die App-Karten); Data Dragon hat keine Mayhem-Augments. Die App schickt nach den Spielen die Augments bestätigter Spiele mit Name, Seltenheit und Symbol an `POST /api/augments` (`aram_website.rs`: `missing_augments`, `sendable`, bestätigte IDs in `aram-website.json` → `augments`, also nur einmal). Wirkt erst mit der nächsten App-Version; bis dahin zeigt die Website die Nummer bzw. „?“.
 - Website: Tabelle `augments` (Migration 0003), `src/augments.ts` (strenge Prüfung: nur echte PNG bis 24 KB/256 px, Name ohne Steuerzeichen und `<>`, nur Augments aus hochgeladenen Spielen, erster Name bleibt), `GET /api/augments`, Symbol `GET /api/augments/<id>.png` außerhalb des Anfragelimits. Spiel-Seite: Augments aller zehn aus dem Archiv (`playerAugment1–6`), sonst der Hochladenden, unter den Items; Champion-Seite: Symbol und Name. Ring in der Farbe der Seltenheit.
 - Tests: `src/features/aram/siteAugments.test.ts`, Rust-Tests in `aram_website.rs` (nur unter Windows ausführbar; unter Linux nur `cargo check`/Clippy für das Windows-Ziel geprüft).
 - Lokal geprüft mit erfundenen Augments und Symbolen (lokale D1): 1400 px und 375 px ohne Querscrollen, keine Konsolenfehler.
-- Noch offen aus Etappe 3: eigener Weg zum Entfernen von Namen (bisher per Issue).
 
 ## Website Etappe 3 (Teil 3): Champions — 04.10.2026
 
