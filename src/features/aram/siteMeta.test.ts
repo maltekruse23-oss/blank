@@ -82,7 +82,9 @@ describe('Website-Augments und -Items', () => {
   });
 
   it(`Siegquote und Note ab ${MIN_GAMES} Spielen, Note nach derselben Regel`, () => {
-    const games = Array.from({ length: MIN_GAMES + 1 }, (_, i) => entry(1, i + 1, { items: [3089, 0, 3089], win: i < 2 }));
+    const games = Array.from({ length: MIN_GAMES + 1 }, (_, i) =>
+      entry(1, i + 1, { items: [3089, 0, 3089], win: i < 2 }),
+    );
     const [row] = metaView(games, 'items');
     expect(row).toMatchObject({ id: 3089, games: games.length, pick: 1, graded: games.length });
     expect(row.winRate).toBeCloseTo(2 / games.length, 10);
@@ -91,14 +93,19 @@ describe('Website-Augments und -Items', () => {
     expect(row.pct).toBeCloseTo(mean, 10);
     expect(row.grade).toBe(gradeOfPct(mean));
     // Without the values of all ten: no grade, but a win rate.
-    const [plain] = metaView(games.map((g) => ({ ...g, lobby: [] })), 'items');
+    const [plain] = metaView(
+      games.map((g) => ({ ...g, lobby: [] })),
+      'items',
+    );
     expect(plain).toMatchObject({ graded: 0, pct: null });
     expect(plain.winRate).not.toBeNull();
   });
 
   it('Detail: Champions mit Anteil an ihren Spielen, dazu genommene Items', () => {
     const games = [
-      ...Array.from({ length: 4 }, (_, i) => entry(1, i + 1, { augments: [7], items: [3089, 3020] })),
+      ...Array.from({ length: 4 }, (_, i) =>
+        entry(1, i + 1, { augments: [7], items: [3089, 3020] }),
+      ),
       entry(1, 5, { augments: [8], items: [3089] }),
       entry(2, 6, { championId: LUX, augments: [7], items: [3157] }),
     ];

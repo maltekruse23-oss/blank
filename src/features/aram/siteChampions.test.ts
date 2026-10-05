@@ -184,12 +184,23 @@ describe('Website-Champions', () => {
     expect(once.find((c) => c.championId === AHRI)!.winRate).toBeCloseTo(1 / 6, 10);
     expect(once.find((c) => c.championId === CHAMPS[5])!.winRate).toBeCloseTo(5 / 6, 10);
     // Below MIN_GAMES results no win rate; a champion in one of two games has a pick rate of 1/2.
-    const two = championsView([entry(1, 1), entry(1, 2, { lobby: lobbyOf(2, 0).map((s, i) => (i === 9 ? { ...s, championId: 777 } : s)) })]);
-    expect(two.find((c) => c.championId === 777)).toMatchObject({ games: 1, pick: 0.5, winRate: null });
+    const two = championsView([
+      entry(1, 1),
+      entry(1, 2, {
+        lobby: lobbyOf(2, 0).map((s, i) => (i === 9 ? { ...s, championId: 777 } : s)),
+      }),
+    ]);
+    expect(two.find((c) => c.championId === 777)).toMatchObject({
+      games: 1,
+      pick: 0.5,
+      winRate: null,
+    });
   });
 
   it('Champion-Seite: Items mit Anteil an den Spielen des Champions', () => {
-    const games = Array.from({ length: 6 }, (_, i) => entry(1, i + 1, { items: i < 3 ? [3089, 3089, 0] : [3020, 0] }));
+    const games = Array.from({ length: 6 }, (_, i) =>
+      entry(1, i + 1, { items: i < 3 ? [3089, 3089, 0] : [3020, 0] }),
+    );
     const view = championView(games, AHRI)!;
     expect(view.items.find((i) => i.id === 3089)).toMatchObject({ games: 3, pick: 0.5 });
     expect(view.items.find((i) => i.id === 3020)).toMatchObject({ games: 3, pick: 0.5 });
