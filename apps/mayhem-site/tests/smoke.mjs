@@ -57,6 +57,7 @@ const own = await data('/api/gruppe/' + group.code);
 assert.equal(own.players.length, 3);
 assert.ok((await data('/api/champions/Ashe')).champion.players.length > 0);
 assert.ok((await data('/api/champions/Ashe')).champion.items.some(i => i.id === 3006));
+assert.ok((await data('/api/champions/Ashe')).champion.builds.every(b => !('puuid' in b) && Array.isArray(b.items)));
 const boots = (await data('/api/stats/items/3006')).detail;
 assert.ok(boots.games >= 18 && boots.champions.length >= 3);
 assert.ok(!JSON.stringify(boots).includes(players[0].puuid), 'no PUUID in the item stats');

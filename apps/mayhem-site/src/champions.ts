@@ -7,6 +7,7 @@
 import type { AramEntry } from './adapters/aram';
 import { performanceOf, roleOf, type Grade, type Performance, type Role } from './features/aram/aramPerformance';
 import { gradeOfPct, lobbyPerformances } from './insights';
+import { buildGamesOf, type BuildGame } from './builds';
 import { byId, counted, itemsOf, MIN_GAMES, winRateOf, type MetaStat } from './meta';
 
 export { MIN_GAMES } from './meta';
@@ -159,6 +160,8 @@ export type ChampionDetail = ChampionStat & {
   players: ChampionPlayer[];
   augments: ChampionAugment[];
   items: ChampionItem[];
+  /** One row per counted game of the champion, grouped into builds by the page (src/builds.ts). */
+  builds: BuildGame[];
   best: ChampionGame[];
 };
 
@@ -230,5 +233,5 @@ export function championView(
       skin: typeof e.skin === 'number' ? e.skin : null,
     }));
 
-  return { ...statOf(seats, gamesOf(entries)), players: list, augments, items, best };
+  return { ...statOf(seats, gamesOf(entries)), players: list, augments, items, builds: buildGamesOf(own), best };
 }

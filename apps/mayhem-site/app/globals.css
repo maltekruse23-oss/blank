@@ -269,8 +269,8 @@ select {
   color: var(--faint);
 }
 
-/* The header wraps below 1240 px: eight pages and the search do not fit in one row. */
-@media (max-width: 1240px) {
+/* The header wraps below 1320 px: eight pages and the search do not fit in one row. */
+@media (max-width: 1320px) {
   .site-head .wrap {
     flex-wrap: wrap;
     height: auto;
@@ -2785,4 +2785,30 @@ th[aria-sort='ascending'] .sort[data-on='true']::after {
     height: 36px;
     font-size: 19px;
   }
+}
+
+/* ---- Builds on a champion's page ---------------------------------------------------------- */
+
+.builds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.build-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.build-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.build-icons .item {
+  width: 30px;
+  height: 30px;
 }
