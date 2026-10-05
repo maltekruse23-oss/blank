@@ -6,9 +6,10 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { seasonName } from '../../../src/features/aram/aramRating';
 import { MIN_GAMES, ROLES, type ChampionDetail, type ChampionGame } from '../../../src/champions';
-import { GradeChip, GradeIcon, Img, Problem } from '../../ui/bits';
+import { Augment, GradeChip, GradeIcon, Img, Problem } from '../../ui/bits';
 import { AugmentLink, ItemLink, MetaCells, MetaHeads, augmentLabel, itemLabel, percent, useMetaSort } from '../../ui/meta';
 import { useState } from 'react';
+import { combosOf, MIN_COMBO_GAMES, type Combo } from '../../../src/builds';
 import { Filters, useFilters, type Scope } from '../../ui/filters';
 import {
   championImage,
@@ -17,6 +18,7 @@ import {
   date,
   de,
   duration,
+  itemImage,
   profileImage,
   splashImage,
   splitName,
@@ -118,6 +120,7 @@ export default function ChampionPage() {
 
           <div className="grid cols-main">
             <div className="stack">
+              <Builds detail={c} dragon={dragon} />
               <Players detail={c} dragon={dragon} />
               <BestGames detail={c} dragon={dragon} champion={key} />
             </div>
@@ -327,5 +330,96 @@ function Items({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
         <p className="empty">Keine Items in Spielen mit Namen.</p>
       )}
     </section>
+  );
+}
+
+/** The most common augment pairs and cores of three finished items on this champion. */
+function Builds({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
+  const augments = useAugments();
+  const items = useItems();
+  const games = detail.builds ?? [];
+  const pairs = combosOf(games, (g) => g.augments, 2);
+  // Without Data Dragon there is no telling finished items apart: no cores then.
+  const cores = items.size ? combosOf(games, (g) => g.items.filter((id) => items.get(id)?.kind === 'done'), 3) : [];
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2>Builds</h2>
+      </div>
+      <div className="builds">
+        <BuildTable
+          title="Augment-Kombis"
+          rows={pairs}
+          cell={(id) => (
+            <Link key={id} href={`/augments/${id}`} title={augmentLabel(augments, id)}>
+              <Augment id={id} info={augments.get(id)} size={30} />
+            </Link>
+          )}
+          label={(ids) => ids.map((id) => augmentLabel(augments, id)).join(' + ')}
+        />
+        <BuildTable
+          title="Item-Kern (3 fertige Items)"
+          rows={cores}
+          cell={(id) => (
+            <Link key={id} href={`/items/${id}`} title={itemLabel(items, id)}>
+              <Img className="item" src={itemImage(dragon, id)} size={30} />
+            </Link>
+          )}
+          label={(ids) => ids.map((id) => itemLabel(items, id)).join(' + ')}
+        />
+      </div>
+      <p className="fine" style={{ marginTop: 10 }}>
+        Häufigste Kombinationen in den Spielen dieses Champions, ab {MIN_COMBO_GAMES} Spielen. Items: was am Spielende im
+        Inventar war; die Kauf-Reihenfolge ist nicht gespeichert.
+      </p>
+    </section>
+  );
+}
+
+function BuildTable({
+  title,
+  rows,
+  cell,
+  label,
+}: {
+  title: string;
+  rows: Combo[];
+  cell: (id: number) => React.ReactNode;
+  label: (ids: number[]) => string;
+}) {
+  return (
+    <div>
+      <h3 className="build-title">{title}</h3>
+      {rows.length ? (
+        <table className="table augment-table">
+          <thead>
+            <tr>
+              <th>Kombination</th>
+              <th className="right">Anteil</th>
+              <th className="right hide-sm">Siegquote</th>
+              <th>Note Ø</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.ids.join()}>
+                <td>
+                  <span className="build-icons" aria-label={label(r.ids)}>
+                    {r.ids.map(cell)}
+                  </span>
+                </td>
+                <td className="right num nowrap" title={`${de(r.games)} Spiele`}>
+                  {percent(r.pick)}
+                </td>
+                <td className="right num nowrap hide-sm">{percent(r.winRate)}</td>
+                <td>{r.grade ? <GradeChip grade={r.grade} small /> : <span className="faint">–</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="empty">Noch keine Kombination in mindestens {MIN_COMBO_GAMES} Spielen.</p>
+      )}
+    </div>
   );
 }

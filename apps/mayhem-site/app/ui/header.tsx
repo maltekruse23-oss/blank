@@ -15,6 +15,7 @@ const PAGES = [
   { href: '/tierliste', label: 'Tier-Liste' },
   { href: '/wertung', label: "So funktioniert's" },
   { href: '/api-guide', label: 'API' },
+  { href: '/mitmachen', label: 'Mitmachen' },
 ];
 
 export function Nav() {
@@ -126,7 +127,7 @@ export function Search({ big = false }: { big?: boolean }) {
           ) : (
             <li className="faint" style={{ padding: 8 }}>
               Nicht in der Datenbank. Hier steht jeder aus einem Spiel, das blank. oder der Collector
-              hochgeladen hat.
+              hochgeladen hat. <a href="/mitmachen">Eigene Spiele hinzufügen</a>
             </li>
           )}
         </ul>

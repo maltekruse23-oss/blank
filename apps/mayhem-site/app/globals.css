@@ -206,6 +206,11 @@ select {
   background: var(--panel-2);
 }
 
+/* The way to more data stands out. */
+.nav a[href='/mitmachen'] {
+  color: var(--accent);
+}
+
 .search {
   position: relative;
   margin-left: auto;
@@ -269,33 +274,32 @@ select {
   color: var(--faint);
 }
 
-/* The header wraps below 1240 px: eight pages and the search do not fit in one row. */
-@media (max-width: 1240px) {
-  .site-head .wrap {
-    flex-wrap: wrap;
-    height: auto;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    gap: 10px 16px;
-  }
+/* The header always has two rows: brand and search, then the pages (nine pages and the search
+   never fit beside each other in the page width). */
+.site-head .wrap {
+  flex-wrap: wrap;
+  height: auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  gap: 10px 16px;
+}
 
-  /* All pages stay visible on a phone: the links wrap instead of scrolling out of sight. */
-  .nav {
-    order: 3;
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 2px;
-  }
+/* All pages stay visible on a phone: the links wrap instead of scrolling out of sight. */
+.nav {
+  order: 3;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 2px;
+}
 
-  .nav a {
-    padding: 6px 10px;
-  }
+.nav a {
+  padding: 6px 10px;
+}
 
-  .search {
-    width: auto;
-    flex: 1;
-    min-width: 140px;
-  }
+.search {
+  width: auto;
+  flex: 1;
+  min-width: 140px;
 }
 
 .site-foot {
@@ -2785,4 +2789,74 @@ th[aria-sort='ascending'] .sort[data-on='true']::after {
     height: 36px;
     font-size: 19px;
   }
+}
+
+/* ---- Builds on a champion's page ---------------------------------------------------------- */
+
+.builds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.build-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.build-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.build-icons .item {
+  width: 30px;
+  height: 30px;
+}
+
+/* ---- Join page ---------------------------------------------------------------------------- */
+
+.join-lead {
+  max-width: 620px;
+  margin: 0;
+}
+
+.join-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 8px 0 0;
+}
+
+a.button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.button.primary:hover {
+  background: color-mix(in oklab, var(--accent) 85%, white);
+}
+
+.join-steps,
+.join-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+
+.join-steps b {
+  display: block;
 }

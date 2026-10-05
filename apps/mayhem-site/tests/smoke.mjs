@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 const base = 'http://127.0.0.1:5173';
 const get = async (path, status = 200) => { const r = await fetch(base + path, { headers: { 'cf-connecting-ip': 'smoke' } }); assert.equal(r.status, status, `${path}: ${r.status}`); return r; };
 const data = async (path, status = 200) => (await get(path, status)).json();
-const pages = ['/', '/rangliste', '/rekorde', '/champions', '/augments', '/items', '/tierliste', '/wertung', '/datenschutz', '/datenschutz/entfernen', '/api-guide'];
+const pages = ['/', '/rangliste', '/rekorde', '/champions', '/augments', '/items', '/tierliste', '/mitmachen', '/wertung', '/datenschutz', '/datenschutz/entfernen', '/api-guide'];
 const page = async (path, status = 200) => { const html = await (await get(path, status)).text(); assert.match(html, /<main id="inhalt"/, path); assert.match(html, /inoffizielles Fanprojekt/, `${path}: Riot notice`); return html; };
 const api = async () => {
   const start = await data('/api/start');
@@ -57,6 +57,7 @@ const own = await data('/api/gruppe/' + group.code);
 assert.equal(own.players.length, 3);
 assert.ok((await data('/api/champions/Ashe')).champion.players.length > 0);
 assert.ok((await data('/api/champions/Ashe')).champion.items.some(i => i.id === 3006));
+assert.ok((await data('/api/champions/Ashe')).champion.builds.every(b => !('puuid' in b) && Array.isArray(b.items)));
 const boots = (await data('/api/stats/items/3006')).detail;
 assert.ok(boots.games >= 18 && boots.champions.length >= 3);
 assert.ok(!JSON.stringify(boots).includes(players[0].puuid), 'no PUUID in the item stats');
