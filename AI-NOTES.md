@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Open Source unter AGPL-3.0 — 05.10.2026
+
+- Benutzerwahl: Repo `blank` (App und Website) unter AGPL-3.0-only. `LICENSE` (Originaltext der FSF), `license` in `package.json`, `apps/mayhem-site/package.json` (+ Lockfile-Wurzel) und `src-tauri/Cargo.toml`, Abschnitt „Lizenz“ am Ende der README, Fußzeile der Website „Quellcode (AGPL-3.0)“ (erfüllt § 13: Nutzer der Website kommen an den Quellcode). Fremde Teile (`vendor/`, Lucide) behalten ihre Lizenz. Nächster Benutzerwunsch: englische Fassung der Website.
+- Konkurrenz-Analyse (Claude Doc „Konkurrenz-Analyse mayhemstats.lol“): nächster Konkurrent mayhemstats.com (gleicher Ansatz, Open Source, Englisch, anonym); unsere Lücke sind öffentliche Spieler mit Rang.
+
 ## Release 0.9.2 — 05.10.2026
 
 - Auf Benutzerauftrag nach #38: Version 0.9.2 (Ränge von der Website, Rang-Schritt auf der Karte, neue Wappen, höchstens 30 MP, Freunde über Riot-ID statt PUUID). Tag `v0.9.2` erst nach dem Mergen dieses Versions-PRs und nach der Prüfung der veröffentlichten Website.
