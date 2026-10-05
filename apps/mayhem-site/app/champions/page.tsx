@@ -124,7 +124,7 @@ export default function ChampionsPage() {
             <p className="empty">
               {filters.scope === 'season'
                 ? 'In dieser Saison gibt es noch keine Spiele.'
-                : 'Noch keine Spiele. Champions erscheinen, sobald jemand Spiele hochlädt.'}
+                : <>Noch keine Spiele. Champions erscheinen, sobald jemand Spiele hochlädt. <a href="/mitmachen">Mitmachen</a></>}
             </p>
           )}
           {data && data.champions.length > 0 && !sorted.length && <p className="empty">Kein Champion passt zur Auswahl.</p>}

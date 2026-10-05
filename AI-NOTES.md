@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: Mitmachen-Seite für mehr Spiele — 05.10.2026
+
+- Benutzerwunsch „ich brauche mehr Daten“: einzige erlaubte Quelle bleiben Rohspiele (Queue 2400) aus dem League-Client der Beitragenden (Collector oder blank. mit „Hochladen erlauben“). Keine Zahlen fremder Stat-Seiten (Scraping, uneinheitlich), kein Schneeball-Crawler über fremde Spielverläufe (von der Sicherheitsprüfung der Sitzung abgelehnt, nicht gebaut).
+- Neue Seite `/mitmachen` (`apps/mayhem-site/app/mitmachen/page.tsx`): Archiv-Zahlen, Collector-Download, drei Schritte (inkl. SmartScreen-Hinweis, EXE unsigniert), was der Collector liest und hochlädt (nur eigener Spielverlauf, nur Mayhem, Riot-IDs aller zehn öffentlich, Ausblenden), blank. als zweiter Weg, „Link teilen“ (Teilen-Menü oder Zwischenablage). Download-Pfade zentral in `app/ui/join.ts`.
+- Hinweise darauf: „Mitmachen“ in der Navigation (Akzentfarbe), Karte „Spiele fehlen?“ auf jeder Spielerseite, Leerzustände von Champions/Augments/Items/Rekorde, Suche ohne Treffer, Archiv-Karte der Rangliste. Der Seitenkopf hat jetzt immer zwei Zeilen (neun Seiten und Suche passen nie in eine Zeile der Seitenbreite).
+
 ## Website: Statistik für Augments, Items und Champions — 05.10.2026
 
 - Benutzerwunsch: Stats für Augments, Champions und Items (vor dem Collector ohne Download). Neue Seiten `/augments`, `/items` und je eine Einzelseite (`/augments/<id>`, `/items/<id>`): Spiele, Pickrate, Siegquote, Note Ø, sortierbar, Suche, Filter (Seltenheit bzw. Fertige Items/Stiefel/Bauteile/Alle, Einteilung aus Data Dragon `item.json`), Einzelseite mit Champions (Anteil an deren Spielen) und dem, was dazu genommen wurde. Champion-Liste und -Seite zusätzlich mit Pickrate und Siegquote, Augments mit Link und Items-Karte.

@@ -112,7 +112,7 @@ export function MetaListPage<F extends string>({
             <p className="empty">
               {filters.scope === 'season'
                 ? 'In dieser Saison gibt es noch keine Spiele.'
-                : `Noch keine Spiele. ${title} erscheinen, sobald jemand Spiele hochlädt.`}
+                : <>Noch keine Spiele. {title} erscheinen, sobald jemand Spiele hochlädt. <a href="/mitmachen">Mitmachen</a></>}
             </p>
           )}
           {data && data.rows.length > 0 && !sorted.length && <p className="empty">Nichts passt zur Auswahl.</p>}
@@ -121,7 +121,8 @@ export function MetaListPage<F extends string>({
           <p className="fine" style={{ marginTop: 12 }}>
             {de(data.games)} Spiele, {de(data.entries)} Spieler-Spiele ab 8 Minuten. Die Pickrate ist der Anteil der
             Spieler-Spiele, in denen das {noun} genommen wurde. {note} Siegquote und Note erscheinen ab {MIN_GAMES} Spielen
-            (wenige Daten). Die Note vergleicht mit dem, was der Champion üblicherweise schafft.
+            (wenige Daten). Die Note vergleicht mit dem, was der Champion üblicherweise schafft. Mehr Spiele machen die
+            Zahlen genauer: <a href="/mitmachen">Mitmachen</a>.
           </p>
         )}
       </section>

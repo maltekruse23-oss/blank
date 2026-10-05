@@ -59,7 +59,7 @@ export default function RecordsPage() {
         <div className="card empty">
           {scope === 'season'
             ? 'In dieser Saison gibt es noch keine Rekorde.'
-            : 'Noch keine Rekorde. Sie erscheinen, sobald jemand Spiele hochlädt.'}
+            : <>Noch keine Rekorde. Sie erscheinen, sobald jemand Spiele hochlädt. <a href="/mitmachen">Mitmachen</a></>}
         </div>
       )}
 
