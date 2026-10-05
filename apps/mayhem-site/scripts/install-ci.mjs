@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { accessSync, constants } from "node:fs";
+import { accessSync, constants, existsSync } from "node:fs";
 import path from "node:path";
 import { projectRoot } from "./sites-env.mjs";
 import { readExecutionProfile } from "./execution-profile.mjs";
@@ -7,6 +7,17 @@ import { runNpmInstall } from "./npm-install.mjs";
 
 if (!process.env.npm_execpath) {
   throw new Error("Run this installer with npm run install:ci.");
+}
+
+// Some Windows launchers report an npm path that does not exist (seen as
+// <site>\node_modules\npm\bin\npm-cli.js); fall back to the npm bundled with node.
+const npmCli = [
+  process.env.npm_execpath,
+  path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js"),
+  path.join(path.dirname(process.execPath), "..", "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+].find((candidate) => existsSync(candidate));
+if (!npmCli) {
+  throw new Error(`npm not found at ${process.env.npm_execpath}.`);
 }
 
 if (![
@@ -29,7 +40,7 @@ if (readExecutionProfile() === "managed-linux") {
 // Invoke npm's JavaScript entrypoint, avoiding platform-specific shell shims.
 const installed = await runNpmInstall([
   process.execPath,
-    process.env.npm_execpath, "ci", "--prefix", projectRoot, "--workspaces=false",
+    npmCli, "ci", "--prefix", projectRoot, "--workspaces=false",
     "--include=dev", "--include=optional", "--prefer-offline", "--no-audit", "--no-fund",
 ]);
 if (installed.signal) process.kill(process.pid, installed.signal);

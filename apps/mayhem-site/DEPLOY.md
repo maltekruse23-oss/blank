@@ -30,8 +30,9 @@ nicht selbst.
 
 ## Migrationen
 
-Der Reihe nach, jede genau einmal; bereits angewendete nicht erneut und nie eine angewendete
-Datei ändern. Alle legen nur neue Tabellen an, nichts wird gelöscht oder umgeschrieben.
+Nicht von Hand anwenden: `npm run build` kopiert `drizzle/` nach `dist/.openai/drizzle`, und
+ChatGPT Sites wendet beim Veröffentlichen die noch fehlenden Migrationen selbst der Reihe nach
+an. Nie eine bereits angewendete Datei ändern. Alle legen nur neue Tabellen an, nichts wird gelöscht oder umgeschrieben.
 
 | Datei | Tabelle | Wofür |
 | --- | --- | --- |
