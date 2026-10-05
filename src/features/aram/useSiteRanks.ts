@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { onUploadStatus, readSiteProfile, readSiteRanks } from '../../adapters/aramSite';
-import { isInvalid, parseBoard, parseProfile, type Ranked, type SiteBoard } from './aramSite';
+import {
+  isInvalid,
+  parseBoard,
+  parseProfile,
+  siteEntry,
+  type Ranked,
+  type SiteBoard,
+} from './aramSite';
 
 export type SiteRanks =
   | { status: 'off' }
@@ -99,22 +106,24 @@ const profiles = new Map<string, { at: number; value: Ranked | null }>();
 /**
  * The website's ranks with one player's full profile (the player dialog): the user's own comes
  * with the board, others are read when the dialog opens, only for players the public leaderboard
- * lists. Until it arrives (or without it) null: the dialog then shows the local ladder.
+ * lists (found by Riot ID: the website names nobody by PUUID). Until it arrives (or without it)
+ * null: the dialog then shows the local ladder.
  */
-export function useSiteProfile(puuid: string): SiteBoard | null {
+export function useSiteProfile(player: { puuid: string; name: string }): SiteBoard | null {
+  const { puuid } = player;
   const board = boardOf(useSiteRanks());
-  const listed = !!board?.players.some((p) => p.puuid === puuid);
+  const siteId = board ? (siteEntry(board, player)?.siteId ?? null) : null;
   const own = board?.me?.puuid === puuid ? board.me : null;
-  const known = profiles.get(puuid);
+  const known = siteId ? profiles.get(siteId) : undefined;
   const [profile, setProfile] = useState<Ranked | null>(
     known && Date.now() - known.at < FRESH_MS ? known.value : null,
   );
   useEffect(() => {
-    if (!listed || own) return;
-    const known = profiles.get(puuid);
+    if (!siteId || own) return;
+    const known = profiles.get(siteId);
     if (known && Date.now() - known.at < FRESH_MS) return setProfile(known.value);
     let active = true;
-    void readSiteProfile(puuid).then(
+    void readSiteProfile(siteId).then(
       (text) => {
         let value: Ranked | null = null;
         try {
@@ -122,8 +131,8 @@ export function useSiteProfile(puuid: string): SiteBoard | null {
         } catch {
           value = null;
         }
-        if (value && value.puuid !== puuid) value = null;
-        profiles.set(puuid, { at: Date.now(), value });
+        if (value && value.siteId !== siteId) value = null;
+        profiles.set(siteId, { at: Date.now(), value });
         if (active) setProfile(value);
       },
       () => undefined,
@@ -131,8 +140,9 @@ export function useSiteProfile(puuid: string): SiteBoard | null {
     return () => {
       active = false;
     };
-  }, [puuid, listed, own]);
-  const full = own ?? (profile?.puuid === puuid ? profile : null);
+  }, [siteId, own]);
+  // The profile answers under the public id; on this PC it is the player's PUUID.
+  const full = own ?? (profile && profile.siteId === siteId ? { ...profile, puuid } : null);
   return board && full ? { players: board.players, me: full } : null;
 }
 

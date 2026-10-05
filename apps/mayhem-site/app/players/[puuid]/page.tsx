@@ -2,8 +2,8 @@
 // A player's profile: rank card, the season's way, form, the five axes of the grade, playstyle,
 // match history with all ten players, champions and earlier seasons.
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../../src/adapters/aram';
 import { rankName, seasonName, seasonOf } from '../../../src/features/aram/aramRating';
 import {
@@ -58,6 +58,12 @@ export default function PlayerPage() {
   const dragon = useDragon();
   const [tab, setTab] = useState<Tab>('overview');
   const now = useNow();
+  const router = useRouter();
+  // An old link with a PUUID moves to the public id, so the PUUID leaves the address bar.
+  const moved = data?.id && data.id !== params.puuid ? data.id : null;
+  useEffect(() => {
+    if (moved) router.replace('/players/' + encodeURIComponent(moved) + (group ? '?group=' + encodeURIComponent(group) : ''));
+  }, [moved, group, router]);
 
   if (error) return <Problem message={error} missing={missing} />;
   if (!data) return <p className="empty">Spieler wird geladen …</p>;

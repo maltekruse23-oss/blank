@@ -36,6 +36,8 @@ export type ProfileStep = Omit<Step, 'mark' | 'entry'> & { entry: AramEntry; mar
 
 export type Profile = Omit<PlayerSummary, 'champions' | 'last6'> & {
   lastSeen: number | null;
+  /** The player's public id (no PUUID leaves the server); an old PUUID link moves there. */
+  id?: string;
   history: ProfileStep[];
 };
 

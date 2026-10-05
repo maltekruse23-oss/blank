@@ -51,7 +51,9 @@ for (const [p, player] of players.entries()) {
   assert.equal(r.status, 200, await r.text());
 }
 const board = await api();
-for (const p of players) assert.ok(board.players.some(s => s.puuid === p.puuid), `${p.name} on the leaderboard`);
+for (const p of players) assert.ok(board.players.some(s => s.name === p.name && /^a[0-9]+$/.test(s.puuid)), `${p.name} on the leaderboard, under a public id`);
+for (const p of players) assert.ok(!JSON.stringify(board).includes(p.puuid), 'no PUUID on the leaderboard');
+const publicOf = name => board.players.find(s => s.name === name).puuid;
 assert.ok(board.trackedGames >= empty.trackedGames + 18);
 const own = await data('/api/gruppe/' + group.code);
 assert.equal(own.players.length, 3);
@@ -65,14 +67,15 @@ assert.ok((await data('/api/stats/augments/1')).detail.paired.some(i => i.id ===
 const game = await data('/api/spiel/8100000000');
 assert.ok(JSON.stringify(game).includes(players[0].name));
 assert.equal(game.players.length, 10);
-assert.deepEqual(game.players.filter(s => s.puuid).map(s => s.puuid), [players[0].puuid], 'no PUUID of a player without a profile');
+assert.deepEqual(game.players.filter(s => s.puuid).map(s => s.puuid), [publicOf(players[0].name)], 'only the uploader is linked, under the public id');
+for (const p of players) assert.ok(!JSON.stringify(game).includes(p.puuid), 'no PUUID in the game');
 assert.equal((await data('/api/players/' + players[0].puuid)).games, 6);
-for (const p of [...pages, '/spiel/8100000000', '/champions/Ashe', '/augments/1', '/items/3006', '/gruppe/' + group.code, '/players/' + players[1].puuid]) await page(p);
+for (const p of [...pages, '/spiel/8100000000', '/champions/Ashe', '/augments/1', '/items/3006', '/gruppe/' + group.code, '/players/' + publicOf(players[1].name)]) await page(p);
 
 // 3. Gone again everywhere, also from the stored pages.
 for (const p of players) assert.equal((await send('/api/players/' + p.puuid, undefined, p.token, 'DELETE')).status, 200);
 const after = await api();
-for (const p of players) assert.ok(!after.players.some(s => s.puuid === p.puuid), `${p.name} removed`);
+for (const p of players) assert.ok(!after.players.some(s => s.name === p.name), `${p.name} removed`);
 assert.ok(!JSON.stringify(await data('/api/start')).includes('Rauchtest'));
 await data('/api/spiel/8100000000', 404);
 console.log('PASS: all pages and reading endpoints, empty/404, filled, group, deletion. Local fixtures only.');
