@@ -203,6 +203,16 @@ export default function PlayerPage() {
               <Sparkline values={formLine(recent.map((h) => h.mark.pct))} />
               <p className="fine">Gleitender Schnitt der Noten der letzten {recent.length} Spiele.</p>
             </div>
+            <div className="card">
+              <h2>Spiele fehlen?</h2>
+              <p className="fine">
+                Hier stehen nur Spiele, die jemand hochgeladen hat. Bist du das? Mit dem Collector kommen alle deine
+                Mayhem-Spiele dazu, und dein Rang wird genauer.
+              </p>
+              <a className="button" href="/mitmachen">
+                Mitmachen
+              </a>
+            </div>
           </aside>
         </div>
       )}

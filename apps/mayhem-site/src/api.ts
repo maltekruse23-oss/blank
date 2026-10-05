@@ -8,6 +8,7 @@ import { archiveRoute } from './archive';
 import { gameView, type RawGame } from './game';
 import { recordsView } from './records';
 import { championsView, championView } from './champions';
+import { counted, metaDetail, metaView } from './meta';
 import { freshRecords, startView, TOP } from './start';
 import { membersOf, sessionsOf } from './group';
 import { decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
@@ -444,6 +445,16 @@ async function champion(url: URL, name: string) {
 }
 /** The archived raw game, or null (not archived, or the archive is unavailable: the page then
  * falls back to the uploads). */
+/** All augments or items (/augments, /items): every counted player and game, no names. */
+async function meta(url: URL, kind: 'augments' | 'items') {
+    const { all, ...head } = await championGames(url);
+    return json({ ...head, games: new Set(all.map(e => e.gameId)).size, entries: counted(all).length, rows: metaView(all, kind) });
+}
+/** One augment or item (/augments/<id>, /items/<id>). */
+async function metaOne(url: URL, kind: 'augments' | 'items', id: number) {
+    const { all, ...head } = await championGames(url);
+    return json({ ...head, detail: metaDetail(all, kind, id) ?? fail(404, kind === 'augments' ? 'Keine Spiele mit diesem Augment' : 'Keine Spiele mit diesem Item') });
+}
 /** Names, rarity and whether an icon exists, for every known augment (GET /api/augments). */
 async function augmentList() {
     const list = await rows<{ id: number; name: string; rarity: Rarity; icon: number }>('SELECT id,name,rarity,icon IS NOT NULL AS icon FROM augments');
@@ -587,6 +598,11 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
     const cm = path.match(/^\/api\/champions\/([1-9][0-9]{0,4}|[A-Za-z][A-Za-z0-9]{0,29})$/);
     if (cm && method === 'GET')
         return cached(url, () => champion(url, cm[1]));
+    const st = path.match(/^\/api\/stats\/(augments|items)(?:\/([1-9][0-9]{0,6}))?$/);
+    if (st && method === 'GET') {
+        const kind = st[1] as 'augments' | 'items';
+        return cached(url, () => (st[2] ? metaOne(url, kind, Number(st[2])) : meta(url, kind)));
+    }
     const sm = path.match(/^\/api\/spiel\/([1-9][0-9]{0,12})$/);
     if (sm && method === 'GET')
         return json(await game(Number(sm[1])));

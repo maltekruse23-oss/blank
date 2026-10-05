@@ -1,5 +1,5 @@
 'use client';
-// All champions: games, average grade, share of SSS/MAYHEM, damage per minute and role, sortable,
+// All champions: games, pick rate, win rate, average grade, share of SSS/MAYHEM, damage per minute and role, sortable,
 // with a role filter. Every seat of a game with the values of all ten counts (no names); champions
 // with fewer than five graded games are listed with "wenige Daten" and no values.
 import Link from 'next/link';
@@ -10,6 +10,7 @@ import { MIN_GAMES, ROLES, type ChampionStat } from '../../src/champions';
 import { GradeChip, Img, Problem } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, championKey, championLabel, de, useDragon, useLive } from '../ui/data';
+import { percent } from '../ui/meta';
 
 type Champions = {
   scope: Scope;
@@ -19,10 +20,12 @@ type Champions = {
   champions: ChampionStat[];
 };
 type Dragon = ReturnType<typeof useDragon>;
-type Sort = 'grade' | 'games' | 'top' | 'dpm' | 'name';
+type Sort = 'grade' | 'games' | 'pick' | 'win' | 'top' | 'dpm' | 'name';
 
 const SORTS: { id: Sort; label: string; of: (c: ChampionStat) => number | null }[] = [
   { id: 'games', label: 'Spiele', of: (c) => c.games },
+  { id: 'pick', label: 'Pickrate', of: (c) => c.pick ?? null },
+  { id: 'win', label: 'Siegquote', of: (c) => c.winRate ?? null },
   { id: 'grade', label: 'Note Ø', of: (c) => c.pct },
   { id: 'top', label: 'SSS/MAYHEM', of: (c) => c.top },
   { id: 'dpm', label: 'Schaden/Min', of: (c) => c.damagePerMinute },
@@ -103,6 +106,8 @@ export default function ChampionsPage() {
                 {head('name', 'Champion')}
                 <th className="hide-sm">Rolle</th>
                 {head('games', 'Spiele', 'right')}
+                {head('pick', 'Pickrate', 'right hide-sm')}
+                {head('win', 'Siegquote', 'right hide-sm')}
                 {head('grade', 'Note Ø')}
                 {head('top', 'SSS/MAYHEM', 'right hide-sm')}
                 {head('dpm', 'Schaden/Min', 'right hide-sm')}
@@ -119,7 +124,7 @@ export default function ChampionsPage() {
             <p className="empty">
               {filters.scope === 'season'
                 ? 'In dieser Saison gibt es noch keine Spiele.'
-                : 'Noch keine Spiele. Champions erscheinen, sobald jemand Spiele hochlädt.'}
+                : <>Noch keine Spiele. Champions erscheinen, sobald jemand Spiele hochlädt. <a href="/mitmachen">Mitmachen</a></>}
             </p>
           )}
           {data && data.champions.length > 0 && !sorted.length && <p className="empty">Kein Champion passt zur Auswahl.</p>}
@@ -127,7 +132,8 @@ export default function ChampionsPage() {
         {data && data.champions.length > 0 && (
           <p className="fine" style={{ marginTop: 12 }}>
             {de(data.games)} Spiele, {de(data.champions.length)} Champions. Es zählt jeder Platz eines Spiels mit den
-            Werten aller zehn, ab 8 Minuten; Sieg oder Niederlage zählen nicht. Die Note vergleicht mit dem, was der
+            Werten aller zehn, ab 8 Minuten. Die Pickrate ist der Anteil der Spiele, in denen der Champion dabei war. Für die
+            Note zählen Sieg oder Niederlage nicht; die Siegquote steht daneben. Die Note vergleicht mit dem, was der
             Champion üblicherweise schafft, deshalb liegt ein Champion nicht schon durch seine Stärke vorn.
             {few > 0 && ` Unter ${MIN_GAMES} gewerteten Spielen stehen keine Werte (wenige Daten).`}
           </p>
@@ -150,6 +156,8 @@ function ChampionRow({ champion: c, place, dragon }: { champion: ChampionStat; p
       </td>
       <td className="hide-sm muted">{ROLES[c.role]}</td>
       <td className="right num">{de(c.games)}</td>
+      <td className="right num hide-sm">{percent(c.pick)}</td>
+      <td className="right num hide-sm">{percent(c.winRate)}</td>
       <td>{c.grade ? <GradeChip grade={c.grade} /> : <span className="badge nowrap" title={`Weniger als ${MIN_GAMES} gewertete Spiele`}>wenige Daten</span>}</td>
       <td className="right num hide-sm">{c.top === null ? '–' : `${de(c.top * 100, 1)} %`}</td>
       <td className="right num hide-sm">{c.damagePerMinute === null ? '–' : de(c.damagePerMinute)}</td>

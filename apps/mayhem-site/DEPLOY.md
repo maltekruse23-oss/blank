@@ -19,7 +19,8 @@ nicht selbst.
 
 1. `public/downloads/` aus dem bisherigen Deployment-Checkout übernehmen (Collector-EXE und
    `collector-info.txt`). Diese Dateien liegen absichtlich nicht in Git; ohne sie zeigen die
-   Download-Links der Archiv-Karte ins Leere.
+   Download-Links der Archiv-Karte und der Seite `/mitmachen` ins Leere (Dateiname in
+   `app/ui/join.ts`).
 2. `npm ci`, `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 3. Im Repo-Wurzelordner `pnpm test` (die Website-Logik wird dort mit Vitest geprüft).
 4. Lokal mit frischer D1: Migrationen anwenden, `npm run start -- --port 5173`, einige Sekunden
@@ -30,8 +31,9 @@ nicht selbst.
 
 ## Migrationen
 
-Der Reihe nach, jede genau einmal; bereits angewendete nicht erneut und nie eine angewendete
-Datei ändern. Alle legen nur neue Tabellen an, nichts wird gelöscht oder umgeschrieben.
+Nicht von Hand anwenden: `npm run build` kopiert `drizzle/` nach `dist/.openai/drizzle`, und
+ChatGPT Sites wendet beim Veröffentlichen die noch fehlenden Migrationen selbst der Reihe nach
+an. Nie eine bereits angewendete Datei ändern. Alle legen nur neue Tabellen an, nichts wird gelöscht oder umgeschrieben.
 
 | Datei | Tabelle | Wofür |
 | --- | --- | --- |

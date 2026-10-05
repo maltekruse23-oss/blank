@@ -27,8 +27,7 @@ export default function ArchiveCounter() {
         {' · '}{stats?.players.toLocaleString('de-DE') ?? '—'} Spieler
         {' · '}{stats?.timelines.toLocaleString('de-DE') ?? '—'} Timelines
         {unavailable && ' · Aktualisierung gerade nicht verfügbar'}
-    </p><p className="fine"><a href="/downloads/blank-mayhem-collector-0.1.0.exe" download>Windows-Collector herunterladen</a>
-        {' · '}Sammelt nach dem Öffnen automatisch. Autostart abschaltbar.{' '}
-        <a href="/downloads/collector-info.txt">Daten &amp; Nutzung</a>
+    </p><p className="fine">Jedes Spiel mehr macht Siegquoten, Tier-Liste und Builds genauer.{' '}
+        <a href="/mitmachen">Collector laden und mitmachen</a>
     </p></>;
 }
