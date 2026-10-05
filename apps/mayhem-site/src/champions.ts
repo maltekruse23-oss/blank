@@ -5,11 +5,11 @@
 // everywhere (performanceOf, seen from each seat). Below MIN_GAMES no values are shown as a tier
 // list. Pure, tested in the app's repo (src/features/aram/siteChampions.test.ts).
 import type { AramEntry } from './adapters/aram';
-import { MIN_SECONDS, performanceOf, roleOf, type Grade, type Performance, type Role } from './features/aram/aramPerformance';
+import { performanceOf, roleOf, type Grade, type Performance, type Role } from './features/aram/aramPerformance';
 import { gradeOfPct, lobbyPerformances } from './insights';
+import { byId, counted, itemsOf, MIN_GAMES, winRateOf, type MetaStat } from './meta';
 
-/** Fewer games than this: "wenige Daten", no averages. */
-export const MIN_GAMES = 5;
+export { MIN_GAMES } from './meta';
 /** Best games shown on a champion's page. */
 export const BEST_GAMES = 5;
 
@@ -24,7 +24,16 @@ export const ROLES: Record<Role, string> = {
 
 const TOP: readonly Grade[] = ['SSS', 'MAYHEM'];
 
-type Seat = { championId: number; champion: string; championName: string; seconds: number; damage: number; mark: Performance | null };
+type Seat = {
+  championId: number;
+  champion: string;
+  championName: string;
+  seconds: number;
+  damage: number;
+  /** Null when the lobby does not say which seat was the uploader's. */
+  win: boolean | null;
+  mark: Performance | null;
+};
 
 export type ChampionStat = {
   championId: number;
@@ -33,6 +42,10 @@ export type ChampionStat = {
   championName: string;
   role: Role;
   games: number;
+  /** Share of all counted games with this champion in it (0–1; ARAM has every champion once). */
+  pick: number;
+  /** Share of won games; null below MIN_GAMES games with a known result. */
+  winRate: number | null;
   /** Games with a grade (values of all ten). */
   graded: number;
   /** Below MIN_GAMES graded games all of these are null. */
@@ -46,16 +59,6 @@ export type ChampionStat = {
 const mean = (values: number[]) => values.reduce((t, v) => t + v, 0) / values.length;
 const perMinute = (damage: number, seconds: number) => damage / Math.max(1, seconds / 60);
 
-/** One entry per player and game, remakes left out. */
-function counted(entries: AramEntry[]) {
-  const seen = new Set<string>();
-  return entries.filter((e) => {
-    const key = `${e.gameId}:${e.puuid}`;
-    if (seen.has(key) || e.seconds < MIN_SECONDS) return false;
-    seen.add(key);
-    return true;
-  });
-}
 
 /** Every seat of every game once: the fullest lobby when there is one, otherwise the uploads. */
 function seatsOf(entries: AramEntry[]): Seat[] {
@@ -68,19 +71,21 @@ function seatsOf(entries: AramEntry[]): Seat[] {
     const best = [...list].sort((a, b) => (b.lobby?.length ?? 0) - (a.lobby?.length ?? 0) || +!!a.provisional - +!!b.provisional)[0];
     if (best.lobby?.length) {
       const marks = lobbyPerformances(best);
+      const team = best.lobby.find((s) => s.you)?.team;
       best.lobby.forEach((s, i) => {
         const key = keys.get(s.championId);
-        seats.push({ championId: s.championId, champion: key?.champion ?? '', championName: key?.championName ?? '', seconds: best.seconds, damage: s.damage, mark: marks[i] });
+        const win = team === undefined ? null : (s.team === team) === best.win;
+        seats.push({ championId: s.championId, champion: key?.champion ?? '', championName: key?.championName ?? '', seconds: best.seconds, damage: s.damage, win, mark: marks[i] });
       });
     } else {
       for (const e of list)
-        seats.push({ championId: e.championId, champion: e.champion, championName: e.championName || e.champion, seconds: e.seconds, damage: e.damage, mark: null });
+        seats.push({ championId: e.championId, champion: e.champion, championName: e.championName || e.champion, seconds: e.seconds, damage: e.damage, win: e.win, mark: null });
     }
   }
   return seats;
 }
 
-function statOf(seats: Seat[]): ChampionStat {
+function statOf(seats: Seat[], total: number): ChampionStat {
   const first = seats.find((s) => s.champion) ?? seats[0];
   const marks = seats.map((s) => s.mark).filter((m): m is Performance => m !== null);
   const enough = marks.length >= MIN_GAMES;
@@ -91,6 +96,8 @@ function statOf(seats: Seat[]): ChampionStat {
     championName: first.championName,
     role: roleOf(first.championId),
     games: seats.length,
+    pick: total ? seats.length / total : 0,
+    winRate: winRateOf(seats.map((s) => s.win)),
     graded: marks.length,
     pct,
     grade: pct === null ? null : gradeOfPct(pct),
@@ -99,12 +106,16 @@ function statOf(seats: Seat[]): ChampionStat {
   };
 }
 
+/** Counted games (not seats). */
+const gamesOf = (entries: AramEntry[]) => new Set(counted(entries).map((e) => e.gameId)).size;
+
 /** One row per champion: enough data first (best Ø grade first), then by games. */
 export function championsView(entries: AramEntry[]): ChampionStat[] {
   const by = new Map<number, Seat[]>();
   for (const s of seatsOf(entries)) by.set(s.championId, [...(by.get(s.championId) ?? []), s]);
+  const total = gamesOf(entries);
   return [...by.values()]
-    .map(statOf)
+    .map((seats) => statOf(seats, total))
     .sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.games - a.games || a.championId - b.championId);
 }
 
@@ -124,14 +135,9 @@ export type ChampionPlayer = {
   best: { gameId: number; grade: Grade } | null;
 };
 
-export type ChampionAugment = {
-  id: number;
-  games: number;
-  graded: number;
-  /** Below MIN_GAMES graded games null. */
-  pct: number | null;
-  grade: Grade | null;
-};
+/** An augment or item on one champion; `pick` is the share of the champion's games with it. */
+export type ChampionAugment = { id: number } & MetaStat;
+export type ChampionItem = { id: number } & MetaStat;
 
 export type ChampionGame = {
   gameId: number;
@@ -152,6 +158,7 @@ export type ChampionGame = {
 export type ChampionDetail = ChampionStat & {
   players: ChampionPlayer[];
   augments: ChampionAugment[];
+  items: ChampionItem[];
   best: ChampionGame[];
 };
 
@@ -200,14 +207,9 @@ export function championView(
   });
   list.sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.games - a.games || a.name.localeCompare(b.name));
 
-  const byAugment = new Map<number, typeof own>();
-  for (const g of own) for (const id of new Set(g.entry.augments)) byAugment.set(id, [...(byAugment.get(id) ?? []), g]);
-  const augments: ChampionAugment[] = [...byAugment.entries()].map(([id, games]) => {
-    const marks = games.map((g) => g.mark).filter((m): m is Performance => m !== null);
-    const pct = marks.length >= MIN_GAMES ? mean(marks.map((m) => m.pct)) : null;
-    return { id, games: games.length, graded: marks.length, pct, grade: pct === null ? null : gradeOfPct(pct) };
-  });
+  const augments: ChampionAugment[] = byId(own, (e) => e.augments, own.length);
   augments.sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.games - a.games || a.id - b.id);
+  const items: ChampionItem[] = byId(own, itemsOf, own.length);
 
   const best: ChampionGame[] = own
     .filter((g): g is { entry: AramEntry; mark: Performance } => g.mark !== null)
@@ -228,5 +230,5 @@ export function championView(
       skin: typeof e.skin === 'number' ? e.skin : null,
     }));
 
-  return { ...statOf(seats), players: list, augments, best };
+  return { ...statOf(seats, gamesOf(entries)), players: list, augments, items, best };
 }

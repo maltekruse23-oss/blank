@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: Statistik für Augments, Items und Champions — 05.10.2026
+
+- Benutzerwunsch: Stats für Augments, Champions und Items (vor dem Collector ohne Download). Neue Seiten `/augments`, `/items` und je eine Einzelseite (`/augments/<id>`, `/items/<id>`): Spiele, Pickrate, Siegquote, Note Ø, sortierbar, Suche, Filter (Seltenheit bzw. Fertige Items/Stiefel/Bauteile/Alle, Einteilung aus Data Dragon `item.json`), Einzelseite mit Champions (Anteil an deren Spielen) und dem, was dazu genommen wurde. Champion-Liste und -Seite zusätzlich mit Pickrate und Siegquote, Augments mit Link und Items-Karte.
+- Logik `apps/mayhem-site/src/meta.ts` (rein, Test `src/features/aram/siteMeta.test.ts`), API `/api/stats/...` (API.md), zwischengespeichert wie die Champions. Keine Migration: Items und Augments stehen in jedem Eintrag, auch im Archiv. Siegquote der Lobby-Plätze aus dem Team des Hochladenden. Siegquote und Note erst ab 5 Spielen. Die Note zählt Siege weiterhin nicht; die Siegquote steht nur daneben.
+- Geprüft: Website tsc/lint/build, Rauchtest (erweitert um die neuen Seiten), `pnpm test`, Ansicht bei 1280 und 390 px (Data Dragon war in der Sandbox nicht erreichbar, Bilder und Item-Namen daher nicht gesehen).
+
 ## Website: Antworten müssen den Anfrage-Körper leeren — 05.10.2026
 
 - Jede Antwort der API liest den Anfrage-Körper bis zum Ende, bevor sie rausgeht (`drain` in

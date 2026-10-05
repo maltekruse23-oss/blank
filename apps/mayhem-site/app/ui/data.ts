@@ -155,6 +155,57 @@ export const championLabel = (d: Dragon | null, c: { championId: number; champio
 export const splashImage = (key: string, skin = 0) =>
   `${CDN}/img/champion/splash/${key}_${skin}.jpg`;
 
+// ---- Items (names from Data Dragon) --------------------------------------------------------
+
+/** What the items page sorts by: finished items, boots, everything else (parts, potions, …). */
+export type ItemKind = 'done' | 'boots' | 'other';
+export type ItemInfo = { name: string; kind: ItemKind; gold: number };
+
+let items: Promise<Map<number, ItemInfo>> | null = null;
+
+function loadItems() {
+  items ??= (async () => {
+    const { version } = await loadDragon();
+    const list = (await (
+      await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/de_DE/item.json`)
+    ).json()) as { data: Record<string, { name: string; into?: string[]; tags?: string[]; gold?: { total: number } }> };
+    return new Map(
+      Object.entries(list.data).map(([id, i]) => {
+        const tags = i.tags ?? [];
+        const gold = i.gold?.total ?? 0;
+        const kind: ItemKind = tags.includes('Boots')
+          ? gold > 300
+            ? 'boots'
+            : 'other'
+          : !i.into?.length && !tags.includes('Consumable') && !tags.includes('Trinket') && gold >= 1000
+            ? 'done'
+            : 'other';
+        return [Number(id), { name: i.name, kind, gold }];
+      }),
+    );
+  })().catch((error) => {
+    items = null;
+    throw error;
+  });
+  return items;
+}
+
+/** Names and kinds of all items (empty while loading or offline). */
+export function useItems() {
+  const [value, setValue] = useState<Map<number, ItemInfo>>(() => new Map());
+  useEffect(() => {
+    let stop = false;
+    loadItems().then(
+      (i) => !stop && setValue(i),
+      () => undefined,
+    );
+    return () => {
+      stop = true;
+    };
+  }, []);
+  return value;
+}
+
 // ---- Augments (names and icons sent by blank., not on Data Dragon) ---------------------------
 
 let augments: Promise<Map<number, AugmentInfo>> | null = null;

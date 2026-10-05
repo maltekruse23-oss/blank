@@ -2675,3 +2675,19 @@ th[aria-sort='ascending'] .sort[data-on='true']::after {
   text-underline-offset: 3px;
   cursor: pointer;
 }
+
+/* ---- Augments and items ------------------------------------------------------------------- */
+
+.augment-name .item {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+
+.meta-hero .augment,
+.meta-hero .item {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+}
