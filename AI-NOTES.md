@@ -3,6 +3,10 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Release 0.9.2 — 05.10.2026
+
+- Auf Benutzerauftrag nach #38: Version 0.9.2 (Ränge von der Website, Rang-Schritt auf der Karte, neue Wappen, höchstens 30 MP, Freunde über Riot-ID statt PUUID). Tag `v0.9.2` erst nach dem Mergen dieses Versions-PRs und nach der Prüfung der veröffentlichten Website.
+
 ## Website: keine PUUIDs mehr, auch nicht von Hochladenden — 05.10.2026
 
 - Benutzerentscheidung nach der Live-Prüfung: vier Hochladende standen mit echter PUUID in `/api/leaderboard` und auf ihrer Spielerseite. Jetzt steht jeder Spieler nur unter seiner öffentlichen Nummer (`a123`, Zeile in `archive_players`; fehlt sie, legt die Antwort sie an).
