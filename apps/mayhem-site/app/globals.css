@@ -269,7 +269,8 @@ select {
   color: var(--faint);
 }
 
-@media (max-width: 760px) {
+/* The header wraps below 1240 px: eight pages and the search do not fit in one row. */
+@media (max-width: 1240px) {
   .site-head .wrap {
     flex-wrap: wrap;
     height: auto;
@@ -2690,4 +2691,98 @@ th[aria-sort='ascending'] .sort[data-on='true']::after {
   width: 64px;
   height: 64px;
   border-radius: var(--radius-sm);
+}
+
+/* ---- Tier list (own letters, not the rank tiers) ------------------------------------------ */
+
+.tier-list {
+  margin-top: var(--gap);
+  padding: 0;
+  overflow: hidden;
+}
+
+.tier-row {
+  --c: var(--grade-b);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.tier-row:first-child {
+  border-top: 0;
+}
+
+.tier-row[data-tier='S'] { --c: var(--grade-sss); }
+.tier-row[data-tier='A'] { --c: var(--grade-s); }
+.tier-row[data-tier='B'] { --c: var(--grade-a); }
+.tier-row[data-tier='C'] { --c: var(--grade-c); }
+.tier-row[data-tier='D'] { --c: var(--grade-e); }
+
+.tier-letter {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--c) 22%, transparent);
+  border: 1px solid color-mix(in oklab, var(--c) 55%, transparent);
+  color: var(--c);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.tier-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.tier-tiles a {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 64px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.tier-tiles a span {
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.tier-tiles a:hover span {
+  color: var(--accent);
+}
+
+.tier-tiles .champ,
+.tier-tiles .item,
+.tier-tiles .augment {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 640px) {
+  .tier-row {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .tier-letter {
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
+  }
 }

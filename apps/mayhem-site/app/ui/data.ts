@@ -42,6 +42,8 @@ export type Profile = Omit<PlayerSummary, 'champions' | 'last6'> & {
 /** Loads `path` and reloads it on every new game; `live` tells whether events arrive. */
 export function useLive<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
+  /** The path `data` answers. */
+  const [loaded, setLoaded] = useState<string | null>(null);
   const [error, setError] = useState('');
   /** The server says the thing asked for does not exist (404). */
   const [missing, setMissing] = useState(false);
@@ -64,6 +66,7 @@ export function useLive<T>(path: string | null) {
         if (!response.ok) throw new Error(body.error || 'Nicht verfügbar.');
         if (!stop) {
           setData(body);
+          setLoaded(path);
           setError('');
         }
       } catch (e) {
@@ -94,7 +97,7 @@ export function useLive<T>(path: string | null) {
       clearInterval(timer);
     };
   }, [path]);
-  return { data, error, live, missing };
+  return { data, error, live, missing, path: loaded };
 }
 
 // ---- Data Dragon --------------------------------------------------------------------------

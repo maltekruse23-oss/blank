@@ -12,6 +12,7 @@ const PAGES = [
   { href: '/champions', label: 'Champions' },
   { href: '/augments', label: 'Augments' },
   { href: '/items', label: 'Items' },
+  { href: '/tierliste', label: 'Tier-Liste' },
   { href: '/wertung', label: "So funktioniert's" },
   { href: '/api-guide', label: 'API' },
 ];
