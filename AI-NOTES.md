@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: keine PUUIDs mehr, auch nicht von Hochladenden — 05.10.2026
+
+- Benutzerentscheidung nach der Live-Prüfung: vier Hochladende standen mit echter PUUID in `/api/leaderboard` und auf ihrer Spielerseite. Jetzt steht jeder Spieler nur unter seiner öffentlichen Nummer (`a123`, Zeile in `archive_players`; fehlt sie, legt die Antwort sie an).
+- Umsetzung an einer Stelle: `handle` in `apps/mayhem-site/src/api.ts` schickt jede JSON-Antwort auf GET durch `masked` (rein: `src/public-ids.ts`, Test `src/features/aram/sitePublicIds.test.ts`), der Live-Strom jede Spiel-Meldung. Werte unter `puuid` werden zur Nummer (ohne Nummer `null`), dieselbe PUUID auch an anderer Stelle. Gespeicherte Seiten (`snapshots`) bleiben unverändert und werden bei der Ausgabe maskiert, daher keine Migration. `/api/games` und `/api/export` sind damit auch ohne PUUIDs.
+- Ausnahme: die PUUID, die die Anfrage selbst nennt (`/api/players/<PUUID>`, so liest blank. sein eigenes Profil), kommt als `puuid` zurück; `id` nennt immer die Nummer. Die Spielerseite leitet alte PUUID-Links auf `/players/a123` um.
+- App: `aramSite.ts` `onThisPc` ordnet die Rangliste der Website den PUUIDs auf diesem PC zu (eigenes Profil über `id`, Freunde über die Riot-ID); `useSiteProfile(player)` liest Profile über die Nummer. Ältere App-Versionen zeigen den eigenen Rang weiter, bei Freunden den lokal berechneten, bis sie aktualisiert sind.
+- Geprüft: `pnpm test`/`build`/`lint`, Website tsc/lint/build, lokal mit frischer D1 `tests/smoke.mjs` (zweimal), `tests/integration.mjs` (prüft jetzt: Rangliste, Spiele, Export ohne PUUID; eigenes Profil per PUUID und per Nummer), `tests/all-players.mjs`.
+
 ## Website: Mitmachen-Seite für mehr Spiele — 05.10.2026
 
 - Benutzerwunsch „ich brauche mehr Daten“: einzige erlaubte Quelle bleiben Rohspiele (Queue 2400) aus dem League-Client der Beitragenden (Collector oder blank. mit „Hochladen erlauben“). Keine Zahlen fremder Stat-Seiten (Scraping, uneinheitlich), kein Schneeball-Crawler über fremde Spielverläufe (von der Sicherheitsprüfung der Sitzung abgelehnt, nicht gebaut).

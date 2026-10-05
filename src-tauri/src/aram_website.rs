@@ -580,7 +580,7 @@ pub async fn aram_site_ranks(app: AppHandle) -> Result<SiteRanks, String> {
 }
 
 /// One player's ranked profile from the Site, for the player dialog. The app asks only for players
-/// the public leaderboard already lists.
+/// the public leaderboard already lists, by the public id the leaderboard names (`a123`).
 #[tauri::command]
 pub async fn aram_site_profile(app: AppHandle, puuid: String) -> Result<Option<String>, String> {
     if !enabled(&app) || !plain_id(&puuid) {

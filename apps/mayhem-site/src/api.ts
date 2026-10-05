@@ -16,6 +16,7 @@ import { findPlayer, withoutHidden } from './hidden';
 import { isFresh, snapshotKey, SNAPSHOT_MAX, type Snapshot } from './snapshot';
 import { ARCHIVE_ENTRY_VERSION, archiveIdOf, mergeEntries, publicId } from './archive-entries';
 import { indexPending } from './archive-index';
+import { puuidsIn, withPublicIds } from './public-ids';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -158,6 +159,24 @@ async function trackedCount() { return (await rows<{ count: number }>('SELECT CO
 /** Players with a profile: they upload themselves and keep their PUUID on the pages. */
 async function registeredPlayers() { return new Set((await rows<{ puuid: string }>('SELECT DISTINCT puuid FROM games')).map(r => r.puuid)); }
 /** PUUIDs of players without a profile who asked not to be named (/datenschutz/entfernen). */
+/** The public ids of these PUUIDs (src/public-ids.ts); a PUUID without one gets one now. */
+async function publicIdsOf(puuids: ReadonlySet<string>) {
+    const ids = new Map<string, string>();
+    const read = async (list: string[]) => { for (let i = 0; i < list.length; i += 90) {
+        const part = list.slice(i, i + 90);
+        for (const r of await rows<{ id: number; puuid: string }>(`SELECT id,puuid FROM archive_players WHERE puuid IN (${part.map(() => '?').join(',')})`, ...part))
+            ids.set(r.puuid, publicId(r.id));
+    } };
+    await read([...puuids]);
+    const missing = [...puuids].filter(p => !ids.has(p));
+    if (missing.length) {
+        await db().batch(missing.map(p => query('INSERT OR IGNORE INTO archive_players (puuid) VALUES (?)', p)));
+        await read(missing);
+    }
+    return ids;
+}
+/** An answer without PUUIDs (user's decision: none leaves the server), except the one the request named. */
+async function masked<T>(value: T, keep: string | null = null): Promise<T> { return withPublicIds(value, await publicIdsOf(puuidsIn(value, keep)), keep); }
 async function hiddenPlayers() { return new Set((await rows<{ puuid: string }>('SELECT puuid FROM hidden_players')).map(r => r.puuid)); }
 async function withIcons(list: Standing[]) { const known = await playersOf(list.map(s => s.puuid)); return list.map(s => summary(s, known.get(s.puuid)?.icon ?? null)); }
 async function rate(req: Request) { const ip = req.headers.get('cf-connecting-ip') ?? 'local'; const now = Date.now(), bucket = Math.floor(now / 60000); const key = await hash(`${bucket}:${ip}`); const results = await db().batch([query('DELETE FROM rate_limits WHERE expires<=?', now), query('INSERT INTO rate_limits (key,expires,count) VALUES (?,?,1) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count', key, (bucket + 1) * 60000)]); const count = (results[1].results[0] as {
@@ -287,7 +306,7 @@ async function live(req: Request, url: URL) {
                                 disputed: number;
                             }>('SELECT json,disputed FROM games WHERE gameId=? AND puuid=?', e.gameId, e.puuid))[0];
                             if (row)
-                                send(`id: ${cursor}\nevent: game\ndata: ${JSON.stringify({ entry: withoutHidden(JSON.parse(row.json) as AramEntry, hidden), disputed: !!row.disputed, rank: row.disputed ? null : rankResult(await entries(fresh.since, fresh.group?.code ?? null, e.puuid, false, true), e.puuid!, e.gameId!, fresh.since) })}\n\n`);
+                                send(`id: ${cursor}\nevent: game\ndata: ${JSON.stringify(await masked({ entry: withoutHidden(JSON.parse(row.json) as AramEntry, hidden), disputed: !!row.disputed, rank: row.disputed ? null : rankResult(await entries(fresh.since, fresh.group?.code ?? null, e.puuid, false, true), e.puuid!, e.gameId!, fresh.since) }))}\n\n`);
                         }
                         if (reset)
                             send(`id: ${cursor}\nevent: reset\ndata: {}\n\n`);
@@ -507,6 +526,14 @@ export async function handle(req: Request) {
                 await rate(req);
             await query('INSERT OR IGNORE INTO seasons (id,start,ratingVersion) VALUES (?,?,?)', `v${RATING_VERSION}`, 1577836800000, RATING_VERSION).run();
             response = await dispatch(req, url);
+            if (req.method === 'GET' && response.headers.get('Content-Type')?.includes('application/json')) {
+                // Only blank. reading its own profile names a PUUID; it may come back as it is.
+                const named = url.pathname.match(/^\/api\/players\/([^/]+)\/?$/);
+                const data = await masked(await response.json(), named ? decodeURIComponent(named[1]) : null);
+                const headers = new Headers(response.headers);
+                headers.delete('Content-Length');
+                response = new Response(JSON.stringify(data), { status: response.status, headers });
+            }
         }
     }
     catch (e) {
@@ -609,7 +636,9 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
             head = (await rows<typeof head>('SELECT puuid,name,icon,lastSeen FROM players WHERE puuid=?', own))[0] ?? fail(404, 'Spieler nicht gefunden');
         }
         const s = standings(await entries(c.since, c.group?.code ?? null, own, false, true), c.since)[0];
-        return json({ ...head, season: c.season, group: c.group, ...(s ? { ...open(s), puuid: head.puuid } : { rank: null, games: 0, wins: 0, placed: 0, climbing: false, average: null, seasons: [] }), history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.pct - a.mark.pct || a.entry.gameId - b.entry.gameId).slice(0, 5) });
+        // The public id (pages of a PUUID link move there); head.puuid stays as the request named it.
+        const publicIdOf = archiveIdOf(head.puuid) !== null ? head.puuid : (await publicIdsOf(new Set([own]))).get(own)!;
+        return json({ ...head, id: publicIdOf, season: c.season, group: c.group, ...(s ? { ...open(s), puuid: head.puuid } : { rank: null, games: 0, wins: 0, placed: 0, climbing: false, average: null, seasons: [] }), history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.pct - a.mark.pct || a.entry.gameId - b.entry.gameId).slice(0, 5) });
     }
     if (pm) {
         const id = puuid.parse(decodeURIComponent(pm[1]));

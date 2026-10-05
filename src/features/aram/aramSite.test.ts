@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { AramEntry, AramSeat } from '../../adapters/aram';
 import { rankResult, standings } from './aramRating';
-import { combine, fromLocal, parseBoard, parseProfile, rankGames } from './aramSite';
+import { combine, fromLocal, parseBoard, parseProfile, rankGames, siteEntry } from './aramSite';
 import { ladderPlace } from './RankHistory';
 import { open, summary } from '../../../apps/mayhem-site/src/summary';
+import { withPublicIds } from '../../../apps/mayhem-site/src/public-ids';
 
 // The app reads the website's ranks (PLAN.md Etappe 6): exactly the form the website sends
 // (apps/mayhem-site/src/summary.ts) gives the same ranks as the same games computed on this PC.
@@ -175,5 +176,35 @@ describe('ranks from the website', () => {
     // Another player's game, or no profile on the website: computed locally.
     expect(rankGames(site, 'weak', games)).toBeNull();
     expect(rankGames(null, 'strong', games)).toBeNull();
+  });
+
+  it('finds the players of this PC although the website names nobody by PUUID', () => {
+    // As the website answers now: everyone under a public id; the user's own profile keeps the
+    // PUUID it was asked for and names its public id.
+    const long = (id: string) => id.padEnd(36, '0');
+    const ids = new Map(all.map((s, i) => [long(s.puuid), `a${i + 1}`]));
+    const wire = (text: string) =>
+      JSON.parse(text.replace(/"puuid":"(\w+)"/g, (_, id: string) => `"puuid":"${long(id)}"`));
+    const board = JSON.stringify(withPublicIds(wire(boardText), ids));
+    expect(board).not.toContain(long('strong'));
+    const strong = long('strong');
+    const me = JSON.stringify({
+      ...withPublicIds(wire(profileText('strong')), ids, strong),
+      id: ids.get(strong),
+    });
+    const site = { players: parseBoard(board), me: parseProfile(me) };
+    const local = standings(games.map((g) => ({ ...g, puuid: long(g.puuid) })));
+    const ranked = combine(local, site);
+    expect(ranked).toHaveLength(all.length);
+    expect(ranked.find((p) => p.puuid === strong)!.history.length).toBe(9);
+    // A friend by Riot ID, whatever its case.
+    const weak = ranked.find((p) => p.puuid === long('weak'))!;
+    expect([weak.source, weak.siteId]).toEqual(['site', ids.get(long('weak'))]);
+    expect(siteEntry(site, { puuid: long('weak'), name: 'weak#euw' })!.siteId).toBe(
+      ids.get(long('weak')),
+    );
+    // Someone only the website knows keeps the public id.
+    const other = { players: site.players, me: null };
+    expect(combine([], other).every((p) => /^a\d+$/.test(p.puuid))).toBe(true);
   });
 });
