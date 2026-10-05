@@ -69,6 +69,27 @@ async function body(req: Request) { const reader = req.body?.getReader(); let by
 catch {
     fail(400, 'Ungültiges JSON');
 } }
+/** Reads the rest of a request body and throws it away. An answer that leaves the body unread
+ * (the group restart, and every early 400/401/403/404/429) breaks the connection it came in on:
+ * the next write request on the same connection fails without ever reaching the Worker — in the
+ * local preview with „Your worker restarted mid-request“ and HTTP 503 (measured: 6 of 150).
+ * Capped like `body`, so a huge body is cut off instead of read. */
+async function drain(req: Request) { if (!req.body || req.bodyUsed || req.body.locked)
+    return; try {
+    const reader = req.body.getReader();
+    let bytes = 0;
+    for (;;) {
+        const v = await reader.read();
+        if (v.done)
+            break;
+        bytes += v.value.length;
+        if (bytes > 65536) {
+            await reader.cancel();
+            break;
+        }
+    }
+}
+catch { /* nothing left to read: an already broken connection needs no draining */ } }
 async function authorize(req: Request, id: string) { const token = req.headers.get('authorization')?.replace(/^Bearer /, '') ?? ''; const p = (await rows<{
     tokenHash: string;
 }>('SELECT tokenHash FROM players WHERE puuid=?', id))[0]; if (!p?.tokenHash || await hash(token) !== p.tokenHash)
@@ -507,6 +528,7 @@ export async function handle(req: Request) {
             response = json({ error: 'Dienst vorübergehend nicht verfügbar. Bitte erneut versuchen.' }, 503);
         }
     }
+    await drain(req);
     const h = new Headers(response.headers);
     h.set('Cache-Control', h.get('Cache-Control') ?? 'no-store');
     h.set('Vary', 'Origin');

@@ -3,6 +3,21 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: Antworten müssen den Anfrage-Körper leeren — 05.10.2026
+
+- Jede Antwort der API liest den Anfrage-Körper bis zum Ende, bevor sie rausgeht (`drain` in
+  `apps/mayhem-site/src/api.ts`, aufgerufen in `handle` für jede Antwort). Ging eine Antwort raus,
+  während der Körper noch ungelesen war, war die Verbindung danach kaputt: die nächste
+  Schreibanfrage auf derselben Verbindung kam nie beim Worker an und bekam in der lokalen Vorschau
+  „Your worker restarted mid-request“ mit HTTP 503. Lesende Anfragen fielen nicht auf, weil
+  wrangler GET und HEAD selbst wiederholt.
+- So fiel es auf: `node tests/integration.mjs` scheiterte beim Gruppen-Neustart, weil nur dieser
+  Endpunkt seinen Körper nie gelesen hat (alle anderen POSTs rufen `body(req)` als Erstes). Gemessen
+  mit 150 Paaren aus „Neustart mit falschem Schlüssel“ und einer Schreibanfrage danach: vorher 6
+  Fehlschläge, nachher 0; eine Schreibanfrage, die ihren Körper liest, 0 von 150.
+- Wer einen Endpunkt ergänzt, muss nichts tun; der zentrale Aufruf in `handle` deckt auch die
+  frühen Fehler (403 Origin, 429, 400, 401, 404) ab, die vor dem Lesen des Körpers antworten.
+
 ## Website Etappe 7: alle Mayhem-Spieler — 04.10.2026
 
 - Ziel des Benutzers (auch oben in `apps/mayhem-site/PLAN.md`): mayhemstats.lol ist eine öffentliche Stats- und Rangseite für alle ARAM-Mayhem-Spieler, mit Namenssuche („bin ich in der Datenbank?“). Nicht wieder auf „nur Profile“ zurückdrehen.
