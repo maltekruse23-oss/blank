@@ -42,6 +42,8 @@ export type Ranked = {
   /** Every counted game; from the website only for the user's own profile. */
   history: Step[];
   source: 'site' | 'local';
+  /** The website's public id of the player (it never gives out PUUIDs); only from the website. */
+  siteId?: string;
 };
 
 /** What the website answered: the global leaderboard and the user's own profile. */
@@ -161,6 +163,7 @@ export function parseBoard(text: string): Ranked[] {
   const board = obj(JSON.parse(text), 'Rangliste');
   return list(board.players, 'Rangliste').map((v) => ({
     ...standing(v),
+    siteId: str(obj(v, 'Spieler').puuid, 'PUUID', 100),
     last: list(obj(v, 'Spieler').last6, 'Form')
       .slice(-LAST)
       .map((x) => {
@@ -180,7 +183,10 @@ export function parseBoard(text: string): Ranked[] {
 export function parseProfile(text: string): Ranked {
   const p = obj(JSON.parse(text), 'Profil');
   const history = list(p.history, 'Verlauf').map(step);
-  return { ...standing(p), last: lastOf(history), history };
+  const own = standing(p);
+  // Older website versions have no `id`: then the address it answered is the public id.
+  const siteId = p.id === undefined ? own.puuid : str(p.id, 'ID', 100);
+  return { ...own, siteId, last: lastOf(history), history };
 }
 
 const lastOf = (history: Step[]): Last[] =>
@@ -213,11 +219,37 @@ export const fromLocal = (s: Standing): Ranked => ({
  * local one for the others. Without an answer of the website, all local. */
 export function combine(local: Standing[], site: SiteBoard | null): Ranked[] {
   if (!site) return local.map(fromLocal);
-  const all = site.players.map((p) => (site.me && p.puuid === site.me.puuid ? site.me : p));
+  const all = onThisPc(site, local).map((p) =>
+    site.me && p.puuid === site.me.puuid ? site.me : p,
+  );
   if (site.me && !all.some((p) => p.puuid === site.me!.puuid)) all.push(site.me);
   const known = new Set(all.map((p) => p.puuid));
   return [...all, ...local.filter((s) => !known.has(s.puuid)).map(fromLocal)];
 }
+
+const nameKey = (name: string) => name.trim().toLowerCase();
+
+/**
+ * The website's players under the PUUIDs of this PC: the website lists everyone under a public id
+ * and never a PUUID (user's decision), so the user is found by the public id of their own profile
+ * and everyone else by their Riot ID among the players on this PC. Others keep the public id.
+ */
+export function onThisPc(site: SiteBoard, local: Pick<Standing, 'puuid' | 'name'>[]): Ranked[] {
+  const byName = new Map(local.map((s) => [nameKey(s.name), s.puuid]));
+  const me = site.me;
+  return site.players.map((p) => {
+    const puuid =
+      me && ((me.siteId !== undefined && p.siteId === me.siteId) || p.puuid === me.puuid)
+        ? me.puuid
+        : byName.get(nameKey(p.name));
+    return puuid ? { ...p, puuid } : p;
+  });
+}
+
+/** One player's entry on the website: by PUUID (older website versions) or by Riot ID. */
+export const siteEntry = (site: SiteBoard, player: { puuid: string; name: string }) =>
+  site.players.find((p) => p.puuid === player.puuid) ??
+  site.players.find((p) => nameKey(p.name) === nameKey(player.name));
 
 /**
  * The games one player's rank is computed from, for the card right after a game (before its

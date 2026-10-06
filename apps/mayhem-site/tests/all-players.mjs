@@ -40,6 +40,12 @@ const bySlug = await get('/api/players/'+encodeURIComponent(someone.name.replace
 assert.equal(bySlug.status,200); assert.equal(bySlug.body.puuid, someone.puuid); console.log('by Riot ID', bySlug.body.name);
 assert.equal((await get('/api/players/'+encodeURIComponent(someone.name.replace('#','-').toLowerCase()))).status,200);
 assert.equal((await get('/api/players/Niemand-EUW')).status,404);
+const pl = await get('/api/plaetze/'+someone.puuid); assert.equal(pl.status,200); console.log('places', pl.body.name, pl.body.placements.map(p=>`${p.id}:${p.place}/${p.of}`).join(','));
+assert(!JSON.stringify(pl.body).includes('puuid-'), 'places leak no PUUID');
+assert.equal(pl.body.placements.find(p=>p.kind==='rank')?.place, 1, 'the top of the leaderboard is place 1');
+assert(pl.body.placements.every((p,i,a)=>i===0 || a[i-1].place<=p.place), 'best place first');
+assert.equal((await get('/api/plaetze/a99999')).status,404);
+assert.equal((await get('/api/plaetze/'+pid(1))).status,404, 'no lookup by PUUID');
 const sp = await get('/api/spiel/3'); assert.equal(sp.status,200); console.log('game links', sp.body.players.map(p=>p.puuid).join(','));
 assert(!JSON.stringify(sp.body).includes('puuid-'));
 // backfill: drop the entries and read a page
@@ -50,7 +56,9 @@ assert.equal(c.n,80);
 const target = lb.body.players.find(p=>p.name==='Spieler 5#EUW');
 const h = await mf.dispatchFetch(base+'/api/ausblenden',{method:'POST',headers:{'Content-Type':'application/json','cf-connecting-ip':'y'},body:JSON.stringify({gameId:5,name:'Spieler 5#EUW'})});
 console.log('hide', h.status, await h.text());
-lb = await get('/api/leaderboard'); assert(!lb.body.players.some(p=>p.name==='Spieler 5#EUW')); assert.equal((await get('/api/players/'+target.puuid)).status,404); assert.equal((await get('/api/players/Spieler%205-EUW')).status,404);
+lb = await get('/api/leaderboard'); assert(!lb.body.players.some(p=>p.name==='Spieler 5#EUW')); assert.equal((await get('/api/players/'+target.puuid)).status,404);
+assert.equal((await get('/api/plaetze/'+target.puuid)).status,404, 'a hidden player has no places');
+assert.equal((await get('/api/players/Spieler%205-EUW')).status,404);
 const rec = await get('/api/rekorde'); console.log('records', rec.status, rec.body.players, rec.body.categories?.length);
 const st = await get('/api/start'); console.log('start', st.status, st.body.top?.length);
 const ch = await get('/api/champions'); console.log('champions', ch.status, ch.body.champions?.length, ch.body.games);

@@ -2,19 +2,23 @@
 // The start page: the search, head numbers, the games of the day, the top ten of the ladder, the
 // grades of the season and this week's new records (all from /api/start).
 import Link from 'next/link';
+import { useState } from 'react';
 import type { Grade } from '../src/features/aram/aramPerformance';
 import { seasonName, seasonOf } from '../src/features/aram/aramRating';
 import { gradeShares } from '../src/explain';
 import type { RecordView } from '../src/records';
 import type { DayGame, StartView } from '../src/start';
-import { GradeIcon, Problem } from './ui/bits';
+import { GradeChip, GradeIcon, Problem, RankLine } from './ui/bits';
 import { PlayerRow } from './ui/player-row';
+import { ME_TEXT, setMe, useMe, type Me } from './ui/me';
+import type { Placement, PlacesView } from '../src/places';
 import { Search } from './ui/header';
 import {
   ago,
   championKey,
   championLabel,
   de,
+  profileHref,
   splashImage,
   splitName,
   useDragon,
@@ -40,13 +44,16 @@ export default function StartPage() {
   const dragon = useDragon();
   const now = useNow();
   const mayhem = data?.grades.find((g) => g.grade === 'MAYHEM')?.games;
+  const me = useMe();
 
   return (
     <>
       <section className="start-hero" aria-label="Suche">
         <span className="eyebrow">ARAM: Mayhem · {seasonName(seasonOf(now))}</span>
-        <h1>Ränge und Noten für ARAM: Mayhem</h1>
+        <h1>{ME_TEXT.findTitle}</h1>
+        <p className="muted start-lead">{ME_TEXT.findLead}</p>
         <Search big />
+        {!me && <p className="fine start-nudge">{ME_TEXT.markNudge}</p>}
         <dl className="start-facts">
           <div>
             <dt>Spiele</dt>
@@ -62,6 +69,8 @@ export default function StartPage() {
           </div>
         </dl>
       </section>
+
+      {me && <MyPlaces me={me} />}
 
       {error && <Problem message={error} />}
       {!data && !error && <p className="empty">Wird geladen …</p>}
@@ -215,6 +224,87 @@ function FreshRecord({ category: c }: { category: RecordView }) {
           {splitName(top.name).name}
           {c.places.length > 1 && ` und ${c.places.length - 1} weitere`}
         </small>
+      </Link>
+    </li>
+  );
+}
+
+/** Places shown before "Alle zeigen". */
+const MY_PLACES = 6;
+
+/** The visitor's own places (app/ui/me.ts, /api/plaetze), best first. */
+function MyPlaces({ me }: { me: Me }) {
+  const { data, missing } = useLive<PlacesView & { id: string }>('/api/plaetze/' + encodeURIComponent(me.id));
+  const [all, setAll] = useState(false);
+  const { name, tag } = splitName(data?.name || me.name);
+  const list = data?.placements ?? [];
+  const shown = all ? list : list.slice(0, MY_PLACES);
+  return (
+    <section className="card my-places" aria-labelledby="my-places">
+      <div className="card-head">
+        <h2 id="my-places">
+          {ME_TEXT.placesTitle}
+          <span className="faint">
+            {' '}
+            · {name}
+            {tag && `#${tag}`}
+          </span>
+        </h2>
+        <span className="my-places-links">
+          <Link href={profileHref({ puuid: me.id, name: data?.name || me.name })} className="faint">
+            {ME_TEXT.profile}
+          </Link>
+          <button type="button" className="link-button faint" onClick={() => setMe(null)}>
+            {ME_TEXT.change}
+          </button>
+        </span>
+      </div>
+      {data && (
+        <div className="my-places-head">
+          <RankLine rank={data.rank} placed={data.placed} />
+          {data.average && <GradeChip grade={data.average.grade} />}
+        </div>
+      )}
+      {!data && !missing && <p className="empty">Wird geladen …</p>}
+      {(missing || (data && !list.length)) && <p className="empty">{ME_TEXT.placesEmpty}</p>}
+      {shown.length > 0 && (
+        <ol className="my-places-list">
+          {shown.map((p) => (
+            <PlaceItem key={p.id} place={p} id={me.id} />
+          ))}
+        </ol>
+      )}
+      {list.length > MY_PLACES && (
+        <button type="button" className="button more" onClick={() => setAll((a) => !a)}>
+          {all ? 'Weniger zeigen' : `Alle ${list.length} Plätze zeigen`}
+        </button>
+      )}
+    </section>
+  );
+}
+
+function PlaceItem({ place: p, id }: { place: Placement; id: string }) {
+  const label = p.kind === 'rank' ? ME_TEXT.ladder : p.kind === 'performance' ? ME_TEXT.performance : p.title;
+  const href =
+    p.kind === 'record' && p.gameId !== null
+      ? `/spiel/${p.gameId}?p=${encodeURIComponent(id)}`
+      : p.kind === 'record'
+        ? `/rekorde#${p.id}`
+        : '/rangliste';
+  const value = p.value === null ? null : p.unit === 'seconds' ? `${de(p.value)} s` : de(p.value);
+  const top = Math.max(1, Math.round((p.place / p.of) * 100));
+  return (
+    <li data-hue={p.hue ?? undefined} data-place={p.place}>
+      <Link href={href}>
+        <span className="num my-place">#{p.place}</span>
+        <span className="my-place-what">
+          <b>{label}</b>
+          <small className="faint num">
+            {ME_TEXT.placesFrom} {de(p.of)}
+            {p.of >= 10 ? ` · Top ${top} %` : ''}
+          </small>
+        </span>
+        {value && <span className="num my-place-value">{value}</span>}
       </Link>
     </li>
   );

@@ -1,11 +1,10 @@
 ## Neu in dieser Version
 
-- **Rang als eigene Seite:** In der Seitenleiste gibt es jetzt den Abschnitt **ARAM** mit **Rang** und **Rekorde**. Twitch, Pros und Musik stehen unter **Medien**.
-- **Rang wie in LoL-Ranked:** MP-Größen wie im echten Ranked (etwa ±25, in SS/SSS ±20, MAYHEM ±30), Abstieg mit Überlauf in die Division darunter und Schutz nach dem Aufstieg.
-- **Form:** Spielst du über deinem Rang, gibt es mehr MP und du verlierst weniger – angezeigt als „Form über dem Rang“.
-- **Mein Verlauf:** Deine Rang-Karte mit Siegen, Niederlagen, Platz und Matchverlauf (MP und Stand nach jedem Spiel), wie auf op.gg.
-- **Saisons:** Drei Saisons pro Jahr wie in LoL, dein Endrang jeder Saison bleibt gespeichert.
-- **Unterreiter:** Merken sich, wo du warst, und lassen sich mit den Pfeiltasten wechseln.
+- **Ränge von mayhemstats.lol:** Mit „Automatisch hochladen“ (oben auf den Seiten Rang und Rekorde) zeigt blank. die Ränge, die die Website für dich und deine Freunde berechnet. So sehen alle denselben Stand.
+- **Karte nach dem Spiel:** Der Rang-Schritt auf der Karte ist genau der, den die Website danach zeigt.
+- **Neue Rang-Wappen:** in der App und auf der Website.
+- **Fairer:** Kein Spiel bringt oder kostet mehr als 30 MP.
+- **Datenschutz:** Die Website nennt niemanden mehr per PUUID, auch keine Hochladenden. blank. findet deine Freunde dort über ihre Riot-ID.
 
 ## So geht's
 

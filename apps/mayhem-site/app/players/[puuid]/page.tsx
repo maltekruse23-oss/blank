@@ -2,8 +2,8 @@
 // A player's profile: rank card, the season's way, form, the five axes of the grade, playstyle,
 // match history with all ten players, champions and earlier seasons.
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../../src/adapters/aram';
 import { rankName, seasonName, seasonOf } from '../../../src/features/aram/aramRating';
 import {
@@ -37,6 +37,7 @@ import {
   de,
   duration,
   itemImage,
+  profileHref,
   profileImage,
   splitName,
   useDragon,
@@ -45,6 +46,7 @@ import {
   type Profile,
   type ProfileStep,
 } from '../../ui/data';
+import { ME_TEXT, setMe, useMe } from '../../ui/me';
 
 type Tab = 'overview' | 'matches' | 'champions' | 'seasons';
 type Dragon = ReturnType<typeof useDragon>;
@@ -67,6 +69,15 @@ export default function PlayerPage() {
   const dragon = useDragon();
   const [tab, setTab] = useState<Tab>('overview');
   const now = useNow();
+  const router = useRouter();
+  // Every address (an old link with a PUUID, a public id, a Riot ID in other case) moves to the
+  // Riot ID like op.gg, or to the public id when the name is hidden: no PUUID in the address bar.
+  const home = data?.id ? profileHref({ puuid: data.id, name: data.name }, group) : null;
+  const here = profileHref({ puuid: decoded(params.puuid) }, group);
+  const moved = home && home.toLowerCase() !== here.toLowerCase() ? home : null;
+  useEffect(() => {
+    if (moved) router.replace(moved);
+  }, [moved, router]);
 
   if (error) return <Problem message={error} missing={missing} />;
   if (!data) return <p className="empty">Spieler wird geladen …</p>;
@@ -103,6 +114,7 @@ export default function PlayerPage() {
             {history.length > 0 && <span>letztes Spiel {ago(history[history.length - 1].entry.at, now)}</span>}
           </div>
           <div className="badges">
+            <MeButton id={data.id ?? (/^a[1-9][0-9]*$/.test(params.puuid) ? params.puuid : null)} name={data.name} />
             {data.climbing && (
               <span className="badge climb" title="Die Leistung liegt über dem Rang – die MP-Gewinne sind größer.">
                 Klettert
@@ -451,5 +463,23 @@ function Seasons({ profile, now: at }: { profile: Profile; now: number }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** "Das bin ich": marks this player as the visitor, only in this browser (app/ui/me.ts). */
+function MeButton({ id, name }: { id: string | null; name: string }) {
+  const me = useMe();
+  if (!id) return null;
+  const mine = me?.id === id;
+  return (
+    <button
+      type="button"
+      className={mine ? 'badge me-badge on' : 'badge me-badge'}
+      aria-pressed={mine}
+      title={mine ? ME_TEXT.unmark : ME_TEXT.markHint}
+      onClick={() => setMe(mine ? null : { id, name })}
+    >
+      {mine ? ME_TEXT.marked : ME_TEXT.mark}
+    </button>
   );
 }

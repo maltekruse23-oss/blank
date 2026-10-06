@@ -50,7 +50,7 @@ function Medal({ standing, count }: { standing: Standing; count: number }) {
  */
 export function AramPlayerDialog({ view, onClose }: { view: AramPlayerView; onClose: () => void }) {
   const { player, players, games, meId } = view;
-  const site = useSiteProfile(player.puuid);
+  const site = useSiteProfile(player);
   const overview = useMemo(() => playerOverview(player, players, games), [player, players, games]);
   const { name, tag } = splitRiotId(player.name);
   const dialog = useRef<HTMLDivElement>(null);

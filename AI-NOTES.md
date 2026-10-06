@@ -3,6 +3,25 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: „Bist du schon drin?“, „Das bin ich“ und „Deine Plätze“ — 06.10.2026
+
+- Benutzerwunsch, um mehr Leute zum Collector zu bringen: Die Startseite fragt ganz oben „Bist du schon drin?“ mit der großen Suche. Ohne Treffer zeigt die Suche (auch die im Kopf) „… ist noch nicht in der Datenbank“ mit „Spiele hinzufügen“; Enter ohne Treffer führt ebenfalls zu `/mitmachen?name=…`, das oben einen Hinweis mit Collector-Download zeigt.
+- „Login“ vorerst ohne Konto: auf jeder Spielerseite „Das bin ich“ (`app/ui/me.ts`, nur `localStorage` `mayhem.me.v1` mit öffentlicher Nummer und Riot-ID, nichts wird gesendet). Danach ist die eigene Zeile in Rangliste (dazu „Zu mir springen“), Top 10 und Rekorden markiert, und die Startseite zeigt „Deine Plätze“ (`/api/plaetze/<nummer>`, Logik `apps/mayhem-site/src/places.ts`, Test `src/features/aram/sitePlaces.test.ts`), bester Platz zuerst. Rekord-Plätze über alle Spieler (`recordRanking` in `src/records.ts`, `recordsView` schneidet wie bisher auf zehn ab).
+- Echtes Anmelden mit Riot (RSO, OAuth2) ist nur mit Produktionsschlüssel möglich und wird bei Riot eigens beantragt (Riot meldet sich dann im Developer Portal). Es würde nur beweisen, wer man ist, und brächte keine Mayhem-Spiele (die Web-API gibt Queue 2400 nicht heraus). Nicht gebaut; erst nach Benutzerauftrag beantragen. Neue Texte stehen gesammelt in `ME_TEXT` (für die englische Fassung).
+- Offen: #33 (Riot-ID-Adressen) war beim Bau noch nicht gemergt; die neuen Links nutzen `/players/<nummer>` wie der Rest der Seite.
+
+## Release 0.9.2 — 05.10.2026
+
+- Auf Benutzerauftrag nach #38: Version 0.9.2 (Ränge von der Website, Rang-Schritt auf der Karte, neue Wappen, höchstens 30 MP, Freunde über Riot-ID statt PUUID). Tag `v0.9.2` erst nach dem Mergen dieses Versions-PRs und nach der Prüfung der veröffentlichten Website.
+
+## Website: keine PUUIDs mehr, auch nicht von Hochladenden — 05.10.2026
+
+- Benutzerentscheidung nach der Live-Prüfung: vier Hochladende standen mit echter PUUID in `/api/leaderboard` und auf ihrer Spielerseite. Jetzt steht jeder Spieler nur unter seiner öffentlichen Nummer (`a123`, Zeile in `archive_players`; fehlt sie, legt die Antwort sie an).
+- Umsetzung an einer Stelle: `handle` in `apps/mayhem-site/src/api.ts` schickt jede JSON-Antwort auf GET durch `masked` (rein: `src/public-ids.ts`, Test `src/features/aram/sitePublicIds.test.ts`), der Live-Strom jede Spiel-Meldung. Werte unter `puuid` werden zur Nummer (ohne Nummer `null`), dieselbe PUUID auch an anderer Stelle. Gespeicherte Seiten (`snapshots`) bleiben unverändert und werden bei der Ausgabe maskiert, daher keine Migration. `/api/games` und `/api/export` sind damit auch ohne PUUIDs.
+- Ausnahme: die PUUID, die die Anfrage selbst nennt (`/api/players/<PUUID>`, so liest blank. sein eigenes Profil), kommt als `puuid` zurück; `id` nennt immer die Nummer. Die Spielerseite leitet alte PUUID-Links auf `/players/a123` um.
+- App: `aramSite.ts` `onThisPc` ordnet die Rangliste der Website den PUUIDs auf diesem PC zu (eigenes Profil über `id`, Freunde über die Riot-ID); `useSiteProfile(player)` liest Profile über die Nummer. Ältere App-Versionen zeigen den eigenen Rang weiter, bei Freunden den lokal berechneten, bis sie aktualisiert sind.
+- Geprüft: `pnpm test`/`build`/`lint`, Website tsc/lint/build, lokal mit frischer D1 `tests/smoke.mjs` (zweimal), `tests/integration.mjs` (prüft jetzt: Rangliste, Spiele, Export ohne PUUID; eigenes Profil per PUUID und per Nummer), `tests/all-players.mjs`.
+
 ## Website: Mitmachen-Seite für mehr Spiele — 05.10.2026
 
 - Benutzerwunsch „ich brauche mehr Daten“: einzige erlaubte Quelle bleiben Rohspiele (Queue 2400) aus dem League-Client der Beitragenden (Collector oder blank. mit „Hochladen erlauben“). Keine Zahlen fremder Stat-Seiten (Scraping, uneinheitlich), kein Schneeball-Crawler über fremde Spielverläufe (von der Sicherheitsprüfung der Sitzung abgelehnt, nicht gebaut).

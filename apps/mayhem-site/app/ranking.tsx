@@ -8,6 +8,7 @@ import { apexLines, distributionOf, topShare } from '../src/insights';
 import ArchiveCounter from './archive-counter';
 import { GradeChip, Histogram, Img, Problem, RankLine, Tabs, TierMark } from './ui/bits';
 import { championImage, championKey, profileHref, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from './ui/data';
+import { ME_TEXT, useMe } from './ui/me';
 
 type View = 'rank' | 'performance';
 
@@ -35,6 +36,14 @@ export default function Ranking() {
           .filter((p) => p.average)
           .sort((a, b) => b.average!.pct - a.average!.pct || a.name.localeCompare(b.name));
   const ranked = players.filter((p) => p.rank).length;
+  const me = useMe();
+  const myIndex = me ? sorted.findIndex((p) => p.puuid === me.id) : -1;
+  const jump = () => {
+    if (myIndex < 0) return;
+    setLimit((l) => Math.max(l, Math.ceil((myIndex + 1) / PAGE) * PAGE));
+    // After the rows are there.
+    requestAnimationFrame(() => document.getElementById('me-row')?.scrollIntoView({ block: 'center' }));
+  };
 
   return (
     <>
@@ -117,6 +126,11 @@ export default function Ranking() {
               { id: 'performance', label: 'Nach Leistung Ø' },
             ]}
           />
+          {myIndex >= 0 && (
+            <button type="button" className="button me-jump" onClick={jump}>
+              {ME_TEXT.jump} · <span className="num">#{myIndex + 1}</span>
+            </button>
+          )}
           <div className="table-wrap">
             <table className="table">
               <thead>
@@ -131,7 +145,7 @@ export default function Ranking() {
               </thead>
               <tbody>
                 {sorted.slice(0, limit).map((p, i) => (
-                  <Row key={p.puuid} player={p} place={i + 1} view={view} dragon={dragon} group={group} top={topShare(p.rank, ranks)} />
+                  <Row key={p.puuid} player={p} place={i + 1} view={view} dragon={dragon} group={group} top={topShare(p.rank, ranks)} mine={p.puuid === me?.id} />
                 ))}
               </tbody>
             </table>
@@ -188,6 +202,7 @@ function Row({
   dragon,
   group,
   top,
+  mine,
 }: {
   player: PlayerSummary;
   place: number;
@@ -195,6 +210,7 @@ function Row({
   dragon: ReturnType<typeof useDragon>;
   group: string;
   top: number | null;
+  mine: boolean;
 }) {
   const { name, tag } = splitName(p.name);
   const href = profileHref(p, group);
@@ -202,7 +218,7 @@ function Row({
   const average = p.average ? <GradeChip grade={p.average.grade} /> : <span className="faint">–</span>;
   const rank = <RankLine rank={p.rank} placed={p.placed} />;
   return (
-    <tr data-place={place}>
+    <tr data-place={place} data-me={mine || undefined} id={mine ? 'me-row' : undefined}>
       <td className="place num">{place}</td>
       <td>
         <Link className="who" href={href}>
@@ -211,6 +227,7 @@ function Row({
             <b>
               {name}
               {tag && <span className="faint">#{tag}</span>}
+              {mine && <span className="me-tag">{ME_TEXT.you}</span>}
             </b>
             <small className="num">
               {p.wins}S {losses}N · {p.games} Spiele{top !== null ? ` · Top ${Math.max(1, Math.round(top * 100))} %` : ''}

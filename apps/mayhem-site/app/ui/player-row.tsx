@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { GradeChip, Img, RankLine } from './bits';
 import { profileHref, profileImage, splitName, useDragon, type PlayerSummary } from './data';
+import { ME_TEXT, useMe } from './me';
 
 export function PlayerRow({
   player: p,
@@ -16,10 +17,12 @@ export function PlayerRow({
   /** Opens the profile within this group. */
   group?: string;
 }) {
+  const me = useMe();
+  const mine = me?.id === p.puuid;
   const { name, tag } = splitName(p.name);
   const href = profileHref(p, group);
   return (
-    <tr data-place={place}>
+    <tr data-place={place} data-me={mine || undefined}>
       <td className="place num">{place}</td>
       <td>
         <Link className="who" href={href}>
@@ -27,6 +30,7 @@ export function PlayerRow({
           <span>
             <b>{name}</b>
             {tag && <span className="faint">#{tag}</span>}
+            {mine && <span className="me-tag">{ME_TEXT.you}</span>}
           </span>
         </Link>
       </td>

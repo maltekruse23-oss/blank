@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { profileHref, profileImage, splitName, useDragon, type Board } from './data';
 import { Img } from './bits';
+import { ME_TEXT } from './me';
 
 const PAGES = [
   { href: '/rangliste', label: 'Rangliste' },
@@ -32,6 +33,9 @@ export function Nav() {
 }
 
 type Found = Board['players'][number];
+
+/** The join page for someone who searched `name` and is not in the database. */
+const joinHref = (name: string) => '/mitmachen?name=' + encodeURIComponent(name.trim().slice(0, 40));
 
 /** `big`: the large search on the start page (its own id for the list of hits). */
 export function Search({ big = false }: { big?: boolean }) {
@@ -94,6 +98,7 @@ export function Search({ big = false }: { big?: boolean }) {
           if (e.key === 'ArrowDown') setActive((a) => Math.min(a + 1, hits.length - 1));
           else if (e.key === 'ArrowUp') setActive((a) => Math.max(a - 1, 0));
           else if (e.key === 'Enter' && hits[active]) go(hits[active]);
+          else if (e.key === 'Enter' && q && players) router.push(joinHref(query));
           else if (e.key === 'Escape') setOpen(false);
           else return;
           e.preventDefault();
@@ -125,9 +130,19 @@ export function Search({ big = false }: { big?: boolean }) {
               );
             })
           ) : (
-            <li className="faint" style={{ padding: 8 }}>
-              Nicht in der Datenbank. Hier steht jeder aus einem Spiel, das blank. oder der Collector
-              hochgeladen hat. <a href="/mitmachen">Eigene Spiele hinzufügen</a>
+            <li className="search-miss">
+              <b>{ME_TEXT.notFound(query.trim())}</b>
+              <span>{ME_TEXT.notFoundShort}</span>
+              <a
+                className="button primary"
+                href={joinHref(query)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  router.push(joinHref(query));
+                }}
+              >
+                {ME_TEXT.notFoundCta}
+              </a>
             </li>
           )}
         </ul>

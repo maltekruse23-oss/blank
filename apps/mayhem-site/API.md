@@ -6,7 +6,7 @@ Website: https://mayhemstats.lol
 
 ## Verbindung und Schlüssel
 
-HTTPS-Basis: https://mayhemstats.lol/api. JSON; maximal 65.536 UTF-8-Bytes pro Schreibanfrage. Beispiele sind für PowerShell 7 mit curl.exe. In upload.json stehen echte AramEntry-Werte aus blank.; die Beispieldatei enthält ausschließlich erfundene Testwerte und darf nicht als echtes Spiel hochgeladen werden. Beim ersten Upload kann die App einen vorher sicher gespeicherten, kryptografisch zufälligen Schlüssel mit 64 Hex-Zeichen als Bearer mitsenden. Ohne Schlüssel erzeugt der Server einen und liefert playerToken einmalig zurück. Bei allen weiteren Uploads derselben player.puuid sowie join, leave und DELETE muss dieser Schlüssel mitgeschickt werden. Gruppen-restart braucht den separaten adminToken. Kein globaler Schlüssel gehört in Browser-Code oder eine veröffentlichte EXE. Diese Erstregistrierung beweist keine Riot-Identität.
+HTTPS-Basis: https://mayhemstats.lol/api. JSON; keine Antwort enthält PUUIDs, jeder Spieler steht unter seiner öffentlichen Nummer (`a123`), nur eine PUUID aus der eigenen Anfrage kommt zurück; maximal 65.536 UTF-8-Bytes pro Schreibanfrage. Beispiele sind für PowerShell 7 mit curl.exe. In upload.json stehen echte AramEntry-Werte aus blank.; die Beispieldatei enthält ausschließlich erfundene Testwerte und darf nicht als echtes Spiel hochgeladen werden. Beim ersten Upload kann die App einen vorher sicher gespeicherten, kryptografisch zufälligen Schlüssel mit 64 Hex-Zeichen als Bearer mitsenden. Ohne Schlüssel erzeugt der Server einen und liefert playerToken einmalig zurück. Bei allen weiteren Uploads derselben player.puuid sowie join, leave und DELETE muss dieser Schlüssel mitgeschickt werden. Gruppen-restart braucht den separaten adminToken. Kein globaler Schlüssel gehört in Browser-Code oder eine veröffentlichte EXE. Diese Erstregistrierung beweist keine Riot-Identität.
 
 ```powershell
 $API = "https://mayhemstats.lol/api"
@@ -57,7 +57,7 @@ Beispielantwort (Zeitpunkte/IDs sind illustrativ):
 
 ## GET /api/leaderboard?group=<code>&season=<id>
 
-group und season sind optional. Ohne group global; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Gruppen zählen ab ihrem eigenen Start. Sortierung ist exakt diejenige von standings(). Gezählt werden alle Spieler aus hochgeladenen und archivierten Spielen (Rohdatenarchiv des Collectors), je Spieler und Spiel ein Eintrag; Spieler ohne eigenes Profil stehen dort unter einer öffentlichen Nummer (`puuid: "a123"`), nie mit ihrer PUUID, ausgeblendete gar nicht. `trackedGames` zählt hochgeladene und archivierte Spiele. Beispielantwort für einen noch leeren globalen Bestand.
+group und season sind optional. Ohne group global; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Gruppen zählen ab ihrem eigenen Start. Sortierung ist exakt diejenige von standings(). Gezählt werden alle Spieler aus hochgeladenen und archivierten Spielen (Rohdatenarchiv des Collectors), je Spieler und Spiel ein Eintrag; Alle Spieler stehen dort unter einer öffentlichen Nummer (`puuid: "a123"`), auch wer selbst hochlädt, nie mit ihrer PUUID, ausgeblendete gar nicht. `trackedGames` zählt hochgeladene und archivierte Spiele. Beispielantwort für einen noch leeren globalen Bestand.
 
 ```powershell
 curl.exe "$API/leaderboard?season=v1"
@@ -82,7 +82,7 @@ Beispielantwort (Zeitpunkte/IDs sind illustrativ):
 
 ## GET /api/spiel/<gameId>
 
-Ein Spiel mit allen zehn Spielern, wenn es hochgeladen oder archiviert wurde (sonst 404). Liegt das Spiel im Rohdatenarchiv, kommen die Riot-IDs aller zehn von dort (`source: "archive"`); sonst die Werte aller zehn aus dem vollständigsten Upload und Namen nur der Hochladenden (`source: "uploads"`), dazu `named` (Freunde aus den Uploads nach Champion). `puuid` ist der Link zur Spielerseite: die PUUID bei Spielern mit eigenem Profil, sonst die öffentliche Nummer (`a123`), `null` bei ausgeblendeten. Fehlende Werte (`level`, `items`) sind `null`, nie 0. `disputed` meldet widersprüchliche Uploads.
+Ein Spiel mit allen zehn Spielern, wenn es hochgeladen oder archiviert wurde (sonst 404). Liegt das Spiel im Rohdatenarchiv, kommen die Riot-IDs aller zehn von dort (`source: "archive"`); sonst die Werte aller zehn aus dem vollständigsten Upload und Namen nur der Hochladenden (`source: "uploads"`), dazu `named` (Freunde aus den Uploads nach Champion). `puuid` ist der Link zur Spielerseite: die öffentliche Nummer (`a123`), `null` bei ausgeblendeten. Fehlende Werte (`level`, `items`) sind `null`, nie 0. `disputed` meldet widersprüchliche Uploads.
 
 ```powershell
 curl.exe "$API/spiel/7000000001"
@@ -100,7 +100,7 @@ Statistik der Augments und Items über alle gezählten Spieler-Spiele ab 8 Minut
 
 ## GET /api/rekorde
 
-Die Rekorde: je Kategorie (gleiche Kategorien und Reihenfolge wie die Rangliste der App) die besten zehn Spieler mit dem Spiel ihres Werts. Hochgeladene, nicht umstrittene und archivierte Spiele, also alle Spieler; Spieler ohne Profil unter ihrer öffentlichen Nummer, ihre PUUIDs kommen nie vor. Optional `scope=all` (Standard, alle Zeiten) oder `scope=season` (laufende Saison, drei pro Jahr) und `group` (ab dem Start der Gruppe). Gleichstand = gleicher Platz. Bei Summen (Pentakills) ist `game` das letzte Spiel, das dazu beitrug. `fresh`: das Spiel begann in den letzten sieben Tagen. Fehlende Werte älterer Spiele zählen nie als 0; eine Kategorie ohne Wert über 0 hat keine Plätze.
+Die Rekorde: je Kategorie (gleiche Kategorien und Reihenfolge wie die Rangliste der App) die besten zehn Spieler mit dem Spiel ihres Werts. Hochgeladene, nicht umstrittene und archivierte Spiele, also alle Spieler; alle Spieler unter ihrer öffentlichen Nummer, PUUIDs kommen nie vor. Optional `scope=all` (Standard, alle Zeiten) oder `scope=season` (laufende Saison, drei pro Jahr) und `group` (ab dem Start der Gruppe). Gleichstand = gleicher Platz. Bei Summen (Pentakills) ist `game` das letzte Spiel, das dazu beitrug. `fresh`: das Spiel begann in den letzten sieben Tagen. Fehlende Werte älterer Spiele zählen nie als 0; eine Kategorie ohne Wert über 0 hat keine Plätze.
 
 ```powershell
 curl.exe "$API/rekorde?scope=season"
@@ -118,6 +118,16 @@ curl.exe "$API/start"
 
 Antwort (gekürzt): `{ "season", "trackedGames", "players", "seasonGames", "grades": [{ "grade", "games" }], "today": [{ "puuid", "name", "grade", "gameId", "at", "seconds", "championId", "champion", "championName", "skin", "kills", "deaths", "assists", "damage" }], "top": [...], "records": [...] }`
 
+## GET /api/plaetze/<nummer>
+
+Die Plätze eines Spielers („Deine Plätze“ auf der Startseite, nach „Das bin ich“): Platz in der Rangliste (unter den Eingestuften), Platz nach Leistung Ø und Platz in jeder Rekord-Kategorie aller Zeiten, über alle Spieler und nicht nur die besten zehn wie bei /api/rekorde. Bester Platz zuerst; bei gleichem Platz zuerst die Rangliste, dann Leistung Ø, dann die Rekorde mit dem kleineren Anteil am Feld. Nur die öffentliche Nummer (`a123`), nie eine PUUID; ausgeblendete und unbekannte Spieler 404.
+
+```powershell
+curl.exe "$API/plaetze/a123"
+```
+
+Antwort: `{ "id", "season", "name", "rank", "placed", "average", "games", "placements": [{ "kind": "rank" | "performance" | "record", "id", "title", "hue", "unit", "place", "of", "value", "gameId" }] }`
+
 ## GET /api/gruppe/<code>
 
 Die Gruppenseite: die Rangliste der Gruppe (gleiche Form wie `players` bei /api/leaderboard?group=…), je Mitglied, was das Duell braucht (`radar`: die fünf Notenachsen der letzten 20 Spiele, `bests`: Bestwert je Rekord-Kategorie, nur Werte über 0, `games`: gewertete Spiele mit Note), und die letzten sechs Spielabende (Spiele mit höchstens drei Stunden Pause, je Spieler Spiele, MP-Bilanz, Einstufungsspiele und beste Note). Nur Mitglieder und nur Spiele ab dem Start der Gruppe.
@@ -130,7 +140,7 @@ Antwort (gekürzt): `{ "group": { "code", "name", "since" }, "season", "players"
 
 ## GET /api/players/<Riot-ID, puuid oder a123>
 
-Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Statt der PUUID geht die Riot-ID wie bei op.gg (`/api/players/Name-TAG`, der Tag nach dem letzten `-`, ohne Groß/Klein; zuerst Spieler mit Profil, sonst das neueste archivierte Spiel mit diesem Namen) oder die öffentliche Nummer eines Spielers ohne Profil (`/api/players/a123`); die Antwort nennt dann diese Nummer als `puuid`, `icon` und `name` aus seinem neuesten Spiel. Gehört die Nummer inzwischen einem Spieler mit Profil, kommt dessen Profil. Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.
+Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Jeder Spieler hat eine öffentliche Nummer (`/api/players/a123`, steht in der Rangliste als `puuid`); `id` nennt sie immer. Statt der Nummer geht auch die Riot-ID wie bei op.gg (`/api/players/Name-TAG`, der Tag nach dem letzten `-`, ohne Groß/Klein; zuerst Spieler mit Profil, sonst das neueste archivierte Spiel mit diesem Namen). Mit der Nummer nennt die Antwort sie auch als `puuid`, bei Spielern ohne Profil mit `icon` und `name` aus dem neuesten Spiel. Mit einer PUUID (blank. liest so das eigene Profil) kommt genau diese PUUID als `puuid` zurück, alle anderen PUUIDs der Antwort sind wie überall öffentliche Nummern. Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.
 
 ```powershell
 curl.exe "$API/players/$PUUID"
