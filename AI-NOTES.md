@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: „Bist du schon drin?“, „Das bin ich“ und „Deine Plätze“ — 06.10.2026
+
+- Benutzerwunsch, um mehr Leute zum Collector zu bringen: Die Startseite fragt ganz oben „Bist du schon drin?“ mit der großen Suche. Ohne Treffer zeigt die Suche (auch die im Kopf) „… ist noch nicht in der Datenbank“ mit „Spiele hinzufügen“; Enter ohne Treffer führt ebenfalls zu `/mitmachen?name=…`, das oben einen Hinweis mit Collector-Download zeigt.
+- „Login“ vorerst ohne Konto: auf jeder Spielerseite „Das bin ich“ (`app/ui/me.ts`, nur `localStorage` `mayhem.me.v1` mit öffentlicher Nummer und Riot-ID, nichts wird gesendet). Danach ist die eigene Zeile in Rangliste (dazu „Zu mir springen“), Top 10 und Rekorden markiert, und die Startseite zeigt „Deine Plätze“ (`/api/plaetze/<nummer>`, Logik `apps/mayhem-site/src/places.ts`, Test `src/features/aram/sitePlaces.test.ts`), bester Platz zuerst. Rekord-Plätze über alle Spieler (`recordRanking` in `src/records.ts`, `recordsView` schneidet wie bisher auf zehn ab).
+- Echtes Anmelden mit Riot (RSO, OAuth2) ist nur mit Produktionsschlüssel möglich und wird bei Riot eigens beantragt (Riot meldet sich dann im Developer Portal). Es würde nur beweisen, wer man ist, und brächte keine Mayhem-Spiele (die Web-API gibt Queue 2400 nicht heraus). Nicht gebaut; erst nach Benutzerauftrag beantragen. Neue Texte stehen gesammelt in `ME_TEXT` (für die englische Fassung).
+- Offen: #33 (Riot-ID-Adressen) war beim Bau noch nicht gemergt; die neuen Links nutzen `/players/<nummer>` wie der Rest der Seite.
+
 ## Open Source unter AGPL-3.0 — 05.10.2026
 
 - Benutzerwahl: Repo `blank` (App und Website) unter AGPL-3.0-only. `LICENSE` (Originaltext der FSF), `license` in `package.json`, `apps/mayhem-site/package.json` (+ Lockfile-Wurzel) und `src-tauri/Cargo.toml`, Abschnitt „Lizenz“ am Ende der README, Fußzeile der Website „Quellcode (AGPL-3.0)“ (erfüllt § 13: Nutzer der Website kommen an den Quellcode). Fremde Teile (`vendor/`, Lucide) behalten ihre Lizenz. Nächster Benutzerwunsch: englische Fassung der Website.

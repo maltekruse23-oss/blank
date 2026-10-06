@@ -118,6 +118,16 @@ curl.exe "$API/start"
 
 Antwort (gekürzt): `{ "season", "trackedGames", "players", "seasonGames", "grades": [{ "grade", "games" }], "today": [{ "puuid", "name", "grade", "gameId", "at", "seconds", "championId", "champion", "championName", "skin", "kills", "deaths", "assists", "damage" }], "top": [...], "records": [...] }`
 
+## GET /api/plaetze/<nummer>
+
+Die Plätze eines Spielers („Deine Plätze“ auf der Startseite, nach „Das bin ich“): Platz in der Rangliste (unter den Eingestuften), Platz nach Leistung Ø und Platz in jeder Rekord-Kategorie aller Zeiten, über alle Spieler und nicht nur die besten zehn wie bei /api/rekorde. Bester Platz zuerst; bei gleichem Platz zuerst die Rangliste, dann Leistung Ø, dann die Rekorde mit dem kleineren Anteil am Feld. Nur die öffentliche Nummer (`a123`), nie eine PUUID; ausgeblendete und unbekannte Spieler 404.
+
+```powershell
+curl.exe "$API/plaetze/a123"
+```
+
+Antwort: `{ "id", "season", "name", "rank", "placed", "average", "games", "placements": [{ "kind": "rank" | "performance" | "record", "id", "title", "hue", "unit", "place", "of", "value", "gameId" }] }`
+
 ## GET /api/gruppe/<code>
 
 Die Gruppenseite: die Rangliste der Gruppe (gleiche Form wie `players` bei /api/leaderboard?group=…), je Mitglied, was das Duell braucht (`radar`: die fünf Notenachsen der letzten 20 Spiele, `bests`: Bestwert je Rekord-Kategorie, nur Werte über 0, `games`: gewertete Spiele mit Note), und die letzten sechs Spielabende (Spiele mit höchstens drei Stunden Pause, je Spieler Spiele, MP-Bilanz, Einstufungsspiele und beste Note). Nur Mitglieder und nur Spiele ab dem Start der Gruppe.
