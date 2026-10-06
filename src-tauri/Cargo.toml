@@ -24,6 +24,8 @@ serde_json = "1"
 tokio = { version = "1", features = ["macros", "sync", "time"] }
 # EventSub WebSocket for instant "went live" notifications; TLS via Windows Schannel as above.
 tokio-tungstenite = { version = "0.30", features = ["native-tls"] }
+# Same version as reqwest uses; the TLS connector for the League client's local WebSocket (aram_live.rs).
+native-tls = "0.2"
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 
 [target.'cfg(windows)'.dependencies]

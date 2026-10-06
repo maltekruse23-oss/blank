@@ -137,6 +137,7 @@ dependencies = [
  "futures-util",
  "hidapi",
  "keyring",
+ "native-tls",
  "reqwest",
  "serde",
  "serde_json",

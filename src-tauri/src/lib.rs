@@ -186,6 +186,8 @@ pub fn run() {
             aram::website::aram_website,
             aram::website::aram_site_ranks,
             aram::website::aram_site_profile,
+            aram::live::aram_champ_watch,
+            aram::live::aram_champ_info,
             #[cfg(windows)]
             aram::aram_friends,
             #[cfg(windows)]

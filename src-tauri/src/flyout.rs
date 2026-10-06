@@ -49,9 +49,10 @@ const MAX_PENDING: usize = 5;
 const CLOSE_AFTER: Duration = Duration::from_secs(30);
 /// "music": what plays in any app (media.rs); "mix": blank.'s own SoundCloud mix; "test": the
 /// sample from Settings â†’ Popouts; "preview": the live preview while those settings change;
-/// "info": a short note (e.g. nothing plays); "aram": the card after an ARAM Mayhem game (aram.rs).
+/// "info": a short note (e.g. nothing plays); "aram": the card after an ARAM Mayhem game (aram.rs);
+/// "champ": the Champ-Karte in an ARAM Mayhem champion select (aram_live.rs).
 const KINDS: &[&str] = &[
-    "music", "mix", "live", "warning", "test", "preview", "info", "aram",
+    "music", "mix", "live", "warning", "test", "preview", "info", "aram", "champ",
 ];
 /// What a popout may ask of blank.'s own mix (useMusic in the app window).
 const MIX_ACTIONS: &[&str] = &["toggle", "next", "seek"];

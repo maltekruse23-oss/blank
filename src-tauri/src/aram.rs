@@ -32,6 +32,8 @@ use tauri::{AppHandle, Emitter, Manager};
 
 #[path = "aram_archive.rs"]
 mod archive;
+#[path = "aram_live.rs"]
+pub mod live;
 #[path = "aram_website.rs"]
 pub mod website;
 
@@ -1216,6 +1218,10 @@ pub fn league_seen(app: &AppHandle, game: bool, client: bool) {
     };
     let (had_game, had_client) = std::mem::replace(&mut *last, (game, client));
     drop(last);
+    if client && !had_client {
+        // The champion select is followed while the client runs (Champ-Karte, if switched on).
+        live::listen(app);
+    }
     let app = app.clone();
     if game && !had_game {
         tauri::async_runtime::spawn(game_started(app));
