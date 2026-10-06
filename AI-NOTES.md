@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: erste Version (eigene EXE) — 06.10.2026
+
+- Benutzerwünsche: eigene App neben blank. im Website-Look, „ganz ganz schlicht“, Champ-Karte „kein Popup, direkt in der App“. Umgesetzt als `mayhem.exe` aus derselben Crate mit eigener Config (`src-tauri/tauri.mayhem.conf.json`, `mayhem.rs`, `src/mayhem/`), Einzelheiten in MAYHEM-BERATER.md 8a. Release-Ablauf hängt `mayhem.exe` zusätzlich an.
+- Nicht drin (bewusst): Popouts, Einstellungen, Rang, Rekorde, Karte nach dem Spiel, Erkennung im Spiel. Nur auf malte's Wunsch ergänzen.
+- Offen: Prüfung auf Windows (VALIDATION, Nachtrag Mayhem-App). Datenquelle mit API für Builds/Champ-Werte: malte sucht eine (06.10.2026), Recherche chinesischer Seiten (Hexdata, RESG …) läuft im Thread „Mayhem-App mit Live-Builds“; kein Scraping.
+
 ## Website: Design „Tribüne“ nach dem Taste-Skill — 06.10.2026
 
 - Benutzerwunsch: „Augment-Wahl“ gefiel doch nicht; die ganze Seite samt Anordnung soll nach dem Taste-Skill (Leonxlnx/taste-skill, MIT) überarbeitet werden. Dritte Entwurfsrunde im selben Artifact; ohne ausdrückliche Wahl genommen: „Tribüne“ (Empfehlung). Vorgabe in [MAYHEM-DESIGN.md](MAYHEM-DESIGN.md), gilt auch für die Mayhem-App.

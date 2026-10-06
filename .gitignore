@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-mayhem/
 src-tauri/target/
 src-tauri/gen/
 .env

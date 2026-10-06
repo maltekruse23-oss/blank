@@ -38,3 +38,14 @@ export function onChamp(handler: (champ: HeldChamp) => void) {
 
 export const readChampInfo = (championId: number): Promise<ChampInfo> =>
   invoke<ChampInfo>('aram_champ_info', { championId, version: DDRAGON_VERSION });
+
+/** Mayhem app only (src-tauri/src/mayhem.rs): whether the League client runs. */
+export const leagueClientOpen = () =>
+  isTauri() ? invoke<boolean>('league_client_open').catch(() => false) : Promise.resolve(false);
+
+/** Mayhem app only: the League client opened (true) or closed (false). */
+export function onLeagueClient(handler: (open: boolean) => void) {
+  if (!isTauri()) return () => undefined;
+  const stop = listen<boolean>('league-client', ({ payload }) => handler(payload));
+  return () => void stop.then((unlisten) => unlisten());
+}

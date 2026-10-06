@@ -1,0 +1,470 @@
+/* The Mayhem app in the website's look "Augment-Wahl" (MAYHEM-DESIGN.md): the same tokens as
+   apps/mayhem-site/app/globals.css (:root), the same self-hosted fonts. Keep both in step. */
+
+@font-face {
+  font-family: 'Bungee';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../apps/mayhem-site/public/fonts/bungee-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('../../apps/mayhem-site/public/fonts/rubik-latin.woff2') format('woff2');
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #0a0812;
+  --panel: #130f1e;
+  --panel-2: #181327;
+  --panel-3: #1f1832;
+  --line: #261f3a;
+  --line-strong: #3a3058;
+  --text: #eceaf6;
+  --muted: #a6a3c0;
+  --faint: #8f8bad;
+  --accent: #c3a0ff;
+  --accent-ink: #120c1f;
+  --holo: linear-gradient(
+    100deg,
+    #ff9ed6 0%,
+    #ffe78a 22%,
+    #a6f7d6 42%,
+    #8fd2ff 62%,
+    #c7a1ff 80%,
+    #ff9ed6 100%
+  );
+  --frame-silver: linear-gradient(160deg, #ecebf6, #8d8ca6 50%, #d6d6e6);
+  --frame-gold: linear-gradient(160deg, #fff1b8, #d29a2b 45%, #ffe08a);
+  --up: #7fe39a;
+  --down: #ff8d92;
+  --grade-f: #9a4545;
+  --grade-e: #c0624f;
+  --grade-d: #cf8e4f;
+  --grade-c: #cdb45d;
+  --grade-b: #8cc46a;
+  --grade-a: #4fc9a1;
+  --grade-s: #4caeea;
+  --grade-ss: #8f80f2;
+  --grade-sss: #e46ddb;
+  --grade-mayhem: #ff4f9e;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fast: 140ms;
+  --font: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+  --font-title: 'Bungee', 'Rubik', 'Segoe UI', system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --fast: 0ms;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 14px/1.4 var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+#root {
+  height: 100%;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: var(--line-strong);
+}
+
+.mayhem {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mayhem-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* The brand in the prismatic foil of the MAYHEM lettering. */
+.mayhem-brand {
+  font: 400 22px/1 var(--font-title);
+  text-transform: uppercase;
+  background: var(--holo);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.mayhem-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mayhem-status:not(:empty)::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.mayhem-status[data-open='true']::before {
+  background: var(--up);
+}
+
+.mayhem-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.mayhem-wait {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  min-height: 100%;
+  text-align: center;
+}
+
+.mayhem-wait h1 {
+  font: 400 20px/1.2 var(--font-title);
+}
+
+.mayhem-wait p,
+.mayhem-note {
+  color: var(--muted);
+}
+
+.mayhem-button {
+  margin-top: 6px;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--fast) var(--ease);
+}
+
+.mayhem-button:hover {
+  transform: translateY(-1px);
+}
+
+.mayhem-button.small {
+  margin: 0;
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+/* --- The card --- */
+
+.mayhem-card {
+  display: grid;
+  gap: 16px;
+}
+
+/* The champion like the augment cards of the website: a frame, the splash art on top. */
+.mayhem-hero {
+  position: relative;
+  display: grid;
+  align-content: end;
+  gap: 2px;
+  min-height: 150px;
+  padding: 16px;
+  border: 3px solid transparent;
+  border-radius: calc(var(--radius) + 3px);
+  background:
+    linear-gradient(180deg, transparent 20%, color-mix(in oklab, var(--panel) 92%, transparent))
+      padding-box,
+    var(--splash, none) center 22% / cover no-repeat padding-box,
+    linear-gradient(var(--panel-2), var(--panel-2)) padding-box,
+    var(--frame-gold) border-box;
+}
+
+.mayhem-hero h1 {
+  font: 400 26px/1.1 var(--font-title);
+  text-shadow: 0 2px 12px var(--bg);
+}
+
+.mayhem-hero small {
+  color: var(--muted);
+}
+
+.mayhem-hero .mayhem-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.mayhem-directions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+}
+
+.mayhem-directions button {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 8px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  font: 400 16px/1.1 var(--font-title);
+  cursor: pointer;
+  transition:
+    transform var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.mayhem-directions button small {
+  font: 500 11px var(--font);
+  color: var(--muted);
+}
+
+.mayhem-directions button:hover {
+  transform: translateY(-2px);
+}
+
+.mayhem-directions button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 16%, var(--panel));
+}
+
+.mayhem-section {
+  display: grid;
+  gap: 10px;
+}
+
+.mayhem-section h2 {
+  font: 400 14px/1.2 var(--font-title);
+  color: var(--muted);
+}
+
+.mayhem-builds,
+.mayhem-best,
+.mayhem-tier ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-builds li,
+.mayhem-best li,
+.mayhem-tier li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+}
+
+.mayhem-builds small,
+.mayhem-best small,
+.mayhem-tier small {
+  margin-left: auto;
+  flex: none;
+  font-size: 12px;
+  color: var(--faint);
+  text-align: right;
+}
+
+.mayhem-tier small b {
+  display: block;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.mayhem-items {
+  display: flex;
+  gap: 4px;
+}
+
+.mayhem-items img {
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+}
+
+/* Mana items count against a build (user's rule): marked, not hidden. */
+.mayhem-items img[data-mana] {
+  border-color: var(--down);
+  opacity: 0.7;
+}
+
+.mayhem-grade {
+  flex: none;
+  min-width: 34px;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--c, var(--muted)) 22%, transparent);
+  color: var(--c, var(--muted));
+  font: 800 12px var(--font);
+  text-align: center;
+}
+
+.mayhem-grade[data-grade='f'] {
+  --c: var(--grade-f);
+}
+.mayhem-grade[data-grade='e'] {
+  --c: var(--grade-e);
+}
+.mayhem-grade[data-grade='d'] {
+  --c: var(--grade-d);
+}
+.mayhem-grade[data-grade='c'] {
+  --c: var(--grade-c);
+}
+.mayhem-grade[data-grade='b'] {
+  --c: var(--grade-b);
+}
+.mayhem-grade[data-grade='a'] {
+  --c: var(--grade-a);
+}
+.mayhem-grade[data-grade='s'] {
+  --c: var(--grade-s);
+}
+.mayhem-grade[data-grade='ss'] {
+  --c: var(--grade-ss);
+}
+.mayhem-grade[data-grade='sss'] {
+  --c: var(--grade-sss);
+}
+.mayhem-grade[data-grade='mayhem'] {
+  --c: var(--grade-mayhem);
+}
+
+/* The augment's picture in the frame of its rarity, like the offer in the game. */
+.mayhem-aug-icon {
+  --frame: var(--frame-silver);
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--frame);
+}
+
+.mayhem-aug-icon[data-rarity='gold'] {
+  --frame: var(--frame-gold);
+}
+
+.mayhem-aug-icon[data-rarity='prismatic'] {
+  --frame: var(--holo);
+}
+
+.mayhem-aug-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--panel-3);
+}
+
+.mayhem-aug-icon:empty::after {
+  content: '';
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--panel-3);
+}
+
+.mayhem-aug-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Tier list S–D as on the website (letters, no rank emblems). */
+.mayhem-tiers {
+  display: grid;
+  gap: 10px;
+}
+
+.mayhem-tier {
+  --c: var(--muted);
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.mayhem-tier[data-tier='S'] {
+  --c: var(--grade-sss);
+}
+.mayhem-tier[data-tier='A'] {
+  --c: var(--grade-s);
+}
+.mayhem-tier[data-tier='B'] {
+  --c: var(--grade-a);
+}
+.mayhem-tier[data-tier='C'] {
+  --c: var(--grade-c);
+}
+.mayhem-tier[data-tier='D'] {
+  --c: var(--grade-e);
+}
+
+.mayhem-tier-letter {
+  display: grid;
+  place-items: center;
+  height: 50px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--c) 22%, var(--panel));
+  color: var(--c);
+  font: 400 22px/1 var(--font-title);
+}

@@ -277,10 +277,26 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
 
 malte will eine eigene Mayhem-App neben blank., im Stil der Website (Look „Augment-Wahl“: Karten
 mit Silber-, Gold- und Prisma-Rahmen, Kristall-Facetten, Prisma-Schrift; festgehalten im
-Design-Thread). Empfehlung (Entscheidung offen): zweite App im selben Repo, eigene EXE
-(`mayhem.exe`) im Release neben `blank.exe`. Sie nutzt dieselbe Logik (`champCard.ts`,
-`aram_live.rs`, Rangliste, Wertung) und bekommt nur eine eigene Oberfläche im Website-Look.
-Der Berater wird so nur einmal gebaut und geprüft. PR #41 ist dafür die Grundlage.
+Design-Thread). Entschieden: zweite App im selben Repo, eigene EXE (`mayhem.exe`) im Release
+neben `blank.exe`, dieselbe Logik (`champCard.ts`, `aram_live.rs`), eigene Oberfläche im
+Website-Look (`MAYHEM-DESIGN.md`).
+
+Erste Version (Benutzerwunsch 06.10.2026: „ganz ganz schlicht, nicht wieder überladen“, „kein
+Popup, direkt in der App“): ein Fenster, nur die Champ-Karte. In der Champ-Auswahl steht dort der
+gehaltene Champion mit den Build-Richtungen, dem Item-Kern und allen Augments der gewählten
+Richtung in Stufen S–D; die Karte bleibt nach der Auswahl stehen, damit man im Spiel nachsehen
+kann, bis zum nächsten Champion. „Beispiel: Alistar“ zeigt sie ohne Spiel. Keine Popouts, keine
+Einstellungen, keine gespeicherten Daten, kein Rang, keine Rekorde. Weitere Teile (Erkennung im
+Spiel, Item-Sets und Zauber) nur, wenn malte sie für die Mayhem-App will.
+
+Technik: dieselbe Rust-Crate mit eigener Config `src-tauri/tauri.mayhem.conf.json` (Name,
+`mainBinaryName` `mayhem`, Identifier `lol.mayhemstats.desktop`, Fenster `mayhem`, eigene CSP);
+`lib.rs` startet anhand des Identifiers `mayhem.rs` statt blank. (eigener Builder, nur
+`aram_champ_watch`, `aram_champ_info`, `league_client_open`, `log_error`; Capability
+`capabilities/mayhem.json`). Oberfläche `mayhem.html` → `src/mayhem/`, eigener Vite-Build in
+`dist-mayhem` (`vite.mayhem.config.ts`). Bauen: `pnpm mayhem:build` (nie `cargo build`), Entwickeln:
+`pnpm mayhem:dev`. Der Client wird alle 5 s gesucht (Lockfile wie in blank.), nach zwei Treffern
+hört die Karte auf die Champ-Auswahl.
 
 ## 9. Offene Entscheidungen des Benutzers
 

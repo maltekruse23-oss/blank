@@ -11,6 +11,7 @@ const COMMANDS: &[&str] = &[
     "aram_site_profile",
     "aram_champ_watch",
     "aram_champ_info",
+    "league_client_open",
     "aram_friends",
     "aram_reset",
     "aram_set_since",

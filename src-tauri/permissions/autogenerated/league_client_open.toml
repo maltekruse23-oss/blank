@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-league-client-open"
+description = "Enables the league_client_open command without any pre-configured scope."
+commands.allow = ["league_client_open"]
+
+[[permission]]
+identifier = "deny-league-client-open"
+description = "Denies the league_client_open command without any pre-configured scope."
+commands.deny = ["league_client_open"]

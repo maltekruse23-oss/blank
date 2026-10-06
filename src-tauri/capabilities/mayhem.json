@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "mayhem",
+  "description": "The Mayhem app's window (mayhem.rs, its own EXE): follows the ARAM Mayhem champion select of the League client on this PC (read-only, its password stays in Rust), reads the champion's public stats from mayhemstats.lol (only the champion's number goes out) and the item list from Data Dragon, and writes its errors to the local error log. Nothing else; no window, filesystem, shell or HTTP permissions.",
+  "windows": ["mayhem"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-aram-champ-watch",
+    "allow-aram-champ-info",
+    "allow-league-client-open",
+    "allow-log-error"
+  ]
+}

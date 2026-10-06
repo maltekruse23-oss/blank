@@ -104,7 +104,10 @@ fn tell(app: &AppHandle, champion_id: i64, names: &HashMap<i64, (String, String)
             alias,
             name,
         };
-        let _ = app.emit_to("main", EVENT_NAME, champ);
+        // blank.'s window, or the Mayhem app's (mayhem.rs); only one of them exists.
+        for window in ["main", crate::mayhem::WINDOW] {
+            let _ = app.emit_to(window, EVENT_NAME, champ.clone());
+        }
     }
 }
 

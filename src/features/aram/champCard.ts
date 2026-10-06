@@ -6,6 +6,9 @@
 import type { ChampInfo, ChampItem } from '../../adapters/aramChamp';
 import { gradeOf, type Grade } from './aramPerformance';
 
+/** Champion of "Testen" (settings) and "Beispiel" (Mayhem app): the user's own example, AP-Alistar. */
+export const SAMPLE_CHAMP = { championId: 12, alias: 'Alistar', name: 'Alistar' } as const;
+
 /** Shown per list. */
 export const AUGMENTS_SHOWN = 5;
 export const BUILDS_SHOWN = 3;
