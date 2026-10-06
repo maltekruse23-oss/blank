@@ -90,6 +90,15 @@ export function recordsView(
   now: number,
   players: Map<string, { name: string; icon: number | null }> = new Map(),
 ): RecordView[] {
+  return recordRanking(games, now, players).map((c) => ({ ...c, places: c.places.slice(0, PLACES) }));
+}
+
+/** Like recordsView, but with every player who has a value (for a player's own places, src/places.ts). */
+export function recordRanking(
+  games: AramEntry[],
+  now: number,
+  players: Map<string, { name: string; icon: number | null }> = new Map(),
+): RecordView[] {
   const seen = new Set<string>();
   const counted = games.filter((g) => {
     const key = `${g.gameId}:${g.puuid}`;
@@ -134,7 +143,7 @@ export function recordsView(
     }
     rows.sort((a, b) => b.value - a.value || a.game.at - b.game.at || a.name.localeCompare(b.name));
     const places: RecordPlace[] = [];
-    for (const [i, row] of rows.slice(0, PLACES).entries()) {
+    for (const [i, row] of rows.entries()) {
       const before = places[i - 1];
       places.push({ ...row, place: before && before.value === row.value ? before.place : i + 1 });
     }

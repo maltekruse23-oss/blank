@@ -6,7 +6,8 @@ import { open, summary, type Standing } from './summary';
 import type { AramEntry } from './adapters/aram';
 import { archiveRoute } from './archive';
 import { gameView, type RawGame } from './game';
-import { recordsView } from './records';
+import { recordRanking, recordsView } from './records';
+import { placesOf } from './places';
 import { championsView, championView } from './champions';
 import { counted, metaDetail, metaView } from './meta';
 import { freshRecords, startView, TOP } from './start';
@@ -392,6 +393,18 @@ async function start() {
     const view = startView(list, now, seasonOf(now).start);
     return json({ season: c.season, trackedGames, ...view, top: await withIcons(list.slice(0, TOP)), records: freshRecords(recordsView(all, now, await playersOf(ids))) });
 }
+/** A player's own places (/api/plaetze/<public id>, "Deine Plätze"): ladder, Leistung Ø and every
+ * record category of all time, best first. Only a public id (a123), never a PUUID. */
+async function places(id: string) {
+    const c = await context(new URL('http://x/'));
+    const archiveId = archiveIdOf(id) ?? fail(404, 'Spieler nicht gefunden');
+    const row = (await rows<{ puuid: string }>('SELECT puuid FROM archive_players WHERE id=?', archiveId))[0] ?? fail(404, 'Spieler nicht gefunden');
+    // Players with a profile keep their PUUID in the entries, everyone else the public id.
+    const key = (await registeredPlayers()).has(row.puuid) ? row.puuid : id;
+    const all = await entries(c.since, null, null, false, true);
+    const view = placesOf(standings(all, c.since), recordRanking(all, Date.now()), key);
+    return view ? json({ id, season: c.season, ...view }) : fail(404, 'Spieler nicht gefunden');
+}
 /** A group's page (/gruppe/<code>): its ladder, what the duel needs of every member and its game
  * nights. Only members, from the group's start on. */
 async function groupPage(code: string) {
@@ -598,6 +611,9 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         return cached(url, () => groupPage(gp[1]));
     if (path === '/api/start' && method === 'GET')
         return cached(url, start);
+    const pl = path.match(/^\/api\/plaetze\/(a[1-9][0-9]{0,9})$/);
+    if (pl && method === 'GET')
+        return cached(url, () => places(pl[1]));
     if (path === '/api/rekorde' && method === 'GET')
         return cached(url, () => records(url));
     if (path === '/api/champions' && method === 'GET')

@@ -7,6 +7,7 @@ import type { RecordPlace, RecordView } from '../../src/records';
 import { Img, Problem } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, date, de, profileImage, splashImage, splitName, useDragon, useLive } from '../ui/data';
+import { ME_TEXT, useMe } from '../ui/me';
 
 type Records = {
   scope: Scope;
@@ -105,6 +106,7 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
     ? [top.game.skin ? `url(${splashImage(key, top.game.skin)})` : '', `url(${splashImage(key)})`].filter(Boolean).join(', ')
     : null;
   const { name, tag } = splitName(top.name);
+  const me = useMe();
   const total = category.kind === 'total';
   return (
     <article className="card record" id={category.id} data-hue={category.hue} aria-labelledby={category.id + '-title'}>
@@ -113,7 +115,7 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
         <small>{category.note}</small>
       </header>
 
-      <div className="record-top" style={splash ? ({ '--splash': splash } as React.CSSProperties) : undefined}>
+      <div className="record-top" data-me={top.puuid === me?.id || undefined} style={splash ? ({ '--splash': splash } as React.CSSProperties) : undefined}>
         <div className="record-holder">
           <svg className="crown" width="18" height="18" viewBox="0 0 24 24" aria-hidden>
             <path d="M3 18h18l-1.6-10-4.9 4.2L12 5l-2.5 7.2L4.6 8z" fill="currentColor" />
@@ -124,6 +126,7 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
               <b>{name}</b>
             </Link>
             {tag && <small className="faint">#{tag}</small>}
+            {top.puuid === me?.id && <span className="me-tag">{ME_TEXT.you}</span>}
           </span>
         </div>
         <div className="record-value">
@@ -146,7 +149,7 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
       {rest.length > 0 && (
         <ol className="record-list">
           {rest.map((p) => (
-            <li key={p.puuid} data-place={p.place}>
+            <li key={p.puuid} data-place={p.place} data-me={p.puuid === me?.id || undefined}>
               <span className="place num">{p.place}</span>
               <Img className="champ" src={championImage(dragon, keyOf(dragon, p) || undefined)} alt={championOf(dragon, p)} size={22} />
               <Link className="label" href={profileLink(p)} title={p.name}>
