@@ -45,6 +45,7 @@ import {
   type Profile,
   type ProfileStep,
 } from '../../ui/data';
+import { ME_TEXT, setMe, useMe } from '../../ui/me';
 
 type Tab = 'overview' | 'matches' | 'champions' | 'seasons';
 type Dragon = ReturnType<typeof useDragon>;
@@ -100,6 +101,7 @@ export default function PlayerPage() {
             {history.length > 0 && <span>letztes Spiel {ago(history[history.length - 1].entry.at, now)}</span>}
           </div>
           <div className="badges">
+            <MeButton id={data.id ?? (/^a[1-9][0-9]*$/.test(params.puuid) ? params.puuid : null)} name={data.name} />
             {data.climbing && (
               <span className="badge climb" title="Die Leistung liegt über dem Rang – die MP-Gewinne sind größer.">
                 Klettert
@@ -448,5 +450,23 @@ function Seasons({ profile, now: at }: { profile: Profile; now: number }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** "Das bin ich": marks this player as the visitor, only in this browser (app/ui/me.ts). */
+function MeButton({ id, name }: { id: string | null; name: string }) {
+  const me = useMe();
+  if (!id) return null;
+  const mine = me?.id === id;
+  return (
+    <button
+      type="button"
+      className={mine ? 'badge me-badge on' : 'badge me-badge'}
+      aria-pressed={mine}
+      title={mine ? ME_TEXT.unmark : ME_TEXT.markHint}
+      onClick={() => setMe(mine ? null : { id, name })}
+    >
+      {mine ? ME_TEXT.marked : ME_TEXT.mark}
+    </button>
   );
 }

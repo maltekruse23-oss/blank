@@ -2,14 +2,18 @@
 // The join page (/mitmachen): why more games make the numbers better, the collector download with
 // what it does, the app as the other way, and a link to pass on. All numbers come from the
 // archive (/api/archive/stats); nothing is collected here.
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { de } from '../ui/data';
 import { APP, COLLECTOR, COLLECTOR_INFO } from '../ui/join';
+import { ME_TEXT } from '../ui/me';
 
 type Archive = { matches: number; players: number };
 
 export default function JoinPage() {
   const [archive, setArchive] = useState<Archive | null>(null);
+  // Sent here by a search without a hit (app/ui/header.tsx).
+  const searched = useSearchParams().get('name')?.trim().slice(0, 40) ?? '';
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/archive/stats', { signal: controller.signal })
@@ -24,6 +28,16 @@ export default function JoinPage() {
 
   return (
     <>
+      {searched && (
+        <section className="card join-missing" role="status">
+          <b>{ME_TEXT.notFound(searched)}</b>
+          <p className="muted">{ME_TEXT.notFoundLead}</p>
+          <a className="button primary" href={COLLECTOR} download>
+            Collector für Windows laden
+          </a>
+        </section>
+      )}
+
       <section className="start-hero join-hero">
         <span className="eyebrow">ARAM: Mayhem · Mitmachen</span>
         <h1>Mehr Spiele, bessere Zahlen</h1>
