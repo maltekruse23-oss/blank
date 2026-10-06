@@ -40,7 +40,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <a href="/api/export" download="blank-mayhem.json">
                 Datenexport
               </a>
-              <a href="https://github.com/maltekruse23-oss/blank">Quellcode</a>
+              <a href="https://github.com/maltekruse23-oss/blank">Quellcode (AGPL-3.0)</a>
             </nav>
             <p>
               blank. Mayhem ist ein inoffizielles Fanprojekt und wird von Riot Games weder unterstützt

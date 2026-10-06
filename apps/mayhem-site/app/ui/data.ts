@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../src/adapters/aram';
 import type { AugmentInfo } from '../../src/augments';
+import type { TagCensus } from '../../src/tags';
 import type { Grade, Performance } from '../../src/features/aram/aramPerformance';
 import type { Average, Rank, Season, Step } from '../../src/features/aram/aramRating';
 
@@ -104,7 +105,7 @@ export function useLive<T>(path: string | null) {
 
 // ---- Data Dragon --------------------------------------------------------------------------
 
-type Dragon = { version: string; champions: Map<number, { id: string; name: string }> };
+type Dragon = { version: string; champions: Map<number, { id: string; name: string; tags: string[] }> };
 let dragon: Promise<Dragon> | null = null;
 
 function loadDragon(): Promise<Dragon> {
@@ -115,9 +116,9 @@ function loadDragon(): Promise<Dragon> {
     const version = versions[0];
     const list = (await (
       await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/de_DE/champion.json`)
-    ).json()) as { data: Record<string, { id: string; key: string; name: string }> };
+    ).json()) as { data: Record<string, { id: string; key: string; name: string; tags?: string[] }> };
     const champions = new Map(
-      Object.values(list.data).map((c) => [Number(c.key), { id: c.id, name: c.name }]),
+      Object.values(list.data).map((c) => [Number(c.key), { id: c.id, name: c.name, tags: c.tags ?? [] }]),
     );
     return { version, champions };
   })().catch((error) => {
@@ -236,6 +237,32 @@ export function useAugments() {
     loadAugments().then(
       (a) => !stop && setValue(a),
       () => undefined,
+    );
+    return () => {
+      stop = true;
+    };
+  }, []);
+  return value;
+}
+
+// ---- Tags (cut-offs and rarity from all players, src/tags.ts) --------------------------------
+
+let census: Promise<TagCensus & { prismatic: number[] }> | null = null;
+
+/** The tag census of all players (null while loading or unavailable). */
+export function useTagCensus() {
+  const [value, setValue] = useState<(TagCensus & { prismatic: number[] }) | null>(null);
+  useEffect(() => {
+    let stop = false;
+    census ??= fetch('/api/tags').then((r) => {
+      if (!r.ok) throw new Error('Tags nicht verfügbar.');
+      return r.json();
+    });
+    census.then(
+      (c) => !stop && setValue(c),
+      () => {
+        census = null;
+      },
     );
     return () => {
       stop = true;
