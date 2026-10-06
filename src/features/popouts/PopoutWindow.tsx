@@ -61,6 +61,7 @@ import {
 } from '../settings/preferences';
 import { popoutEasings, popoutPlaces, popoutScreens } from './placement';
 import { AramResultCard } from '../aram/AramResult';
+import { ChampCard } from '../aram/ChampCard';
 
 /** After the mouse leaves a popout (or a click in it), it stays at least this long. */
 const AFTER_HOVER_MS = 3_000;
@@ -82,9 +83,14 @@ const WIDTH = {
   notice: 360,
   taskbar: 300,
   aram: 560,
+  champ: 380,
 };
 /** The ARAM card builds up for about 2.5 s; it stays at least this long (unless "Immer"). */
 const ARAM_SECONDS = 12;
+/** The Champ-Karte is read during the champion select; it stays at least this long. */
+const CHAMP_SECONDS = 20;
+/** Cards too large for a row in the taskbar: at that end, above it, like a normal popout. */
+const isCard = (item: PopoutItem | undefined) => item?.kind === 'aram' || item?.kind === 'champ';
 
 /** The settings, shared with the app window; read again whenever they change there. */
 function readLook(): Preferences {
@@ -820,6 +826,7 @@ export function PopoutWindow() {
 
   const widthOf = (item: PopoutItem) => {
     if (item.kind === 'aram') return WIDTH.aram;
+    if (item.kind === 'champ') return WIDTH.champ;
     if (isUpNext(item)) return inTaskbar ? WIDTH.taskbar : WIDTH.upNext;
     if (!showsMusic(item)) return inTaskbar ? WIDTH.taskbar : WIDTH.notice;
     if (compactNow) return inTaskbar ? WIDTH.taskbar : WIDTH.compact;
@@ -840,7 +847,7 @@ export function PopoutWindow() {
     (current.kind === 'mix' ? !!current.duration : current.kind === 'preview' || !!timeline);
   const width = current ? widthOf(current) : WIDTH.notice;
   // The ARAM card is too large for the taskbar: at that end, above it, like a normal popout.
-  const taskbarCard = inTaskbar && current?.kind !== 'aram';
+  const taskbarCard = inTaskbar && !isCard(current);
   // A compact music popout can open under the mouse. Its window has room to open into and a
   // region shows only the card, so opening and folding never resize the window: a resize briefly
   // showed the old picture at the wrong place (the card jumped; user's report "wackelt").
@@ -1121,7 +1128,9 @@ export function PopoutWindow() {
             ? 0
             : current.kind === 'aram'
               ? Math.max(ARAM_SECONDS, look.popoutNoticeSeconds)
-              : look.popoutNoticeSeconds;
+              : current.kind === 'champ'
+                ? Math.max(CHAMP_SECONDS, look.popoutNoticeSeconds)
+                : look.popoutNoticeSeconds;
   // Every change in the settings starts the preview's time again.
   const stamp = current?.kind === 'preview' ? current.stamp : 0;
   useEffect(() => {
@@ -1169,7 +1178,7 @@ export function PopoutWindow() {
     expanded && !inTaskbar ? 'opened' : '',
     expanded && inTaskbar && playing && !isUpNext(item) ? 'active' : '',
     isUpNext(item) ? 'small' : '',
-    inTaskbar && item.kind !== 'aram' ? 'taskbar' : '',
+    inTaskbar && !isCard(item) ? 'taskbar' : '',
     playing && !isUpNext(item) && look.popoutBackground !== 'none'
       ? `bg-${look.popoutBackground}`
       : '',
@@ -1372,6 +1381,7 @@ export function PopoutWindow() {
           }}
         />
       )}
+      {item.kind === 'champ' && <ChampCard view={item.view} onDismiss={next} />}
       {queue.length > 1 && <span className="popout-more">+{queue.length - 1}</span>}
     </div>
   );

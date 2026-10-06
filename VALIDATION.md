@@ -1,5 +1,11 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 06.10.2026: Champ-Karte (Etappe 1 der Mayhem-App)
+
+- Geprüft unter Linux: `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` (neu `champCard.test.ts`: Augments nach Note mit Mindestspielen, Item-Kerne mit Mana-Abzug, strenge Prüfung der Website-Antwort, gegen die echte Form aus `championView` der Website), `cargo check` und `cargo clippy --all-targets -D warnings` für `x86_64-pc-windows-msvc`.
+- Rust-Unit-Tests in `aram_live.rs` (Champion aus dem Auswahl-Ereignis, nur Auswahl-Ereignisse, fertige Items/Mana, Versionsprüfung) laufen nur unter Windows (CI).
+- **Offen, auf Windows mit echtem Client prüfen:** WebSocket-Verbindung zum Client, Popout erscheint in der ARAM-Mayhem-Auswahl (nicht in anderen Queues), nach Tausch/Reroll neu, Augment-Symbole von mayhemstats.lol und Item-Bilder laden (CSP `img-src` um `https://mayhemstats.lol` ergänzt), Schalter aus trennt die Verbindung.
+
 ## Nachtrag 04.10.2026: freigegebene Rangicons
 
 - Acht aktive Icons D bis MAYHEM aus Augment-v3 ersetzt; F/E als unbenutzte Assets vorbereitet.

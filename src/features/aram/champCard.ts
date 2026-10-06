@@ -1,0 +1,222 @@
+// Champ-Karte (user's wish): for the champion held in an ARAM Mayhem champion select, the best
+// augments and item builds from the website's games (mayhemstats.lol, /api/champions/<id>; only
+// our own raw Mayhem games). Always several choices with their numbers, never one prescription
+// (Riot: apps may highlight choices, not dictate them). Mana items count against a build (user's
+// rule: mana is useless in ARAM). Pure, tested in champCard.test.ts.
+import type { ChampInfo, ChampItem } from '../../adapters/aramChamp';
+import { gradeOf, type Grade } from './aramPerformance';
+
+/** Shown per list. */
+export const AUGMENTS_SHOWN = 5;
+export const BUILDS_SHOWN = 3;
+/** A grade needs this many graded games (as on the website). */
+export const MIN_GRADED = 5;
+/** A build core needs this many games. */
+export const MIN_BUILD_GAMES = 2;
+/** Few games pull a value towards the middle (0.5) as if this many average games were added. */
+export const PRIOR = 10;
+/** Each mana item lowers a build's score by this much (percentile, 0–1). */
+export const MANA_PENALTY = 0.08;
+/** Items in a build core. */
+export const CORE_SIZE = 3;
+
+export type AugmentInfo = { name: string; rarity: string; icon: boolean };
+
+export type AugmentPick = {
+  id: number;
+  name: string;
+  rarity: string;
+  /** The website has a picture of it. */
+  icon: boolean;
+  games: number;
+  winRate: number | null;
+  grade: Grade | null;
+};
+
+export type BuildPick = {
+  items: { id: number; name: string; mana: boolean }[];
+  games: number;
+  winRate: number;
+  grade: Grade | null;
+  /** Mana items in it (they lower its place). */
+  mana: number;
+};
+
+export type ChampView = {
+  championId: number;
+  alias: string;
+  name: string;
+  /** Counted games of the champion on the website. */
+  games: number;
+  augments: AugmentPick[];
+  builds: BuildPick[];
+};
+
+type AugmentRow = {
+  id: number;
+  games: number;
+  winRate: number | null;
+  graded: number;
+  pct: number | null;
+};
+type BuildGame = { augments: number[]; items: number[]; win: boolean; pct: number | null };
+
+const isObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+const count = (v: unknown) =>
+  Number.isInteger(v) && (v as number) >= 0 && (v as number) < 1e9 ? (v as number) : null;
+const share = (v: unknown) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : null);
+const ids = (v: unknown) =>
+  Array.isArray(v) && v.length <= 12 && v.every((x) => Number.isInteger(x) && x >= 0 && x < 1e7)
+    ? (v as number[])
+    : null;
+
+/** The champion of the website's answer, checked; null if anything does not fit. */
+export function parseChampion(text: string | null) {
+  if (!text) return null;
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!isObject(json) || !isObject(json.champion)) return null;
+  const c = json.champion;
+  const games = count(c.games);
+  if (games === null || !Array.isArray(c.augments) || !Array.isArray(c.builds)) return null;
+  const augments: AugmentRow[] = [];
+  for (const a of c.augments) {
+    if (!isObject(a)) return null;
+    const id = count(a.id);
+    const n = count(a.games);
+    const graded = count(a.graded);
+    if (id === null || n === null || graded === null) return null;
+    augments.push({ id, games: n, graded, winRate: share(a.winRate), pct: share(a.pct) });
+  }
+  const builds: BuildGame[] = [];
+  for (const b of c.builds) {
+    if (!isObject(b) || typeof b.win !== 'boolean') return null;
+    const aug = ids(b.augments);
+    const items = ids(b.items);
+    if (!aug || !items) return null;
+    builds.push({ augments: aug, items, win: b.win, pct: share(b.pct) });
+  }
+  return { games, augments, builds };
+}
+
+/** Names and rarity of the augments (website's /api/augments), checked. */
+export function parseAugments(text: string | null): Map<number, AugmentInfo> {
+  const out = new Map<number, AugmentInfo>();
+  if (!text) return out;
+  try {
+    const json: unknown = JSON.parse(text);
+    if (!isObject(json) || !isObject(json.augments)) return out;
+    for (const [id, a] of Object.entries(json.augments)) {
+      if (!/^[0-9]{1,7}$/.test(id) || !isObject(a) || typeof a.name !== 'string') continue;
+      out.set(Number(id), {
+        name: a.name.slice(0, 80),
+        rarity: typeof a.rarity === 'string' ? a.rarity : '',
+        icon: a.icon === true,
+      });
+    }
+  } catch {
+    return out;
+  }
+  return out;
+}
+
+/** A percentile from few games, pulled towards the middle. */
+export const shrunk = (pct: number, games: number) => (pct * games + 0.5 * PRIOR) / (games + PRIOR);
+
+/** The best augments: by Ø grade over enough graded games (pulled to the middle when few). */
+export function bestAugments(rows: AugmentRow[], names: Map<number, AugmentInfo>): AugmentPick[] {
+  return rows
+    .filter((r) => r.pct !== null && r.graded >= MIN_GRADED)
+    .map((r) => ({ row: r, score: shrunk(r.pct as number, r.graded) }))
+    .sort((a, b) => b.score - a.score || b.row.games - a.row.games || a.row.id - b.row.id)
+    .slice(0, AUGMENTS_SHOWN)
+    .map(({ row }) => ({
+      id: row.id,
+      name: names.get(row.id)?.name ?? `Augment ${row.id}`,
+      rarity: names.get(row.id)?.rarity ?? '',
+      icon: names.get(row.id)?.icon ?? false,
+      games: row.games,
+      winRate: row.winRate,
+      grade: row.pct === null ? null : gradeOf(row.pct),
+    }));
+}
+
+/** All sets of `size` ids, each sorted. */
+function subsets(list: number[], size: number): number[][] {
+  const sorted = [...new Set(list)].sort((a, b) => a - b);
+  const out: number[][] = [];
+  const pick = (from: number, chosen: number[]) => {
+    if (chosen.length === size) return void out.push(chosen);
+    for (let i = from; i <= sorted.length - (size - chosen.length); i++)
+      pick(i + 1, [...chosen, sorted[i]]);
+  };
+  pick(0, []);
+  return out;
+}
+
+/**
+ * The best cores of three finished items (what was in the inventory at the end; the order of
+ * buying is not stored): Ø grade of their games, pulled to the middle when few, minus
+ * MANA_PENALTY per mana item; without grades the win rate stands in.
+ */
+export function bestBuilds(games: BuildGame[], items: Record<string, ChampItem>): BuildPick[] {
+  const by = new Map<string, { ids: number[]; games: BuildGame[] }>();
+  for (const g of games) {
+    const done = g.items.filter((id) => items[String(id)]?.done);
+    for (const set of subsets(done, CORE_SIZE)) {
+      const key = set.join(',');
+      const row = by.get(key) ?? { ids: set, games: [] };
+      row.games.push(g);
+      by.set(key, row);
+    }
+  }
+  return [...by.values()]
+    .filter((r) => r.games.length >= MIN_BUILD_GAMES)
+    .map((r) => {
+      const graded = r.games.filter((g) => g.pct !== null).map((g) => g.pct as number);
+      const wins = r.games.filter((g) => g.win).length / r.games.length;
+      const pct = graded.length ? graded.reduce((t, v) => t + v, 0) / graded.length : null;
+      const mana = r.ids.filter((id) => items[String(id)]?.mana).length;
+      const base = pct !== null ? shrunk(pct, graded.length) : shrunk(wins, r.games.length);
+      return {
+        score: base - MANA_PENALTY * mana,
+        pick: {
+          items: r.ids.map((id) => ({
+            id,
+            name: items[String(id)]?.name ?? `Item ${id}`,
+            mana: !!items[String(id)]?.mana,
+          })),
+          games: r.games.length,
+          winRate: wins,
+          grade: pct !== null && graded.length >= MIN_GRADED ? gradeOf(pct) : null,
+          mana,
+        },
+      };
+    })
+    .sort((a, b) => b.score - a.score || b.pick.games - a.pick.games)
+    .slice(0, BUILDS_SHOWN)
+    .map((r) => r.pick);
+}
+
+/** The card for a champion; null when the website's answer does not fit. A champion without
+ * games on the website gets a card with empty lists (the card says so). */
+export function champView(
+  champ: { championId: number; alias: string; name: string },
+  info: ChampInfo,
+): ChampView | null {
+  const names = parseAugments(info.augments);
+  if (info.champion === null) return { ...champ, games: 0, augments: [], builds: [] };
+  const parsed = parseChampion(info.champion);
+  if (!parsed) return null;
+  return {
+    ...champ,
+    games: parsed.games,
+    augments: bestAugments(parsed.augments, names),
+    builds: bestBuilds(parsed.builds, info.items),
+  };
+}

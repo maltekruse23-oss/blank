@@ -7,6 +7,7 @@ import type { AppLoad } from '../adapters/pc';
 import type { Page } from '../app/App';
 import type { AramAugment, AramEntry } from '../adapters/aram';
 import type { AramHighlight } from '../features/aram/aramHighlight';
+import type { ChampView } from '../features/aram/champCard';
 import type { RankResult } from '../features/aram/aramRating';
 import type { PopoutPlace, PopoutScreen } from '../features/popouts/placement';
 
@@ -51,6 +52,8 @@ export type PopoutItem =
       highlight: AramHighlight;
       rank?: RankResult | null;
     }
+  /** Champ-Karte: best augments and builds for the champion held in a champion select. */
+  | { kind: 'champ'; id: number; view: ChampView }
   | {
       kind: 'live';
       id: number;

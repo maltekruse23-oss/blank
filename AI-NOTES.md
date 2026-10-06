@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: Plan und Etappe 1 Champ-Karte — 06.10.2026
+
+- Benutzerwunsch: eine reine Mayhem-App mit Sync zur Seite, Game Card mit Rekorden, und „was wirklich Special“: Champ erkennen, Augments beim Rundenstart erkennen und den passenden Build zeigen (z. B. AP-Augment auf Alistar → Stormsurge; Mana-Items sind in ARAM schlecht).
+- Befund: Champion geht (Champ-Auswahl über den Ereignis-Strom des Clients, im Spiel aus der Gameflow-Sitzung). Angebotene Augments gibt Riot über keine Schnittstelle heraus (weder LCU noch Live Client Data); OP.GG, Hexgate und offene Projekte lesen die drei Karten per Bildschirmausschnitt + Texterkennung. Riot-Regeln (Sekundärquellen, die Riot-Seite war aus der Sandbox gesperrt): Overlays mit vorab bekannten Daten und mehreren hervorgehobenen Möglichkeiten erlaubt, Ansagen nach Spielzustand, Speicherlesen und Eingabe-Automatik verboten.
+- Etappen: (1) Champ-Karte in der Champ-Auswahl – dieser Stand; (2) Augment-Karten im Spiel per Windows-OCR bei Level 7/11/15, kleines Overlay mit unserer Note (braucht neue Ausnahmen: Bildschirmausschnitt, Fenster über dem Spiel); (3) 2–3 Builds je Champ + gewähltem Augment, Mana-Abzug; (4) schlanke Mayhem-App aus demselben Code, ersetzt den Collector (aus dem Thread „Collector ohne Download“: evtl. Microsoft Store, offen ob die Prüfung das Lockfile-Lesen erlaubt); (5) Anmeldung/Sync mit der Seite (eigener Thread).
+- Etappe 1 umgesetzt, Regeln in CLAUDE.md (Champ-Karte). Neue Abhängigkeit `native-tls` direkt (war schon über reqwest im Lockfile, gleiche Version) für den TLS-Connector des Client-WebSockets. Auf Windows mit echtem Client noch nicht gesehen (VALIDATION).
+- Datenlage: Builds je Champion brauchen Spiele; bei wenigen zeigt die Karte „Noch zu wenig Spiele“ statt zu raten.
+
 ## Release 0.9.2 — 05.10.2026
 
 - Auf Benutzerauftrag nach #38: Version 0.9.2 (Ränge von der Website, Rang-Schritt auf der Karte, neue Wappen, höchstens 30 MP, Freunde über Riot-ID statt PUUID). Tag `v0.9.2` erst nach dem Mergen dieses Versions-PRs und nach der Prüfung der veröffentlichten Website.
