@@ -20,6 +20,26 @@ export const MANA_PENALTY = 0.08;
 /** Items in a build core. */
 export const CORE_SIZE = 3;
 
+/**
+ * Items whose main effect does nothing in ARAM Mayhem (user's wish "Items, die komplett useless
+ * sind, wie Umbral"): never part of a suggested build, whatever their numbers. By Data Dragon id;
+ * the reason is for the next person who edits the list.
+ */
+export const USELESS_ITEMS: Readonly<Record<number, string>> = {
+  3179: 'Umbral Glaive: der Effekt deckt Wards auf und zerstört sie, in ARAM gibt es keine',
+  1101: 'Jungle-Begleiter: nur für Monster im Dschungel, den es in ARAM nicht gibt',
+  1102: 'Jungle-Begleiter: nur für Monster im Dschungel, den es in ARAM nicht gibt',
+  1103: 'Jungle-Begleiter: nur für Monster im Dschungel, den es in ARAM nicht gibt',
+  3865: 'Support-Questitem: lebt von Gold aus Vasallen einer Lane mit Partner und von Wards',
+  3866: 'Support-Questitem: lebt von Gold aus Vasallen einer Lane mit Partner und von Wards',
+  3867: 'Support-Questitem: lebt von Gold aus Vasallen einer Lane mit Partner und von Wards',
+  3869: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
+  3870: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
+  3871: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
+  3876: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
+  3877: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
+};
+
 export type AugmentInfo = { name: string; rarity: string; icon: boolean };
 
 export type AugmentPick = {
@@ -162,12 +182,13 @@ function subsets(list: number[], size: number): number[][] {
 /**
  * The best cores of three finished items (what was in the inventory at the end; the order of
  * buying is not stored): Ø grade of their games, pulled to the middle when few, minus
- * MANA_PENALTY per mana item; without grades the win rate stands in.
+ * MANA_PENALTY per mana item; without grades the win rate stands in. Items of USELESS_ITEMS never
+ * take part.
  */
 export function bestBuilds(games: BuildGame[], items: Record<string, ChampItem>): BuildPick[] {
   const by = new Map<string, { ids: number[]; games: BuildGame[] }>();
   for (const g of games) {
-    const done = g.items.filter((id) => items[String(id)]?.done);
+    const done = g.items.filter((id) => items[String(id)]?.done && !(id in USELESS_ITEMS));
     for (const set of subsets(done, CORE_SIZE)) {
       const key = set.join(',');
       const row = by.get(key) ?? { ids: set, games: [] };

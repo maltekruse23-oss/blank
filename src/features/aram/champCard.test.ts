@@ -11,6 +11,7 @@ import {
   parseAugments,
   parseChampion,
   shrunk,
+  USELESS_ITEMS,
 } from './champCard';
 
 // Champ-Karte (champCard.ts): best augments and item cores of a champion from the website's games,
@@ -75,6 +76,18 @@ describe('Champ-Karte', () => {
     // Without the penalty the mana core would lead.
     expect(shrunk(0.64, 2) - MANA_PENALTY).toBeLessThan(shrunk(0.6, 2));
     expect(shrunk(0.64, 2)).toBeGreaterThan(shrunk(0.6, 2));
+  });
+
+  it('nutzlose Items wie Umbral Glaive kommen nie in einen Build', () => {
+    const items = { ...ITEMS, '3179': item('Umbral Glaive') };
+    const games = [
+      game([1, 2, 3179], 0.99),
+      game([3179, 2, 1], 0.99),
+      game([1, 2, 3], 0.4),
+      game([1, 2, 3], 0.4),
+    ];
+    expect(bestBuilds(games, items).map((b) => b.items.map((i) => i.id))).toEqual([[1, 2, 3]]);
+    expect(USELESS_ITEMS[3179]).toMatch(/Ward/);
   });
 
   it('ohne Noten zählt die Siegquote, ohne Item-Liste gibt es keine Builds', () => {
