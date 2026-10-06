@@ -1,55 +1,58 @@
-/* blank. Mayhem – one design for the whole site ("Augment-Wahl", user's choice 06.10.2026). Colors,
-   space, radii and motion only as tokens; components never use fixed colors. Built from the Mayhem
-   emblems in public/grades and public/ranks: plum black, slate thorn grey, amethyst accent and the
-   prismatic holo foil of the MAYHEM lettering (--holo). Headings in Bungee, text in Rubik (both
-   self-hosted in public/fonts, SIL OFL). The games of the day are augment cards with silver, gold
-   and prismatic frames. Each grade (F–MAYHEM) and each tier (D–MAYHEM) keeps its own color. */
+/* blank. Mayhem – one design for the whole site ("Tribüne", user's request 06.10.2026 to rework the
+   whole site by the rules of the taste skill). Colors, space, radii and motion only as tokens;
+   components never use fixed colors. Warm off-black, one gold accent, no glow, no gradient text,
+   one radius scale (4–6 px, circles only for profile pictures). Text in Bricolage Grotesque,
+   numbers and small facts in IBM Plex Mono (both self-hosted in public/fonts, SIL OFL). Each grade
+   (F–MAYHEM) and each tier (D–MAYHEM) keeps its own color; those are data, not decoration. */
 
 @font-face {
-  font-family: 'Bungee';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/bungee-latin.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Rubik';
+  font-family: 'Bricolage Grotesque';
   font-style: normal;
   font-weight: 400 800;
   font-display: swap;
-  src: url('/fonts/rubik-latin.woff2') format('woff2');
+  src: url('/fonts/bricolage-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/plexmono-400-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/plexmono-500-latin.woff2') format('woff2');
 }
 
 :root {
   color-scheme: dark;
 
   /* Surfaces */
-  --bg: #0a0812;
-  --bg-raised: #0e0b17;
-  --panel: #130f1e;
-  --panel-2: #181327;
-  --panel-3: #1f1832;
-  --line: #261f3a;
-  --line-strong: #3a3058;
-  --slate: #5d5c7c; /* the thorn ornaments of the emblems */
+  --bg: #111010;
+  --bg-raised: #151413;
+  --panel: #1a1918;
+  --panel-2: #201e1c;
+  --panel-3: #292725;
+  --line: #2b2927;
+  --line-strong: #3d3a36;
+  --slate: #6f6a62;
 
   /* Text */
-  --text: #eceaf6;
-  --muted: #a6a3c0;
-  --faint: #8f8bad; /* ≥ 4.5:1 on every panel (WCAG AA) */
+  --text: #f1ede6;
+  --muted: #b5aea3;
+  --faint: #9d968b; /* ≥ 4.5:1 on every panel (WCAG AA) */
 
-  /* Accent and states */
-  --accent: #c3a0ff;
-  --accent-ink: #120c1f;
-  /* Prismatic foil of the MAYHEM lettering; for the brand, the prismatic augment frame and a few
-     highlights only. */
-  --holo: linear-gradient(100deg, #ff9ed6 0%, #ffe78a 22%, #a6f7d6 42%, #8fd2ff 62%, #c7a1ff 80%, #ff9ed6 100%);
-  --frame-silver: linear-gradient(160deg, #ecebf6, #8d8ca6 50%, #d6d6e6);
-  --frame-gold: linear-gradient(160deg, #fff1b8, #d29a2b 45%, #ffe08a);
+  /* The one accent */
+  --accent: #d6a865;
+  --accent-ink: #17120a;
   --accent-soft: color-mix(in oklab, var(--accent) 14%, transparent);
-  --up: #7fe39a;
-  --down: #ff8d92;
+  --up: #7fd39a;
+  --down: #f08a86;
 
   /* Grades F … MAYHEM (per game, independent of rank) */
   --grade-f: #9a4545;
@@ -88,19 +91,19 @@
   --gutter: 16px;
   --page: 1180px;
   --gap: 16px;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --radius-pill: 999px;
-  --shadow: 0 18px 50px -24px color-mix(in oklab, black 80%, transparent);
+  --section: 56px;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --radius-pill: 4px;
+  --shadow: 0 18px 40px -24px color-mix(in oklab, var(--bg) 90%, black);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --fast: 140ms;
   --slow: 520ms;
 
-  --font: 'Rubik', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  /* heavy numbers and names */
-  --font-display: 'Rubik', 'Segoe UI', system-ui, sans-serif;
-  /* page and section titles, the brand; one weight only, never bold */
-  --font-title: 'Bungee', 'Rubik', 'Segoe UI', system-ui, sans-serif;
+  --font: 'Bricolage Grotesque', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: var(--font);
+  --font-title: var(--font);
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -123,9 +126,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(1100px 480px at 50% -8%, color-mix(in oklab, var(--accent) 11%, transparent), transparent 70%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font: 15px/1.5 var(--font);
   -webkit-font-smoothing: antialiased;
