@@ -275,9 +275,9 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
 
 ## 8a. Eigene Mayhem-App (Benutzerwunsch, 06.10.2026)
 
-malte will eine eigene Mayhem-App neben blank., im Stil der Website (Look „Augment-Wahl“: Karten
-mit Silber-, Gold- und Prisma-Rahmen, Kristall-Facetten, Prisma-Schrift; festgehalten im
-Design-Thread). Entschieden: zweite App im selben Repo, eigene EXE (`mayhem.exe`) im Release
+malte will eine eigene Mayhem-App neben blank., im Stil der Website (zuerst „Augment-Wahl“, seit
+06.10.2026 „Tribüne“: warmes Fast-Schwarz, ein Goldton, Bricolage Grotesque und IBM Plex Mono,
+Zeilen statt Kästen) und nur zum Thema Mayhem, nichts von blank. Entschieden: zweite App im selben Repo, eigene EXE (`mayhem.exe`) im Release
 neben `blank.exe`, dieselbe Logik (`champCard.ts`, `aram_live.rs`), eigene Oberfläche im
 Website-Look (`MAYHEM-DESIGN.md`).
 

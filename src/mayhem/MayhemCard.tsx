@@ -13,13 +13,13 @@ import { percent } from '../features/aram/format';
 
 const itemImage = (id: number) =>
   `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/item/${id}.png`;
-const games = (n: number) => `${n} ${n === 1 ? 'Spiel' : 'Spiele'}`;
+const games = (n: number) => `${n.toLocaleString('de-DE')} ${n === 1 ? 'Spiel' : 'Spiele'}`;
 
 /** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game). */
 function AugmentIcon({ rarity, image }: { rarity: string; image: string | null }) {
   return (
     <span className="mayhem-aug-icon" data-rarity={rarity}>
-      {image && <img src={image} alt="" width={30} height={30} />}
+      {image && <img src={image} alt="" width={32} height={32} />}
     </span>
   );
 }
@@ -42,10 +42,13 @@ function Builds({ builds }: { builds: BuildPick[] }) {
               />
             ))}
           </span>
-          <small>
-            {games(b.games)} · {percent(b.winRate)} Siege
-            {b.mana > 0 && ' · Mana'}
-          </small>
+          <span className="mayhem-facts">
+            <b>{percent(b.winRate)} Siege</b>
+            <span>
+              {games(b.games)}
+              {b.mana > 0 && ' · Mana'}
+            </span>
+          </span>
           {b.grade && (
             <span className="mayhem-grade" data-grade={b.grade.toLowerCase()} title="Note Ø">
               {b.grade}
@@ -81,10 +84,12 @@ function TierList({ augments, label }: { augments: TieredAugment[]; label: strin
                 >
                   <AugmentIcon rarity={a.rarity} image={a.image} />
                   <span className="mayhem-aug-name">{a.name}</span>
-                  <small>
-                    {a.turns && <b>Umwandler → {DIRECTION_LABEL[a.turns]}</b>}
-                    {a.general ? 'allgemein' : games(a.games)}
-                  </small>
+                  <span className="mayhem-facts">
+                    {a.turns && (
+                      <span className="turns">Umwandler → {DIRECTION_LABEL[a.turns]}</span>
+                    )}
+                    <span>{a.general ? 'allgemein' : games(a.games)}</span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -122,12 +127,11 @@ export function MayhemCard({
         style={splash ? { ['--splash' as string]: `url("${splash}")` } : undefined}
       >
         <h1>{label}</h1>
-        <small>
-          {view.games
-            ? `${games(view.games)} · ${sourceLabel(view)}`
-            : `Noch keine Spiele · ${sourceLabel(view)}`}
+        <p>{view.games ? games(view.games) : 'Noch keine Spiele'}</p>
+        <p>
+          {sourceLabel(view)}
           {sample && ' · Beispiel'}
-        </small>
+        </p>
         {onClose && (
           <button type="button" className="mayhem-button small" onClick={onClose}>
             Zurück
@@ -179,10 +183,10 @@ export function MayhemCard({
                   <li key={a.id}>
                     <AugmentIcon rarity={a.rarity} image={a.image} />
                     <span className="mayhem-aug-name">{a.name}</span>
-                    <small>
-                      {games(a.games)}
-                      {a.winRate !== null && ` · ${percent(a.winRate)} Siege`}
-                    </small>
+                    <span className="mayhem-facts">
+                      {a.winRate !== null && <b>{percent(a.winRate)} Siege</b>}
+                      <span>{games(a.games)}</span>
+                    </span>
                   </li>
                 ))}
               </ul>

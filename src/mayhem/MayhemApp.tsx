@@ -83,7 +83,7 @@ export function MayhemApp() {
           <p className="mayhem-note">Lade {shown.champ.name || shown.champ.alias} …</p>
         ) : shown.state === 'failed' ? (
           <div className="mayhem-wait">
-            <p>mayhemstats.lol hat nicht geantwortet.</p>
+            <p>Die Werte kamen nicht an. Prüfe die Verbindung.</p>
             <button
               type="button"
               className="mayhem-button"
@@ -98,7 +98,7 @@ export function MayhemApp() {
             <p>Hier steht dein Build, sobald du in ARAM Mayhem einen Champion hast.</p>
             <button
               type="button"
-              className="mayhem-button"
+              className="mayhem-button primary"
               onClick={() => show(SAMPLE_CHAMP, true)}
             >
               Beispiel: {SAMPLE_CHAMP.name}

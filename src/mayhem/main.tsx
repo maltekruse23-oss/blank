@@ -1,5 +1,5 @@
 // The Mayhem app's window (src-tauri/src/mayhem.rs, mayhem.html, vite.mayhem.config.ts): only the
-// Champ-Karte, in the website's look "Augment-Wahl" (MAYHEM-DESIGN.md), nothing of blank.
+// Champ-Karte, in the website's look "Tribüne" (MAYHEM-DESIGN.md), nothing of blank.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Guard } from '../components/Guard';

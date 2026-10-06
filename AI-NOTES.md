@@ -13,7 +13,8 @@ Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Sta
 
 - Benutzerwünsche: eigene App neben blank. im Website-Look, „ganz ganz schlicht“, Champ-Karte „kein Popup, direkt in der App“. Umgesetzt als `mayhem.exe` aus derselben Crate mit eigener Config (`src-tauri/tauri.mayhem.conf.json`, `mayhem.rs`, `src/mayhem/`), Einzelheiten in MAYHEM-BERATER.md 8a. Release-Ablauf hängt `mayhem.exe` zusätzlich an.
 - Nicht drin (bewusst): Popouts, Einstellungen, Rang, Rekorde, Karte nach dem Spiel, Erkennung im Spiel. Nur auf malte's Wunsch ergänzen.
-- Offen: Prüfung auf Windows (VALIDATION, Nachtrag Mayhem-App). Datenquelle mit API für Builds/Champ-Werte: malte sucht eine (06.10.2026), Recherche chinesischer Seiten (Hexdata, RESG …) läuft im Thread „Mayhem-App mit Live-Builds“; kein Scraping.
+- Look „Tribüne“ wie die Website (MAYHEM-DESIGN.md, Tokens und Schriften aus `apps/mayhem-site`), nur Mayhem, nichts von blank. Daten zuerst arammeta.com, sonst mayhemstats.lol (CLAUDE.md, Champ-Karte).
+- Offen: Prüfung auf Windows (VALIDATION, Nachtrag Mayhem-App), echter Abruf von arammeta, Datenlizenz vor einer öffentlichen Version beim Macher erfragen.
 
 ## Website: Design „Tribüne“ nach dem Taste-Skill — 06.10.2026
 
