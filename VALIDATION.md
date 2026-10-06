@@ -1,5 +1,10 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 06.10.2026: Build vor dem Spiel (Etappe 2a der Mayhem-App)
+
+- `champCard.test.ts` neu: Richtung eines Spiels (mindestens zwei fertige Items, kein Gleichstand, nutzlose Items zählen nicht), AP-Alistar bekommt das AP-Augment als S und als Umwandler erkannt, Stufen nach Platz wie die Tierliste, echte Website-Form ergibt eine AP-Richtung. Rust-Test `items_know_finished_and_mana` prüft die Item-Art (`kind`).
+- **Offen, auf Windows mit echtem Client prüfen:** Richtungsknöpfe in der Karte wechseln die Augment-Liste, ohne die Karte zu schließen; Höhe der Karte bei sechs Augments und zwei Kernen.
+
 ## Nachtrag 06.10.2026: Champ-Karte (Etappe 1 der Mayhem-App)
 
 - Geprüft unter Linux: `pnpm format:check`, `pnpm lint`, `pnpm build`, `pnpm test` (neu `champCard.test.ts`: Augments nach Note mit Mindestspielen, Item-Kerne mit Mana-Abzug, strenge Prüfung der Website-Antwort, gegen die echte Form aus `championView` der Website), `cargo check` und `cargo clippy --all-targets -D warnings` für `x86_64-pc-windows-msvc`.

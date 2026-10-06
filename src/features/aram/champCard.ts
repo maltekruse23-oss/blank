@@ -70,6 +70,55 @@ export type ChampView = {
   games: number;
   augments: AugmentPick[];
   builds: BuildPick[];
+  /** Build directions with enough games, most played first: the user picks one before the game. */
+  plans: BuildPlan[];
+};
+
+/** Where a build goes. */
+export type Direction = 'ap' | 'ad' | 'tank';
+export const DIRECTIONS: readonly Direction[] = ['ap', 'ad', 'tank'];
+export const DIRECTION_LABEL: Record<Direction, string> = { ap: 'AP', ad: 'AD', tank: 'Tank' };
+/** A direction needs this many games of the champion to be offered. */
+export const MIN_DIRECTION_GAMES = 3;
+/** An augment needs this many games in a direction for its own tier there (else: general). */
+export const MIN_AUGMENT_GAMES = 2;
+/** A transform augment ("Umwandler"): enough games, mostly in a direction the champion rarely goes. */
+export const TURN_GAMES = 4;
+export const TURN_SHARE = 0.6;
+export const TURN_BASE = 0.35;
+/** Augments listed per direction on the card (all of them are tiered for the game). */
+export const PLAN_AUGMENTS_SHOWN = 6;
+export const PLAN_BUILDS_SHOWN = 2;
+
+/** Tiers as on the website's tier list (src/tiers.ts there): by place among the ranked rows. */
+export const TIERS = ['S', 'A', 'B', 'C', 'D'] as const;
+export type Tier = (typeof TIERS)[number];
+const CUTS: Record<Tier, number> = { S: 0.1, A: 0.3, B: 0.7, C: 0.9, D: 1 };
+
+export type TieredAugment = {
+  id: number;
+  name: string;
+  rarity: string;
+  icon: boolean;
+  tier: Tier;
+  /** Ø percentile in this direction, pulled to the augment's general value when few. */
+  score: number;
+  /** Games of the champion with it in this direction. */
+  games: number;
+  /** Too few games in this direction: the tier rests on the augment's general value. */
+  general: boolean;
+  /** A transform augment towards this direction (it is played mostly there). */
+  turns: Direction | null;
+};
+
+export type BuildPlan = {
+  direction: Direction;
+  games: number;
+  /** Share of the champion's games with a clear direction. */
+  share: number;
+  builds: BuildPick[];
+  /** Every augment of the champion with a value, best first (the game ranks offers by this). */
+  augments: TieredAugment[];
 };
 
 type AugmentRow = {
@@ -224,6 +273,103 @@ export function bestBuilds(games: BuildGame[], items: Record<string, ChampItem>)
     .map((r) => r.pick);
 }
 
+/** The direction of a game: the kind of most of its finished items (two at least, no tie). */
+export function directionOf(items: number[], known: Record<string, ChampItem>): Direction | null {
+  const count: Record<Direction, number> = { ap: 0, ad: 0, tank: 0 };
+  for (const id of new Set(items)) {
+    const it = known[String(id)];
+    if (!it?.done || id in USELESS_ITEMS || it.kind === 'other') continue;
+    count[it.kind] += 1;
+  }
+  const ranked = DIRECTIONS.map((d) => [d, count[d]] as const).sort((a, b) => b[1] - a[1]);
+  return ranked[0][1] >= 2 && ranked[0][1] > ranked[1][1] ? ranked[0][0] : null;
+}
+
+/** Rows (best first) by place into the five tiers; equal scores share the tier of the first. */
+function tiered<T extends { score: number }>(rows: T[]): (T & { tier: Tier })[] {
+  return rows.map((row, i) => {
+    const first = rows.findIndex((r) => r.score === row.score);
+    // Rows ahead of it, as a share: the best is always S, even in a short list.
+    const ahead = Math.min(i, first) / rows.length;
+    return { ...row, tier: TIERS.find((t) => ahead < CUTS[t])! };
+  });
+}
+
+const mean = (list: number[]) => list.reduce((t, v) => t + v, 0) / list.length;
+
+/**
+ * The build directions of a champion and, for each, every augment in a tier S–D (user's wish:
+ * pick the build before the game, then all augments are ranked for it, "AP-Alistar: Stormsurge,
+ * AP-Augments S"). An augment's value in a direction is the Ø percentile of the direction's games
+ * with it, pulled towards its general value on the champion (itself pulled to the middle) when
+ * few. A transform augment is one played mostly in a direction the champion rarely goes.
+ */
+export function buildPlans(
+  games: BuildGame[],
+  items: Record<string, ChampItem>,
+  names: Map<number, AugmentInfo>,
+): BuildPlan[] {
+  const graded = games.filter((g): g is BuildGame & { pct: number } => g.pct !== null);
+  const dir = new Map(graded.map((g) => [g, directionOf(g.items, items)]));
+  const directed = graded.filter((g) => dir.get(g) !== null);
+  if (!directed.length) return [];
+  const base = Object.fromEntries(
+    DIRECTIONS.map((d) => [d, directed.filter((g) => dir.get(g) === d).length / directed.length]),
+  ) as Record<Direction, number>;
+
+  // Per augment: all graded games of the champion with it, and those per direction.
+  const augs = new Map<number, { all: number[]; by: Record<Direction, number[]> }>();
+  for (const g of graded)
+    for (const id of new Set(g.augments)) {
+      const row = augs.get(id) ?? { all: [], by: { ap: [], ad: [], tank: [] } };
+      row.all.push(g.pct);
+      const d = dir.get(g);
+      if (d) row.by[d].push(g.pct);
+      augs.set(id, row);
+    }
+  const turnsOf = (row: { by: Record<Direction, number[]> }): Direction | null => {
+    const n = DIRECTIONS.reduce((t, d) => t + row.by[d].length, 0);
+    if (n < TURN_GAMES) return null;
+    return (
+      DIRECTIONS.find((d) => row.by[d].length / n >= TURN_SHARE && base[d] <= TURN_BASE) ?? null
+    );
+  };
+
+  return DIRECTIONS.filter(
+    (d) => directed.filter((g) => dir.get(g) === d).length >= MIN_DIRECTION_GAMES,
+  )
+    .map((d) => {
+      const own = directed.filter((g) => dir.get(g) === d);
+      const rows = [...augs.entries()]
+        .map(([id, row]) => {
+          const general = shrunk(mean(row.all), row.all.length);
+          const here = row.by[d];
+          const score = here.length
+            ? (mean(here) * here.length + general * PRIOR) / (here.length + PRIOR)
+            : general;
+          return {
+            id,
+            name: names.get(id)?.name ?? `Augment ${id}`,
+            rarity: names.get(id)?.rarity ?? '',
+            icon: names.get(id)?.icon ?? false,
+            score,
+            games: here.length,
+            general: here.length < MIN_AUGMENT_GAMES,
+            turns: turnsOf(row),
+          };
+        })
+        .sort((a, b) => b.score - a.score || b.games - a.games || a.id - b.id);
+      return {
+        direction: d,
+        games: own.length,
+        share: base[d],
+        builds: bestBuilds(own, items).slice(0, PLAN_BUILDS_SHOWN),
+        augments: tiered(rows),
+      };
+    })
+    .sort((a, b) => b.games - a.games);
+}
+
 /** The card for a champion; null when the website's answer does not fit. A champion without
  * games on the website gets a card with empty lists (the card says so). */
 export function champView(
@@ -231,7 +377,7 @@ export function champView(
   info: ChampInfo,
 ): ChampView | null {
   const names = parseAugments(info.augments);
-  if (info.champion === null) return { ...champ, games: 0, augments: [], builds: [] };
+  if (info.champion === null) return { ...champ, games: 0, augments: [], builds: [], plans: [] };
   const parsed = parseChampion(info.champion);
   if (!parsed) return null;
   return {
@@ -239,5 +385,6 @@ export function champView(
     games: parsed.games,
     augments: bestAugments(parsed.augments, names),
     builds: bestBuilds(parsed.builds, info.items),
+    plans: buildPlans(parsed.builds, info.items, names),
   };
 }

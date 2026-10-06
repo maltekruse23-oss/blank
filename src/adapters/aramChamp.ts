@@ -7,7 +7,13 @@ import { listen } from '@tauri-apps/api/event';
 import { DDRAGON_VERSION } from '../data/proStreamers';
 
 /** An item as the card needs it (from Data Dragon, reduced in Rust). */
-export type ChampItem = { name: string; done: boolean; mana: boolean };
+export type ChampItem = {
+  name: string;
+  done: boolean;
+  mana: boolean;
+  /** What it builds towards, from its Data Dragon tags (Rust, `kind_of`). */
+  kind: 'ap' | 'ad' | 'tank' | 'other';
+};
 
 /** The website's answers as JSON text (checked in champCard.ts) and the items. */
 export type ChampInfo = {

@@ -7,6 +7,29 @@ Angebote (Level 11, 15) rankt sie passend zum Build und zu den bisherigen Augmen
 will Qualität vor Tempo („ichzig ausgeklügelt, lass dir Zeit“). Dieses Dokument legt fest, wie
 das gerechnet, geprüft und angezeigt wird, bevor gebaut wird.
 
+## 0. Neufassung des Ablaufs (Benutzerwahl, 06.10.2026)
+
+Der Benutzer hat den Ablauf vereinfacht: **Der Build steht vor dem Spiel fest.** Damit entfällt
+das Umplanen mitten im Spiel, und es braucht keine Kauf-Reihenfolge (Timelines: nein, 9.1).
+
+1. **Champ-Auswahl:** Die Champ-Karte zeigt die Build-Richtungen des Champs (AP, AD, Tank), jede
+   mit Anteil und den besten Item-Kernen. Die meistgespielte ist vorgewählt, ein Klick wählt eine
+   andere. Beispiel: AP-Alistar → Kern mit Stormsurge.
+2. **Gleichzeitig** bekommt jedes Augment des Champs für die gewählte Richtung eine Stufe S–D
+   (wie die Tierliste der Website). Im AP-Build stehen AP-Augments oben, Umwandler in diese
+   Richtung sind markiert („Umwandler → AP“). Das ist Etappe 2a und in PR #41 gebaut
+   (`buildPlans` in `champCard.ts`).
+3. **Im Spiel** zeigt die App bei jedem Angebot (Rundenstart, Level 7, 11, 15; die Levels werden am
+   echten Spiel geprüft) die drei Karten mit ihrer Stufe aus Schritt 2. Erkannt wird sofort,
+   auch jeder Reroll (6). Das Ranken ist nur ein Nachschlagen in der Tabelle aus Schritt 2, also
+   ohne Netz und ohne Wartezeit.
+4. Ein Wechsel der Richtung im Spiel bleibt möglich (ein Klick), dann gelten die Stufen der neuen
+   Richtung. Synergien mit schon gewählten Augments (3.5) kommen später dazu, wenn der
+   Rückblick-Test sie trägt.
+
+Die Abschnitte 3.6, 3.7 und 4 beschreiben das frühere Umplanen nach jeder Wahl. Sie bleiben als
+spätere Ausbaustufe stehen; zuerst kommt der Ablauf oben.
+
 ## 1. Grundsätze
 
 - **Nur unsere eigenen Rohspiele** (Queue 2400, Archiv und Uploads auf mayhemstats.lol). Es gibt
@@ -154,18 +177,27 @@ Zustand S + X mit dem gemerkten Kern. Daraus folgen drei Anzeigen:
 ## 6. Live-Erkennung (Etappe 2b)
 
 - **Champion:** wie Etappe 1 aus der Champ-Auswahl, im Spiel aus der Gameflow-Sitzung.
-- **Angebot:** Die App nimmt einen Bildschirmausschnitt nur des League-Fensters. Windows' eigene
-  Texterkennung (`Windows.Media.Ocr`) liest die drei Kartennamen, dafür kommt keine neue
-  Abhängigkeit dazu. Die Namen werden mit der Augment-Liste des Clients abgeglichen
-  (unscharfer Vergleich). Ausgelöst wird das nur zu den Levels, an denen ein Angebot kommt. Den
-  Level liest die App aus den Live-Spieldaten (`127.0.0.1:2999`, nur lesend), höchstens einmal
-  alle 2 s und nur während eines Mayhem-Spiels.
+- **Gewählter Build:** Die Wahl auf der Champ-Karte geht wie die Knöpfe des Mix-Popouts an die App
+  zurück und gilt bis zum Spielende.
+- **Wann geschaut wird:** Den Level liest die App aus den Live-Spieldaten (`127.0.0.1:2999`, nur
+  lesend), einmal pro Sekunde und nur während eines Mayhem-Spiels. Erreicht er eine Angebots-Stufe
+  (und zu Rundenbeginn), beginnt das Lesen der Karten.
+- **Sofort erkennen:** Solange ein Angebot offen ist, nimmt die App alle 250 ms einen
+  Bildschirmausschnitt nur des League-Fensters (nur die Kartenzeile). Windows' eigene
+  Texterkennung (`Windows.Media.Ocr`) liest die drei Namen, ohne neue Abhängigkeit. Die Namen
+  werden unscharf mit der Augment-Liste des Clients abgeglichen. Ändert sich ein Name, war es ein
+  Reroll, und die neue Karte bekommt sofort ihre Stufe. Sind die Karten weg (gewählt), endet das
+  Lesen; spätestens nach 60 s.
+- **Welches Augment genommen wurde:** Zuerst das, dessen Karte als letzte allein übrig war;
+  sonst ein Klick in der App. Riot gibt die Wahl nicht über eine Schnittstelle heraus.
+- **Anzeige:** in der App bzw. als Popout auf dem anderen Bildschirm (Benutzerwunsch „in der App in
+  Echtzeit“). Ein Overlay über dem Spiel ist nicht nötig; auf dem Bildschirm des Spiels bleibt
+  das Popout wie immer aus.
 - **Grenzen:** Das geht nur im rahmenlosen oder im Fenster-Modus. Andere Client-Sprachen
   funktionieren über die Namen in der Sprache des Clients.
-- **Neue Ausnahmen in den App-Regeln (CLAUDE.md):**
-  - Bildschirmausschnitt nur des League-Fensters.
-  - Overlay-Fenster über dem Spiel.
-  - Live-Abfrage nur während eines Mayhem-Spiels.
+- **Neue Ausnahmen in den App-Regeln (CLAUDE.md), erst mit dem Bau von 2b:**
+  - Bildschirmausschnitt nur des League-Fensters, nur während eines Angebots.
+  - Abfrage der Live-Spieldaten nur während eines Mayhem-Spiels.
 
   Alles ist abschaltbar, und es wird nie etwas ins Spiel eingegeben oder aus dem Speicher
   gelesen.
@@ -184,19 +216,22 @@ Zustand S + X mit dem gemerkten Kern. Daraus folgen drei Anzeigen:
 
 ## 8. Etappen
 
-| Etappe | Inhalt                                                                                                                    | braucht                  |
-| ------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| 2a     | Item-Profile, Archetypen, Umwandler, Kerne je Augment, Rückblick-Test; Champ-Karte zeigt „Umwandler“ und Kerne je Augment | nichts Neues             |
-| 2b     | Angebote im Spiel per Bildschirm + Overlay, Wahl per Klick                                                                | Regel-Ausnahmen (6)      |
-| 3      | Angebote nach Zustand ranken, Synergien, Build-Feld nach jeder Wahl                                                       | 2a + 2b                  |
-| 4      | Ridge-Modell, wenn die Daten reichen und der Test es zeigt                                                                | Datenmenge               |
-| (opt.) | Timelines sammeln: Kauf-Reihenfolge, Level je Augment → „erst X, dann Y“                                                  | Benutzerentscheidung (9) |
+| Etappe | Inhalt                                                                                                | Stand                  |
+| ------ | ----------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1      | Champ-Karte in der Champ-Auswahl                                                                      | PR #41                 |
+| 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler    | PR #41                 |
+| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen              | nach dem Test von #41  |
+| 3      | Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge             |
+| 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                     | wenn der Test es trägt |
 
 ## 9. Offene Entscheidungen des Benutzers
 
-1. **Timelines mitsammeln.** Pro eigenem Spiel kommt eine Anfrage mehr an den Client, und die
+1. **Timelines mitsammeln:** entschieden, nein (06.10.2026). Der Build steht vor dem Spiel fest,
+   die Kauf-Reihenfolge wird nicht gebraucht. Früherer Text: Pro eigenem Spiel kommt eine Anfrage mehr an den Client, und die
    Uploads werden größer. Dafür gibt es echte Build-Pfade („nach Hexenhut zuerst Stormsurge“)
    und eine Prüfung der Augment-Reihenfolge. Ohne Timelines gibt es nur Kerne aus dem
    End-Inventar.
-2. **Overlay im Spiel trotz Riot-Grauzone.** Ein privater Test unter Freunden ist gering
+2. **Overlay im Spiel:** nicht nötig, die Anzeige läuft in der App bzw. im Popout (6). Für eine
+   öffentliche Version mit Live-Erkennung fragen wir trotzdem vorher Riot. Früherer Text:
+   **Overlay im Spiel trotz Riot-Grauzone.** Ein privater Test unter Freunden ist gering
    riskant. Für eine öffentliche Version fragen wir vorher Riot.

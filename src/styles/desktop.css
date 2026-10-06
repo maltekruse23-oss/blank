@@ -3940,3 +3940,62 @@ html[data-motion='normal'] .aram-gain {
   color: var(--muted);
   font-size: 12px;
 }
+/* Build directions (AP/AD/Tank) of the champ card: the user picks one before the game. */
+.champ-card-directions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.champ-card-directions button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.champ-card-directions button small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+.champ-card-directions button.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.champ-card-directions button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* Augment tiers S–D for the chosen build, as on the website's tier list. */
+.champ-tier {
+  --tier: var(--muted);
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: calc(5px * var(--radius-scale));
+  background: color-mix(in srgb, var(--tier) 18%, transparent);
+  color: var(--tier);
+  font-size: 11px;
+  font-weight: 900;
+}
+.champ-tier.tier-S {
+  --tier: var(--rank-1);
+}
+.champ-tier.tier-A {
+  --tier: var(--accent);
+}
+.champ-tier.tier-B {
+  --tier: var(--text);
+}
+.champ-tier.tier-D {
+  --tier: var(--danger-text);
+}

@@ -7,7 +7,9 @@ import {
   MANA_PENALTY,
   bestAugments,
   bestBuilds,
+  buildPlans,
   champView,
+  directionOf,
   parseAugments,
   parseChampion,
   shrunk,
@@ -16,7 +18,12 @@ import {
 
 // Champ-Karte (champCard.ts): best augments and item cores of a champion from the website's games,
 // several choices with numbers, mana items count against a build.
-const item = (name: string, done = true, mana = false): ChampItem => ({ name, done, mana });
+const item = (
+  name: string,
+  done = true,
+  mana = false,
+  kind: ChampItem['kind'] = 'ap',
+): ChampItem => ({ name, done, mana, kind });
 const ITEMS: Record<string, ChampItem> = {
   '1': item('Sturmflut'),
   '2': item('Zhonyas'),
@@ -123,6 +130,7 @@ describe('Champ-Karte', () => {
       games: 0,
       augments: [],
       builds: [],
+      plans: [],
     });
     expect(champView(champ, { champion: '[]', augments: null, items: {} })).toBeNull();
   });
@@ -140,8 +148,84 @@ describe('Champ-Karte', () => {
     expect(card!.games).toBe(view!.games);
     expect(card!.augments.map((a) => a.id)).toContain(2000);
     expect(card!.builds[0].items.map((i) => i.id)).toEqual([1, 2, 3]);
+    // Sturmflut, Zhonyas, Rabadons: an AP build, all six games.
+    expect(card!.plans.map((p) => [p.direction, p.games])).toEqual([['ap', 6]]);
+    expect(card!.plans[0].augments.map((a) => a.id)).toContain(2000);
+  });
+
+  it('Richtung eines Spiels: die meisten fertigen Items, mindestens zwei, kein Gleichstand', () => {
+    expect(directionOf([1, 2, 21], DIRECTED)).toBe('ap');
+    expect(directionOf([21, 22, 1], DIRECTED)).toBe('ad');
+    expect(directionOf([1, 21], DIRECTED)).toBeNull();
+    expect(directionOf([1, 2, 21, 22], DIRECTED)).toBeNull();
+    // Unfinished, useless and other items do not count.
+    expect(
+      directionOf([1, 5, 3179], { ...DIRECTED, '3179': item('Umbral', true, false, 'ad') }),
+    ).toBeNull();
+  });
+
+  it('Build vor dem Spiel: AP-Alistar bekommt AP-Augments als S, Umwandler werden erkannt', () => {
+    // Alistar mostly goes tank; with augment 7 (AP) he goes AP and does very well.
+    const games = [
+      ...Array.from({ length: 12 }, (_, i) => ({
+        ...game([31, 32, 2], 0.5),
+        augments: [8, 9 + (i % 3)],
+      })),
+      ...Array.from({ length: 5 }, () => ({ ...game([1, 2, 31], 0.85), augments: [7, 8] })),
+    ];
+    const plans = buildPlans(games, DIRECTED, new Map());
+    expect(plans.map((p) => p.direction)).toEqual(['tank', 'ap']);
+    const ap = plans[1];
+    expect(ap.augments[0]).toMatchObject({
+      id: 7,
+      tier: 'S',
+      games: 5,
+      general: false,
+      turns: 'ap',
+    });
+    expect(ap.builds[0].items.map((i) => i.id)).toEqual([1, 2, 31]);
+    // In the tank build, the AP augment has no tank games: its general value stands in.
+    const tank = plans[0];
+    expect(tank.augments.find((a) => a.id === 7)).toMatchObject({ general: true, games: 0 });
+    expect(tank.augments.find((a) => a.id === 8)!.turns).toBeNull();
+    // Too few games in a direction: not offered.
+    expect(buildPlans(games.slice(0, 2), DIRECTED, new Map())).toEqual([]);
+  });
+
+  it('Stufen wie auf der Tierliste: nach Platz, Gleichstand teilt die Stufe', () => {
+    const games = Array.from({ length: 10 }, (_, i) => ({
+      ...game([1, 2, 3], i / 10),
+      augments: [100 + i],
+    }));
+    const [plan] = buildPlans(games, DIRECTED, new Map());
+    expect(plan.augments.map((a) => a.tier)).toEqual([
+      'S',
+      'A',
+      'A',
+      'B',
+      'B',
+      'B',
+      'B',
+      'C',
+      'C',
+      'D',
+    ]);
+    const same = buildPlans(
+      games.map((g) => ({ ...g, pct: 0.5 })),
+      DIRECTED,
+      new Map(),
+    )[0];
+    expect(new Set(same.augments.map((a) => a.tier))).toEqual(new Set(['S']));
   });
 });
+
+const DIRECTED: Record<string, ChampItem> = {
+  ...ITEMS,
+  '21': item('Klinge', true, false, 'ad'),
+  '22': item('Hydra', true, false, 'ad'),
+  '31': item('Dornenpanzer', true, false, 'tank'),
+  '32': item('Sonnenfeuer', true, false, 'tank'),
+};
 
 // A game of Ahri, as uploaded (same form as in siteChampions.test.ts).
 const AHRI = 103;

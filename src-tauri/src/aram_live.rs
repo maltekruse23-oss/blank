@@ -244,6 +244,8 @@ pub struct ItemInfo {
     done: bool,
     /// Gives mana or mana regeneration (bad in ARAM, user's rule for builds).
     mana: bool,
+    /// What the item builds towards ("ap", "ad", "tank" or "other"), for the build directions.
+    kind: &'static str,
 }
 
 #[derive(Serialize)]
@@ -288,16 +290,41 @@ fn items_of(list: DragonItems) -> HashMap<u32, ItemInfo> {
                 && !tag("Trinket")
                 && item.gold.total >= 1000;
             let mana = tag("Mana") || tag("ManaRegen");
+            let kind = kind_of(&tag);
             Some((
                 id,
                 ItemInfo {
                     name: item.name,
                     done,
                     mana,
+                    kind,
                 },
             ))
         })
         .collect()
+}
+
+/// The direction an item builds towards, from its Data Dragon tags: ability power first (hybrid
+/// items like Nashor's Tooth count as AP), then attack damage, then defence.
+fn kind_of(tag: &dyn Fn(&str) -> bool) -> &'static str {
+    if tag("SpellDamage") {
+        "ap"
+    } else if [
+        "Damage",
+        "CriticalStrike",
+        "AttackSpeed",
+        "ArmorPenetration",
+        "OnHit",
+    ]
+    .iter()
+    .any(|t| tag(t))
+    {
+        "ad"
+    } else if ["Health", "Armor", "SpellBlock"].iter().any(|t| tag(t)) {
+        "tank"
+    } else {
+        "other"
+    }
 }
 
 /// Data Dragon versions look like "15.20.1".
@@ -408,11 +435,19 @@ mod tests {
             "1058": {"name": "Riesiger Stab", "into": ["4646"], "gold": {"total": 1200}},
             "3020": {"name": "Zauberschuhe", "tags": ["Boots"], "gold": {"total": 1100}},
             "2003": {"name": "Trank", "tags": ["Consumable"], "gold": {"total": 50}},
+            "3115": {"name": "Nashors Zahn", "tags": ["SpellDamage", "AttackSpeed", "OnHit"], "gold": {"total": 3000}},
+            "3031": {"name": "Klinge", "tags": ["Damage", "CriticalStrike"], "gold": {"total": 3400}},
+            "3075": {"name": "Dornenpanzer", "tags": ["Health", "Armor"], "gold": {"total": 2450}},
             "x": {"name": "kaputt"}
         }}))
         .unwrap();
         let items = items_of(list);
-        assert_eq!(items.len(), 5);
+        assert_eq!(items.len(), 8);
+        assert_eq!(items[&4646].kind, "ap");
+        assert_eq!(items[&3115].kind, "ap");
+        assert_eq!(items[&3031].kind, "ad");
+        assert_eq!(items[&3075].kind, "tank");
+        assert_eq!(items[&2003].kind, "other");
         assert!(items[&3040].done && items[&3040].mana);
         assert!(items[&4646].done && !items[&4646].mana);
         assert!(!items[&1058].done);
