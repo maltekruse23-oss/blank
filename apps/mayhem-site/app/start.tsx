@@ -75,25 +75,11 @@ export default function StartPage() {
       {error && <Problem message={error} />}
       {!data && !error && <p className="empty">Wird geladen …</p>}
 
+      {data && <DayPick games={data.today} dragon={dragon} now={now} />}
+
       {data && (
         <div className="grid cols-main">
           <div className="stack">
-            <section className="card" aria-labelledby="today">
-              <div className="card-head">
-                <h2 id="today">Spiele des Tages</h2>
-                <span className="faint">beste Noten der letzten 24 h</span>
-              </div>
-              {data.today.length ? (
-                <ol className="day-games">
-                  {data.today.map((g, i) => (
-                    <DayCard key={`${g.gameId}-${g.puuid}`} game={g} place={i + 1} dragon={dragon} now={now} />
-                  ))}
-                </ol>
-              ) : (
-                <p className="empty">In den letzten 24 Stunden wurde noch kein Spiel gewertet.</p>
-              )}
-            </section>
-
             <section className="card" aria-labelledby="top">
               <div className="card-head">
                 <h2 id="top">Top 10</h2>
@@ -163,27 +149,70 @@ export default function StartPage() {
   );
 }
 
-function DayCard({ game: g, place, dragon, now }: { game: DayGame; place: number; dragon: Dragon; now: number }) {
+/** Frame of an augment card per grade: prismatic for MAYHEM, gold for SSS and SS, silver below. */
+function rarity(grade: Grade): { frame: 'prism' | 'gold' | 'silver'; label: string } {
+  if (grade === 'MAYHEM') return { frame: 'prism', label: 'Prisma' };
+  if (grade === 'SSS' || grade === 'SS') return { frame: 'gold', label: 'Gold' };
+  return { frame: 'silver', label: 'Silber' };
+}
+
+/** The best games of the last 24 hours as augment cards, three at a time; "Neu würfeln" shows the
+    next three once, like the one reroll in the game. */
+function DayPick({ games, dragon, now }: { games: DayGame[]; dragon: Dragon; now: number }) {
+  const [rolled, setRolled] = useState(false);
+  const canRoll = games.length > PICK;
+  const shown = rolled && canRoll ? games.slice(PICK, PICK * 2) : games.slice(0, PICK);
+  return (
+    <section className="day-pick" aria-labelledby="today">
+      <div className="day-pick-head">
+        <small>Beste Noten der letzten 24 h</small>
+        <h2 id="today">Spiele des Tages</h2>
+      </div>
+      {shown.length ? (
+        <ol className="aug-cards">
+          {shown.map((g) => (
+            <AugmentCard key={`${g.gameId}-${g.puuid}`} game={g} dragon={dragon} now={now} />
+          ))}
+        </ol>
+      ) : (
+        <p className="empty">In den letzten 24 Stunden wurde noch kein Spiel gewertet.</p>
+      )}
+      {canRoll && (
+        <div className="day-reroll">
+          <button type="button" className="button" disabled={rolled} onClick={() => setRolled(true)}>
+            Neu würfeln ({rolled ? 0 : 1})
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Cards side by side in the pick, like the augment choice. */
+const PICK = 3;
+
+function AugmentCard({ game: g, dragon, now }: { game: DayGame; dragon: Dragon; now: number }) {
   const key = championKey(dragon, g);
   const champion = championLabel(dragon, g);
   const { name, tag } = splitName(g.name);
+  const { frame, label } = rarity(g.grade);
   const style = key ? ({ '--splash': `url(${splashImage(key, g.skin ?? 0)}), url(${splashImage(key)})` } as React.CSSProperties) : undefined;
   return (
-    <li className="day-game" data-g={g.grade} style={style}>
-      <Link className="day-link" href={`/spiel/${g.gameId}?p=${encodeURIComponent(g.puuid)}`} aria-label={`Spiel von ${name} mit ${champion} ansehen`}>
-        <span className="day-place num">{place}</span>
-        <GradeIcon grade={g.grade} size={56} />
-        <div className="day-who">
-          <b>
-            {name}
-            {tag && <span className="faint">#{tag}</span>}
-          </b>
-          <span className="muted">
-            {champion} · <span className="num">{g.kills}/{g.deaths}/{g.assists}</span> ·{' '}
-            <span className="num">{de(g.damage)}</span> Schaden
-          </span>
-          <small className="faint">{ago(g.at, now)}</small>
-        </div>
+    <li className="aug" data-frame={frame} data-g={g.grade} style={style}>
+      <Link className="aug-link" href={`/spiel/${g.gameId}?p=${encodeURIComponent(g.puuid)}`} aria-label={`Spiel von ${name} mit ${champion} ansehen`}>
+        <span className="aug-rarity">{label}</span>
+        <GradeIcon grade={g.grade} size={104} />
+        <b className="aug-name">
+          {name}
+          {tag && <span className="faint">#{tag}</span>}
+        </b>
+        <span className="muted">
+          {champion} · <span className="num">{g.kills}/{g.deaths}/{g.assists}</span>
+        </span>
+        <span className="aug-value num">
+          {de(g.damage)}
+          <small>Schaden · {ago(g.at, now)}</small>
+        </span>
       </Link>
     </li>
   );

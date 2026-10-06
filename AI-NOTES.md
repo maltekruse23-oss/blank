@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: Design „Augment-Wahl“ — 06.10.2026
+
+- Benutzerwunsch: weg vom typischen KI-Look (Inter, gleiche runde Karten, Schwarz mit Neon-Grün, kleine gesperrte Überschriften). Nach zwei Entwurfsrunden (Artifact „mayhemstats Designrichtungen“) gewählt: „Augment-Wahl“. Gilt auch für die geplante Mayhem-App („Design speichern“): Vorgabe in [MAYHEM-DESIGN.md](MAYHEM-DESIGN.md), Werte in `apps/mayhem-site/app/globals.css` (`:root`), beide gleich halten.
+- Umgesetzt: Pflaume-Schwarz, Amethyst-Akzent, Prisma-Folie `--holo` (Marke, Prisma-Rahmen), Titel in Bungee, Text in Rubik (selbst gehostet in `public/fonts`, OFL), Favicon. Startseite: „Spiele des Tages“ als Augment-Karten (Rahmen Silber/Gold/Prisma nach Note), „Neu würfeln“ zeigt einmal die nächsten drei (`BEST_OF_DAY` jetzt 6).
+- Geprüft: Build, Lint, Rauchtest, Ansicht 1280/400 px mit erfundenen Spielern auf lokaler D1 (Splash-Arts in der Sandbox gesperrt).
+
 ## Website: Tags und Vorlieben auf der Spielerseite — 06.10.2026
 
 - Benutzerwunsch nach der Konkurrenz-Analyse („nicht Stärken, sondern Vorlieben, dazu viele Tags mit einem Wort, damit man denkt, man ist etwas Besonderes“). Stärken-Netz, Form und MP-Verlauf gab es schon und bleiben.

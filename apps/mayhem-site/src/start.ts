@@ -8,7 +8,7 @@ import type { RecordView } from './records';
 
 /** Players in the top list and games of the day. */
 export const TOP = 10;
-export const BEST_OF_DAY = 3;
+export const BEST_OF_DAY = 6;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 /** New records shown at most. */
 export const FRESH_RECORDS = 4;
