@@ -202,6 +202,30 @@ Zustand S + X mit dem gemerkten Kern. Daraus folgen drei Anzeigen:
   Alles ist abschaltbar, und es wird nie etwas ins Spiel eingegeben oder aus dem Speicher
   gelesen.
 
+## 6a. In den Client schreiben: Item-Set und Beschwörerzauber (Benutzerentscheidung, 06.10.2026)
+
+Die Regel „blank. schreibt nie in den Client“ gilt dafür nicht mehr. Beides hat einen eigenen
+Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Mayhem-Auswahl.
+
+- **Item-Set:** Zum gewählten Build schreibt blank. ein Item-Set für den Champ in den Client
+  (`/lol-item-sets/v1/item-sets/<summonerId>/sets`). Der Client nimmt immer die ganze Liste, also:
+  erst lesen, dann nur Sets ersetzen, deren Titel mit „blank. “ beginnt, alle anderen Sets
+  unverändert zurückschreiben. Eigene Sets des Benutzers werden nie überschrieben oder gelöscht.
+  Inhalt: Kern der gewählten Richtung, dahinter die nächsten Items der Richtung; keine
+  `USELESS_ITEMS`, Mana-Items nur, wenn der Kern sie hat. Wechselt die Richtung, wird das Set
+  ersetzt.
+- **Beschwörerzauber:** blank. setzt sie über die eigene Auswahl
+  (`PATCH /lol-champ-select/v1/session/my-selection`, nur `spell1Id`/`spell2Id`), solange die
+  Auswahl offen ist. Regel des Benutzers: Schneeball in etwa 90 % der Fälle, dazu Blitz.
+  Ausnahmen mit Grund in einer festen Liste (`SPELL_EXCEPTIONS`), zum Beispiel Singed mit Geist
+  statt Blitz. Erschöpfung, Barriere und ähnliche sind in Mayhem schlecht und werden nie
+  gesetzt. Die Tasten-Seite bleibt, wie der Benutzer sie hatte: Blitz bleibt auf D oder F.
+  Ändert der Benutzer danach selbst etwas, setzt blank. für diese Auswahl nichts mehr.
+- Später, wenn Zauber in den Spieldaten stehen: die Ausnahmen aus den Spielen ableiten statt
+  aus der Liste.
+- Abstimmung: Der Thread „Konkurrenz-Analyse“ plant den Lobby-Check; beide nutzen dieselbe
+  Verbindung zur Champ-Auswahl (`aram_live.rs`).
+
 ## 7. Rückblick-Test (Pflicht vor jeder Anzeige)
 
 - **Test:** `node server/tools/advisor-backtest.ts` trainiert auf den Spielen bis zu einem
@@ -220,6 +244,7 @@ Zustand S + X mit dem gemerkten Kern. Daraus folgen drei Anzeigen:
 | ------ | ----------------------------------------------------------------------------------------------------- | ---------------------- |
 | 1      | Champ-Karte in der Champ-Auswahl                                                                      | PR #41                 |
 | 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler    | PR #41                 |
+| 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                           | nach dem Test von #41  |
 | 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen              | nach dem Test von #41  |
 | 3      | Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge             |
 | 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                     | wenn der Test es trägt |
