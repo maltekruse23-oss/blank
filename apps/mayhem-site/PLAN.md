@@ -12,6 +12,11 @@ bewusst in Kauf genommen; kein Schalter, keine Gruppen-Sperre). Alle zehn Spiele
 mit Riot-ID und eigenem Profil (wie op.gg). Daraus folgt: Datenschutzseite nennt das deutlich,
 jede Person kann ihre Daten entfernen lassen (Weg auf der Seite). Etappe 1 und 2 sind umgesetzt (Rangliste und Profil; Startseite seit Etappe 4 unter /, die Rangliste unter /rangliste). Etappe 3 steht: Spiel-Seite `/spiel/<id>`, Rekorde `/rekorde` und Champions `/champions` mit `/champions/<name>`, Namen ausblenden `/datenschutz/entfernen`. Etappe 4 steht: „So funktioniert's“ `/wertung`, Startseite `/`, Gruppe `/gruppe/<code>` mit Duell und Spielabenden, Leerzustände und Handy über alle Seiten. Das Anfragelimit gilt nur noch für Schreibzugriffe. Etappe 5 steht: gespeicherte Ergebnisse (`snapshots`), Aufräumen, Barrierefreiheit (axe ohne Befund), Rauchtest `tests/smoke.mjs`, Übergabe an Codex in `DEPLOY.md`. Etappe 6: die neuen Rang-Icons des Benutzers sind eingebaut (`public/ranks/`, freigestellt), und die App zeigt die Ränge von der Website (mit erlaubtem Upload, auch die Karte nach dem Spiel). Etappe 6 steht; nächster Schritt Release 0.9.2 (Benutzer).
 
+**Gruppen entfernt (Benutzer, 06.10.2026: „ich will keine Gruppen mehr“).** Die Seite
+`/gruppe/<code>`, die Gruppencode-Felder und `/api/groups…`, `/api/gruppe/…` gibt es nicht mehr;
+alte Links mit `?group=` zeigen alle Spieler. Die Tabellen `groups` und `group_members` bleiben
+unverändert in der Datenbank (keine Migration), Gruppen-Abschnitte unten sind damit erledigt.
+
 Ziel: Die Website zum ARAM-Mayhem-Rangsystem und zu den Rekorden wird neu gebaut. Sie soll
 öffentlich und durchdacht sein und sich gut lesen. Der Plan stützt sich auf eine Prüfung des
 heutigen Codes und auf Ideen von op.gg, u.gg, League of Graphs, Mobalytics, dpm.lol, tracker.gg
@@ -126,7 +131,7 @@ und teilbar.
 - Bei wenigen Spielen steht deutlich „wenige Daten“. Unter 5 Spielen werden keine Werte als
   Tierliste gezeigt.
 
-### Gruppe `/gruppe/<code>`
+### ~~Gruppe `/gruppe/<code>`~~ (entfernt 06.10.2026)
 - Interne Rangliste.
 - **Duell:** zwei Spieler nebeneinander mit Radar, Rekorden und gemeinsamen Spielen.
 - Die Spielabende der Gruppe als Sitzungsbericht: Spiele, MP-Bilanz, beste Note.

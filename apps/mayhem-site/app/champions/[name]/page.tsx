@@ -31,7 +31,6 @@ import {
 type Detail = {
   scope: Scope;
   season: { id: string; year: number; number: number; start: number };
-  group: { code: string; name: string } | null;
   champion: ChampionDetail;
 };
 type Dragon = ReturnType<typeof useDragon>;
@@ -68,7 +67,6 @@ export default function ChampionPage() {
           <div>
             <span className="eyebrow">
               ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
-              {data?.group ? ` · ${data.group.name}` : ''}
             </span>
             <h1>{title || 'Champion'}</h1>
             {c && <div className="facts">{ROLES[c.role]}</div>}

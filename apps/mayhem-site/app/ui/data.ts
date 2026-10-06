@@ -28,7 +28,6 @@ export type PlayerSummary = {
 
 export type Board = {
   season: { id: string; ratingVersion: number };
-  group: { code: string; name: string } | null;
   trackedGames: number;
   players: PlayerSummary[];
 };
@@ -83,8 +82,7 @@ export function useLive<T>(path: string | null) {
       }
     };
     void load();
-    const group = new URL(path, 'http://x').searchParams.get('group');
-    const events = new EventSource('/api/live' + (group ? '?group=' + encodeURIComponent(group) : ''));
+    const events = new EventSource('/api/live');
     const reload = () => void load();
     events.addEventListener('ready', () => setLive(true));
     events.addEventListener('game', reload);

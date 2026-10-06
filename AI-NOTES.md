@@ -10,6 +10,12 @@ Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Sta
 - `/api/tags` (zwischengespeichert) schickt nur Grenzwerte und Anzahlen, nie Spieler; die Seite rechnet die Werte des Spielers selbst aus seinem Verlauf. Die Spielerseite zeigt die Karte „Tags“ (seltenste zuerst, „nur 12 %“) und oben die drei seltensten statt der bisherigen Spielstil-Abzeichen (die bleiben als Ersatz unter 10 Spielen), dazu die Karte „Vorlieben“ (Champions, Klassen aus Data Dragon, Schadensart, Augments).
 - Geprüft: Website tsc/lint/build, Rauchtest (prüft `/api/tags`), `pnpm test`/`lint`/`format:check`, Ansicht bei 1280 und 390 px mit 26 erfundenen Spielern auf frischer lokaler D1 (Data Dragon in der Sandbox gesperrt, Klassen und Bilder daher nicht gesehen).
 
+## Website: Gruppen entfernt — 06.10.2026
+
+- Benutzerwunsch „ich will keine Gruppen mehr“. Weg sind die Seite `/gruppe/<code>`, die Gruppencode-Felder (Rangliste, Rekorde, Champions, Tier-Liste, Augments/Items), `?group=` am Profil, die Endpunkte `POST /api/groups`, `/api/groups/<code>/join|leave|restart` und `GET /api/gruppe/<code>`, `src/group.ts` samt Test, die Duell-/Spielabend-CSS und `groups`/`group_members` im Export.
+- Bewusst behalten: die Tabellen `groups` und `group_members` mit ihren Daten (keine Migration, nichts unumkehrbar; eine spätere Migration kann sie löschen, wenn der Benutzer das will). Löschen eines Profils entfernt weiter auch dessen Mitgliedschaften. `group` im Upload wird noch angenommen und ignoriert (blank. schickt `null`), `?group=` an Lese-Endpunkten wird ignoriert (alte Links zeigen alle Spieler, Snapshots ohne `group` im Schlüssel).
+- Die blank.-App nutzt die Gruppen der Website nicht: ihre ARAM-Gruppe läuft über MQTT (`aram_group.rs`) und ist davon unberührt; der Website-Upload schickt immer `"group": null`.
+
 ## Website: „Bist du schon drin?“, „Das bin ich“ und „Deine Plätze“ — 06.10.2026
 
 - Benutzerwunsch, um mehr Leute zum Collector zu bringen: Die Startseite fragt ganz oben „Bist du schon drin?“ mit der großen Suche. Ohne Treffer zeigt die Suche (auch die im Kopf) „… ist noch nicht in der Datenbank“ mit „Spiele hinzufügen“; Enter ohne Treffer führt ebenfalls zu `/mitmachen?name=…`, das oben einen Hinweis mit Collector-Download zeigt.

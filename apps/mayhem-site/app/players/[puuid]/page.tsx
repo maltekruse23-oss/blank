@@ -2,7 +2,7 @@
 // A player's profile: rank card, the season's way, form, the five axes of the grade, playstyle,
 // match history with all ten players, champions and earlier seasons.
 import Link from 'next/link';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../../src/adapters/aram';
 import { rankName, seasonName, seasonOf } from '../../../src/features/aram/aramRating';
@@ -56,9 +56,8 @@ type Dragon = ReturnType<typeof useDragon>;
 
 export default function PlayerPage() {
   const params = useParams<{ puuid: string }>();
-  const group = useSearchParams().get('group');
   const { data, error, missing } = useLive<Profile>(
-    '/api/players/' + encodeURIComponent(params.puuid) + (group ? '?group=' + encodeURIComponent(group) : ''),
+    '/api/players/' + encodeURIComponent(params.puuid),
   );
   const dragon = useDragon();
   const census = useTagCensus();
@@ -68,8 +67,8 @@ export default function PlayerPage() {
   // An old link with a PUUID moves to the public id, so the PUUID leaves the address bar.
   const moved = data?.id && data.id !== params.puuid ? data.id : null;
   useEffect(() => {
-    if (moved) router.replace('/players/' + encodeURIComponent(moved) + (group ? '?group=' + encodeURIComponent(group) : ''));
-  }, [moved, group, router]);
+    if (moved) router.replace('/players/' + encodeURIComponent(moved));
+  }, [moved, router]);
 
   if (error) return <Problem message={error} missing={missing} />;
   if (!data) return <p className="empty">Spieler wird geladen …</p>;
@@ -91,7 +90,7 @@ export default function PlayerPage() {
 
   return (
     <>
-      <Link className="back" href={group ? '/?group=' + encodeURIComponent(group) : '/'}>
+      <Link className="back" href="/">
         ← Rangliste
       </Link>
 

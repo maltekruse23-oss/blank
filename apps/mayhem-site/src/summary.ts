@@ -1,4 +1,4 @@
-// What the site shows of a standing (leaderboard, profile, start and group pages). Pure, so the
+// What the site shows of a standing (leaderboard, profile and start page). Pure, so the
 // app's reading of it (src/features/aram/aramSite.ts) is tested against exactly this form.
 import { CLIMBING, type standings } from './features/aram/aramRating';
 

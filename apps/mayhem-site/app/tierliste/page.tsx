@@ -14,7 +14,7 @@ import { championImage, championKey, championLabel, de, itemImage, useAugments, 
 import { augmentLabel, itemLabel, percent } from '../ui/meta';
 
 type Kind = 'champions' | 'augments' | 'items';
-type Head = { scope: Scope; season: { id: string; year: number; number: number; start: number }; group: { code: string; name: string } | null };
+type Head = { scope: Scope; season: { id: string; year: number; number: number; start: number } };
 type Answer = Head & { champions?: ChampionStat[]; rows?: MetaRow[] };
 
 type Tile = { key: string; href: string; label: string; picture: React.ReactNode; games: number; winRate: number | null };
@@ -77,7 +77,7 @@ export default function TierListPage() {
           <span className="eyebrow">
             ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
           </span>
-          <h1>{data?.group ? `Tier-Liste · ${data.group.name}` : 'Tier-Liste'}</h1>
+          <h1>Tier-Liste</h1>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
