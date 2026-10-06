@@ -61,7 +61,7 @@ import {
 } from '../settings/preferences';
 import { popoutEasings, popoutPlaces, popoutScreens } from './placement';
 import { AramResultCard } from '../aram/AramResult';
-import { ChampCard } from '../aram/ChampCard';
+import { ChampCard } from '../aram/ChampCardView';
 
 /** After the mouse leaves a popout (or a click in it), it stays at least this long. */
 const AFTER_HOVER_MS = 3_000;
