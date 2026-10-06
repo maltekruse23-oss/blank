@@ -44,7 +44,6 @@ export default function HowItWorks() {
     <div className="howto">
       <div className="page-head">
         <div>
-          <span className="eyebrow">ARAM: Mayhem · Wertung</span>
           <h1>So funktioniert&apos;s</h1>
         </div>
       </div>
@@ -164,8 +163,8 @@ export default function HowItWorks() {
                     {t.apexPoints !== null
                       ? `ab ${t.apexPoints}\u00a0MP`
                       : t.tier.id === 'ss'
-                        ? 'IV–I, dann offen'
-                        : 'IV–I à 100\u00a0MP'}
+                        ? 'IV bis I, dann offen'
+                        : 'IV bis I à 100\u00a0MP'}
                   </td>
                   <td className="right num">{pct(t.share)}</td>
                   <td className="muted hide-sm">{LOL[t.tier.id]}</td>
@@ -178,7 +177,7 @@ export default function HowItWorks() {
         <p className="fine">
           Die Stufen sind nach der Verteilung in League of Legends geschnitten: MAYHEM ist so selten wie
           Challenger. Nach SS I geht es mit offenen MP weiter. {sss?.tier.name} beginnt bei {sss?.apexPoints}{' '}
-          MP, {mayhem?.tier.name} bei {mayhem?.apexPoints} MP – beide nur, wenn deine Leistung über viele
+          MP, {mayhem?.tier.name} bei {mayhem?.apexPoints} MP, beide nur, wenn deine Leistung über viele
           Spiele sicher in diesem Bereich liegt.
         </p>
       </section>

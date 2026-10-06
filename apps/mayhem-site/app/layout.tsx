@@ -5,7 +5,7 @@ import { Nav, Search } from './ui/header';
 export const metadata: Metadata = {
   title: 'blank. Mayhem · Rangliste für ARAM: Mayhem',
   description:
-    'Ränge, Noten und Rekorde für ARAM: Mayhem. Jede Partie bekommt eine Note von F bis MAYHEM – egal ob Sieg oder Niederlage.',
+    'Ränge, Noten und Rekorde für ARAM: Mayhem. Jede Partie bekommt eine Note von F bis MAYHEM, egal ob Sieg oder Niederlage.',
   icons: { icon: '/favicon.svg' },
 };
 
@@ -34,7 +34,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </main>
         <footer className="site-foot">
           <div className="wrap">
-            <nav aria-label="Rechtliches">
+            <nav aria-label="Mehr">
+              <a href="/wertung">So funktioniert&apos;s</a>
               <a href="/datenschutz">Datenschutz</a>
               <a href="/api-guide">API</a>
               <a href="/api/export" download="blank-mayhem.json">

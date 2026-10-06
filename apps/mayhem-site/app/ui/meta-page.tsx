@@ -57,10 +57,8 @@ export function MetaListPage<F extends string>({
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">
-            ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
-          </span>
           <h1>{title}</h1>
+          <p className="page-sub">{data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}</p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
@@ -167,10 +165,8 @@ export function MetaDetailPage({
         <div className="champ-title">
           {icon}
           <div>
-            <span className="eyebrow">
-              ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
-            </span>
             <h1>{name}</h1>
+            <p className="page-sub">{data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}</p>
             {facts && <div className="facts">{facts}</div>}
           </div>
           {d?.grade && <GradeIcon grade={d.grade} size={72} />}

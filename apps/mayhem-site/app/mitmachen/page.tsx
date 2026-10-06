@@ -39,13 +39,19 @@ export default function JoinPage() {
       )}
 
       <section className="start-hero join-hero">
-        <span className="eyebrow">ARAM: Mayhem · Mitmachen</span>
-        <h1>Mehr Spiele, bessere Zahlen</h1>
-        <p className="muted join-lead">
-          Jede Siegquote, jede Tier-Liste und jeder Build hier kommt aus echten Mayhem-Spielen. Je
-          mehr Leute ihre Spiele beitragen, desto genauer wird alles, auch dein eigener Rang.
-        </p>
-        <dl className="start-facts">
+        <div className="start-ask">
+          <h1>Mehr Spiele, bessere Zahlen</h1>
+          <p className="muted start-lead">
+            Jede Siegquote, Tier-Liste und jeder Build kommt aus echten Mayhem-Spielen. Je mehr mitmachen, desto
+            genauer wird alles.
+          </p>
+          <p className="join-actions">
+            <a className="button primary" href={COLLECTOR} download>
+              Collector laden
+            </a>
+          </p>
+        </div>
+        <dl className="join-facts">
           <div>
             <dt>Spiele im Archiv</dt>
             <dd className="num">{archive ? de(archive.matches) : '–'}</dd>
@@ -55,12 +61,6 @@ export default function JoinPage() {
             <dd className="num">{archive ? de(archive.players) : '–'}</dd>
           </div>
         </dl>
-        <p className="join-actions">
-          <a className="button primary" href={COLLECTOR} download>
-            Collector für Windows laden
-          </a>
-          <Share />
-        </p>
       </section>
 
       <div className="grid cols-main">

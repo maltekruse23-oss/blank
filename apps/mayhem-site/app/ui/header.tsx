@@ -1,5 +1,6 @@
 'use client';
-// Navigation with the current page marked, and the player search (Riot-ID; the list comes from
+// Navigation in one row with the current page marked ("So funktioniert's" and the API are in
+// the footer), and the player search (Riot-ID; the list comes from
 // the leaderboard, loaded on first focus).
 import { useRouter, usePathname } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -14,8 +15,6 @@ const PAGES = [
   { href: '/augments', label: 'Augments' },
   { href: '/items', label: 'Items' },
   { href: '/tierliste', label: 'Tier-Liste' },
-  { href: '/wertung', label: "So funktioniert's" },
-  { href: '/api-guide', label: 'API' },
   { href: '/mitmachen', label: 'Mitmachen' },
 ];
 

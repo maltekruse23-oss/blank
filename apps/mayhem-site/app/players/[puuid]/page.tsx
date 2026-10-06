@@ -125,7 +125,7 @@ export default function PlayerPage() {
           <div className="badges">
             <MeButton id={data.id ?? (/^a[1-9][0-9]*$/.test(params.puuid) ? params.puuid : null)} name={data.name} />
             {data.climbing && (
-              <span className="badge climb" title="Die Leistung liegt über dem Rang – die MP-Gewinne sind größer.">
+              <span className="badge climb" title="Die Leistung liegt über dem Rang, die MP-Gewinne sind größer.">
                 Klettert
               </span>
             )}
@@ -221,7 +221,7 @@ export default function PlayerPage() {
                   {history.length < MIN_GAMES
                     ? `Tags ab ${MIN_GAMES} gewerteten Spielen (noch ${MIN_GAMES - history.length}).`
                     : census
-                      ? 'Noch kein Tag – nichts sticht heraus.'
+                      ? 'Noch kein Tag, nichts sticht heraus.'
                       : 'Tags werden geladen …'}
                 </p>
               )}

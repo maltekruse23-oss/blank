@@ -1,6 +1,6 @@
 'use client';
-// The leaderboard (op.gg-like): apex lines, the table by rank or by performance, the
-// distribution of the tiers and the way to join.
+// The leaderboard (op.gg-like): the distribution of the tiers with the apex lines beside it, the
+// table over the full width (by rank or by performance), then how it counts and the way to join.
 import Link from 'next/link';
 import { useState } from 'react';
 import { seasonName, seasonOf } from '../src/features/aram/aramRating';
@@ -47,8 +47,10 @@ export default function Ranking() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">ARAM: Mayhem · {seasonName(seasonOf(now))}</span>
           <h1>Rangliste</h1>
+          <p className="page-sub num">
+            {seasonName(seasonOf(now))} · {ranked} eingestuft, {players.length - ranked} in der Einstufung, {data?.trackedGames ?? '–'} Spiele
+          </p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
@@ -59,25 +61,31 @@ export default function Ranking() {
 
       {error && <Problem message={error} />}
 
-      <div className="apex" style={{ marginBottom: 'var(--gap)' }}>
-        {apexLines(ranks).map((a) => (
-          <div className="card" key={a.tier.id} data-tier={a.tier.id}>
-            <TierMark rank={{ tier: a.tier, division: null, points: 0, ladder: 0 }} size={52} />
-            <div>
-              <span className="faint">{a.tier.name}</span>
-              <strong className="num">
-                {a.lowest === null ? `ab ${APEX_MP[a.tier.id as keyof typeof APEX_MP]} MP` : `ab ${a.lowest} MP`}
-              </strong>
-              <span className="muted">
-                {a.players === 0 ? `Noch niemand – so selten wie ${a.tier.id === 'mayhem' ? 'Challenger' : 'Grandmaster'}` : `${a.players} Spieler`}
+      <section className="ladder-top" aria-label="Verteilung der Ränge">
+        <div className="ladder-dist">
+          <h2>Verteilung</h2>
+          <Histogram rows={distributionOf(ranks)} />
+        </div>
+        <ul className="apex-lines">
+          {apexLines(ranks).map((a) => (
+            <li key={a.tier.id} data-tier={a.tier.id}>
+              <TierMark rank={{ tier: a.tier, division: null, points: 0, ladder: 0 }} size={48} />
+              <span>
+                <b className="tier-text">{a.tier.name}</b>{' '}
+                <strong className="num">
+                  {a.lowest === null ? `ab ${APEX_MP[a.tier.id as keyof typeof APEX_MP]} MP` : `ab ${a.lowest} MP`}
+                </strong>
+                <small className="muted">
+                  {a.players === 0 ? `Noch niemand, so selten wie ${a.tier.id === 'mayhem' ? 'Challenger' : 'Grandmaster'}` : `${a.players} Spieler`}
+                </small>
               </span>
-            </div>
-          </div>
-        ))}
-      </div>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      <div className="grid cols-main">
-        <section className="stack" aria-label="Tabelle">
+      <section aria-label="Tabelle">
+        <div className="ladder-tools">
           <Tabs<View>
             label="Sortierung"
             value={view}
@@ -95,65 +103,53 @@ export default function Ranking() {
               {ME_TEXT.jump} · <span className="num">#{myIndex + 1}</span>
             </button>
           )}
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Spieler</th>
-                  <th>{view === 'rank' ? 'Rang' : 'Leistung Ø'}</th>
-                  <th className="hide-sm">{view === 'rank' ? 'Leistung Ø' : 'Rang'}</th>
-                  <th className="hide-sm">Champions</th>
-                  <th className="hide-sm">Form</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.slice(0, limit).map((p, i) => (
-                  <Row key={p.puuid} player={p} place={i + 1} view={view} dragon={dragon} top={topShare(p.rank, ranks)} mine={p.puuid === me?.id} />
-                ))}
-              </tbody>
-            </table>
-            {sorted.length > limit && (
-              <button type="button" className="button more" onClick={() => setLimit((l) => l + PAGE)}>
-                Weitere {Math.min(PAGE, sorted.length - limit)} von {sorted.length - limit} anzeigen
-              </button>
-            )}
-            {!data && !error && <p className="empty">Rangliste wird geladen …</p>}
-            {data && sorted.length === 0 && (
-              <p className="empty">
-                {view === 'rank' ? 'Noch keine Spiele in dieser Wertung.' : 'Noch niemand mit gewerteten Spielen.'}
-              </p>
-            )}
-          </div>
+        </div>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Spieler</th>
+                <th>{view === 'rank' ? 'Rang' : 'Leistung Ø'}</th>
+                <th className="hide-sm">{view === 'rank' ? 'Leistung Ø' : 'Rang'}</th>
+                <th className="hide-sm">Champions</th>
+                <th className="hide-sm">Form</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.slice(0, limit).map((p, i) => (
+                <Row key={p.puuid} player={p} place={i + 1} view={view} dragon={dragon} top={topShare(p.rank, ranks)} mine={p.puuid === me?.id} />
+              ))}
+            </tbody>
+          </table>
+          {sorted.length > limit && (
+            <button type="button" className="button more" onClick={() => setLimit((l) => l + PAGE)}>
+              Weitere {Math.min(PAGE, sorted.length - limit)} von {sorted.length - limit} anzeigen
+            </button>
+          )}
+          {!data && !error && <p className="empty">Rangliste wird geladen …</p>}
+          {data && sorted.length === 0 && (
+            <p className="empty">
+              {view === 'rank' ? 'Noch keine Spiele in dieser Wertung.' : 'Noch niemand mit gewerteten Spielen.'}
+            </p>
+          )}
+        </div>
+      </section>
+
+      <div className="ladder-notes">
+        <section>
+          <h2>So zählt es</h2>
           <p className="fine">
-            Gewertet werden Spiele mit den Werten aller zehn Spieler, ab 8 Minuten. Die Note jedes Spiels
-            kommt aus allen Werten im Vergleich zu dem, was der Champion üblicherweise schafft – Sieg oder
-            Niederlage zählen nicht. Spiele mit widersprüchlichen Daten zählen nicht.
+            Jedes Spiel bekommt eine Note von <GradeChip grade="F" /> bis <GradeChip grade="MAYHEM" />, aus allen Werten im
+            Vergleich zu dem, was der Champion üblicherweise schafft. Sieg oder Niederlage zählen nicht. Nach 5 Spielen gibt
+            es einen Rang, danach bringt jede Note bis zu ±30 MP. Gewertet werden Spiele ab 8 Minuten mit den Werten aller
+            zehn Spieler. <a href="/wertung">Mehr dazu</a>
           </p>
         </section>
-
-        <aside className="stack">
-          <div className="card">
-            <h2>Verteilung</h2>
-            <Histogram rows={distributionOf(ranks)} />
-            <p className="fine" style={{ marginTop: 12 }}>
-              {ranked} eingestuft · {players.length - ranked} in der Einstufung · {data?.trackedGames ?? '–'} Spiele
-            </p>
-          </div>
-          <div className="card">
-            <h2>So zählt es</h2>
-            <p className="fine">
-              Jedes Spiel bekommt eine Note von <GradeChip grade="F" /> bis <GradeChip grade="MAYHEM" />. Nach 5
-              Spielen gibt es einen Rang; danach bringt jede Note MP – mehr, je besser sie über der Erwartung
-              deines Rangs liegt, höchstens ±30 pro Spiel. D bis SS haben vier Divisionen zu je 100 MP, SSS und
-              MAYHEM sind so selten wie Grandmaster und Challenger. <a href="/wertung">Mehr dazu</a>
-            </p>
-          </div>
-          <div className="card">
-            <h2>Mitmachen</h2>
-            <ArchiveCounter />
-          </div>
-        </aside>
+        <section>
+          <h2>Mitmachen</h2>
+          <ArchiveCounter />
+        </section>
       </div>
     </>
   );

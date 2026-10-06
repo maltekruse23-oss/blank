@@ -66,10 +66,8 @@ export default function ChampionPage() {
         <div className="champ-title">
           <Img className="champ" src={championImage(dragon, key || undefined)} alt="" size={64} />
           <div>
-            <span className="eyebrow">
-              ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
-            </span>
             <h1>{title || 'Champion'}</h1>
+            <p className="page-sub">{data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}</p>
             {c && <div className="facts">{ROLES[c.role]}</div>}
           </div>
           {c?.grade && <GradeIcon grade={c.grade} size={72} />}

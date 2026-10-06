@@ -3,7 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
-## Website: Design „Augment-Wahl“ — 06.10.2026
+## Website: Design „Tribüne“ nach dem Taste-Skill — 06.10.2026
+
+- Benutzerwunsch: „Augment-Wahl“ gefiel doch nicht; die ganze Seite samt Anordnung soll nach dem Taste-Skill (Leonxlnx/taste-skill, MIT) überarbeitet werden. Dritte Entwurfsrunde im selben Artifact; ohne ausdrückliche Wahl genommen: „Tribüne“ (Empfehlung). Vorgabe in [MAYHEM-DESIGN.md](MAYHEM-DESIGN.md), gilt auch für die Mayhem-App.
+- Umgesetzt: warmes Fast-Schwarz, ein Goldakzent, Bricolage Grotesque + IBM Plex Mono (selbst gehostet, OFL; Bungee/Rubik entfernt), Rundung 4–6 px, kein Leuchten/Verlaufstext/gesperrte Großbuchstaben, `.card` ohne Kasten (Linie + Abstand), Reiter mit Unterstrich. Kopfzeile einzeilig („So funktioniert's“, „API“ in die Fußzeile). Neu angeordnet: Startseite (Suche links, Podest rechts, Kennzahlen-Leiste, Spiele des Tages 1 groß + 2 klein statt Augment-Karten, Plätze 4–10), Rangliste (Verteilung oben über die Breite, Tabelle über die Breite, Hinweise darunter), Rekorde (eine Zeile je Kategorie), Spielerprofil (ohne Kopf-Kasten, Kennzahlen als Leiste), Mitmachen (Ruf links, Zahlen rechts). Gedankenstriche aus sichtbaren Texten genommen.
+- Adressen, Seitennamen und Inhalte unverändert.
+
+## Website: Design „Augment-Wahl“ (abgelöst durch „Tribüne“) — 06.10.2026
 
 - Benutzerwunsch: weg vom typischen KI-Look (Inter, gleiche runde Karten, Schwarz mit Neon-Grün, kleine gesperrte Überschriften). Nach zwei Entwurfsrunden (Artifact „mayhemstats Designrichtungen“) gewählt: „Augment-Wahl“. Gilt auch für die geplante Mayhem-App („Design speichern“): Vorgabe in [MAYHEM-DESIGN.md](MAYHEM-DESIGN.md), Werte in `apps/mayhem-site/app/globals.css` (`:root`), beide gleich halten.
 - Umgesetzt: Pflaume-Schwarz, Amethyst-Akzent, Prisma-Folie `--holo` (Marke, Prisma-Rahmen), Titel in Bungee, Text in Rubik (selbst gehostet in `public/fonts`, OFL), Favicon. Startseite: „Spiele des Tages“ als Augment-Karten (Rahmen Silber/Gold/Prisma nach Note), „Neu würfeln“ zeigt einmal die nächsten drei (`BEST_OF_DAY` jetzt 6).

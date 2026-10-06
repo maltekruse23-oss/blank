@@ -1,62 +1,76 @@
-# Mayhem-Design „Augment-Wahl“
+# Mayhem-Design „Tribüne“
 
 Verbindliche Gestaltung für alles rund um ARAM: Mayhem: die Seite `apps/mayhem-site` (mayhemstats.lol)
-und die geplante Mayhem-App neben blank. (Benutzerwahl 06.10.2026, „2, ist richtig cool“; „die
-Mayhem-App soll den gleichen Stil wie die Seite haben, deshalb Design speichern“). Die blank.-App
-selbst behält ihr Design „Klassisch“ (siehe CLAUDE.md); dieses Dokument gilt nur für Mayhem.
+und die geplante Mayhem-App neben blank. Die blank.-App selbst behält ihr Design „Klassisch“ (siehe
+CLAUDE.md); dieses Dokument gilt nur für Mayhem.
+
+Entstanden am 06.10.2026: „Augment-Wahl“ (Lila, Prisma-Folie, Bungee) gefiel dem Benutzer doch nicht.
+Sein Auftrag: die ganze Seite samt Anordnung nach den Regeln des Taste-Skills (Leonxlnx/taste-skill,
+MIT, „Anti-AI-Slop“) überarbeiten. Grundlage ist die Richtung „Tribüne“ aus der dritten Entwurfsrunde.
 
 Quelle der Werte ist `apps/mayhem-site/app/globals.css` (`:root`). Wer dort etwas ändert, ändert es
 hier mit, damit die Mayhem-App dieselben Werte übernehmen kann.
 
 ## Idee
 
-Die Oberfläche fühlt sich an wie die Augment-Auswahl im Spiel. Abgeleitet aus den eigenen Mayhem-
-Symbolen (`public/grades`, `public/ranks`): Kristall-Facetten, graue Dornen-Ornamente, X-Zeichen,
-Pfeilspitzen und die schillernde Prisma-Schrift von MAYHEM. Kein generischer Look: keine Inter-Schrift,
-kein Neon-Grün auf Schwarz, keine kleinen gesperrten Überschriften über jeder Karte.
+Wie eine Anzeigetafel im Stadion: fast schwarz, warm, ein einziger Goldton, große Zahlen in einer
+Monospace-Schrift. Die Spieler und ihre Ränge stehen vorn (das unterscheidet die Seite von anderen
+Mayhem-Seiten), Wappen und Noten-Symbole sind die einzigen Bilder neben den Splash-Arts.
 
 ## Farben
 
-| Rolle         | Token                               | Wert                                                                                                    |
-| ------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Grund         | `--bg`                              | `#0a0812` (Pflaume-Schwarz)                                                                             |
-| Flächen       | `--panel`, `--panel-2`, `--panel-3` | `#130f1e`, `#181327`, `#1f1832`                                                                         |
-| Linien        | `--line`, `--line-strong`           | `#261f3a`, `#3a3058`                                                                                    |
-| Dornen-Grau   | `--slate`                           | `#5d5c7c`                                                                                               |
-| Text          | `--text`, `--muted`, `--faint`      | `#eceaf6`, `#a6a3c0`, `#8f8bad` (alle ≥ 4,5 : 1 auf jeder Fläche)                                       |
-| Akzent        | `--accent`                          | `#c3a0ff` (Amethyst), Schrift darauf `--accent-ink` `#120c1f`                                           |
-| Prisma-Folie  | `--holo`                            | `linear-gradient(100deg, #ff9ed6 0%, #ffe78a 22%, #a6f7d6 42%, #8fd2ff 62%, #c7a1ff 80%, #ff9ed6 100%)` |
-| Silber-Rahmen | `--frame-silver`                    | `linear-gradient(160deg, #ecebf6, #8d8ca6 50%, #d6d6e6)`                                                |
-| Gold-Rahmen   | `--frame-gold`                      | `linear-gradient(160deg, #fff1b8, #d29a2b 45%, #ffe08a)`                                                |
+| Rolle   | Token                               | Wert                                                      |
+| ------- | ----------------------------------- | --------------------------------------------------------- |
+| Grund   | `--bg`                              | `#111010` (warmes Fast-Schwarz, nie `#000`)               |
+| Flächen | `--panel`, `--panel-2`, `--panel-3` | `#1a1918`, `#201e1c`, `#292725`                           |
+| Linien  | `--line`, `--line-strong`           | `#2b2927`, `#3d3a36`                                      |
+| Text    | `--text`, `--muted`, `--faint`      | `#f1ede6`, `#b5aea3`, `#9d968b` (alle ≥ 4,5 : 1)          |
+| Akzent  | `--accent`                          | `#d6a865` (Gold), Schrift darauf `--accent-ink` `#17120a` |
 
-Noten (F–MAYHEM) und Stufen (D–MAYHEM) behalten ihre eigenen Farben (`--grade-*`, `--tier-*`).
-Die Prisma-Folie nur sparsam: Markenname, Prisma-Rahmen, einzelne Höhepunkte (MAYHEM).
+Nur dieser eine Akzent. Noten (F bis MAYHEM) und Stufen (D bis MAYHEM) behalten ihre eigenen Farben
+(`--grade-*`, `--tier-*`), weil sie Daten sind; ebenso Sieg/Niederlage und die Seiten eines Spiels.
+Rekord-Arten bekommen auf der Rekorde-Seite keine eigene Farbe mehr.
 
 ## Schrift
 
-- Titel und Marke: **Bungee** (eine Stärke, nie fett setzen), Token `--font-title`.
-- Text, Namen und Zahlen: **Rubik** 400–800, Tokens `--font` und `--font-display`; Zahlen mit
-  `font-variant-numeric: tabular-nums`.
-- Beide selbst gehostet (`apps/mayhem-site/public/fonts`, SIL Open Font License, Lizenztexte daneben),
-  nie über Google-Server laden (Datenschutz).
+- Text, Titel und Namen: **Bricolage Grotesque** (variabel 400–800), Token `--font`. Titel 700–780,
+  enger gesetzt (`letter-spacing` negativ), nie Großbuchstaben mit Sperrung.
+- Zahlen, kleine Fakten-Zeilen, Tabellenköpfe: **IBM Plex Mono** 400/500, Token `--font-mono`.
+- Beide selbst gehostet (`apps/mayhem-site/public/fonts`, SIL Open Font License, Lizenztexte
+  daneben), nie über Google-Server laden (Datenschutz).
 
-## Formen
+## Formen und Aufbau
 
-- Radien `--radius` 12 px, `--radius-sm` 8 px, Pillen für Knöpfe wie „Neu würfeln“.
-- Augment-Karte: 3 px Rahmen in Silber, Gold oder Prisma nach der Note (MAYHEM = Prisma, SSS und
-  SS = Gold, darunter Silber), innen dunkle Fläche mit dem Splash-Art des Champions oben, Noten-
-  Symbol groß, Name in Bungee, Wert groß in Rubik 800. Prisma-Rahmen leuchtet leicht.
-- Symbole: Rang-Wappen nur für Ränge, Noten-Symbole nur für Noten, Tierliste mit Buchstaben S–D.
+- Eine Rundung für alles: `--radius` 6 px, `--radius-sm` 4 px; keine Pillen. Kreise nur für
+  Profilbilder.
+- Keine Kästen ohne Grund: Abschnitte trennt eine Linie und Abstand (`.card` ist nur noch das).
+  Flächen haben nur Dinge, die hervorstechen sollen (Podest, Spiele des Tages, erster Rekord).
+- Kein Leuchten, keine Verläufe in Schrift, keine kleinen gesperrten Großbuchstaben-Zeilen über
+  Überschriften; stattdessen bei Bedarf eine Mono-Zeile darunter (`.page-sub`).
+- Kopfzeile auf dem Rechner in einer Zeile; „So funktioniert's“ und „API“ stehen in der Fußzeile.
+  „Mitmachen“ ist der einzige gefüllte Knopf der Navigation.
+- Reiter als Wörter mit einer Goldlinie unter dem gewählten.
+- Startseite: links Frage und Suche, rechts das Podest (Platz 1 groß mit Wappen, 2 und 3 darunter),
+  darunter die Kennzahlen als Leiste, die Spiele des Tages (eines groß mit Splash, zwei klein), dann
+  Plätze 4 bis 10 neben Noten und neuen Rekorden.
+- Rangliste: Verteilung über die ganze Breite mit den zwei Apex-Linien daneben, die Tabelle über die
+  ganze Breite, darunter „So zählt es“ und „Mitmachen“.
+- Rekorde: eine Zeile je Kategorie (Name, Rekordhalter mit Wert, nächste Plätze).
+- Symbole: Rang-Wappen nur für Ränge, Noten-Symbole nur für Noten, Tierliste mit Buchstaben S bis D.
   Die Noten-Symbole haben einen schwarzen Hintergrund: `mix-blend-mode: screen`.
+
+## Texte
+
+Kein Gedankenstrich als Stilmittel (auch kein „–“ mitten im Satz), höchstens ein „·“ pro Zeile,
+kurze sachliche Sätze. „–“ allein bleibt das Zeichen für einen fehlenden Wert.
 
 ## Bewegung
 
-- Karten heben sich beim Überfahren leicht an; der Prisma-Rahmen läuft dabei als Folie durch.
+- Knöpfe geben beim Drücken 1 px nach, Zeilen hellen beim Überfahren auf.
 - „Neu würfeln“ tauscht die Spiele des Tages einmal aus, wie der eine Reroll im Spiel.
 - Keine Dauer-Animationen; `prefers-reduced-motion` schaltet alles ab.
 
 ## Für die Mayhem-App
 
-Dieselben Tokens, Schriften und Karten übernehmen (am einfachsten den `:root`-Block und die
-`.aug`-Regeln aus `globals.css`). Fenster dunkel und voll deckend wie die Seite. Augment-Angebote im
-Spiel als Augment-Karten mit demselben Rahmen nach Seltenheit.
+Dieselben Tokens und Schriften übernehmen (am einfachsten den `:root`-Block aus `globals.css`).
+Fenster dunkel und voll deckend wie die Seite, Zahlen in Plex Mono, Gold nur für das Wichtigste.

@@ -76,7 +76,6 @@ export default function GamePage() {
         style={starKey ? ({ '--splash': `url(${splashImage(starKey)})` } as React.CSSProperties) : undefined}
       >
         <div>
-          <span className="eyebrow">ARAM: Mayhem · Spiel</span>
           <h1 className="num">
             {teams.map((t, i) => {
               const won = data.players.some((p) => p.team === t && p.win);
