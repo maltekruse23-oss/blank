@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-aram-champ-watch"
+description = "Enables the aram_champ_watch command without any pre-configured scope."
+commands.allow = ["aram_champ_watch"]
+
+[[permission]]
+identifier = "deny-aram-champ-watch"
+description = "Denies the aram_champ_watch command without any pre-configured scope."
+commands.deny = ["aram_champ_watch"]

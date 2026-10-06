@@ -1,5 +1,5 @@
 'use client';
-// One compact row of a ladder (start page, group page): place, player, rank and Leistung Ø.
+// One compact row of a ladder (start page): place, player, rank and Leistung Ø.
 import Link from 'next/link';
 import { GradeChip, Img, RankLine } from './bits';
 import { profileHref, profileImage, splitName, useDragon, type PlayerSummary } from './data';
@@ -9,18 +9,15 @@ export function PlayerRow({
   player: p,
   place,
   dragon,
-  group,
 }: {
   player: PlayerSummary;
   place: number;
   dragon: ReturnType<typeof useDragon>;
-  /** Opens the profile within this group. */
-  group?: string;
 }) {
   const me = useMe();
   const mine = me?.id === p.puuid;
   const { name, tag } = splitName(p.name);
-  const href = profileHref(p, group);
+  const href = profileHref(p);
   return (
     <tr data-place={place} data-me={mine || undefined}>
       <td className="place num">{place}</td>

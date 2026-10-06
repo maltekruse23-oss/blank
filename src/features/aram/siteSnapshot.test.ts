@@ -5,12 +5,16 @@ import { isFresh, snapshotKey, SNAPSHOT_TTL } from '../../../apps/mayhem-site/sr
 describe('website snapshots', () => {
   it('keys a page by its path and only the parameters it reads, in a fixed order', () => {
     expect(snapshotKey('/api/start', new URLSearchParams())).toBe('/api/start');
-    expect(
-      snapshotKey('/api/rekorde', new URLSearchParams('scope=season&group=ABCDEFGHIJKL')),
-    ).toBe('/api/rekorde?group=ABCDEFGHIJKL&scope=season');
+    expect(snapshotKey('/api/rekorde', new URLSearchParams('scope=season&season=v3'))).toBe(
+      '/api/rekorde?season=v3&scope=season',
+    );
+    expect(snapshotKey('/api/rekorde', new URLSearchParams('season=v3&scope=season'))).toBe(
+      '/api/rekorde?season=v3&scope=season',
+    );
+    // The removed groups: an old link with a group code shares the page of everyone.
     expect(
       snapshotKey('/api/rekorde', new URLSearchParams('group=ABCDEFGHIJKL&scope=season')),
-    ).toBe('/api/rekorde?group=ABCDEFGHIJKL&scope=season');
+    ).toBe('/api/rekorde?scope=season');
     // A cache-busting parameter does not create new rows.
     expect(snapshotKey('/api/leaderboard', new URLSearchParams('x=1&season=v3'))).toBe(
       '/api/leaderboard?season=v3',

@@ -27,6 +27,7 @@ import { RankPage } from '../features/aram/RankPage';
 import { openSubTab } from '../components/SubTabs';
 import { useAram } from '../features/aram/useAram';
 import { useAramResult } from '../features/aram/useAramResult';
+import { useChampCard } from '../features/aram/useChampCard';
 import { useAramGroup } from '../features/aram/useAramGroup';
 import { AramResultDialog } from '../features/aram/AramResultDialog';
 import { AramPlayerDialog, type AramPlayerView } from '../features/aram/AramPlayerDialog';
@@ -223,6 +224,7 @@ export function App() {
   );
   // The card after an ARAM Mayhem game: a popout in the background, otherwise here.
   const aramResult = useAramResult(aramAdapter, settings.preferences, aramPlayers);
+  useChampCard(settings.preferences);
   // A player's overview from the leaderboard (user's wish); a game opened in it lies above it.
   const [aramPlayer, setAramPlayer] = useState<AramPlayerView | null>(null);
   // Battery levels are read only while a page shows them.

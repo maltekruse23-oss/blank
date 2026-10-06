@@ -20,10 +20,8 @@ const APEX_MP = { sss: 400, mayhem: 800 } as const;
 
 export default function Ranking() {
   const [view, setView] = useState<View>('rank');
-  const [group, setGroup] = useState('');
-  const [input, setInput] = useState('');
   const [limit, setLimit] = useState(PAGE);
-  const { data, error, live } = useLive<Board>('/api/leaderboard' + (group ? '?group=' + encodeURIComponent(group) : ''));
+  const { data, error, live } = useLive<Board>('/api/leaderboard');
   const dragon = useDragon();
   const now = useNow();
 
@@ -50,46 +48,12 @@ export default function Ranking() {
       <div className="page-head">
         <div>
           <span className="eyebrow">ARAM: Mayhem · {seasonName(seasonOf(now))}</span>
-          <h1>{data?.group ? data.group.name : 'Rangliste'}</h1>
-          {data?.group && (
-            <Link className="to-game" href={'/gruppe/' + encodeURIComponent(data.group.code)}>
-              Zur Gruppenseite mit Duell und Spielabenden
-            </Link>
-          )}
+          <h1>Rangliste</h1>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
             {live ? 'Live' : 'Aktualisiert alle 5 s'}
           </span>
-          <form
-            className="field"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setGroup(input.trim());
-              setLimit(PAGE);
-            }}
-          >
-            <input
-              aria-label="Gruppencode"
-              placeholder="Gruppencode"
-              value={input}
-              maxLength={12}
-              onChange={(e) => setInput(e.target.value)}
-            />
-            <button className="button">{group ? 'Wechseln' : 'Gruppe'}</button>
-            {group && (
-              <button
-                type="button"
-                className="button"
-                onClick={() => {
-                  setGroup('');
-                  setInput('');
-                }}
-              >
-                Alle
-              </button>
-            )}
-          </form>
         </div>
       </div>
 
@@ -145,7 +109,7 @@ export default function Ranking() {
               </thead>
               <tbody>
                 {sorted.slice(0, limit).map((p, i) => (
-                  <Row key={p.puuid} player={p} place={i + 1} view={view} dragon={dragon} group={group} top={topShare(p.rank, ranks)} mine={p.puuid === me?.id} />
+                  <Row key={p.puuid} player={p} place={i + 1} view={view} dragon={dragon} top={topShare(p.rank, ranks)} mine={p.puuid === me?.id} />
                 ))}
               </tbody>
             </table>
@@ -200,7 +164,6 @@ function Row({
   place,
   view,
   dragon,
-  group,
   top,
   mine,
 }: {
@@ -208,12 +171,11 @@ function Row({
   place: number;
   view: View;
   dragon: ReturnType<typeof useDragon>;
-  group: string;
   top: number | null;
   mine: boolean;
 }) {
   const { name, tag } = splitName(p.name);
-  const href = profileHref(p, group);
+  const href = profileHref(p);
   const losses = p.games - p.wins;
   const average = p.average ? <GradeChip grade={p.average.grade} /> : <span className="faint">–</span>;
   const rank = <RankLine rank={p.rank} placed={p.placed} />;

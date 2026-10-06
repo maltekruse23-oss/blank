@@ -12,7 +12,6 @@ import { ME_TEXT, useMe } from '../ui/me';
 type Records = {
   scope: Scope;
   season: { id: string; year: number; number: number; start: number };
-  group: { code: string; name: string } | null;
   games: number;
   players: number;
   categories: RecordView[];
@@ -43,7 +42,7 @@ export default function RecordsPage() {
           <span className="eyebrow">
             ARAM: Mayhem · {data && scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
           </span>
-          <h1>{data?.group ? `Rekorde · ${data.group.name}` : 'Rekorde'}</h1>
+          <h1>Rekorde</h1>
         </div>
         <div className="side">
           <span className="live" data-on={live}>

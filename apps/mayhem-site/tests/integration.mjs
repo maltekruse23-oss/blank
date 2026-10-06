@@ -15,11 +15,8 @@ r=await api('/api/players/'+a);assert.equal(r.data.puuid,a);assert.equal(r.data.
 r=await api('/api/games',payload,token);assert.ok(r.data.results.every(x=>!x.stored));
 r=await api('/api/games',{...payload,entries:[{...list[0],skin:0}]},token);assert.equal(r.data.results[0].stored,true);
 r=await api('/api/games',payload);assert.equal(r.status,401);
-const group=await api('/api/groups',{name:'Lokaler Test'});assert.equal(group.status,201);assert.equal(group.data.code.length,12);
-r=await api(`/api/groups/${group.data.code}/join`,{puuid:a},token);assert.equal(r.status,200);
-r=await api('/api/leaderboard?group='+group.data.code);assert.equal(r.data.players.length,0); // starts now
-r=await api(`/api/groups/${group.data.code}/restart`,{},token);assert.equal(r.status,401);
-r=await api(`/api/groups/${group.data.code}/restart`,{},group.data.adminToken);assert.equal(r.status,200);
+r=await api('/api/groups',{name:'Lokaler Test'});assert.equal(r.status,404,'groups are gone');
+r=await api('/api/leaderboard?group=AbCdEf123456');assert.equal(r.status,200);assert.ok(!('group' in r.data),'an old group link shows everyone');
 const peer={...list[0],puuid:b,name:'Local Test#B',championId:2,champion:'Olaf',championName:'Olaf',kills:11,damage:21000,lobby:lobby.map((s,i)=>({...s,you:i===1})).reverse()};
 r=await api('/api/games',{entries:[peer],player:{puuid:b,name:'Local Test#B',icon:1},group:null});assert.equal(r.status,200,JSON.stringify(r.data));const tokenB=r.data.playerToken;
 r=await api('/api/games');assert.equal(r.data.disputed.length,0,'you and lobby order must not dispute');assert.ok(![a,b].some(x=>JSON.stringify(r.data).includes(x)),'no PUUID in the games');
@@ -32,7 +29,6 @@ r=await api('/api/players/'+a);assert.equal(r.data.games,6);
 r=await api('/api/players/'+a,undefined,undefined,'DELETE');assert.equal(r.status,401);
 r=await api('/api/players/'+b,undefined,tokenB,'DELETE');assert.equal(r.status,200);
 r=await api('/api/players/'+a);assert.equal(r.data.games,7,'deleting conflicting report resolves dispute');
-r=await api(`/api/groups/${group.data.code}/leave`,{puuid:a},token);assert.equal(r.data.joined,false);
 r=await api('/api/players/'+a,undefined,token,'DELETE');assert.equal(r.status,200);
 const rateTestIp='rate-test-'+Date.now();for(let i=0;i<31;i++){r=await api('/api/leaderboard',undefined,undefined,'GET',rateTestIp);assert.equal(r.status,200,'reading is never limited');}for(let i=0;i<31;i++){r=await api('/api/ausblenden',{},undefined,'POST',rateTestIp);assert.equal(r.status,i<30?400:429);}
 const oversize=await fetch(base+'/api/games',{method:'POST',headers:{'Content-Type':'application/json','cf-connecting-ip':'size-test'},body:' '.repeat(65537)});assert.equal(oversize.status,413);
@@ -52,4 +48,4 @@ for(const path of ['/api/export','/api/games','/api/spiel/'+hideGame.gameId,'/ap
 r=await api('/api/games',{entries:[{...peer,puuid:friend,name:'Versteckt#F',gameId:8000000031}],player:{puuid:friend,name:'Versteckt#F',icon:1},group:null});assert.equal(r.status,200,JSON.stringify(r.data));const friendToken=r.data.playerToken;
 r=await api('/api/export');assert.ok(JSON.stringify(r.data.games.find(g=>g.entry.gameId===hideGame.gameId)).includes('Versteckt#F'),'uploading oneself ends hiding');
 await api('/api/players/'+friend,undefined,friendToken,'DELETE');await api('/api/players/'+a,undefined,hideToken,'DELETE');
-console.log('PASS: validation, original rating parity, quality, deduplication, auth, groups, lobby canonicalization, disputes, SSE, delete, hiding names, CORS, 64 KB, 30/min. Local fixtures only.');
+console.log('PASS: validation, original rating parity, quality, deduplication, auth, lobby canonicalization, disputes, SSE, delete, hiding names, CORS, 64 KB, 30/min. Local fixtures only.');

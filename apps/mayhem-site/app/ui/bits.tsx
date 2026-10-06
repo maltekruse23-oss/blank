@@ -95,7 +95,7 @@ export function RankLine({ rank, placed }: { rank: Rank | null; placed: number }
 
 // ---- Problems ----------------------------------------------------------------------------------
 
-/** What went wrong, in plain words: something that does not exist (a player, game, group or
+/** What went wrong, in plain words: something that does not exist (a player, game or
  * champion) with ways on, or a failed load with a way to try again. */
 export function Problem({ message, missing = false }: { message: string; missing?: boolean }) {
   if (missing)

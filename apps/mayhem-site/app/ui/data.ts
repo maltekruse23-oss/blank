@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../src/adapters/aram';
 import type { AugmentInfo } from '../../src/augments';
 import { riotSlug } from '../../src/hidden';
+import type { TagCensus } from '../../src/tags';
 import type { Grade, Performance } from '../../src/features/aram/aramPerformance';
 import type { Average, Rank, Season, Step } from '../../src/features/aram/aramRating';
 
@@ -28,7 +29,6 @@ export type PlayerSummary = {
 
 export type Board = {
   season: { id: string; ratingVersion: number };
-  group: { code: string; name: string } | null;
   trackedGames: number;
   players: PlayerSummary[];
 };
@@ -83,8 +83,7 @@ export function useLive<T>(path: string | null) {
       }
     };
     void load();
-    const group = new URL(path, 'http://x').searchParams.get('group');
-    const events = new EventSource('/api/live' + (group ? '?group=' + encodeURIComponent(group) : ''));
+    const events = new EventSource('/api/live');
     const reload = () => void load();
     events.addEventListener('ready', () => setLive(true));
     events.addEventListener('game', reload);
@@ -105,7 +104,7 @@ export function useLive<T>(path: string | null) {
 
 // ---- Data Dragon --------------------------------------------------------------------------
 
-type Dragon = { version: string; champions: Map<number, { id: string; name: string }> };
+type Dragon = { version: string; champions: Map<number, { id: string; name: string; tags: string[] }> };
 let dragon: Promise<Dragon> | null = null;
 
 function loadDragon(): Promise<Dragon> {
@@ -116,9 +115,9 @@ function loadDragon(): Promise<Dragon> {
     const version = versions[0];
     const list = (await (
       await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/de_DE/champion.json`)
-    ).json()) as { data: Record<string, { id: string; key: string; name: string }> };
+    ).json()) as { data: Record<string, { id: string; key: string; name: string; tags?: string[] }> };
     const champions = new Map(
-      Object.values(list.data).map((c) => [Number(c.key), { id: c.id, name: c.name }]),
+      Object.values(list.data).map((c) => [Number(c.key), { id: c.id, name: c.name, tags: c.tags ?? [] }]),
     );
     return { version, champions };
   })().catch((error) => {
@@ -245,6 +244,32 @@ export function useAugments() {
   return value;
 }
 
+// ---- Tags (cut-offs and rarity from all players, src/tags.ts) --------------------------------
+
+let census: Promise<TagCensus & { prismatic: number[] }> | null = null;
+
+/** The tag census of all players (null while loading or unavailable). */
+export function useTagCensus() {
+  const [value, setValue] = useState<(TagCensus & { prismatic: number[] }) | null>(null);
+  useEffect(() => {
+    let stop = false;
+    census ??= fetch('/api/tags').then((r) => {
+      if (!r.ok) throw new Error('Tags nicht verfügbar.');
+      return r.json();
+    });
+    census.then(
+      (c) => !stop && setValue(c),
+      () => {
+        census = null;
+      },
+    );
+    return () => {
+      stop = true;
+    };
+  }, []);
+  return value;
+}
+
 export const augmentImage = (id: number) => `/api/augments/${id}.png`;
 
 /** The time of the first render (Date.now() must not run during rendering). */
@@ -280,8 +305,7 @@ export const splitName = (name: string) => {
 };
 
 /** A player's profile address: by Riot ID ("/players/Name-EUW", as op.gg), by id only when no name
- * is known. `group` keeps the group's view. */
-export function profileHref(p: { puuid: string; name?: string | null }, group?: string | null) {
-  const path = '/players/' + encodeURIComponent(p.name ? riotSlug(p.name) : p.puuid);
-  return group ? `${path}?group=${encodeURIComponent(group)}` : path;
+ * is known. */
+export function profileHref(p: { puuid: string; name?: string | null }) {
+  return '/players/' + encodeURIComponent(p.name ? riotSlug(p.name) : p.puuid);
 }

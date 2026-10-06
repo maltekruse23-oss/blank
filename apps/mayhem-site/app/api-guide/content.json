@@ -1,13 +1,13 @@
 [
   {
     "title": "Verbindung und Schlüssel",
-    "text": "HTTPS-Basis: https://mayhemstats.lol/api. JSON; maximal 65.536 UTF-8-Bytes pro Schreibanfrage. Beispiele sind für PowerShell 7 mit curl.exe. In upload.json stehen echte AramEntry-Werte aus blank.; die Beispieldatei enthält ausschließlich erfundene Testwerte und darf nicht als echtes Spiel hochgeladen werden. Beim ersten Upload kann die App einen vorher sicher gespeicherten, kryptografisch zufälligen Schlüssel mit 64 Hex-Zeichen als Bearer mitsenden. Ohne Schlüssel erzeugt der Server einen und liefert playerToken einmalig zurück. Bei allen weiteren Uploads derselben player.puuid sowie join, leave und DELETE muss dieser Schlüssel mitgeschickt werden. Gruppen-restart braucht den separaten adminToken. Kein globaler Schlüssel gehört in Browser-Code oder eine veröffentlichte EXE. Diese Erstregistrierung beweist keine Riot-Identität.",
-    "request": "$API = \"https://mayhemstats.lol/api\"\n$PUUID = \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n$GROUP = \"AbCdEf123456\"\n$TOKEN = \"PERSOENLICHER_SCHLUESSEL\"\n$ADMIN = \"GRUPPEN_ADMIN_SCHLUESSEL\"",
+    "text": "HTTPS-Basis: https://mayhemstats.lol/api. JSON; maximal 65.536 UTF-8-Bytes pro Schreibanfrage. Beispiele sind für PowerShell 7 mit curl.exe. In upload.json stehen echte AramEntry-Werte aus blank.; die Beispieldatei enthält ausschließlich erfundene Testwerte und darf nicht als echtes Spiel hochgeladen werden. Beim ersten Upload kann die App einen vorher sicher gespeicherten, kryptografisch zufälligen Schlüssel mit 64 Hex-Zeichen als Bearer mitsenden. Ohne Schlüssel erzeugt der Server einen und liefert playerToken einmalig zurück. Bei allen weiteren Uploads derselben player.puuid sowie bei DELETE muss dieser Schlüssel mitgeschickt werden. Kein globaler Schlüssel gehört in Browser-Code oder eine veröffentlichte EXE. Diese Erstregistrierung beweist keine Riot-Identität.",
+    "request": "$API = \"https://mayhemstats.lol/api\"\n$PUUID = \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n$TOKEN = \"PERSOENLICHER_SCHLUESSEL\"",
     "response": null
   },
   {
     "title": "POST /api/games",
-    "text": "Body unverändert: entries, player und group (Code oder null). Einträge dürfen die vom Client gelesenen Freunde enthalten; player identifiziert den Uploader. group nimmt den Uploader in die Gruppe auf. Ergebnis pro Eintrag; rank ist RankResult oder null, wenn das Spiel nicht zählt. MP werden ausschließlich mit standings()/rankResult() berechnet. Der erste Antwortschlüssel muss sicher in der Desktop-App gespeichert werden.",
+    "text": "Body: entries und player. Ein Feld group (früher für Gruppen) wird noch angenommen und ignoriert. Einträge dürfen die vom Client gelesenen Freunde enthalten; player identifiziert den Uploader. Ergebnis pro Eintrag; rank ist RankResult oder null, wenn das Spiel nicht zählt. MP werden ausschließlich mit standings()/rankResult() berechnet. Der erste Antwortschlüssel muss sicher in der Desktop-App gespeichert werden.",
     "request": "curl.exe -X POST \"$API/games\" -H \"Content-Type: application/json\" -H \"Origin: http://tauri.localhost\" --data-binary \"@upload.json\"\n# Danach:\ncurl.exe -X POST \"$API/games\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" --data-binary \"@upload.json\"",
     "response": {
       "results": [
@@ -30,21 +30,19 @@
         "id": "v1",
         "start": 1577836800000,
         "ratingVersion": 1
-      },
-      "group": null
+      }
     }
   },
   {
-    "title": "GET /api/leaderboard?group=<code>&season=<id>",
-    "text": "group und season sind optional. Ohne group global; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Gruppen zählen ab ihrem eigenen Start. Sortierung ist exakt diejenige von standings(). Gezählt werden alle Spieler aus hochgeladenen und archivierten Spielen (Rohdatenarchiv des Collectors), je Spieler und Spiel ein Eintrag; Spieler ohne eigenes Profil stehen dort unter einer öffentlichen Nummer (`puuid: \"a123\"`), nie mit ihrer PUUID, ausgeblendete gar nicht. Beispielantwort für einen noch leeren globalen Bestand.",
-    "request": "curl.exe \"$API/leaderboard?season=v1\"\ncurl.exe \"$API/leaderboard?group=$GROUP&season=v1\"",
+    "title": "GET /api/leaderboard?season=<id>",
+    "text": "season ist optional; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Sortierung ist exakt diejenige von standings(). Gezählt werden alle Spieler aus hochgeladenen und archivierten Spielen (Rohdatenarchiv des Collectors), je Spieler und Spiel ein Eintrag; Spieler ohne eigenes Profil stehen dort unter einer öffentlichen Nummer (`puuid: \"a123\"`), nie mit ihrer PUUID, ausgeblendete gar nicht. Beispielantwort für einen noch leeren globalen Bestand.",
+    "request": "curl.exe \"$API/leaderboard?season=v1\"",
     "response": {
       "season": {
         "id": "v1",
         "start": 1577836800000,
         "ratingVersion": 1
       },
-      "group": null,
       "since": 1577836800000,
       "ratingVersion": 1,
       "players": []
@@ -52,8 +50,8 @@
   },
   {
     "title": "GET /api/players/<Riot-ID, puuid oder a123>",
-    "text": "Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Statt der PUUID geht die Riot-ID wie bei op.gg (/api/players/Name-TAG) oder die öffentliche Nummer eines Spielers ohne Profil (/api/players/a123). Optional group und season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.",
-    "request": "curl.exe \"$API/players/$PUUID\"\ncurl.exe \"$API/players/${PUUID}?group=$GROUP&season=v1\"",
+    "text": "Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Statt der PUUID geht die Riot-ID wie bei op.gg (/api/players/Name-TAG) oder die öffentliche Nummer eines Spielers ohne Profil (/api/players/a123). Optional season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.",
+    "request": "curl.exe \"$API/players/$PUUID\"\ncurl.exe \"$API/players/${PUUID}?season=v1\"",
     "response": {
       "puuid": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       "name": "Beispiel#EUW",
@@ -64,7 +62,6 @@
         "start": 1577836800000,
         "ratingVersion": 1
       },
-      "group": null,
       "rank": null,
       "games": 0,
       "history": [],
@@ -72,54 +69,13 @@
     }
   },
   {
-    "title": "GET /api/games?group=<code>&since=<ms>",
-    "text": "Alle nicht beanstandeten AramEntry-Datensätze ab since, innerhalb einer Gruppe frühestens ab deren Neustart. disputed enthält betroffene Schlüssel; die App muss bereits lokal vorhandene Spiele mit diesen Schlüsseln aus der Wertung entfernen. Zum Abgleich von Qualitätsverbesserungen auch ältere Spiele erneut laden: since bezieht sich auf den Spielstart und nicht auf receivedAt.",
-    "request": "curl.exe \"$API/games?since=0\"\ncurl.exe \"$API/games?group=$GROUP&since=1790812800000\"",
+    "title": "GET /api/games?since=<ms>",
+    "text": "Alle nicht beanstandeten AramEntry-Datensätze ab since. disputed enthält betroffene Schlüssel; die App muss bereits lokal vorhandene Spiele mit diesen Schlüsseln aus der Wertung entfernen. Zum Abgleich von Qualitätsverbesserungen auch ältere Spiele erneut laden: since bezieht sich auf den Spielstart und nicht auf receivedAt.",
+    "request": "curl.exe \"$API/games?since=0\"\ncurl.exe \"$API/games?since=1790812800000\"",
     "response": {
       "entries": [],
       "disputed": [],
       "since": 0
-    }
-  },
-  {
-    "title": "POST /api/groups",
-    "text": "Neue Gruppe startet sofort. Der zwölfstellige Code dient dem Beitritt. Der nur einmal zurückgegebene adminToken erlaubt Neustarts und gehört ausschließlich dem Gruppenverwalter.",
-    "request": "# group.json: {\"name\":\"Unsere Runde\"}\ncurl.exe -X POST \"$API/groups\" -H \"Content-Type: application/json\" --data-binary \"@group.json\"",
-    "response": {
-      "code": "AbCdEf123456",
-      "name": "Unsere Runde",
-      "since": 1790812800000,
-      "createdAt": 1790812800000,
-      "adminToken": "EINMALIGER_ADMIN_SCHLUESSEL"
-    }
-  },
-  {
-    "title": "POST /api/groups/<code>/join",
-    "text": "Der Spieler muss bereits über einen Upload registriert sein. Kenntnis des Gruppencodes genügt zur Aufnahme, der Bearer-Schlüssel schützt die eigene Identität.",
-    "request": "# member.json: {\"puuid\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}\ncurl.exe -X POST \"$API/groups/$GROUP/join\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" --data-binary \"@member.json\"",
-    "response": {
-      "code": "AbCdEf123456",
-      "puuid": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-      "joined": true
-    }
-  },
-  {
-    "title": "POST /api/groups/<code>/leave",
-    "text": "Entfernt nur die Gruppenmitgliedschaft; Spiele und globale Wertung bleiben bestehen.",
-    "request": "curl.exe -X POST \"$API/groups/$GROUP/leave\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" --data-binary \"@member.json\"",
-    "response": {
-      "code": "AbCdEf123456",
-      "puuid": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-      "joined": false
-    }
-  },
-  {
-    "title": "POST /api/groups/<code>/restart",
-    "text": "Setzt since auf jetzt für alle Mitglieder. Historische Spiele bleiben global erhalten. Nur mit Admin-Schlüssel.",
-    "request": "curl.exe -X POST \"$API/groups/$GROUP/restart\" -H \"Authorization: Bearer $ADMIN\"",
-    "response": {
-      "code": "AbCdEf123456",
-      "since": 1790812800000
     }
   },
   {
@@ -131,14 +87,14 @@
     }
   },
   {
-    "title": "GET /api/live?group=<code>",
+    "title": "GET /api/live",
     "text": "Server-Sent Events. game enthält entry, rank und disputed. ready bestätigt die Verbindung; reset fordert vollständiges Nachladen; heartbeat hält sie offen. Der Server prüft das dauerhafte Ereignisprotokoll alle 2 Sekunden, also kein garantierter Sofort-Push. Der Stream verbindet sich nach ca. 45 Sekunden mit Last-Event-ID neu. Ereignisverweise werden 24 Stunden vorgehalten; nach längeren Ausfällen vollständig synchronisieren. Die Website nutzt bei Verbindungsfehlern automatisch 5-Sekunden-Polling. WebSocket ist hier nicht implementiert.",
-    "request": "curl.exe -N \"$API/live\"\ncurl.exe -N \"$API/live?group=$GROUP\"\n# Wiederaufnahme:\ncurl.exe -N \"$API/live\" -H \"Last-Event-ID: 42\"",
+    "request": "curl.exe -N \"$API/live\"\n# Wiederaufnahme:\ncurl.exe -N \"$API/live\" -H \"Last-Event-ID: 42\"",
     "response": "id: 43\nevent: game\ndata: {\"entry\": {\"...\":\"vollständiges AramEntry\"}, \"rank\": null, \"disputed\": true}\n\nevent: reset\ndata: {}"
   },
   {
     "title": "GET /api/export",
-    "text": "Zusatzendpunkt: gesamter öffentlicher Datenbestand als JSON, mit games (entry, quality, receivedAt, sourceHash, disputed), players, groups, group_members und seasons. Keine Berechtigungsschlüssel, Rate-Limit-Daten oder IP-Adressen. Der Export ist zum Archivieren und Migrieren gedacht; ein öffentlicher Import-Endpunkt ist absichtlich nicht vorhanden.",
+    "text": "Zusatzendpunkt: gesamter öffentlicher Datenbestand als JSON, mit games (entry, quality, receivedAt, sourceHash, disputed), players und seasons. Keine Berechtigungsschlüssel, Rate-Limit-Daten oder IP-Adressen. Der Export ist zum Archivieren und Migrieren gedacht; ein öffentlicher Import-Endpunkt ist absichtlich nicht vorhanden.",
     "request": "curl.exe \"$API/export\" -o blank-mayhem-export.json",
     "response": {
       "exportedAt": 1790812800000,
@@ -151,14 +107,12 @@
         }
       ],
       "players": [],
-      "groups": [],
-      "group_members": [],
       "games": []
     }
   },
   {
     "title": "CORS und Fehler",
-    "text": "http://tauri.localhost und die eigene Website sind erlaubt. Native HTTP-Aufrufe aus Rust ohne Origin funktionieren ebenfalls. OPTIONS kostet kein Anfragelimit. 400: ungültiges JSON oder Eintrag mit reasons; 401: falscher/fehlender Schlüssel; 403: fremder Origin; 404: Spieler/Gruppe/Saison fehlt; 409: Versions- oder Registrierungs-Konflikt; 413: mehr als 64 KB; 429: mehr als 30 schreibende Anfragen (POST, DELETE) pro Minute/IP (Retry-After: 60); lesende Anfragen (GET) sind nicht begrenzt; 503: Speicher/Dienst vorübergehend nicht verfügbar. Bei 400 wird der Upload vor den Spieländerungen verworfen.",
+    "text": "http://tauri.localhost und die eigene Website sind erlaubt. Native HTTP-Aufrufe aus Rust ohne Origin funktionieren ebenfalls. OPTIONS kostet kein Anfragelimit. 400: ungültiges JSON oder Eintrag mit reasons; 401: falscher/fehlender Schlüssel; 403: fremder Origin; 404: Spieler/Saison fehlt; 409: Versions- oder Registrierungs-Konflikt; 413: mehr als 64 KB; 429: mehr als 30 schreibende Anfragen (POST, DELETE) pro Minute/IP (Retry-After: 60); lesende Anfragen (GET) sind nicht begrenzt; 503: Speicher/Dienst vorübergehend nicht verfügbar. Bei 400 wird der Upload vor den Spieländerungen verworfen.",
     "request": "curl.exe -i -X OPTIONS \"$API/games\" -H \"Origin: http://tauri.localhost\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type,authorization\"",
     "response": "HTTP 204\nAccess-Control-Allow-Origin: http://tauri.localhost\nAccess-Control-Allow-Methods: GET,POST,DELETE,OPTIONS\nAccess-Control-Allow-Headers: Content-Type,Authorization,Last-Event-ID"
   },

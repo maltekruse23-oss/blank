@@ -2,7 +2,7 @@
 // A player's profile: rank card, the season's way, form, the five axes of the grade, playstyle,
 // match history with all ten players, champions and earlier seasons.
 import Link from 'next/link';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../../src/adapters/aram';
 import { rankName, seasonName, seasonOf } from '../../../src/features/aram/aramRating';
@@ -20,6 +20,7 @@ import {
   fillOf,
   GradeChip,
   GradeIcon,
+  Augment,
   Img,
   LadderChart,
   Problem,
@@ -40,13 +41,16 @@ import {
   profileHref,
   profileImage,
   splitName,
+  useAugments,
   useDragon,
   useLive,
+  useTagCensus,
   useNow,
   type Profile,
   type ProfileStep,
 } from '../../ui/data';
 import { ME_TEXT, setMe, useMe } from '../../ui/me';
+import { MIN_GAMES, preferencesOf, rankedTags, statsOf } from '../../../src/tags';
 
 type Tab = 'overview' | 'matches' | 'champions' | 'seasons';
 type Dragon = ReturnType<typeof useDragon>;
@@ -62,18 +66,18 @@ function decoded(part: string) {
 
 export default function PlayerPage() {
   const params = useParams<{ puuid: string }>();
-  const group = useSearchParams().get('group');
   const { data, error, missing } = useLive<Profile>(
-    '/api/players/' + encodeURIComponent(decoded(params.puuid)) + (group ? '?group=' + encodeURIComponent(group) : ''),
+    '/api/players/' + encodeURIComponent(decoded(params.puuid)),
   );
   const dragon = useDragon();
+  const census = useTagCensus();
   const [tab, setTab] = useState<Tab>('overview');
   const now = useNow();
   const router = useRouter();
   // Every address (an old link with a PUUID, a public id, a Riot ID in other case) moves to the
   // Riot ID like op.gg, or to the public id when the name is hidden: no PUUID in the address bar.
-  const home = data?.id ? profileHref({ puuid: data.id, name: data.name }, group) : null;
-  const here = profileHref({ puuid: decoded(params.puuid) }, group);
+  const home = data?.id ? profileHref({ puuid: data.id, name: data.name }) : null;
+  const here = profileHref({ puuid: decoded(params.puuid) });
   const moved = home && home.toLowerCase() !== here.toLowerCase() ? home : null;
   useEffect(() => {
     if (moved) router.replace(moved);
@@ -87,14 +91,19 @@ export default function PlayerPage() {
   const thisSeason = history.filter((h) => h.season === season.id);
   const recent = history.slice(-20);
   const radar = radarOf(recent.map((h) => h.entry));
-  const badges = badgesOf(radar, recent.length);
+  const stats = census ? statsOf(history.map((h) => ({ entry: h.entry, pct: h.mark.pct })), new Set(census.prismatic)) : null;
+  const tags = stats && census ? rankedTags(stats, census) : [];
+  // The rarest tags stand at the top; without them (few games) the playstyle badges as before.
+  const badges = tags.length
+    ? tags.slice(0, 3).map((t) => ({ id: t.id, name: t.name, hint: `${t.hint} · ${shareText(t.share)}` }))
+    : badgesOf(radar, recent.length);
   const streak = streaksOf(history.map((h) => h.mark.grade));
   const { name, tag } = splitName(data.name);
   const losses = data.games - data.wins;
 
   return (
     <>
-      <Link className="back" href={group ? '/?group=' + encodeURIComponent(group) : '/'}>
+      <Link className="back" href="/">
         ← Rangliste
       </Link>
 
@@ -197,6 +206,28 @@ export default function PlayerPage() {
           </div>
           <aside className="stack">
             <div className="card">
+              <h2>Tags</h2>
+              {tags.length ? (
+                <ul className="tag-list">
+                  {tags.map((t) => (
+                    <li key={t.id} title={t.hint}>
+                      <span className="tag-name">{t.name}</span>
+                      <span className="faint num">{shareText(t.share)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="empty">
+                  {history.length < MIN_GAMES
+                    ? `Tags ab ${MIN_GAMES} gewerteten Spielen (noch ${MIN_GAMES - history.length}).`
+                    : census
+                      ? 'Noch kein Tag – nichts sticht heraus.'
+                      : 'Tags werden geladen …'}
+                </p>
+              )}
+            </div>
+            <Preferences steps={history} dragon={dragon} />
+            <div className="card">
               <h2>Stärken · letzte {recent.length} Spiele</h2>
               {radar ? (
                 <>
@@ -233,6 +264,90 @@ export default function PlayerPage() {
       {tab === 'champions' && <Champions steps={history} dragon={dragon} />}
       {tab === 'seasons' && <Seasons profile={data} now={now} />}
     </>
+  );
+}
+
+/** "nur 4 % haben das": how rare a tag is among all players. */
+const shareText = (share: number) => (share < 0.5 ? `nur ${share < 0.01 ? '<1' : Math.round(share * 100)} %` : `${Math.round(share * 100)} %`);
+
+const CLASSES: Record<string, string> = {
+  Mage: 'Magier',
+  Fighter: 'Kämpfer',
+  Tank: 'Tank',
+  Assassin: 'Assassine',
+  Marksman: 'Schütze',
+  Support: 'Unterstützer',
+};
+
+function Preferences({ steps, dragon }: { steps: ProfileStep[]; dragon: Dragon }) {
+  const augments = useAugments();
+  if (!steps.length) return null;
+  const prefs = preferencesOf(
+    steps.map((h) => h.entry),
+    (id) => dragon?.champions.get(id)?.tags[0],
+  );
+  const pct = (share: number) => `${Math.round(share * 100)} %`;
+  const width = (share: number) => ({ width: `${Math.round(share * 1000) / 10}%` });
+  return (
+    <div className="card prefs">
+      <h2>Vorlieben</h2>
+      <h3>Champions</h3>
+      <ul className="pref-list">
+        {prefs.champions.map((c) => {
+          const entry = steps.find((h) => h.entry.championId === c.key)!.entry;
+          return (
+            <li key={c.key}>
+              <Img className="avatar sm" src={championImage(dragon, championKey(dragon, entry))} size={24} />
+              <span>{championLabel(dragon, entry)}</span>
+              <span className="faint num">{pct(c.share)}</span>
+            </li>
+          );
+        })}
+      </ul>
+      {prefs.classes.length > 0 && (
+        <>
+          <h3>Klassen</h3>
+          <ul className="pref-bars">
+            {prefs.classes.map((c) => (
+              <li key={c.key}>
+                <span>{CLASSES[c.key] ?? c.key}</span>
+                <span className="pref-bar" aria-hidden>
+                  <span style={width(c.share)} />
+                </span>
+                <span className="faint num">{pct(c.share)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {prefs.damage && (
+        <>
+          <h3>Schadensart</h3>
+          <div className="dmg-split" role="img" aria-label={`AP ${pct(prefs.damage.ap)}, AD ${pct(prefs.damage.ad)}, absolut ${pct(prefs.damage.true)}`}>
+            <span className="ap" style={width(prefs.damage.ap)} />
+            <span className="ad" style={width(prefs.damage.ad)} />
+            <span className="tr" style={width(prefs.damage.true)} />
+          </div>
+          <p className="fine num">
+            AP {pct(prefs.damage.ap)} · AD {pct(prefs.damage.ad)} · Absolut {pct(prefs.damage.true)}
+          </p>
+        </>
+      )}
+      {prefs.augments.length > 0 && (
+        <>
+          <h3>Augments</h3>
+          <ul className="pref-list">
+            {prefs.augments.map((a) => (
+              <li key={a.key}>
+                <Augment id={a.key} info={augments.get(a.key)} size={24} />
+                <span>{augments.get(a.key)?.name ?? `Augment ${a.key}`}</span>
+                <span className="faint num">{a.games}×</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 

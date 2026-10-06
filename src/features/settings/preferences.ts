@@ -91,6 +91,8 @@ export type Preferences = {
   popoutWarnings: boolean;
   /** The card after each ARAM Mayhem game (page ARAM). */
   popoutAram: boolean;
+  /** Champ-Karte: best augments and builds for the champion held in an ARAM Mayhem champion select. */
+  popoutChamp: boolean;
   /** Seconds a live notice, warning or note stays (1–30), unless it always stays. */
   popoutNoticeSeconds: number;
   popoutNoticeAlways: boolean;
@@ -162,6 +164,7 @@ export const defaultPreferences: Preferences = {
   popoutLive: true,
   popoutWarnings: true,
   popoutAram: true,
+  popoutChamp: true,
   popoutNoticeSeconds: 10,
   popoutNoticeAlways: false,
   popoutTheme: 'app',
@@ -277,6 +280,7 @@ export function readPreferences(raw: unknown): Preferences | null {
     popoutLive: flag('popoutLive'),
     popoutWarnings: flag('popoutWarnings'),
     popoutAram: flag('popoutAram'),
+    popoutChamp: flag('popoutChamp'),
     popoutNoticeSeconds: seconds('popoutNoticeSeconds'),
     popoutNoticeAlways: always('popoutNoticeAlways'),
     popoutTheme: pick(data.popoutTheme, isPopoutTheme, d.popoutTheme),

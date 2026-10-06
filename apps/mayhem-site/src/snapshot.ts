@@ -1,6 +1,6 @@
 // Stored results of the reading pages (table `snapshots`, PLAN.md Etappe 5): a page computes its
 // standings once and serves the stored JSON until something changes. Every write that changes what
-// a page shows adds a row to `events` (upload, reset, hide, group change, deletion), so a snapshot
+// a page shows adds a row to `events` (upload, reset, hide, deletion), so a snapshot
 // is valid while the newest event is the one it was computed after. Pages that depend on the clock
 // (games of the day, records of the week, the season) and name or icon changes without a new game
 // are covered by a short lifetime.
@@ -10,7 +10,7 @@ export const SNAPSHOT_TTL = 5 * 60_000;
 /** Larger results are not stored (D1 allows 2 MB per row); the page is then computed every time. */
 export const SNAPSHOT_MAX = 1_500_000;
 /** The only query parameters a cached page reads; anything else does not split the cache. */
-const PARAMS = ['season', 'group', 'scope'] as const;
+const PARAMS = ['season', 'scope'] as const;
 
 export interface Snapshot {
   version: number;

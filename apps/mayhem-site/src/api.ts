@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { db, query, rows, hash, secret, archiveBucket } from './storage';
-import { uploadSchema, augmentUploadSchema, groupSchema, memberSchema, hideSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
+import { uploadSchema, augmentUploadSchema, hideSchema, puuid, quality, canonical, lobbyCanonical } from './validation';
 import { standings, rankResult, seasonOf, RATING_VERSION } from './features/aram/aramRating';
 import { open, summary, type Standing } from './summary';
 import type { AramEntry } from './adapters/aram';
@@ -11,13 +11,13 @@ import { placesOf } from './places';
 import { championsView, championView } from './champions';
 import { counted, metaDetail, metaView } from './meta';
 import { freshRecords, startView, TOP } from './start';
-import { membersOf, sessionsOf } from './group';
 import { decodeBase64, iconOf, type AugmentInfo, type Rarity } from './augments';
 import { findPlayer, riotKey, slugKey, withoutHidden } from './hidden';
 import { isFresh, snapshotKey, SNAPSHOT_MAX, type Snapshot } from './snapshot';
 import { ARCHIVE_ENTRY_VERSION, archiveIdOf, mergeEntries, publicId } from './archive-entries';
 import { indexPending } from './archive-index';
 import { puuidsIn, withPublicIds } from './public-ids';
+import { censusOf, statsOf, type TagStats } from './tags';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -51,7 +51,6 @@ async function indexSome() {
         console.error('Archive entries not built');
     }
 }
-const codeCheck = (s: string) => /^[A-Za-z0-9]{12}$/.test(s) ? s : fail(400, 'Ungültiger Gruppencode');
 async function body(req: Request) { const reader = req.body?.getReader(); let bytes = 0; const chunks: Uint8Array[] = []; if (reader)
     for (;;) {
         const v = await reader.read();
@@ -73,7 +72,7 @@ catch {
     fail(400, 'Ungültiges JSON');
 } }
 /** Reads the rest of a request body and throws it away. An answer that leaves the body unread
- * (the group restart, and every early 400/401/403/404/429) breaks the connection it came in on:
+ * (every early 400/401/403/404/429) breaks the connection it came in on:
  * the next write request on the same connection fails without ever reaching the Worker — in the
  * local preview with „Your worker restarted mid-request“ and HTTP 503 (measured: 6 of 150).
  * Capped like `body`, so a huge body is cut off instead of read. */
@@ -97,32 +96,21 @@ async function authorize(req: Request, id: string) { const token = req.headers.g
     tokenHash: string;
 }>('SELECT tokenHash FROM players WHERE puuid=?', id))[0]; if (!p?.tokenHash || await hash(token) !== p.tokenHash)
     fail(401, 'Persönlicher Bearer-Schlüssel erforderlich'); }
-async function group(code: string) { const g = (await rows<{
-    code: string;
-    name: string;
-    since: number;
-    createdAt: number;
-    adminHash: string;
-}>('SELECT * FROM groups WHERE code=?', codeCheck(code)))[0]; if (!g)
-    fail(404, 'Gruppe nicht gefunden'); return g; }
 async function context(url: URL) { const id = url.searchParams.get('season') ?? `v${RATING_VERSION}`; const season = (await rows<{
     id: string;
     start: number;
     ratingVersion: number;
 }>('SELECT * FROM seasons WHERE id=?', id))[0]; if (!season)
     fail(404, 'Saison nicht gefunden'); if (season.ratingVersion !== RATING_VERSION)
-    fail(409, 'Diese Saison benötigt eine andere Rating-Version'); const code = url.searchParams.get('group'); const g = code ? await group(code) : null; return { season, group: g ? { code: g.code, name: g.name, since: g.since } : null, since: Math.max(season.start, g?.since ?? 0) }; }
+    fail(409, 'Diese Saison benötigt eine andere Rating-Version'); return { season, since: season.start }; }
 /**
  * The counted entries from `since` on: the uploads and, with `withArchive`, every player of the
  * archived games (src/archive-entries.ts), one entry per player and game. Players without a profile
  * appear under their public id (`a<number>`), never their PUUID; those who asked not to be named not
  * at all. `player` is a PUUID.
  */
-async function entries(since = 0, code: string | null = null, player: string | null = null, includeDisputed = false, withArchive = false) { let sql = 'SELECT g.json,g.disputed FROM games g WHERE g.at>=?'; const args: unknown[] = [since]; if (!includeDisputed)
-    sql += ' AND g.disputed=0'; if (code) {
-    sql += ' AND EXISTS (SELECT 1 FROM group_members m WHERE m.code=? AND m.puuid=g.puuid)';
-    args.push(code);
-} if (player) {
+async function entries(since = 0, player: string | null = null, includeDisputed = false, withArchive = false) { let sql = 'SELECT g.json,g.disputed FROM games g WHERE g.at>=?'; const args: unknown[] = [since]; if (!includeDisputed)
+    sql += ' AND g.disputed=0'; if (player) {
     sql += ' AND g.puuid=?';
     args.push(player);
 } sql += ' ORDER BY g.at,g.gameId,g.puuid'; const hidden = await hiddenPlayers(); const uploads = (await rows<{
@@ -131,12 +119,11 @@ async function entries(since = 0, code: string | null = null, player: string | n
 }>(sql, ...args)).map(r => ({ ...withoutHidden(JSON.parse(r.json) as AramEntry, hidden), ...(includeDisputed ? { disputed: !!r.disputed } : {}) })) as AramEntry[];
     if (!withArchive)
         return uploads;
-    return mergeEntries(uploads, await archiveOnly(since, code, player, hidden));
+    return mergeEntries(uploads, await archiveOnly(since, player, hidden));
 }
 /** The archive's entries (see entries), already under the id the pages use. */
-async function archiveOnly(since: number, code: string | null, player: string | null, hidden: ReadonlySet<string>): Promise<AramEntry[]> {
+async function archiveOnly(since: number, player: string | null, hidden: ReadonlySet<string>): Promise<AramEntry[]> {
     const registered = await registeredPlayers();
-    const members = code ? new Set((await rows<{ puuid: string }>('SELECT puuid FROM group_members WHERE code=?', code)).map(r => r.puuid)) : null;
     let sql = 'SELECT e.json,p.id,p.puuid FROM archive_entries e JOIN archive_players p ON p.id=e.playerId JOIN archive_indexed i ON i.matchKey=e.matchKey AND i.version=? WHERE e.at>=?';
     const args: unknown[] = [ARCHIVE_ENTRY_VERSION, since];
     if (player) {
@@ -147,8 +134,6 @@ async function archiveOnly(since: number, code: string | null, player: string | 
     for (const r of await rows<{ json: string; id: number; puuid: string }>(sql, ...args)) {
         const known = registered.has(r.puuid);
         if (!known && hidden.has(r.puuid))
-            continue;
-        if (members && !members.has(r.puuid))
             continue;
         const entry = JSON.parse(r.json) as AramEntry;
         list.push({ ...entry, puuid: known ? r.puuid : publicId(r.id) });
@@ -206,7 +191,6 @@ async function rate(req: Request) { const ip = req.headers.get('cf-connecting-ip
     fail(429, 'Höchstens 30 API-Anfragen pro Minute und IP'); }
 async function upload(req: Request, url: URL) {
     const b = uploadSchema.parse(await body(req));
-    const g = b.group ? await group(b.group) : null;
     const lobbyChecks = new Map<number, string>();
     for (const e of b.entries) {
         if (e.lobby?.length) {
@@ -239,8 +223,6 @@ async function upload(req: Request, url: URL) {
     const now = Date.now();
     // Uploading means being shown: an earlier wish not to be named ends here.
     const statements: D1PreparedStatement[] = [query('INSERT INTO players (puuid,name,icon,lastSeen,tokenHash) VALUES (?,?,?,?,?) ON CONFLICT(puuid) DO UPDATE SET name=excluded.name,icon=excluded.icon,lastSeen=excluded.lastSeen,tokenHash=COALESCE(players.tokenHash,excluded.tokenHash)', b.player.puuid, b.player.name, b.player.icon, now, tokenHash), query('DELETE FROM hidden_players WHERE puuid=?', b.player.puuid)];
-    if (g)
-        statements.push(query('INSERT OR IGNORE INTO group_members (code,puuid) VALUES (?,?)', g.code, b.player.puuid));
     const storedIndexes: number[] = [];
     for (const e of b.entries) {
         const q = quality(e);
@@ -268,15 +250,15 @@ async function upload(req: Request, url: URL) {
         if (installed.tokenHash !== tokenHash)
             fail(409, 'Spieler wurde gleichzeitig registriert; persönlichen Schlüssel verwenden');
     }
-    const c = await context(new URL(url.origin + '/api/leaderboard' + (g ? '?group=' + g.code : '')));
+    const c = await context(new URL(url.origin + '/api/leaderboard'));
     // A rank needs only the player's own games (with the archived ones, as on the pages).
     const own = new Map<string, AramEntry[]>();
     for (const id of new Set(b.entries.map(e => e.puuid)))
-        own.set(id, await entries(c.since, g?.code ?? null, id, false, true));
-    return json({ results: b.entries.map((e, i) => ({ gameId: e.gameId, puuid: e.puuid, stored: result[storedIndexes[i]].results.length > 0, rank: rankResult(own.get(e.puuid)!, e.puuid, e.gameId, c.since) })), ...(playerToken ? { playerToken } : {}), season: c.season, group: c.group });
+        own.set(id, await entries(c.since, id, false, true));
+    return json({ results: b.entries.map((e, i) => ({ gameId: e.gameId, puuid: e.puuid, stored: result[storedIndexes[i]].results.length > 0, rank: rankResult(own.get(e.puuid)!, e.puuid, e.gameId, c.since) })), ...(playerToken ? { playerToken } : {}), season: c.season });
 }
 async function live(req: Request, url: URL) {
-    await context(url); // rejects an unknown season or group before the stream opens
+    await context(url); // rejects an unknown season before the stream opens
     const last = req.headers.get('last-event-id') ?? url.searchParams.get('cursor');
     let cursor = last ? Number(last) : (await rows<{
         id: number;
@@ -309,9 +291,6 @@ async function live(req: Request, url: URL) {
                     if (ev.length) {
                         const fresh = await context(url);
                         const hidden = await hiddenPlayers();
-                        const memberIds = fresh.group ? new Set((await rows<{
-                            puuid: string;
-                        }>('SELECT puuid FROM group_members WHERE code=?', fresh.group.code)).map(m => m.puuid)) : null;
                         let reset = false;
                         for (const e of ev) {
                             cursor = e.id;
@@ -320,14 +299,12 @@ async function live(req: Request, url: URL) {
                                 reset = true;
                                 continue;
                             }
-                            if (memberIds && !memberIds.has(e.puuid!))
-                                continue;
                             const row = (await rows<{
                                 json: string;
                                 disputed: number;
                             }>('SELECT json,disputed FROM games WHERE gameId=? AND puuid=?', e.gameId, e.puuid))[0];
                             if (row)
-                                send(`id: ${cursor}\nevent: game\ndata: ${JSON.stringify(await masked({ entry: withoutHidden(JSON.parse(row.json) as AramEntry, hidden), disputed: !!row.disputed, rank: row.disputed ? null : rankResult(await entries(fresh.since, fresh.group?.code ?? null, e.puuid, false, true), e.puuid!, e.gameId!, fresh.since) }))}\n\n`);
+                                send(`id: ${cursor}\nevent: game\ndata: ${JSON.stringify(await masked({ entry: withoutHidden(JSON.parse(row.json) as AramEntry, hidden), disputed: !!row.disputed, rank: row.disputed ? null : rankResult(await entries(fresh.since, e.puuid, false, true), e.puuid!, e.gameId!, fresh.since) }))}\n\n`);
                         }
                         if (reset)
                             send(`id: ${cursor}\nevent: reset\ndata: {}\n\n`);
@@ -389,7 +366,7 @@ async function hide(req: Request) {
     return json({ hidden: true });
 }
 /** The records (/rekorde): every category's best ten players with the game of their value, all time
- * or this season (seasonOf, three a year), optionally of one group from its start. */
+ * or this season (seasonOf, three a year). */
 async function records(url: URL) {
     const c = await context(url);
     const scope = url.searchParams.get('scope') ?? 'all';
@@ -397,16 +374,16 @@ async function records(url: URL) {
         fail(400, 'scope muss all oder season sein');
     const now = Date.now();
     const season = seasonOf(now);
-    const all = await entries(scope === 'season' ? Math.max(c.since, season.start) : c.since, c.group?.code ?? null, null, false, true);
+    const all = await entries(scope === 'season' ? Math.max(c.since, season.start) : c.since, null, false, true);
     const ids = [...new Set(all.map(e => e.puuid))];
-    return json({ scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, group: c.group, games: new Set(all.map(e => e.gameId)).size, players: ids.length, categories: recordsView(all, now, await playersOf(ids)) });
+    return json({ scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, games: new Set(all.map(e => e.gameId)).size, players: ids.length, categories: recordsView(all, now, await playersOf(ids)) });
 }
 /** The start page (/): head numbers, the top ten of the ladder, the games of the day, the grades of
- * the season and this week's new records. All players, no group. */
+ * the season and this week's new records. All players. */
 async function start() {
     const c = await context(new URL('http://x/'));
     const now = Date.now();
-    const all = await entries(c.since, null, null, false, true);
+    const all = await entries(c.since, null, false, true);
     const list = standings(all, c.since);
     const trackedGames = await trackedCount();
     const ids = [...new Set(all.map(e => e.puuid))];
@@ -421,18 +398,19 @@ async function places(id: string) {
     const row = (await rows<{ puuid: string }>('SELECT puuid FROM archive_players WHERE id=?', archiveId))[0] ?? fail(404, 'Spieler nicht gefunden');
     // Players with a profile keep their PUUID in the entries, everyone else the public id.
     const key = (await registeredPlayers()).has(row.puuid) ? row.puuid : id;
-    const all = await entries(c.since, null, null, false, true);
+    const all = await entries(c.since, null, false, true);
     const view = placesOf(standings(all, c.since), recordRanking(all, Date.now()), key);
     return view ? json({ id, season: c.season, ...view }) : fail(404, 'Spieler nicht gefunden');
 }
-/** A group's page (/gruppe/<code>): its ladder, what the duel needs of every member and its game
- * nights. Only members, from the group's start on. */
-async function groupPage(code: string) {
-    const url = new URL('http://x/');
-    url.searchParams.set('group', code);
-    const c = await context(url);
-    const list = standings(await entries(c.since, c.group!.code, null, false, true), c.since);
-    return json({ group: c.group, season: c.season, players: await withIcons(list), members: membersOf(list), sessions: sessionsOf(list) });
+/** The tag census (/api/tags): cut-offs and how many players have each tag, from all players of
+ * the current rating. Only numbers, no player. */
+async function tags() {
+    const c = await context(new URL('http://x/'));
+    const prismatic = new Set((await rows<{ id: number }>("SELECT id FROM augments WHERE rarity='prismatic'")).map(a => a.id));
+    const all = standings(await entries(c.since, null, false, true), c.since)
+        .map(s => statsOf(s.history.map(h => ({ entry: h.entry, pct: h.mark.pct })), prismatic))
+        .filter((s): s is TagStats => s !== null);
+    return json({ season: c.season, ...censusOf(all), prismatic: [...prismatic] });
 }
 /** Current name and icon of these players: from the profile, or for a public id (`a<number>`) from
  * the player's newest archived game. */
@@ -453,15 +431,15 @@ async function playersOf(ids: string[]) {
     }
     return players;
 }
-/** The games of the champions pages: all time or this season, optionally of one group. */
+/** The games of the champions pages: all time or this season. */
 async function championGames(url: URL) {
     const c = await context(url);
     const scope = url.searchParams.get('scope') ?? 'all';
     if (scope !== 'all' && scope !== 'season')
         fail(400, 'scope muss all oder season sein');
     const season = seasonOf(Date.now());
-    const all = await entries(scope === 'season' ? Math.max(c.since, season.start) : c.since, c.group?.code ?? null, null, false, true);
-    return { scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, group: c.group, all };
+    const all = await entries(scope === 'season' ? Math.max(c.since, season.start) : c.since, null, false, true);
+    return { scope, season: { id: season.id, year: season.year, number: season.number, start: season.start }, all };
 }
 /** All champions (/champions): every seat of the counted games, no names. */
 async function champions(url: URL) {
@@ -604,21 +582,19 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
     if (path === '/api/leaderboard' && method === 'GET')
         return cached(url, async () => {
             const c = await context(url);
-            const all = await entries(c.since, c.group?.code ?? null, null, false, true);
-            // Global stored matches (uploaded or archived), independent of group/season and duplicates.
+            const all = await entries(c.since, null, false, true);
+            // Global stored matches (uploaded or archived), independent of season and duplicates.
             const trackedGames = await trackedCount();
             return json({ ...c, ratingVersion: RATING_VERSION, trackedGames, players: await withIcons(standings(all, c.since)) });
         });
     if (path === '/api/games' && method === 'GET') {
-        const code = url.searchParams.get('group');
-        const g = code ? await group(code) : null;
         const since = Number(url.searchParams.get('since') ?? 0);
         if (!Number.isSafeInteger(since) || since < 0)
             fail(400, 'since muss ein positiver Millisekunden-Zeitstempel sein');
-        return json({ entries: await entries(Math.max(since, g?.since ?? 0), code), disputed: await rows<{
+        return json({ entries: await entries(since), disputed: await rows<{
                 gameId: number;
                 puuid: string;
-            }>('SELECT gameId,puuid FROM games WHERE disputed=1 AND at>=? AND (? IS NULL OR puuid IN (SELECT puuid FROM group_members WHERE code=?))', Math.max(since, g?.since ?? 0), code, code), since: Math.max(since, g?.since ?? 0) });
+            }>('SELECT gameId,puuid FROM games WHERE disputed=1 AND at>=?', since), since });
     }
     if (path === '/api/augments' && method === 'GET')
         return augmentList();
@@ -626,9 +602,8 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         return hide(req);
     if (path === '/api/augments' && method === 'POST')
         return uploadAugments(req);
-    const gp = path.match(/^\/api\/gruppe\/([A-Za-z0-9]{12})$/);
-    if (gp && method === 'GET')
-        return cached(url, () => groupPage(gp[1]));
+    if (path === '/api/tags' && method === 'GET')
+        return cached(url, tags);
     if (path === '/api/start' && method === 'GET')
         return cached(url, start);
     const pl = path.match(/^\/api\/plaetze\/(a[1-9][0-9]{0,9})$/);
@@ -667,10 +642,10 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         }
         else
             head = (await rows<typeof head>('SELECT puuid,name,icon,lastSeen FROM players WHERE puuid=?', own))[0] ?? fail(404, 'Spieler nicht gefunden');
-        const s = standings(await entries(c.since, c.group?.code ?? null, own, false, true), c.since)[0];
+        const s = standings(await entries(c.since, own, false, true), c.since)[0];
         // The public id (pages of a PUUID link move there); head.puuid stays as the request named it.
         const publicIdOf = archiveIdOf(head.puuid) !== null ? head.puuid : (await publicIdsOf(new Set([own]))).get(own)!;
-        return json({ ...head, id: publicIdOf, season: c.season, group: c.group, ...(s ? { ...open(s), puuid: head.puuid } : { rank: null, games: 0, wins: 0, placed: 0, climbing: false, average: null, seasons: [] }), history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.pct - a.mark.pct || a.entry.gameId - b.entry.gameId).slice(0, 5) });
+        return json({ ...head, id: publicIdOf, season: c.season, ...(s ? { ...open(s), puuid: head.puuid } : { rank: null, games: 0, wins: 0, placed: 0, climbing: false, average: null, seasons: [] }), history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.pct - a.mark.pct || a.entry.gameId - b.entry.gameId).slice(0, 5) });
     }
     if (pm) {
         const id = puuid.parse(decodeURIComponent(pm[1]));
@@ -693,32 +668,9 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
             return json({ deleted: true });
         }
     }
-    if (path === '/api/groups' && method === 'POST') {
-        const b = groupSchema.parse(await body(req));
-        const code = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[v % 62]).join('');
-        const adminToken = secret(), now = Date.now();
-        await query('INSERT INTO groups (code,name,since,createdAt,adminHash) VALUES (?,?,?,?,?)', code, b.name, now, now, await hash(adminToken)).run();
-        return json({ code, name: b.name, since: now, createdAt: now, adminToken }, 201);
-    }
-    const gm = path.match(/^\/api\/groups\/([^/]+)\/(join|leave|restart)$/);
-    if (gm && method === 'POST') {
-        const g = await group(gm[1]);
-        if (gm[2] === 'restart') {
-            const token = req.headers.get('authorization')?.replace(/^Bearer /, '') ?? '';
-            if (await hash(token) !== g.adminHash)
-                fail(401, 'Gruppen-Admin-Schlüssel erforderlich');
-            const since = Date.now();
-            await db().batch([query('UPDATE groups SET since=? WHERE code=?', since, g.code), query("INSERT INTO events (kind,at) VALUES ('reset',?)", since)]);
-            return json({ code: g.code, since });
-        }
-        const b = memberSchema.parse(await body(req));
-        await authorize(req, b.puuid);
-        await db().batch([gm[2] === 'join' ? query('INSERT OR IGNORE INTO group_members (code,puuid) VALUES (?,?)', g.code, b.puuid) : query('DELETE FROM group_members WHERE code=? AND puuid=?', g.code, b.puuid), query("INSERT INTO events (kind,at) VALUES ('reset',?)", Date.now())]);
-        return json({ code: g.code, puuid: b.puuid, joined: gm[2] === 'join' });
-    }
     if (path === '/api/export' && method === 'GET') {
         const hidden = await hiddenPlayers();
-        return json({ exportedAt: Date.now(), ratingVersion: RATING_VERSION, seasons: await rows('SELECT * FROM seasons'), players: await rows('SELECT puuid,name,icon,lastSeen FROM players'), groups: await rows('SELECT code,name,since,createdAt FROM groups'), group_members: await rows('SELECT code,puuid FROM group_members'), games: (await rows<{
+        return json({ exportedAt: Date.now(), ratingVersion: RATING_VERSION, seasons: await rows('SELECT * FROM seasons'), players: await rows('SELECT puuid,name,icon,lastSeen FROM players'), games: (await rows<{
                 json: string;
                 quality: number;
                 receivedAt: number;
