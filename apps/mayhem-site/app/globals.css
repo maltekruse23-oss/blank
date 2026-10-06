@@ -3009,3 +3009,85 @@ a.button {
 .my-place-value {
   font-weight: 700;
 }
+
+/* Player page: tags (rarest first) and preferences */
+.tag-list,
+.pref-list,
+.pref-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+.tag-list li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  font-size: 13px;
+}
+.tag-list li:first-child {
+  outline: 1px solid var(--accent);
+}
+.tag-name {
+  color: var(--accent);
+  font-weight: 700;
+}
+.tag-list .faint {
+  font-size: 11px;
+}
+.prefs h3 {
+  margin: 14px 0 6px;
+  font: 600 12px/1.2 var(--font);
+  color: var(--muted);
+}
+.prefs h3:first-of-type {
+  margin-top: 0;
+}
+.pref-list li,
+.pref-bars li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.pref-bars li {
+  grid-template-columns: 92px 1fr 40px;
+}
+.pref-list .faint,
+.pref-bars .faint {
+  text-align: right;
+}
+.avatar.sm {
+  width: 24px;
+  height: 24px;
+}
+.pref-bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--panel-3);
+  overflow: hidden;
+}
+.pref-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.dmg-split {
+  display: flex;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--panel-3);
+}
+.dmg-split .ap { background: var(--game-magic); }
+.dmg-split .ad { background: var(--game-physical); }
+.dmg-split .tr { background: var(--muted); }
