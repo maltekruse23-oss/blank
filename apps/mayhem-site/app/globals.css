@@ -1,27 +1,52 @@
-/* blank. Mayhem – one design for the whole site. Colors, space, radii and motion only as tokens;
-   components never use fixed colors. Dark green/black like the blank. app, quiet cards, green
-   accent; each grade (F–MAYHEM) and each tier (D–MAYHEM) has its own color. */
+/* blank. Mayhem – one design for the whole site ("Augment-Wahl", user's choice 06.10.2026). Colors,
+   space, radii and motion only as tokens; components never use fixed colors. Built from the Mayhem
+   emblems in public/grades and public/ranks: plum black, slate thorn grey, amethyst accent and the
+   prismatic holo foil of the MAYHEM lettering (--holo). Headings in Bungee, text in Rubik (both
+   self-hosted in public/fonts, SIL OFL). The games of the day are augment cards with silver, gold
+   and prismatic frames. Each grade (F–MAYHEM) and each tier (D–MAYHEM) keeps its own color. */
+
+@font-face {
+  font-family: 'Bungee';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/bungee-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/rubik-latin.woff2') format('woff2');
+}
 
 :root {
   color-scheme: dark;
 
   /* Surfaces */
-  --bg: #080b09;
-  --bg-raised: #0c110e;
-  --panel: #101612;
-  --panel-2: #141c17;
-  --panel-3: #19231d;
-  --line: #1f2b24;
-  --line-strong: #2c3b32;
+  --bg: #0a0812;
+  --bg-raised: #0e0b17;
+  --panel: #130f1e;
+  --panel-2: #181327;
+  --panel-3: #1f1832;
+  --line: #261f3a;
+  --line-strong: #3a3058;
+  --slate: #5d5c7c; /* the thorn ornaments of the emblems */
 
   /* Text */
-  --text: #e9efea;
-  --muted: #95a69a;
-  --faint: #7e8f84; /* ≥ 4.5:1 on every panel (WCAG AA) */
+  --text: #eceaf6;
+  --muted: #a6a3c0;
+  --faint: #8f8bad; /* ≥ 4.5:1 on every panel (WCAG AA) */
 
   /* Accent and states */
-  --accent: #a7f36b;
-  --accent-ink: #0a0f0b;
+  --accent: #c3a0ff;
+  --accent-ink: #120c1f;
+  /* Prismatic foil of the MAYHEM lettering; for the brand, the prismatic augment frame and a few
+     highlights only. */
+  --holo: linear-gradient(100deg, #ff9ed6 0%, #ffe78a 22%, #a6f7d6 42%, #8fd2ff 62%, #c7a1ff 80%, #ff9ed6 100%);
+  --frame-silver: linear-gradient(160deg, #ecebf6, #8d8ca6 50%, #d6d6e6);
+  --frame-gold: linear-gradient(160deg, #fff1b8, #d29a2b 45%, #ffe08a);
   --accent-soft: color-mix(in oklab, var(--accent) 14%, transparent);
   --up: #7fe39a;
   --down: #ff8d92;
@@ -63,16 +88,19 @@
   --gutter: 16px;
   --page: 1180px;
   --gap: 16px;
-  --radius: 14px;
-  --radius-sm: 9px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --radius-pill: 999px;
   --shadow: 0 18px 50px -24px color-mix(in oklab, black 80%, transparent);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --fast: 140ms;
   --slow: 520ms;
 
-  --font: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-display: 'Segoe UI Variable Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font: 'Rubik', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* heavy numbers and names */
+  --font-display: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+  /* page and section titles, the brand; one weight only, never bold */
+  --font-title: 'Bungee', 'Rubik', 'Segoe UI', system-ui, sans-serif;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -96,7 +124,7 @@ body {
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(1200px 500px at 15% -10%, color-mix(in oklab, var(--accent) 7%, transparent), transparent 60%),
+    radial-gradient(1100px 480px at 50% -8%, color-mix(in oklab, var(--accent) 11%, transparent), transparent 70%),
     var(--bg);
   color: var(--text);
   font: 15px/1.5 var(--font);
@@ -176,14 +204,17 @@ select {
   white-space: nowrap;
 }
 
-.brand b {
-  color: var(--accent);
+.brand b,
+.brand small {
+  background: var(--holo);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .brand small {
-  font: 700 11px/1 var(--font);
-  letter-spacing: 0.22em;
-  color: var(--muted);
+  font: 400 15px/1 var(--font-title);
+  letter-spacing: 0.02em;
 }
 
 .nav {
@@ -209,6 +240,7 @@ select {
 /* The way to more data stands out. */
 .nav a[href='/mitmachen'] {
   color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent);
 }
 
 .search {
@@ -352,8 +384,9 @@ main {
 
 .page-head h1 {
   margin: 8px 0 0;
-  font: 800 clamp(30px, 5vw, 46px) / 1.05 var(--font-display);
-  letter-spacing: -0.03em;
+  font: 400 clamp(28px, 4.6vw, 42px) / 1.05 var(--font-title);
+  letter-spacing: 0;
+  text-wrap: balance;
 }
 
 .page-head .side {
@@ -375,10 +408,9 @@ main {
 .card h2,
 .section-title {
   margin: 0 0 14px;
-  font: 700 12px/1.2 var(--font);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font: 400 17px/1.2 var(--font-title);
+  letter-spacing: 0;
+  color: var(--text);
 }
 
 .grid {
@@ -2230,8 +2262,9 @@ th[aria-sort='ascending'] .sort[data-on='true']::after {
 
 .start-hero h1 {
   margin: 0;
-  font: 800 clamp(28px, 5vw, 46px) / 1.08 var(--font-display);
-  letter-spacing: -0.03em;
+  font: 400 clamp(30px, 5.4vw, 52px) / 1.05 var(--font-title);
+  letter-spacing: 0;
+  text-wrap: balance;
 }
 
 .search.big {
@@ -2290,61 +2323,156 @@ th[aria-sort='ascending'] .sort[data-on='true']::after {
   color: var(--c);
 }
 
-.day-games {
+/* Games of the day as augment cards (silver, gold, prismatic frame from the grade). */
+.day-pick {
   display: grid;
-  gap: 10px;
+  gap: 18px;
+  margin: 8px 0 28px;
+}
+
+.day-pick-head {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.day-pick-head small {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day-pick-head h2 {
+  margin: 0;
+  font: 400 clamp(24px, 3.6vw, 34px) / 1.1 var(--font-title);
+}
+
+.aug-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 260px));
+  justify-content: center;
+  gap: 20px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.day-game {
-  border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in oklab, var(--c) 35%, var(--line));
-  background:
-    linear-gradient(90deg, var(--panel-2) 40%, color-mix(in oklab, var(--panel-2) 40%, transparent)),
-    var(--splash, none) right 20% / cover no-repeat,
-    linear-gradient(110deg, color-mix(in oklab, var(--c) 12%, transparent), transparent 60%),
-    var(--panel-2);
-  transition: border-color var(--fast) var(--ease);
+.aug {
+  --frame: var(--frame-silver);
+  padding: 3px;
+  border-radius: calc(var(--radius) + 3px);
+  background: var(--frame);
+  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
 }
 
-.day-game:hover {
-  border-color: var(--c);
+.aug[data-frame='gold'] {
+  --frame: var(--frame-gold);
 }
 
-.day-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  color: inherit;
+.aug[data-frame='prism'] {
+  --frame: var(--holo);
+  background-size: 200% 100%;
+  box-shadow: 0 0 46px -8px color-mix(in oklab, var(--accent) 60%, transparent);
 }
 
-.day-link:hover {
-  color: inherit;
+.aug:hover {
+  transform: translateY(-4px);
 }
 
-.day-place {
-  width: 18px;
-  font: 800 18px/1 var(--font-display);
-  color: var(--faint);
+.aug[data-frame='prism']:hover {
+  animation: foil 2.4s linear infinite;
 }
 
-.day-who {
+@keyframes foil {
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aug[data-frame='prism']:hover {
+    animation: none;
+  }
+}
+
+.aug-link {
+  position: relative;
   display: grid;
-  gap: 2px;
-  min-width: 0;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  height: 100%;
+  min-height: 320px;
+  padding: 16px 16px 18px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-align: center;
+  color: inherit;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--panel-2) 45%, transparent), var(--panel) 62%),
+    var(--splash, none) center 20% / cover no-repeat,
+    var(--panel-2);
 }
 
-.day-who b {
+.aug-link:hover {
+  color: inherit;
+}
+
+.aug-link:focus-visible {
+  outline-offset: -4px;
+}
+
+.aug-rarity {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.aug-name {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font: 400 19px/1.15 var(--font-title);
 }
 
-.day-who .muted {
-  font-size: 13px;
+.aug-name .faint {
+  font: 500 13px var(--font);
+}
+
+.aug-value {
+  display: grid;
+  margin-top: auto;
+  padding-top: 10px;
+  font: 800 28px/1.1 var(--font-display);
+}
+
+.aug-value small {
+  font: 500 12px/1.4 var(--font);
+  color: var(--muted);
+}
+
+.day-reroll {
+  display: flex;
+  justify-content: center;
+}
+
+.day-reroll .button {
+  border-radius: var(--radius-pill);
+  padding: 0 20px;
+}
+
+.day-reroll .button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.card h2 .faint {
+  font: 500 14px var(--font);
 }
 
 .histogram.grades .label {
