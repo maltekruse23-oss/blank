@@ -2860,3 +2860,152 @@ a.button {
 .join-steps b {
   display: block;
 }
+
+/* ---- "Das bin ich" (app/ui/me.ts): own rows, own places, search without a hit ------------- */
+
+.start-lead {
+  max-width: 560px;
+  margin: 0;
+}
+
+.start-nudge {
+  max-width: 560px;
+  margin: -4px 0 0;
+}
+
+.table tbody tr[data-me] td {
+  background: var(--accent-soft);
+}
+
+.table tbody tr[data-me] td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.record-list li[data-me],
+.record-top[data-me] {
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background-color: var(--accent-soft);
+}
+
+.me-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+
+.me-badge {
+  border: 1px dashed var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.me-badge.on {
+  border-style: solid;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.me-jump {
+  justify-self: start;
+}
+
+.search .search-miss {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search .search-miss b {
+  color: var(--text);
+}
+
+.search .search-miss a.button {
+  justify-self: start;
+}
+
+.join-missing {
+  margin-top: var(--gap);
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-bottom: var(--gap);
+  border-color: var(--accent);
+}
+
+.join-missing p {
+  margin: 0;
+  max-width: 640px;
+}
+
+.my-places {
+  margin-bottom: var(--gap);
+}
+
+.my-places-links {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.my-places-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.my-places-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-places-list a {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in oklab, var(--hue, var(--accent)) 40%, var(--line));
+  background: color-mix(in oklab, var(--hue, var(--accent)) 8%, transparent);
+  font-size: 13px;
+}
+
+.my-place {
+  min-width: 2.6ch;
+  font: 800 22px/1 var(--font-display);
+}
+
+.my-places-list li[data-place='1'] .my-place { color: var(--tier-mayhem); }
+.my-places-list li[data-place='2'] .my-place { color: var(--tier-c); }
+.my-places-list li[data-place='3'] .my-place { color: var(--tier-d); }
+
+.my-place-what {
+  display: grid;
+  min-width: 0;
+}
+
+.my-place-what b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-place-value {
+  font-weight: 700;
+}
