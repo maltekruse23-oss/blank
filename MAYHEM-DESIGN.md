@@ -17,17 +17,17 @@ kein Neon-Grün auf Schwarz, keine kleinen gesperrten Überschriften über jeder
 
 ## Farben
 
-| Rolle | Token | Wert |
-| --- | --- | --- |
-| Grund | `--bg` | `#0a0812` (Pflaume-Schwarz) |
-| Flächen | `--panel`, `--panel-2`, `--panel-3` | `#130f1e`, `#181327`, `#1f1832` |
-| Linien | `--line`, `--line-strong` | `#261f3a`, `#3a3058` |
-| Dornen-Grau | `--slate` | `#5d5c7c` |
-| Text | `--text`, `--muted`, `--faint` | `#eceaf6`, `#a6a3c0`, `#8f8bad` (alle ≥ 4,5 : 1 auf jeder Fläche) |
-| Akzent | `--accent` | `#c3a0ff` (Amethyst), Schrift darauf `--accent-ink` `#120c1f` |
-| Prisma-Folie | `--holo` | `linear-gradient(100deg, #ff9ed6 0%, #ffe78a 22%, #a6f7d6 42%, #8fd2ff 62%, #c7a1ff 80%, #ff9ed6 100%)` |
-| Silber-Rahmen | `--frame-silver` | `linear-gradient(160deg, #ecebf6, #8d8ca6 50%, #d6d6e6)` |
-| Gold-Rahmen | `--frame-gold` | `linear-gradient(160deg, #fff1b8, #d29a2b 45%, #ffe08a)` |
+| Rolle         | Token                               | Wert                                                                                                    |
+| ------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Grund         | `--bg`                              | `#0a0812` (Pflaume-Schwarz)                                                                             |
+| Flächen       | `--panel`, `--panel-2`, `--panel-3` | `#130f1e`, `#181327`, `#1f1832`                                                                         |
+| Linien        | `--line`, `--line-strong`           | `#261f3a`, `#3a3058`                                                                                    |
+| Dornen-Grau   | `--slate`                           | `#5d5c7c`                                                                                               |
+| Text          | `--text`, `--muted`, `--faint`      | `#eceaf6`, `#a6a3c0`, `#8f8bad` (alle ≥ 4,5 : 1 auf jeder Fläche)                                       |
+| Akzent        | `--accent`                          | `#c3a0ff` (Amethyst), Schrift darauf `--accent-ink` `#120c1f`                                           |
+| Prisma-Folie  | `--holo`                            | `linear-gradient(100deg, #ff9ed6 0%, #ffe78a 22%, #a6f7d6 42%, #8fd2ff 62%, #c7a1ff 80%, #ff9ed6 100%)` |
+| Silber-Rahmen | `--frame-silver`                    | `linear-gradient(160deg, #ecebf6, #8d8ca6 50%, #d6d6e6)`                                                |
+| Gold-Rahmen   | `--frame-gold`                      | `linear-gradient(160deg, #fff1b8, #d29a2b 45%, #ffe08a)`                                                |
 
 Noten (F–MAYHEM) und Stufen (D–MAYHEM) behalten ihre eigenen Farben (`--grade-*`, `--tier-*`).
 Die Prisma-Folie nur sparsam: Markenname, Prisma-Rahmen, einzelne Höhepunkte (MAYHEM).
