@@ -1,5 +1,9 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 06.10.2026: Champ-Karte „Testen“
+
+- Settings → Popouts → Meldungen → Champ-Karte hat „Testen“ (Benutzerwunsch „Spiel simulieren“): zeigt die Karte für Alistar mit den echten Zahlen von mayhemstats.lol, ohne Champ-Auswahl. Prüft Website-Abruf, Data Dragon, Popout und die Knöpfe AP/AD/Tank; die Erkennung über den Client prüft es nicht.
+
 ## Nachtrag 06.10.2026: Build vor dem Spiel (Etappe 2a der Mayhem-App)
 
 - `champCard.test.ts` neu: Richtung eines Spiels (mindestens zwei fertige Items, kein Gleichstand, nutzlose Items zählen nicht), AP-Alistar bekommt das AP-Augment als S und als Umwandler erkannt, Stufen nach Platz wie die Tierliste, echte Website-Form ergibt eine AP-Richtung. Rust-Test `items_know_finished_and_mana` prüft die Item-Art (`kind`).
