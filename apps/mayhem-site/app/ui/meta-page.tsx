@@ -16,7 +16,6 @@ import { MetaCells, MetaFacts, MetaHeads, useMetaSort } from './meta';
 export type MetaList = {
   scope: Scope;
   season: { id: string; year: number; number: number; start: number };
-  group: { code: string; name: string } | null;
   games: number;
   /** Counted player-games: what the pick rate is a share of. */
   entries: number;
@@ -61,7 +60,7 @@ export function MetaListPage<F extends string>({
           <span className="eyebrow">
             ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
           </span>
-          <h1>{data?.group ? `${title} · ${data.group.name}` : title}</h1>
+          <h1>{title}</h1>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
@@ -170,7 +169,6 @@ export function MetaDetailPage({
           <div>
             <span className="eyebrow">
               ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
-              {data?.group ? ` · ${data.group.name}` : ''}
             </span>
             <h1>{name}</h1>
             {facts && <div className="facts">{facts}</div>}

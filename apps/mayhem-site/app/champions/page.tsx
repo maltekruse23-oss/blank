@@ -15,7 +15,6 @@ import { percent } from '../ui/meta';
 type Champions = {
   scope: Scope;
   season: { id: string; year: number; number: number; start: number };
-  group: { code: string; name: string } | null;
   games: number;
   champions: ChampionStat[];
 };
@@ -70,7 +69,7 @@ export default function ChampionsPage() {
           <span className="eyebrow">
             ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
           </span>
-          <h1>{data?.group ? `Champions · ${data.group.name}` : 'Champions'}</h1>
+          <h1>Champions</h1>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
