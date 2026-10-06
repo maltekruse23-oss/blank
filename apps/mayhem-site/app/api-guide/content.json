@@ -49,8 +49,8 @@
     }
   },
   {
-    "title": "GET /api/players/<puuid oder a123>",
-    "text": "Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Statt der PUUID geht auch die öffentliche Nummer eines Spielers ohne Profil (/api/players/a123). Optional season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.",
+    "title": "GET /api/players/<Riot-ID, puuid oder a123>",
+    "text": "Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Statt der PUUID geht die Riot-ID wie bei op.gg (/api/players/Name-TAG) oder die öffentliche Nummer eines Spielers ohne Profil (/api/players/a123). Optional season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.",
     "request": "curl.exe \"$API/players/$PUUID\"\ncurl.exe \"$API/players/${PUUID}?season=v1\"",
     "response": {
       "puuid": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",

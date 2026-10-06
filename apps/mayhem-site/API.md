@@ -133,9 +133,9 @@ curl.exe "$API/tags"
 
 Antwort: `{ "season", "players", "cutoffs": { "<tag>": Zahl }, "counts": { "<tag>": Zahl }, "prismatic": [ID] }`
 
-## GET /api/players/<puuid oder a123>
+## GET /api/players/<Riot-ID, puuid oder a123>
 
-Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Jeder Spieler hat eine öffentliche Nummer (`/api/players/a123`, steht in der Rangliste als `puuid`); `id` nennt sie immer. Mit der Nummer nennt die Antwort sie auch als `puuid`, bei Spielern ohne Profil mit `icon` und `name` aus dem neuesten Spiel. Mit einer PUUID (blank. liest so das eigene Profil) kommt genau diese PUUID als `puuid` zurück, alle anderen PUUIDs der Antwort sind wie überall öffentliche Nummern. Optional season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.
+Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Jeder Spieler hat eine öffentliche Nummer (`/api/players/a123`, steht in der Rangliste als `puuid`); `id` nennt sie immer. Statt der Nummer geht auch die Riot-ID wie bei op.gg (`/api/players/Name-TAG`, der Tag nach dem letzten `-`, ohne Groß/Klein; zuerst Spieler mit Profil, sonst das neueste archivierte Spiel mit diesem Namen). Mit der Nummer nennt die Antwort sie auch als `puuid`, bei Spielern ohne Profil mit `icon` und `name` aus dem neuesten Spiel. Mit einer PUUID (blank. liest so das eigene Profil) kommt genau diese PUUID als `puuid` zurück, alle anderen PUUIDs der Antwort sind wie überall öffentliche Nummern. Optional season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.
 
 ```powershell
 curl.exe "$API/players/$PUUID"

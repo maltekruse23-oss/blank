@@ -35,8 +35,8 @@ und aram.zone. Übernommen werden nur Ideen, keine Assets.
    dass etwas umgebaut werden muss.
 2. **Wer erscheint.** ~~Ein Profil bekommt nur, wer selbst hochlädt.~~ Entschieden (siehe oben
    und Etappe 7): alle Spieler aus hochgeladenen und archivierten Spielen, mit Riot-ID, Stats,
-   Rang und Spielerseite. Spieler ohne eigenes Profil werden über eine öffentliche Nummer
-   (`/players/a123`) verlinkt, nie über ihre PUUID. Ausblenden unter `/datenschutz/entfernen`.
+   Rang und Spielerseite. Spielerseiten haben die Riot-ID in der Adresse (`/players/Name-TAG`,
+   wie op.gg, Benutzerwunsch); die PUUID von Spielern ohne Profil verlässt nie den Server. Ausblenden unter `/datenschutz/entfernen`.
 3. **Pflichtangaben.**
    - Riot-Hinweis („isn't endorsed by Riot Games …“, Legal Jibber Jabber) sichtbar in der
      Fußzeile.

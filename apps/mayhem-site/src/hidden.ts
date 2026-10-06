@@ -38,3 +38,16 @@ export function withoutHidden(entry: AramEntry, hidden: ReadonlySet<string>): Ar
   if (!hidden.size || !entry.with.some((m) => hidden.has(m.puuid))) return entry;
   return { ...entry, with: entry.with.filter((m) => !hidden.has(m.puuid)) };
 }
+
+/** "Name Zwei#EUW" → "Name Zwei-EUW": the Riot ID in a profile address, as op.gg writes it. A tag
+ * never has a "-", so the last one separates it. */
+export const riotSlug = (riotId: string) => {
+  const at = riotId.lastIndexOf('#');
+  return at < 0 ? riotId : `${riotId.slice(0, at)}-${riotId.slice(at + 1)}`;
+};
+
+/** The search form (riotKey) of a profile address, or null when it is none. */
+export function slugKey(slug: string): string | null {
+  const at = slug.lastIndexOf('-');
+  return riotKey(at < 0 ? slug : `${slug.slice(0, at)}#${slug.slice(at + 1)}`);
+}

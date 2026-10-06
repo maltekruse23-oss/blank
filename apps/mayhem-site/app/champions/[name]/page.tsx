@@ -26,6 +26,7 @@ import {
   useDragon,
   useItems,
   useLive,
+  profileHref,
 } from '../../ui/data';
 
 type Detail = {
@@ -36,7 +37,7 @@ type Detail = {
 type Dragon = ReturnType<typeof useDragon>;
 
 const VALID = /^([1-9][0-9]{0,4}|[A-Za-z][A-Za-z0-9]{0,29})$/;
-const profileLink = (puuid: string) => '/players/' + encodeURIComponent(puuid);
+const profileLink = (puuid: string, name: string) => profileHref({ puuid, name });
 const gameLink = (g: ChampionGame) => `/spiel/${g.gameId}?p=${encodeURIComponent(g.puuid)}`;
 
 export default function ChampionPage() {
@@ -166,7 +167,7 @@ function Players({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon })
                   <tr key={p.puuid} data-place={p.pct === null ? undefined : i + 1}>
                     <td className="place num">{i + 1}</td>
                     <td>
-                      <Link className="who" href={profileLink(p.puuid)} title={p.name}>
+                      <Link className="who" href={profileLink(p.puuid, p.name)} title={p.name}>
                         <Img className="avatar" src={profileImage(dragon, p.icon)} size={28} />
                         <span style={{ minWidth: 0 }}>
                           <b>{name}</b>
@@ -217,7 +218,7 @@ function BestGames({ detail, dragon, champion }: { detail: ChampionDetail; drago
             return (
               <li key={`${g.gameId}:${g.puuid}`} style={splash ? ({ '--splash': splash } as React.CSSProperties) : undefined}>
                 <GradeIcon grade={g.grade} size={40} />
-                <Link className="who" href={profileLink(g.puuid)} title={g.name}>
+                <Link className="who" href={profileLink(g.puuid, g.name)} title={g.name}>
                   <Img className="avatar" src={profileImage(dragon, g.icon)} size={26} />
                   <b>{splitName(g.name).name}</b>
                 </Link>

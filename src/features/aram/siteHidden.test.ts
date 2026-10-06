@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { AramEntry, AramMate } from '../../adapters/aram';
 import { gameView, type RawGame } from '../../../apps/mayhem-site/src/game';
-import { findPlayer, riotKey, withoutHidden } from '../../../apps/mayhem-site/src/hidden';
+import {
+  findPlayer,
+  riotKey,
+  riotSlug,
+  slugKey,
+  withoutHidden,
+} from '../../../apps/mayhem-site/src/hidden';
 
 // The website's "Namen ausblenden" (apps/mayhem-site/src/hidden.ts): a Riot ID from one game is
 // found by its PUUID and then disappears from game pages and entries; registered players stay named.
@@ -103,5 +109,24 @@ describe('Website: Namen ausblenden', () => {
     expect(view.named.map((n) => n.name)).toEqual(['Spieler 0#EUW']);
     expect(JSON.stringify(view)).not.toContain('Spieler 1');
     expect(JSON.stringify(view)).not.toContain(pid(1));
+  });
+});
+
+describe('profile addresses by Riot ID', () => {
+  it('write the tag after the last "-", as op.gg', () => {
+    expect(riotSlug('Name Zwei#EUW')).toBe('Name Zwei-EUW');
+    expect(riotSlug('Ohne Tag')).toBe('Ohne Tag');
+  });
+
+  it('find the same player back, without case or outer spaces', () => {
+    expect(slugKey(riotSlug('Name Zwei#EUW'))).toBe(riotKey('Name Zwei#EUW'));
+    expect(slugKey('name zwei-euw')).toBe('name zwei#euw');
+    expect(slugKey('Mit-Strich-EUW')).toBe('mit-strich#euw');
+  });
+
+  it('read nothing that is no Riot ID', () => {
+    expect(slugKey('')).toBeNull();
+    expect(slugKey('Name-')).toBeNull();
+    expect(slugKey('x'.repeat(50))).toBeNull();
   });
 });

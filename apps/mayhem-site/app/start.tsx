@@ -18,6 +18,7 @@ import {
   championKey,
   championLabel,
   de,
+  profileHref,
   splashImage,
   splitName,
   useDragon,
@@ -250,7 +251,7 @@ function MyPlaces({ me }: { me: Me }) {
           </span>
         </h2>
         <span className="my-places-links">
-          <Link href={'/players/' + encodeURIComponent(me.id)} className="faint">
+          <Link href={profileHref({ puuid: me.id, name: data?.name || me.name })} className="faint">
             {ME_TEXT.profile}
           </Link>
           <button type="button" className="link-button faint" onClick={() => setMe(null)}>

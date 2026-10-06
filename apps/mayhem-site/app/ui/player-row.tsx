@@ -2,7 +2,7 @@
 // One compact row of a ladder (start page): place, player, rank and Leistung Ø.
 import Link from 'next/link';
 import { GradeChip, Img, RankLine } from './bits';
-import { profileImage, splitName, useDragon, type PlayerSummary } from './data';
+import { profileHref, profileImage, splitName, useDragon, type PlayerSummary } from './data';
 import { ME_TEXT, useMe } from './me';
 
 export function PlayerRow({
@@ -17,7 +17,7 @@ export function PlayerRow({
   const me = useMe();
   const mine = me?.id === p.puuid;
   const { name, tag } = splitName(p.name);
-  const href = '/players/' + encodeURIComponent(p.puuid);
+  const href = profileHref(p);
   return (
     <tr data-place={place} data-me={mine || undefined}>
       <td className="place num">{place}</td>

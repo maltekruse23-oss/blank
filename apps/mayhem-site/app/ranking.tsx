@@ -7,7 +7,7 @@ import { seasonName, seasonOf } from '../src/features/aram/aramRating';
 import { apexLines, distributionOf, topShare } from '../src/insights';
 import ArchiveCounter from './archive-counter';
 import { GradeChip, Histogram, Img, Problem, RankLine, Tabs, TierMark } from './ui/bits';
-import { championImage, championKey, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from './ui/data';
+import { championImage, championKey, profileHref, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from './ui/data';
 import { ME_TEXT, useMe } from './ui/me';
 
 type View = 'rank' | 'performance';
@@ -175,7 +175,7 @@ function Row({
   mine: boolean;
 }) {
   const { name, tag } = splitName(p.name);
-  const href = '/players/' + encodeURIComponent(p.puuid);
+  const href = profileHref(p);
   const losses = p.games - p.wins;
   const average = p.average ? <GradeChip grade={p.average.grade} /> : <span className="faint">–</span>;
   const rank = <RankLine rank={p.rank} placed={p.placed} />;

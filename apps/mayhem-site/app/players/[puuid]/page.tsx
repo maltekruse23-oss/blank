@@ -38,6 +38,7 @@ import {
   de,
   duration,
   itemImage,
+  profileHref,
   profileImage,
   splitName,
   useAugments,
@@ -54,20 +55,32 @@ import { MIN_GAMES, preferencesOf, rankedTags, statsOf } from '../../../src/tags
 type Tab = 'overview' | 'matches' | 'champions' | 'seasons';
 type Dragon = ReturnType<typeof useDragon>;
 
+/** The address part as typed (a Riot ID like "Name Zwei-EUW" may arrive still encoded). */
+function decoded(part: string) {
+  try {
+    return decodeURIComponent(part);
+  } catch {
+    return part;
+  }
+}
+
 export default function PlayerPage() {
   const params = useParams<{ puuid: string }>();
   const { data, error, missing } = useLive<Profile>(
-    '/api/players/' + encodeURIComponent(params.puuid),
+    '/api/players/' + encodeURIComponent(decoded(params.puuid)),
   );
   const dragon = useDragon();
   const census = useTagCensus();
   const [tab, setTab] = useState<Tab>('overview');
   const now = useNow();
   const router = useRouter();
-  // An old link with a PUUID moves to the public id, so the PUUID leaves the address bar.
-  const moved = data?.id && data.id !== params.puuid ? data.id : null;
+  // Every address (an old link with a PUUID, a public id, a Riot ID in other case) moves to the
+  // Riot ID like op.gg, or to the public id when the name is hidden: no PUUID in the address bar.
+  const home = data?.id ? profileHref({ puuid: data.id, name: data.name }) : null;
+  const here = profileHref({ puuid: decoded(params.puuid) });
+  const moved = home && home.toLowerCase() !== here.toLowerCase() ? home : null;
   useEffect(() => {
-    if (moved) router.replace('/players/' + encodeURIComponent(moved));
+    if (moved) router.replace(moved);
   }, [moved, router]);
 
   if (error) return <Problem message={error} missing={missing} />;
