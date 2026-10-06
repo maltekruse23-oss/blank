@@ -4,6 +4,7 @@ import { useState } from 'react';
 import {
   DIRECTION_LABEL,
   PLAN_AUGMENTS_SHOWN,
+  sourceLabel,
   type BuildPick,
   type ChampView,
   type Tier,
@@ -13,8 +14,6 @@ import { GradeBadge } from './GradeBadge';
 
 const itemImage = (id: number) =>
   `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/item/${id}.png`;
-/** Pictures of Mayhem augments (Data Dragon has none): from the website. */
-const augmentImage = (id: number) => `https://mayhemstats.lol/api/augments/${id}.png`;
 
 const games = (n: number) => `${n} ${n === 1 ? 'Spiel' : 'Spiele'}`;
 
@@ -57,7 +56,7 @@ function Builds({ builds }: { builds: BuildPick[] }) {
 
 /**
  * Champ-Karte (popout in an ARAM Mayhem champion select, useChampCard.ts): the build directions of
- * the held champion from mayhemstats.lol (the user picks one before the game, the most played is
+ * the held champion from arammeta.com or mayhemstats.lol (the user picks one before the game, the most played is
  * preselected), their item cores and every augment in a tier S–D for the chosen direction; several
  * choices with their numbers. Without enough games per direction: the best augments and builds.
  */
@@ -76,8 +75,8 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
           <b>{label}</b>
           <small>
             {view.games
-              ? `${games(view.games)} auf mayhemstats.lol`
-              : 'Noch keine Spiele auf mayhemstats.lol'}
+              ? `${games(view.games)} · ${sourceLabel(view)}`
+              : `Noch keine Spiele · ${sourceLabel(view)}`}
           </small>
         </span>
       </header>
@@ -122,7 +121,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
                     }
                   />
                   <span className={`champ-card-augment ${a.rarity}`}>
-                    {a.icon && <img src={augmentImage(a.id)} alt="" width={24} height={24} />}
+                    {a.image && <img src={a.image} alt="" width={24} height={24} />}
                   </span>
                   <span className="champ-card-name">{a.name}</span>
                   <small>
@@ -145,7 +144,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
                 {view.augments.map((a) => (
                   <li key={a.id}>
                     <span className={`champ-card-augment ${a.rarity}`}>
-                      {a.icon && <img src={augmentImage(a.id)} alt="" width={24} height={24} />}
+                      {a.image && <img src={a.image} alt="" width={24} height={24} />}
                     </span>
                     <span className="champ-card-name">{a.name}</span>
                     <small>

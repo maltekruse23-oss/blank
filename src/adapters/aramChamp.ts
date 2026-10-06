@@ -20,6 +20,20 @@ export type ChampInfo = {
   champion: string | null;
   augments: string | null;
   items: Record<string, ChampItem>;
+  /** arammeta.com's numbers (user's choice, Rust `meta_info`); null when it did not answer. */
+  meta?: MetaInfo | null;
+};
+
+/** An augment as arammeta lists it: English name, rarity kSilver/kGold/kPrismatic, categories
+ * like "ap", "ad", "tank", icon path on arammeta.com. */
+export type MetaAugment = { name: string; rarity: string; cats: string[]; icon: string };
+
+export type MetaInfo = {
+  patch: string;
+  games: number | null;
+  /** `/api/champions/<id>.json` as it came (checked in champCard.ts). */
+  champion: string | null;
+  augments: Record<string, MetaAugment>;
 };
 
 /** Follow the champion select while the client runs (on), or stop (off). */

@@ -3,6 +3,7 @@ import { championSplash } from '../adapters/aram';
 import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
   DIRECTION_LABEL,
+  sourceLabel,
   TIERS,
   type BuildPick,
   type ChampView,
@@ -12,15 +13,13 @@ import { percent } from '../features/aram/format';
 
 const itemImage = (id: number) =>
   `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/item/${id}.png`;
-/** Pictures of Mayhem augments (Data Dragon has none): from the website. */
-const augmentImage = (id: number) => `https://mayhemstats.lol/api/augments/${id}.png`;
 const games = (n: number) => `${n} ${n === 1 ? 'Spiel' : 'Spiele'}`;
 
 /** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game). */
-function AugmentIcon({ id, rarity, icon }: { id: number; rarity: string; icon: boolean }) {
+function AugmentIcon({ rarity, image }: { rarity: string; image: string | null }) {
   return (
     <span className="mayhem-aug-icon" data-rarity={rarity}>
-      {icon && <img src={augmentImage(id)} alt="" width={30} height={30} />}
+      {image && <img src={image} alt="" width={30} height={30} />}
     </span>
   );
 }
@@ -80,7 +79,7 @@ function TierList({ augments, label }: { augments: TieredAugment[]; label: strin
                       : `${games(a.games)} mit ${label}`
                   }
                 >
-                  <AugmentIcon id={a.id} rarity={a.rarity} icon={a.icon} />
+                  <AugmentIcon rarity={a.rarity} image={a.image} />
                   <span className="mayhem-aug-name">{a.name}</span>
                   <small>
                     {a.turns && <b>Umwandler → {DIRECTION_LABEL[a.turns]}</b>}
@@ -125,8 +124,8 @@ export function MayhemCard({
         <h1>{label}</h1>
         <small>
           {view.games
-            ? `${games(view.games)} auf mayhemstats.lol`
-            : 'Noch keine Spiele auf mayhemstats.lol'}
+            ? `${games(view.games)} · ${sourceLabel(view)}`
+            : `Noch keine Spiele · ${sourceLabel(view)}`}
           {sample && ' · Beispiel'}
         </small>
         {onClose && (
@@ -178,7 +177,7 @@ export function MayhemCard({
               <ul className="mayhem-best">
                 {view.augments.map((a) => (
                   <li key={a.id}>
-                    <AugmentIcon id={a.id} rarity={a.rarity} icon={a.icon} />
+                    <AugmentIcon rarity={a.rarity} image={a.image} />
                     <span className="mayhem-aug-name">{a.name}</span>
                     <small>
                       {games(a.games)}

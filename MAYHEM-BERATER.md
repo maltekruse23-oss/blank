@@ -289,6 +289,9 @@ kann, bis zum nächsten Champion. „Beispiel: Alistar“ zeigt sie ohne Spiel. 
 Einstellungen, keine gespeicherten Daten, kein Rang, keine Rekorde. Weitere Teile (Erkennung im
 Spiel, Item-Sets und Zauber) nur, wenn malte sie für die Mayhem-App will.
 
+Daten (Benutzerwahl 06.10.2026): zuerst arammeta.com (offene JSON, nur Mayhem, viel mehr Spiele),
+sonst mayhemstats.lol; Einzelheiten in CLAUDE.md (Champ-Karte).
+
 Technik: dieselbe Rust-Crate mit eigener Config `src-tauri/tauri.mayhem.conf.json` (Name,
 `mainBinaryName` `mayhem`, Identifier `lol.mayhemstats.desktop`, Fenster `mayhem`, eigene CSP);
 `lib.rs` startet anhand des Identifiers `mayhem.rs` statt blank. (eigener Builder, nur
