@@ -128,6 +128,16 @@ curl.exe "$API/plaetze/a123"
 
 Antwort: `{ "id", "season", "name", "rank", "placed", "average", "games", "placements": [{ "kind": "rank" | "performance" | "record", "id", "title", "hue", "unit", "place", "of", "value", "gameId" }] }`
 
+## GET /api/tags
+
+Grundlage der Tags auf den Spielerseiten (`src/tags.ts`): für jeden Prozent-Tag (z. B. „Kopfgeldjäger“ = die besten 10 % bei Kills pro Spiel) der Grenzwert, berechnet aus allen Spielern mit mindestens 10 gewerteten Spielen, und wie viele Spieler jeden Tag haben. Ab 20 solcher Spieler, sonst leer. Nur Zahlen, kein Spieler. Dazu die IDs der Prisma-Augments, damit die Seite denselben Anteil rechnet.
+
+```powershell
+curl.exe "$API/tags"
+```
+
+Antwort: `{ "season", "players", "cutoffs": { "<tag>": Zahl }, "counts": { "<tag>": Zahl }, "prismatic": [ID] }`
+
 ## GET /api/gruppe/<code>
 
 Die Gruppenseite: die Rangliste der Gruppe (gleiche Form wie `players` bei /api/leaderboard?group=…), je Mitglied, was das Duell braucht (`radar`: die fünf Notenachsen der letzten 20 Spiele, `bests`: Bestwert je Rekord-Kategorie, nur Werte über 0, `games`: gewertete Spiele mit Note), und die letzten sechs Spielabende (Spiele mit höchstens drei Stunden Pause, je Spieler Spiele, MP-Bilanz, Einstufungsspiele und beste Note). Nur Mitglieder und nur Spiele ab dem Start der Gruppe.

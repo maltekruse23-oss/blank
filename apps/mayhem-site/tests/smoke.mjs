@@ -10,6 +10,8 @@ const page = async (path, status = 200) => { const html = await (await get(path,
 const api = async () => {
   const start = await data('/api/start');
   for (const k of ['trackedGames', 'players', 'grades', 'top', 'records']) assert.ok(k in start, `start.${k}`);
+  const tags = await data('/api/tags');
+  for (const k of ['players', 'cutoffs', 'counts', 'prismatic']) assert.ok(k in tags, `tags.${k}`);
   const board = await data('/api/leaderboard');
   assert.ok(Array.isArray(board.players));
   for (const scope of ['all', 'season']) {

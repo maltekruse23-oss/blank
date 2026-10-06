@@ -3,12 +3,24 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: Tags und Vorlieben auf der Spielerseite — 06.10.2026
+
+- Benutzerwunsch nach der Konkurrenz-Analyse („nicht Stärken, sondern Vorlieben, dazu viele Tags mit einem Wort, damit man denkt, man ist etwas Besonderes“). Stärken-Netz, Form und MP-Verlauf gab es schon und bleiben.
+- `apps/mayhem-site/src/tags.ts` (rein, Test `src/features/aram/siteTags.test.ts`): 34 Tags. Die meisten markieren die besten (oder untersten) 10 % aller Spieler in einem Wert (Kills, Tode, Assists, Team-Anteil, Gold, CC/min, Turm-Schaden, Krit, absoluter Schaden, Spieldauer, Abwechslung, Notenschwankung, Prisma-Anteil und die fünf Achsen der Note); die übrigen sind Regeln (One-Trick, Skin-Sammler, Zauberer/Klingenmeister/Hybrid, Pentakill, Glückspilz/Pechvogel …). Tags erst ab 10 gewerteten Spielen, Grenzen erst ab 20 solcher Spieler; teilen sehr viele denselben Wert, gibt es den Tag nicht.
+- `/api/tags` (zwischengespeichert) schickt nur Grenzwerte und Anzahlen, nie Spieler; die Seite rechnet die Werte des Spielers selbst aus seinem Verlauf. Die Spielerseite zeigt die Karte „Tags“ (seltenste zuerst, „nur 12 %“) und oben die drei seltensten statt der bisherigen Spielstil-Abzeichen (die bleiben als Ersatz unter 10 Spielen), dazu die Karte „Vorlieben“ (Champions, Klassen aus Data Dragon, Schadensart, Augments).
+- Geprüft: Website tsc/lint/build, Rauchtest (prüft `/api/tags`), `pnpm test`/`lint`/`format:check`, Ansicht bei 1280 und 390 px mit 26 erfundenen Spielern auf frischer lokaler D1 (Data Dragon in der Sandbox gesperrt, Klassen und Bilder daher nicht gesehen).
+
 ## Website: „Bist du schon drin?“, „Das bin ich“ und „Deine Plätze“ — 06.10.2026
 
 - Benutzerwunsch, um mehr Leute zum Collector zu bringen: Die Startseite fragt ganz oben „Bist du schon drin?“ mit der großen Suche. Ohne Treffer zeigt die Suche (auch die im Kopf) „… ist noch nicht in der Datenbank“ mit „Spiele hinzufügen“; Enter ohne Treffer führt ebenfalls zu `/mitmachen?name=…`, das oben einen Hinweis mit Collector-Download zeigt.
 - „Login“ vorerst ohne Konto: auf jeder Spielerseite „Das bin ich“ (`app/ui/me.ts`, nur `localStorage` `mayhem.me.v1` mit öffentlicher Nummer und Riot-ID, nichts wird gesendet). Danach ist die eigene Zeile in Rangliste (dazu „Zu mir springen“), Top 10 und Rekorden markiert, und die Startseite zeigt „Deine Plätze“ (`/api/plaetze/<nummer>`, Logik `apps/mayhem-site/src/places.ts`, Test `src/features/aram/sitePlaces.test.ts`), bester Platz zuerst. Rekord-Plätze über alle Spieler (`recordRanking` in `src/records.ts`, `recordsView` schneidet wie bisher auf zehn ab).
 - Echtes Anmelden mit Riot (RSO, OAuth2) ist nur mit Produktionsschlüssel möglich und wird bei Riot eigens beantragt (Riot meldet sich dann im Developer Portal). Es würde nur beweisen, wer man ist, und brächte keine Mayhem-Spiele (die Web-API gibt Queue 2400 nicht heraus). Nicht gebaut; erst nach Benutzerauftrag beantragen. Neue Texte stehen gesammelt in `ME_TEXT` (für die englische Fassung).
 - Offen: #33 (Riot-ID-Adressen) war beim Bau noch nicht gemergt; die neuen Links nutzen `/players/<nummer>` wie der Rest der Seite.
+
+## Open Source unter AGPL-3.0 — 05.10.2026
+
+- Benutzerwahl: Repo `blank` (App und Website) unter AGPL-3.0-only. `LICENSE` (Originaltext der FSF), `license` in `package.json`, `apps/mayhem-site/package.json` (+ Lockfile-Wurzel) und `src-tauri/Cargo.toml`, Abschnitt „Lizenz“ am Ende der README, Fußzeile der Website „Quellcode (AGPL-3.0)“ (erfüllt § 13: Nutzer der Website kommen an den Quellcode). Fremde Teile (`vendor/`, Lucide) behalten ihre Lizenz. Nächster Benutzerwunsch: englische Fassung der Website.
+- Konkurrenz-Analyse (Claude Doc „Konkurrenz-Analyse mayhemstats.lol“): nächster Konkurrent mayhemstats.com (gleicher Ansatz, Open Source, Englisch, anonym); unsere Lücke sind öffentliche Spieler mit Rang.
 
 ## Release 0.9.2 — 05.10.2026
 
