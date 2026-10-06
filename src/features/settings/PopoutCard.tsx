@@ -18,6 +18,7 @@ import {
 import { More, Searching } from './More';
 import { TabContent, TabPill } from '../../components/TabMotion';
 import type { Preferences } from './preferences';
+import { SAMPLE_CHAMP, showChampCard } from '../aram/useChampCard';
 
 type Flag = {
   [K in keyof Preferences]: Preferences[K] extends boolean ? K : never;
@@ -64,6 +65,7 @@ export function PopoutCard({
   const [heldBack, setHeldBack] = useState(false);
   const [appInput, setAppInput] = useState('');
   const [appNote, setAppNote] = useState<string | null>(null);
+  const [champNote, setChampNote] = useState<string | null>(null);
   /** One preview per visit: every change updates it in place instead of a new one sliding in. */
   const previewId = useRef(Date.now() % 1_000_000_000).current;
   // Windows' "Animationseffekte" off (reduced motion): popouts only slide if that is overridden.
@@ -93,6 +95,14 @@ export function PopoutCard({
       { kind: 'preview', id: previewId, topic, stamp: Date.now() },
       { overFullScreen: true, acrylic: next.popoutAcrylic && !next.popoutTaskbar },
     ).then((shown) => setHeldBack(!shown));
+  }
+
+  /** The champ card without a game: the user's example champion with the website's real numbers. */
+  function champSample() {
+    setChampNote(null);
+    void showChampCard(SAMPLE_CHAMP, p)
+      .then((shown) => setHeldBack(!shown))
+      .catch(() => setChampNote('mayhemstats.lol hat nicht geantwortet.'));
   }
 
   function sample() {
@@ -433,7 +443,30 @@ export function PopoutCard({
             {toggle('popoutLive', 'Live-Meldungen', 'Wer auf Twitch live geht')}
             {toggle('popoutWarnings', 'Warnungen', 'Akku und Überlastung')}
             {toggle('popoutAram', 'ARAM-Ergebnis', 'Karte nach jedem ARAM-Mayhem-Spiel')}
-            {toggle('popoutChamp', 'Champ-Karte', 'Augments und Builds in der Champ-Auswahl')}
+            <div className="setting-row">
+              <div>
+                <h3>Champ-Karte</h3>
+                <p>Augments und Builds in der Champ-Auswahl</p>
+              </div>
+              <button className="text-link" disabled={off} onClick={champSample}>
+                Testen
+              </button>
+              <button
+                className="switch"
+                role="switch"
+                aria-checked={p.popoutChamp}
+                aria-label="Champ-Karte"
+                disabled={off}
+                onClick={() => change({ ...p, popoutChamp: !p.popoutChamp })}
+              >
+                <span />
+              </button>
+            </div>
+            {champNote && (
+              <p className="form-message" role="status">
+                {champNote}
+              </p>
+            )}
             {toggle('popoutNoticeAlways', 'Immer anzeigen', 'Bleibt, bis du schließt')}
             {slider(
               'popoutNoticeSeconds',
