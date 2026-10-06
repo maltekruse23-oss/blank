@@ -66,10 +66,8 @@ export default function ChampionsPage() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">
-            ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
-          </span>
           <h1>Champions</h1>
+          <p className="page-sub">{data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}</p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>

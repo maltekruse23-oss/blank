@@ -36,7 +36,6 @@ export default function HidePage() {
 
   return (
     <article className="prose">
-      <span className="eyebrow">BLANK. / DATENSCHUTZ</span>
       <h1>Namen ausblenden.</h1>
       <p>
         Gib ein Spiel an, in dem du mitgespielt hast, und deine Riot-ID. Danach erscheinen dein Name und deine

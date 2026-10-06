@@ -23,10 +23,10 @@ export default function ArchiveCounter() {
         return () => { controller.abort(); clearInterval(timer); };
     }, []);
     return <><p className="fine" role="status" aria-live="polite">
-        Rohdatenarchiv: <strong>{stats?.matches.toLocaleString('de-DE') ?? '—'}</strong> eindeutige Matches
-        {' · '}{stats?.players.toLocaleString('de-DE') ?? '—'} Spieler
-        {' · '}{stats?.timelines.toLocaleString('de-DE') ?? '—'} Timelines
-        {unavailable && ' · Aktualisierung gerade nicht verfügbar'}
+        Rohdatenarchiv: <strong>{stats?.matches.toLocaleString('de-DE') ?? '–'}</strong> eindeutige Matches,
+        {' '}{stats?.players.toLocaleString('de-DE') ?? '–'} Spieler,
+        {' '}{stats?.timelines.toLocaleString('de-DE') ?? '–'} Timelines.
+        {unavailable && ' Aktualisierung gerade nicht verfügbar.'}
     </p><p className="fine">Jedes Spiel mehr macht Siegquoten, Tier-Liste und Builds genauer.{' '}
         <a href="/mitmachen">Collector laden und mitmachen</a>
     </p></>;

@@ -18,7 +18,7 @@ export const ME_TEXT = {
   you: 'Du',
   jump: 'Zu mir springen',
   findTitle: 'Bist du schon drin?',
-  findLead: 'Such deine Riot-ID. Jeder, der in einem hochgeladenen Mayhem-Spiel vorkommt, steht hier mit Rang, Noten und Rekorden.',
+  findLead: 'Such deine Riot-ID. Jeder aus einem hochgeladenen Mayhem-Spiel steht hier mit Rang, Noten und Rekorden.',
   notFound: (name: string) => `„${name}“ ist noch nicht in der Datenbank.`,
   notFoundCta: 'Spiele hinzufügen',
   notFoundShort: 'Lad den Collector, dann bist du nach dem nächsten Start dabei.',

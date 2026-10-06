@@ -1,6 +1,7 @@
 'use client';
-// The records: one card per category in the colour of its kind, place 1 large with the splash of
-// the game and a link to it, places 2–10 below. Records from the last seven days are marked "Neu".
+// The records as a ledger: one row per category, its name left, place 1 large in the middle (the
+// first category with the splash of the game), the next places right. Records from the last seven
+// days are marked "Neu" and listed once above as links.
 import Link from 'next/link';
 import { seasonName } from '../../src/features/aram/aramRating';
 import type { RecordPlace, RecordView } from '../../src/records';
@@ -39,10 +40,8 @@ export default function RecordsPage() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">
-            ARAM: Mayhem · {data && scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
-          </span>
           <h1>Rekorde</h1>
+          <p className="page-sub">{data && scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}</p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
@@ -64,20 +63,15 @@ export default function RecordsPage() {
       )}
 
       {fresh.length > 0 && (
-        <section className="card fresh-strip" aria-label="Neu diese Woche">
-          <h2>Neu diese Woche</h2>
-          <ul>
-            {fresh.map((c) => (
-              <li key={c.id} data-hue={c.hue}>
-                <a href={'#' + c.id}>
-                  <b>{c.title}</b>
-                  <span className="num">{valueText(c, c.places[0].value)}</span>
-                  <small>{splitName(c.places[0].name).name}</small>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <p className="fresh-line">
+          <b>Neu diese Woche:</b>{' '}
+          {fresh.map((c, i) => (
+            <span key={c.id}>
+              {i > 0 && ', '}
+              <a href={'#' + c.id}>{c.title}</a>
+            </span>
+          ))}
+        </p>
       )}
 
       {shown.length > 0 && (
@@ -137,7 +131,7 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
           <Img className="champ" src={championImage(dragon, key || undefined)} alt="" size={24} />
           <span>
             {total ? 'zuletzt mit ' : ''}
-            {championOf(dragon, top)} · {date(top.game.at)}
+            {championOf(dragon, top)}, {date(top.game.at)}
           </span>
           <Link className="record-link" href={gameLink(top)}>
             Spiel ansehen

@@ -1,14 +1,15 @@
 'use client';
-// The start page: the search, head numbers, the games of the day, the top ten of the ladder, the
-// grades of the season and this week's new records (all from /api/start).
+// The start page (taste-skill rework 06.10.2026): left the question and the search, right the top
+// three of the ladder; a strip of head numbers; the games of the day (one large, two small); then
+// places 4 to 10 beside the grades of the season and this week's new records (all from /api/start).
 import Link from 'next/link';
 import { useState } from 'react';
 import type { Grade } from '../src/features/aram/aramPerformance';
-import { seasonName, seasonOf } from '../src/features/aram/aramRating';
+import { rankName, seasonName, seasonOf } from '../src/features/aram/aramRating';
 import { gradeShares } from '../src/explain';
 import type { RecordView } from '../src/records';
 import type { DayGame, StartView } from '../src/start';
-import { GradeChip, GradeIcon, Problem, RankLine } from './ui/bits';
+import { GradeChip, GradeIcon, Problem, RankLine, TierMark } from './ui/bits';
 import { PlayerRow } from './ui/player-row';
 import { ME_TEXT, setMe, useMe, type Me } from './ui/me';
 import type { Placement, PlacesView } from '../src/places';
@@ -49,87 +50,93 @@ export default function StartPage() {
   return (
     <>
       <section className="start-hero" aria-label="Suche">
-        <span className="eyebrow">ARAM: Mayhem · {seasonName(seasonOf(now))}</span>
-        <h1>{ME_TEXT.findTitle}</h1>
-        <p className="muted start-lead">{ME_TEXT.findLead}</p>
-        <Search big />
-        {!me && <p className="fine start-nudge">{ME_TEXT.markNudge}</p>}
-        <dl className="start-facts">
-          <div>
-            <dt>Spiele</dt>
-            <dd className="num">{data ? de(data.trackedGames) : '–'}</dd>
-          </div>
-          <div>
-            <dt>Spieler</dt>
-            <dd className="num">{data ? de(data.players) : '–'}</dd>
-          </div>
-          <div data-g="MAYHEM">
-            <dt>MAYHEM-Noten diese Saison</dt>
-            <dd className="num">{mayhem !== undefined ? de(mayhem) : '–'}</dd>
-          </div>
-        </dl>
+        <div className="start-ask">
+          <h1>{ME_TEXT.findTitle}</h1>
+          <p className="muted start-lead">{ME_TEXT.findLead}</p>
+          <Search big />
+          {!me && <p className="fine start-nudge">{ME_TEXT.markNudge}</p>}
+        </div>
+        <Podium top={data?.top.slice(0, 3)} season={seasonName(seasonOf(now))} />
       </section>
+
+      <dl className="start-facts">
+        <div>
+          <dt>Spiele</dt>
+          <dd className="num">{data ? de(data.trackedGames) : '–'}</dd>
+        </div>
+        <div>
+          <dt>Spieler</dt>
+          <dd className="num">{data ? de(data.players) : '–'}</dd>
+        </div>
+        <div data-g="MAYHEM">
+          <dt>MAYHEM-Noten diese Saison</dt>
+          <dd className="num">{mayhem !== undefined ? de(mayhem) : '–'}</dd>
+        </div>
+      </dl>
 
       {me && <MyPlaces me={me} />}
 
       {error && <Problem message={error} />}
-      {!data && !error && <p className="empty">Wird geladen …</p>}
 
       {data && <DayPick games={data.today} dragon={dragon} now={now} />}
 
       {data && (
-        <div className="grid cols-main">
-          <div className="stack">
-            <section className="card" aria-labelledby="top">
-              <div className="card-head">
-                <h2 id="top">Top 10</h2>
-                <Link href="/rangliste" className="faint">
-                  Ganze Rangliste
-                </Link>
+        <div className="start-more">
+          <section aria-labelledby="top">
+            <div className="card-head">
+              <h2 id="top" className="section-title">
+                Plätze 4 bis 10
+              </h2>
+              <Link href="/rangliste" className="faint">
+                Ganze Rangliste
+              </Link>
+            </div>
+            {data.top.length > 3 ? (
+              <div className="table-wrap flat">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Spieler</th>
+                      <th>Rang</th>
+                      <th className="hide-sm">Leistung Ø</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.top.slice(3).map((p, i) => (
+                      <PlayerRow key={p.puuid} player={p} place={i + 4} dragon={dragon} />
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              {data.top.length ? (
-                <div className="table-wrap flat">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Spieler</th>
-                        <th>Rang</th>
-                        <th className="hide-sm">Leistung Ø</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.top.map((p, i) => (
-                        <PlayerRow key={p.puuid} player={p} place={i + 1} dragon={dragon} />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="empty">Noch keine Spieler. Wer in blank. das Hochladen erlaubt, erscheint hier.</p>
-              )}
-            </section>
-          </div>
+            ) : (
+              <p className="empty">{data.top.length ? 'Noch nicht mehr als drei Spieler.' : 'Noch keine Spieler. Wer in blank. das Hochladen erlaubt, erscheint hier.'}</p>
+            )}
+          </section>
 
-          <aside className="stack">
-            <section className="card" aria-labelledby="grades">
-              <h2 id="grades">Noten diese Saison</h2>
+          <aside className="start-side">
+            <section aria-labelledby="grades">
+              <h2 id="grades" className="section-title">
+                Noten diese Saison
+              </h2>
               {data.seasonGames ? (
                 <GradeHistogram rows={data.grades} />
               ) : (
                 <p className="empty">Diese Saison noch keine Noten.</p>
               )}
               <p className="fine" style={{ marginTop: 12 }}>
-                {de(data.seasonGames)} gewertete Spiele. SSS und MAYHEM bekommen nur die besten {de(RARE * 100, 1)}&nbsp;% aller Spiele.{' '}
+                SSS und MAYHEM bekommen nur die besten {de(RARE * 100, 1)}&nbsp;% aller Spiele.{' '}
                 <Link href="/wertung#note">So entsteht die Note</Link>
               </p>
             </section>
 
-            <section className="card" aria-labelledby="fresh">
+            <section aria-labelledby="fresh">
               <div className="card-head">
-                <h2 id="fresh">Neue Rekorde der Woche</h2>
+                <h2 id="fresh" className="section-title">
+                  Neue Rekorde der Woche
+                </h2>
                 <Link href="/rekorde" className="faint">
-                  Alle Rekorde
+                  Alle
                 </Link>
               </div>
               {data.records.length ? (
@@ -149,69 +156,105 @@ export default function StartPage() {
   );
 }
 
-/** Frame of an augment card per grade: prismatic for MAYHEM, gold for SSS and SS, silver below. */
-function rarity(grade: Grade): { frame: 'prism' | 'gold' | 'silver'; label: string } {
-  if (grade === 'MAYHEM') return { frame: 'prism', label: 'Prisma' };
-  if (grade === 'SSS' || grade === 'SS') return { frame: 'gold', label: 'Gold' };
-  return { frame: 'silver', label: 'Silber' };
+/** The top three of the ladder beside the search: first place large with its emblem, second and
+    third below. Empty frames while loading, so nothing jumps. */
+function Podium({ top, season }: { top: PlayerSummary[] | undefined; season: string }) {
+  if (top && !top.length) return null;
+  const [first, ...rest] = top ?? [];
+  return (
+    <ol className="podium" aria-label={`Spitze der Rangliste, ${season}`} aria-busy={!top}>
+      <li className="podium-one">
+        {first ? (
+          <Link href={profileHref(first)}>
+            <span className="podium-text">
+              <small className="num">Platz 1, {season}</small>
+              <b>{splitName(first.name).name}</b>
+              <span className="num muted">
+                {first.rank ? `${rankName(first.rank)}, ${first.rank.points} MP` : 'Einstufung'}, {first.games} Spiele
+              </span>
+            </span>
+            <TierMark rank={first.rank} size={132} />
+          </Link>
+        ) : (
+          <span className="podium-wait" />
+        )}
+      </li>
+      {(top ? rest : [undefined, undefined]).map((p, i) => (
+        <li key={p?.puuid ?? i} className="podium-two">
+          {p ? (
+            <Link href={profileHref(p)}>
+              <TierMark rank={p.rank} size={52} />
+              <span>
+                <b>{splitName(p.name).name}</b>
+                <small className="num muted">{p.rank ? `${rankName(p.rank)}, ${p.rank.points} MP` : 'Einstufung'}</small>
+              </span>
+              <i className="num">{i + 2}</i>
+            </Link>
+          ) : (
+            <span className="podium-wait" />
+          )}
+        </li>
+      ))}
+    </ol>
+  );
 }
 
-/** The best games of the last 24 hours as augment cards, three at a time; "Neu würfeln" shows the
-    next three once, like the one reroll in the game. */
+/** The best games of the last 24 hours, three at a time: the best one large with its splash art,
+    the next two beside it. "Neu würfeln" shows the next three once, like the one reroll in the
+    game. */
 function DayPick({ games, dragon, now }: { games: DayGame[]; dragon: Dragon; now: number }) {
   const [rolled, setRolled] = useState(false);
   const canRoll = games.length > PICK;
   const shown = rolled && canRoll ? games.slice(PICK, PICK * 2) : games.slice(0, PICK);
   return (
     <section className="day-pick" aria-labelledby="today">
-      <div className="day-pick-head">
-        <small>Beste Noten der letzten 24 h</small>
-        <h2 id="today">Spiele des Tages</h2>
+      <div className="card-head">
+        <h2 id="today" className="section-title">
+          Spiele des Tages
+        </h2>
+        {canRoll && (
+          <button type="button" className="button" disabled={rolled} onClick={() => setRolled(true)}>
+            Neu würfeln ({rolled ? 0 : 1})
+          </button>
+        )}
       </div>
       {shown.length ? (
-        <ol className="aug-cards">
-          {shown.map((g) => (
-            <AugmentCard key={`${g.gameId}-${g.puuid}`} game={g} dragon={dragon} now={now} />
+        <ol className="day-games" data-n={shown.length}>
+          {shown.map((g, i) => (
+            <DayGameItem key={`${g.gameId}-${g.puuid}`} game={g} dragon={dragon} now={now} big={i === 0} />
           ))}
         </ol>
       ) : (
         <p className="empty">In den letzten 24 Stunden wurde noch kein Spiel gewertet.</p>
       )}
-      {canRoll && (
-        <div className="day-reroll">
-          <button type="button" className="button" disabled={rolled} onClick={() => setRolled(true)}>
-            Neu würfeln ({rolled ? 0 : 1})
-          </button>
-        </div>
-      )}
     </section>
   );
 }
 
-/** Cards side by side in the pick, like the augment choice. */
+/** Games shown at a time. */
 const PICK = 3;
 
-function AugmentCard({ game: g, dragon, now }: { game: DayGame; dragon: Dragon; now: number }) {
+function DayGameItem({ game: g, dragon, now, big }: { game: DayGame; dragon: Dragon; now: number; big: boolean }) {
   const key = championKey(dragon, g);
   const champion = championLabel(dragon, g);
   const { name, tag } = splitName(g.name);
-  const { frame, label } = rarity(g.grade);
-  const style = key ? ({ '--splash': `url(${splashImage(key, g.skin ?? 0)}), url(${splashImage(key)})` } as React.CSSProperties) : undefined;
+  const style = big && key ? ({ '--splash': `url(${splashImage(key, g.skin ?? 0)}), url(${splashImage(key)})` } as React.CSSProperties) : undefined;
   return (
-    <li className="aug" data-frame={frame} data-g={g.grade} style={style}>
-      <Link className="aug-link" href={`/spiel/${g.gameId}?p=${encodeURIComponent(g.puuid)}`} aria-label={`Spiel von ${name} mit ${champion} ansehen`}>
-        <span className="aug-rarity">{label}</span>
-        <GradeIcon grade={g.grade} size={104} />
-        <b className="aug-name">
-          {name}
-          {tag && <span className="faint">#{tag}</span>}
-        </b>
-        <span className="muted">
-          {champion} · <span className="num">{g.kills}/{g.deaths}/{g.assists}</span>
+    <li className={big ? 'day-game big' : 'day-game'} data-g={g.grade} style={style}>
+      <Link href={`/spiel/${g.gameId}?p=${encodeURIComponent(g.puuid)}`} aria-label={`Spiel von ${name} mit ${champion} ansehen`}>
+        <GradeIcon grade={g.grade} size={big ? 96 : 56} />
+        <span className="day-who">
+          <b>
+            {name}
+            {tag && <span className="faint">#{tag}</span>}
+          </b>
+          <small className="num muted">
+            {champion}, {g.kills}/{g.deaths}/{g.assists}, {ago(g.at, now)}
+          </small>
         </span>
-        <span className="aug-value num">
+        <span className="day-value num">
           {de(g.damage)}
-          <small>Schaden · {ago(g.at, now)}</small>
+          <small>Schaden</small>
         </span>
       </Link>
     </li>

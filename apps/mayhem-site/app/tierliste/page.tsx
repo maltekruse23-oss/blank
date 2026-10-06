@@ -74,10 +74,8 @@ export default function TierListPage() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">
-            ARAM: Mayhem · {data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}
-          </span>
           <h1>Tier-Liste</h1>
+          <p className="page-sub">{data && filters.scope === 'season' ? seasonName(data.season) : 'Alle Zeiten'}</p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
