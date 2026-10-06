@@ -18,6 +18,7 @@ import { isFresh, snapshotKey, SNAPSHOT_MAX, type Snapshot } from './snapshot';
 import { ARCHIVE_ENTRY_VERSION, archiveIdOf, mergeEntries, publicId } from './archive-entries';
 import { indexPending } from './archive-index';
 import { puuidsIn, withPublicIds } from './public-ids';
+import { censusOf, statsOf, type TagStats } from './tags';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -405,6 +406,16 @@ async function places(id: string) {
     const view = placesOf(standings(all, c.since), recordRanking(all, Date.now()), key);
     return view ? json({ id, season: c.season, ...view }) : fail(404, 'Spieler nicht gefunden');
 }
+/** The tag census (/api/tags): cut-offs and how many players have each tag, from all players of
+ * the current rating. Only numbers, no player. */
+async function tags() {
+    const c = await context(new URL('http://x/'));
+    const prismatic = new Set((await rows<{ id: number }>("SELECT id FROM augments WHERE rarity='prismatic'")).map(a => a.id));
+    const all = standings(await entries(c.since, null, null, false, true), c.since)
+        .map(s => statsOf(s.history.map(h => ({ entry: h.entry, pct: h.mark.pct })), prismatic))
+        .filter((s): s is TagStats => s !== null);
+    return json({ season: c.season, ...censusOf(all), prismatic: [...prismatic] });
+}
 /** A group's page (/gruppe/<code>): its ladder, what the duel needs of every member and its game
  * nights. Only members, from the group's start on. */
 async function groupPage(code: string) {
@@ -609,6 +620,8 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
     const gp = path.match(/^\/api\/gruppe\/([A-Za-z0-9]{12})$/);
     if (gp && method === 'GET')
         return cached(url, () => groupPage(gp[1]));
+    if (path === '/api/tags' && method === 'GET')
+        return cached(url, tags);
     if (path === '/api/start' && method === 'GET')
         return cached(url, start);
     const pl = path.match(/^\/api\/plaetze\/(a[1-9][0-9]{0,9})$/);
