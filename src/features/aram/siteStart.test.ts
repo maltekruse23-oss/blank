@@ -120,7 +120,8 @@ describe('website start page', () => {
 
   it('shows the best grades of the last 24 hours, best first, never a remake', () => {
     const { today } = startView(list, NOW, 0);
-    expect(today).toHaveLength(BEST_OF_DAY);
+    // all four counted games of the last 24 hours; BEST_OF_DAY (6, two rounds of augment cards) is the cap
+    expect(today).toHaveLength(Math.min(4, BEST_OF_DAY));
     expect(today.map((g) => g.gameId)).not.toContain(1);
     expect(today.map((g) => g.gameId)).not.toContain(6);
     expect(today[0].gameId).toBe(3);
