@@ -273,6 +273,15 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
 | 3      | Situations-Tags gegen das Gegnerteam (3.8), Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge             |
 | 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                                                                 | wenn der Test es trägt |
 
+## 8a. Eigene Mayhem-App (Benutzerwunsch, 06.10.2026)
+
+malte will eine eigene Mayhem-App neben blank., im Stil der Website (Look „Augment-Wahl“: Karten
+mit Silber-, Gold- und Prisma-Rahmen, Kristall-Facetten, Prisma-Schrift; festgehalten im
+Design-Thread). Empfehlung (Entscheidung offen): zweite App im selben Repo, eigene EXE
+(`mayhem.exe`) im Release neben `blank.exe`. Sie nutzt dieselbe Logik (`champCard.ts`,
+`aram_live.rs`, Rangliste, Wertung) und bekommt nur eine eigene Oberfläche im Website-Look.
+Der Berater wird so nur einmal gebaut und geprüft. PR #41 ist dafür die Grundlage.
+
 ## 9. Offene Entscheidungen des Benutzers
 
 1. **Timelines mitsammeln:** entschieden, nein (06.10.2026). Der Build steht vor dem Spiel fest,
