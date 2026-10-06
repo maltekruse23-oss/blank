@@ -148,6 +148,30 @@ Zustand S + X mit dem gemerkten Kern. Daraus folgen drei Anzeigen:
   Kern daneben, ehrlich mit dem Hinweis, dass bereits gekaufte Items nicht mehr passen.
 - **Unsicher:** zu wenig Spiele. Es gibt nur den allgemeinen Wert, mit Zahl.
 
+### 3.8 Situations-Tags gegen das Gegnerteam (Benutzeridee, 06.10.2026)
+
+Ein Build bekommt einen Tag, wenn er gegen eine bestimmte Gegner-Zusammensetzung nachweislich
+besser ist. Beispiel des Benutzers: Kog'Maw gegen viele Tanks, Kern mit Blade of the Ruined King
+und Lord Dominik's als „Anti-Tank“.
+
+- **Gegner einstufen:** Aus den fünf gegnerischen `championId` jedes gespeicherten Spiels
+  (`lobby`, alle zehn sind da) über die Data-Dragon-Klassen (`CHAMPION_ROLES`):
+  - „Viele Tanks“: mindestens drei Tanks oder Kämpfer.
+  - „Viel Heilung“: mindestens zwei Champs aus einer kleinen Liste mit Grund (Soraka, Aatrox …).
+  - „Viel Burst“: mindestens zwei Assassinen oder Burst-Magier.
+- **Tag vergeben:** Je Champion und Kern vergleicht die App die Note Ø in Spielen mit dieser
+  Lage gegen die übrigen Spiele. Der Tag erscheint nur, wenn der Kern dort klar besser ist
+  (Unterschied über einer Schwelle aus dem Rückblick-Test), beide Seiten genug Spiele haben und
+  der Rückblick-Test (7) ihn trägt. Wenige Spiele ziehen zur Mitte wie überall.
+- **Namen:** „Anti-Tank“, „Anti-Heilung“, „Gegen Burst“. Immer mit Spielzahl, nie als einzige
+  Ansage, die anderen Kerne bleiben daneben.
+- **Wann:** In der Champ-Auswahl kennt man nur das eigene Team. Die Gegner kommen beim
+  Spielstart aus den Live-Spieldaten (`127.0.0.1:2999`, schon für 6 geplant). Dann markiert die
+  App den passenden Kern („Gegner: 3 Tanks → Anti-Tank-Kern“). Das Item-Set (6a) kann ihn als
+  zweiten Block enthalten.
+- **Ohne genug Daten:** kein Tag. Eine Regel ohne Daten („Tanks → Prozent-Schaden“) gibt es
+  nicht, nur gemessene Unterschiede.
+
 ## 4. Anzeige
 
 - **Champ-Auswahl (Etappe 1, PR #41):** die besten Augments und Kerne. Dazu kommt: „Umwandler
@@ -240,14 +264,14 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
 
 ## 8. Etappen
 
-| Etappe | Inhalt                                                                                                | Stand                  |
-| ------ | ----------------------------------------------------------------------------------------------------- | ---------------------- |
-| 1      | Champ-Karte in der Champ-Auswahl                                                                      | PR #41                 |
-| 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler    | PR #41                 |
-| 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                           | nach dem Test von #41  |
-| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen              | nach dem Test von #41  |
-| 3      | Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge             |
-| 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                     | wenn der Test es trägt |
+| Etappe | Inhalt                                                                                                                                            | Stand                  |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1      | Champ-Karte in der Champ-Auswahl                                                                                                                  | PR #41                 |
+| 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler                                                | PR #41                 |
+| 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                                                                       | nach dem Test von #41  |
+| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen                                                          | nach dem Test von #41  |
+| 3      | Situations-Tags gegen das Gegnerteam (3.8), Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge             |
+| 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                                                                 | wenn der Test es trägt |
 
 ## 9. Offene Entscheidungen des Benutzers
 
