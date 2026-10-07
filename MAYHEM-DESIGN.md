@@ -1,4 +1,30 @@
-# Mayhem-Design „Tribüne“
+# Mayhem-Design
+
+## Nächstes Design „Arena“ (gewählt 07.10.2026, noch nicht gebaut)
+
+Benutzerwahl nach drei Entwurfsrunden im Artifact „mayhemstats Design 2“ (Seite „Mix D × E“), mit Blitz
+als Anregung für Aufbau und Anordnung (keine Logos oder Bilder von Blitz übernommen). Vorlage für alle
+Seiten und die Mayhem-App ist die Spielerseite mit Matchverlauf („G · Spielerseite mit Matchverlauf“).
+Bis zum Umbau (ROADMAP „Als Nächstes“) gilt unten weiter „Tribüne“; danach ersetzt dieser Abschnitt sie.
+
+- **Grund:** dunkles Graublau `#0e0f14`, oben ein warmer Schein (`radial-gradient` nach `#2a2216`),
+  Karten `#13151c` mit Linie `#222631`, Rundung 16 px (Zeilen 12–14 px), Text `#eef0f6`, leise
+  `#9aa1b5`, sehr leise `#6f768a`.
+- **Akzent:** Gold `#f2c14e` (Logo-Hälfte „stats“, aktiver Reiter, Knopf „Join“, Stufe S).
+  Platzierungen Gold, Silber `#c9d1d9`, Bronze `#c98a5b`. Augment-Seltenheit: Prisma einfarbig Eisblau
+  `#6fd6ff`, Gold, Silber. **Kein Regenbogen- oder Prisma-Verlauf** (Benutzer: „komische
+  Regenbogenfarbe muss weg“). Sieg `#7ee0a1`, Niederlage `#ff8070`.
+- **Schrift:** Titel Unbounded (600/800), Text Hanken Grotesk (400/500/700), Zahlen Geist Mono; alle
+  OFL, selbst hosten wie bisher.
+- **Bausteine:** Zeilen wie im Matchverlauf (farbiger Rand links 4 px, Tönung von links nach rechts
+  auslaufend, Bild links, Werte in der Mitte, Note bzw. Stufe rechts); Tags als Pillen (gold für den
+  seltensten); Reiter mit Goldstrich; Rang-Karte mit Wappen und MP-Balken; Augment-Karten mit rundem
+  Symbol, Stufen-Schild oben rechts und farbig hervorgehobenen Stichwörtern; Server-Kürzel als kleines
+  Kästchen; Wappen und Noten-Symbole groß.
+- **Bilder:** Champion-Icons, Splash-Arts und Items von Data Dragon, Wappen und Noten-Symbole aus
+  `public/ranks` und `public/grades`.
+
+## Bisher: „Tribüne“
 
 Verbindliche Gestaltung für alles rund um ARAM: Mayhem: die Seite `apps/mayhem-site` (mayhemstats.lol)
 und die geplante Mayhem-App neben blank. Die blank.-App selbst behält ihr Design „Klassisch“ (siehe

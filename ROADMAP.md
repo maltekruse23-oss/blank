@@ -25,7 +25,8 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 
 1. **Neues Design für Website und Mayhem-App** (Benutzerauftrag 07.10.2026)
    Ziel: Website und Mayhem-App haben ein neues, gemeinsames Design.
-   Fertig, wenn: malte hat aus drei Entwürfen (Startseite, Rangliste, App-Fenster) einen gewählt, MAYHEM-DESIGN.md beschreibt ihn, Website und App sind umgebaut, die Website ist veröffentlicht und live geprüft, die App ist auf Windows getestet.
+   Gewählt am 07.10.2026: „Arena“ (MAYHEM-DESIGN.md, Vorlage Spielerseite im Artifact „mayhemstats Design 2“).
+   Fertig, wenn: Website und App sind im Design „Arena“ umgebaut, die Website ist veröffentlicht und live geprüft, die App ist auf Windows getestet.
 
 2. **Lobby-Check**
    Ziel: In der Champ-Auswahl zeigt die App je Mitspieler Rang, Leistung Ø als Note, seltensten Tag und Spiele mit dem Champion aus mayhemstats.lol, zusammen mit der Champ-Karte in einer Karte.
