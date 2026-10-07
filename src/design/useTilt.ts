@@ -9,8 +9,8 @@ const MAX_DEG = 4;
 
 /**
  * Cards under the mouse lean slightly towards it and a soft light follows it (CSS reads --rx, --ry,
- * --mx, --my; desktop.css). One listener for the whole content, at most one update per frame, and
- * only while the mouse moves; nothing runs otherwise.
+ * --mx, --my; styles/desktop/motion.css). One listener for the whole content, at most one update
+ * per frame, and only while the mouse moves; nothing runs otherwise.
  */
 export function useTilt(root: RefObject<HTMLElement | null>) {
   useEffect(() => {

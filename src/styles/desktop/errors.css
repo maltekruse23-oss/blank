@@ -1,0 +1,101 @@
+/* A part that failed to draw (components/Guard.tsx): a quiet notice in its place. */
+.guard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+  border-radius: calc(10px * var(--radius-scale));
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  color: var(--text);
+}
+.guard > svg {
+  flex: none;
+  color: var(--danger-text);
+}
+.guard > div {
+  display: grid;
+  flex: 1 1 170px;
+  min-width: 0;
+  gap: 2px;
+}
+.guard strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.guard small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.guard .secondary-button {
+  flex: none;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+/* A failed dialog: its notice floats where the dialog would be. */
+.guard-float {
+  position: fixed;
+  inset: auto 24px 24px auto;
+  z-index: 40;
+  max-width: 420px;
+  box-shadow: var(--shadow-overlay);
+  border-radius: calc(10px * var(--radius-scale));
+  background: var(--panel);
+}
+/* The whole app failed (app/CrashScreen.tsx): opaque like the app, a way back and the report. */
+.crash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 32px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+.crash-brand {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+}
+.crash-brand span {
+  color: var(--accent);
+}
+.crash-screen h1 {
+  margin: 8px 0 0;
+  font-size: 18px;
+}
+.crash-screen p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.crash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.crash-actions .filter-button {
+  gap: 8px;
+}
+.crash-report {
+  width: min(560px, 80vw);
+  height: 160px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--surface);
+  color: var(--text);
+  font:
+    11px/1.4 ui-monospace,
+    monospace;
+  resize: none;
+}

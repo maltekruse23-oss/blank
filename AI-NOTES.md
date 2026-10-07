@@ -9,6 +9,12 @@ Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Sta
 - `src/features/popouts/PopoutWindow.tsx` (1400 → ~930 Zeilen) behält Warteschlange, Fenster-Steuerung und Darstellung; neu daneben: `playing.ts` (`Playing`, `fromMix`/`fromSystem`/`fromPreview`, `useCoverColor`, `clock`, `positionOf`, `nextRepeat`), `MusicPopout.tsx` (`MusicPopout`, `UpNextPopout`, Seekbar, `MiniProgress`, Cover), `PopoutCrashed.tsx` (wird aus `PopoutWindow.tsx` weiter exportiert, `main.tsx` unverändert).
 - Per Zeilenvergleich geprüft: außer Import-/`export`-Zeilen nichts geändert.
 
+## Aufteilung großer Dateien (2/3): `desktop.css` — 07.10.2026
+
+- Benutzerauftrag: reine Aufteilung ohne Verhaltensänderung, je Datei ein PR (vorher `aram.rs`, danach `PopoutWindow.tsx`).
+- `src/styles/desktop.css` ist nur noch die Liste der `@import`s; die 4001 Zeilen liegen unverändert in `src/styles/desktop/` (layout, pages, motion, start, aram, aram-result, aram-ranking, aram-group, window-fx, aram-reset-mates, edit, errors, aram-player, aram-rank, champ-card). Die Reihenfolge der Importe ist die Kaskade – neue Regeln in die passende Datei, Reihenfolge nicht ändern.
+- Geprüft: das gebaute CSS (`pnpm build`) ist vorher und nachher byte-identisch.
+
 ## Aufteilung großer Dateien (1/3): `aram.rs` — 07.10.2026
 
 - Benutzerauftrag: reine Aufteilung ohne Verhaltensänderung, je Datei ein PR (danach `desktop.css`, dann `PopoutWindow.tsx`).

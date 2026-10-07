@@ -1,0 +1,541 @@
+/* Home as a grid of widgets and the edit mode (features/edit/, user's wish: direct manipulation). */
+.home-grid {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  gap: var(--gap);
+}
+.home-cell {
+  border: 1px dashed color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: calc(6px * var(--radius-scale));
+  pointer-events: none;
+}
+.home-tile {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
+}
+.home-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.home-grid.editing .home-tile {
+  cursor: grab;
+  outline: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -1px;
+  user-select: none;
+  touch-action: none;
+}
+.home-grid.editing .home-tile:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.home-tile.lifted {
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow: var(--shadow-overlay);
+  outline: 2px solid var(--accent) !important;
+}
+.home-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--subtle);
+}
+.home-title {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: text;
+  text-align: left;
+}
+.home-title h2 {
+  border-bottom: 1px dashed var(--subtle);
+}
+.home-title-input {
+  width: 100%;
+  padding: 2px 4px;
+  border: 1px solid var(--accent);
+  border-radius: calc(6px * var(--radius-scale));
+  background: var(--surface-hover);
+  font-size: 14px;
+  font-weight: 600;
+}
+.home-resize {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 14px;
+  height: 14px;
+  border-right: 3px solid var(--accent);
+  border-bottom: 3px solid var(--accent);
+  border-radius: 0 0 calc(4px * var(--radius-scale)) 0;
+  cursor: nwse-resize;
+}
+/* The rounding handle in the top left corner: drag to round all cards. */
+.home-radius {
+  position: absolute;
+  top: calc(var(--radius-card) * 0.3 + 3px);
+  left: calc(var(--radius-card) * 0.3 + 3px);
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--panel);
+  cursor: se-resize;
+}
+.home-empty {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  align-self: center;
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+}
+/* Widgets at small sizes: less of them. */
+@container (max-height: 150px) {
+  .home-body .list-row:nth-of-type(n + 3) {
+    display: none;
+  }
+}
+.widget-music {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.widget-cover {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--surface-hover);
+  color: var(--accent);
+  object-fit: cover;
+}
+.widget-music .row-copy {
+  flex: 1;
+  min-width: 0;
+}
+.widget-aram {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.widget-aram li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-bottom: 6px;
+  font-size: 12.5px;
+}
+.widget-aram .avatar {
+  width: 20px;
+  height: 20px;
+  font-size: 8px;
+}
+.widget-aram .aram-bar-name {
+  flex: 1;
+}
+.widget-aram-bar {
+  position: absolute;
+  left: 22px;
+  bottom: 0;
+  max-width: calc(100% - 22px);
+  height: 3px;
+  border-radius: 999px;
+  background: var(--place);
+}
+/* The title bar's switch. */
+.edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.edit-toggle:hover,
+.edit-toggle.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* The dock and its tools. */
+/* Centred over the content (beside the 150 px sidebar), so it never covers the account block. */
+.edit-dock-area {
+  position: fixed;
+  left: calc(50% + 75px);
+  bottom: 14px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  translate: -50% 0;
+  pointer-events: none;
+}
+.edit-dock,
+.edit-popover {
+  pointer-events: auto;
+}
+.edit-dock {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: calc(14px * var(--radius-scale));
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: var(--shadow-overlay);
+}
+.dock-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: calc(9px * var(--radius-scale));
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.dock-button:hover:not(:disabled),
+.dock-button.selected {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.dock-button.selected {
+  color: var(--accent);
+}
+.dock-button:disabled {
+  opacity: 0.35;
+}
+.dock-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 3px;
+  background: var(--border);
+}
+.edit-popover {
+  width: 460px;
+  max-height: 380px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-overlay);
+}
+.edit-popover.wide {
+  width: 620px;
+}
+.edit-popover-head h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.look-reset {
+  margin-top: 10px;
+}
+.dock-widgets ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dock-widgets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dock-widget-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.dock-widget-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+}
+.dock-widget-text small,
+.dock-hint {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+/* The popout placed on a miniature screen. */
+.popout-stage {
+  display: grid;
+  gap: 10px;
+}
+.stage-screens {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.stage-screen {
+  position: relative;
+  flex: 0 1 340px;
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: linear-gradient(160deg, var(--surface-hover), var(--bg));
+}
+.stage-screen.current {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+.stage-label {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  color: var(--subtle);
+  font-size: 10.5px;
+}
+.stage-spot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px dashed var(--subtle);
+  border-radius: 50%;
+  translate: -50% -50%;
+  transition:
+    scale var(--motion-normal) var(--ease-spring),
+    background-color var(--motion-normal);
+}
+/* The magnet: the place the dragged popout will snap to lights up. */
+.stage-spot.target {
+  scale: 1.8;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+}
+.stage-taskbar {
+  position: absolute;
+  inset: auto 0 0;
+  height: 12%;
+  border-radius: 0 0 calc(6px * var(--radius-scale)) calc(6px * var(--radius-scale));
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  transition: background-color var(--motion-normal);
+}
+.stage-taskbar.target {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+/* Outline of the popout where it will land. */
+.stage-ghost {
+  position: absolute;
+  z-index: 1;
+  border: 2px dashed var(--accent);
+  border-radius: calc(7px * var(--radius-scale));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  translate: -50% -50%;
+  pointer-events: none;
+  transition:
+    left var(--motion-normal) var(--ease-spring),
+    top var(--motion-normal) var(--ease-spring);
+}
+.stage-ghost.in-taskbar {
+  width: 108px !important;
+  height: 22px !important;
+}
+.stage-popout {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  width: 132px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  border-radius: calc(7px * var(--radius-scale));
+  background: color-mix(in srgb, var(--panel) var(--opacity), transparent);
+  box-shadow: var(--shadow-floating);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  translate: -50% -50%;
+}
+/* Released: springs into its place (also onto the other screen). */
+.stage-popout.settled {
+  transition:
+    left var(--motion-spring) var(--ease-spring),
+    top var(--motion-spring) var(--ease-spring),
+    scale var(--motion-normal) var(--ease-spring);
+}
+/* Dragged: follows the mouse exactly, no easing in between. */
+.stage-popout.dragging {
+  cursor: grabbing;
+  scale: 1.05;
+  outline: 2px solid var(--accent);
+  transition: scale var(--motion-normal) var(--ease-spring);
+}
+.stage-popout.compact,
+.stage-popout.in-taskbar {
+  width: 108px;
+}
+.stage-popout.in-taskbar {
+  padding: 3px 6px;
+}
+.stage-cover {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.stage-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  font-size: 10px;
+}
+.stage-controls {
+  display: flex;
+  gap: 4px;
+  color: var(--muted);
+}
+.stage-part {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 9px;
+  text-align: left;
+  cursor: pointer;
+}
+.stage-part.off {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+.stage-seek {
+  flex-basis: 100%;
+  height: 8px;
+}
+.stage-seek span {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent) 40%, var(--surface-hover) 40%);
+}
+.stage-screen-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.stage-screen-choice > span {
+  margin-right: 4px;
+}
+.stage-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.stage-opacity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+/* The sidebar while editing: grips and eyes. */
+.nav-edit {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.nav-edit.lifted {
+  cursor: grabbing;
+  background: var(--surface-hover);
+}
+.nav-edit.off {
+  opacity: 0.45;
+}
+.nav-edit.current {
+  background: var(--surface);
+  color: var(--text);
+}
+.nav-edit.current > svg:not(.nav-grip) {
+  color: var(--accent);
+}
+.nav-grip {
+  margin-left: -6px;
+  color: var(--subtle);
+}
+.nav-eye {
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--subtle);
+}
+.nav-eye:hover {
+  color: var(--text);
+}
+/* The remaining settings in a side panel. */
+.settings-drawer {
+  position: fixed;
+  top: var(--titlebar-height);
+  right: 8px;
+  bottom: 8px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  width: 600px;
+  border: 1px solid var(--panel-border);
+  border-radius: calc(14px * var(--radius-scale));
+  background: var(--panel);
+  box-shadow: var(--shadow-overlay);
+}
+/* In the edit mode above the dock, so "Fertig" stays in reach. */
+.settings-drawer.over-dock {
+  bottom: 66px;
+}
+.settings-drawer:focus {
+  outline: none;
+}
+.settings-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px 16px;
+}
+.settings-drawer-head h2 {
+  margin: 0;
+}
+.settings-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+/* While editing, the grid leaves room for the dock (everything stays reachable). */
+/* Room for the dock on every page while editing (nothing hides behind it). */
+.panel.editing .page {
+  padding-bottom: 58px;
+}

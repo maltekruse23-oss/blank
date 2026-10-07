@@ -1,0 +1,236 @@
+/* A player in the leaderboard is a button: their overview (features/aram/AramPlayerDialog.tsx). */
+.aram-bar-player,
+.aram-crowns li > button {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: calc(5px * var(--radius-scale));
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aram-bar-player {
+  flex: 1;
+  gap: 6px;
+}
+.aram-crowns li > button {
+  gap: 7px;
+}
+.aram-bar-player:hover .aram-bar-name,
+.aram-crowns li > button:hover .aram-crowns-name {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--text) 35%, transparent);
+  text-underline-offset: 2px;
+}
+.aram-bar-player:focus-visible,
+.aram-crowns li > button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.aram-bar-place.first {
+  background: var(--place);
+  color: var(--panel);
+}
+/* The overview of a player: medals, numbers with places, records, best games, champions. */
+.aram-player-card {
+  display: flex;
+  flex-direction: column;
+  width: 680px;
+  max-height: 560px;
+  overflow: hidden;
+  border: 1px solid var(--accent-line);
+  border-radius: calc(14px * var(--radius-scale));
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+}
+.aram-player-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.aram-player-head .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: calc(10px * var(--radius-scale));
+  font-size: 14px;
+}
+.aram-player-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.aram-player-head h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 17px;
+}
+.aram-player-head h2 small {
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 400;
+}
+.aram-player-head h2 .badge {
+  align-self: center;
+}
+.aram-player-head p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.aram-player-medals {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-player-medals li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-player-medals li.none {
+  opacity: 0.4;
+}
+.aram-player-medals .aram-bar-place {
+  width: 22px;
+  height: 22px;
+  background: var(--place);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--place) 45%, transparent);
+  color: var(--panel);
+  font-size: 11px;
+}
+.aram-player-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 18px 18px;
+}
+.aram-player-overall {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.aram-player-overall > div {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(10px * var(--radius-scale));
+  background: color-mix(in srgb, var(--hue) 6%, var(--panel));
+}
+.aram-player-overall dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.aram-player-overall dt svg,
+.aram-player-icon {
+  flex: none;
+  color: color-mix(in srgb, var(--hue) 70%, var(--text));
+}
+.aram-player-overall dd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-player-caption {
+  margin: 4px 0 0;
+  color: var(--subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.aram-player-records {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-player-records li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 27px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  font-size: 12.5px;
+}
+.aram-player-record-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-player-records img,
+.aram-player-games img,
+.aram-player-champions img {
+  flex: none;
+  border-radius: calc(5px * var(--radius-scale));
+}
+.aram-player-records b,
+.aram-player-game-damage {
+  font-variant-numeric: tabular-nums;
+}
+.aram-player-columns {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 18px;
+}
+.aram-player-games,
+.aram-player-champions {
+  display: grid;
+  gap: 7px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-player-games li,
+.aram-player-champions li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.aram-player-games li {
+  padding-left: 7px;
+  border-left: 2px solid var(--accent);
+}
+.aram-player-games li.loss {
+  border-left-color: var(--danger-text);
+}
+.aram-player-game-name,
+.aram-player-champions span {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.aram-player-game-name small,
+.aram-player-champions small {
+  color: var(--muted);
+  font-size: 11px;
+}
