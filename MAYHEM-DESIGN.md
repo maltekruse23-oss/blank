@@ -34,6 +34,7 @@ Bis zum Umbau (ROADMAP „Als Nächstes“) gilt unten weiter „Tribüne“; da
   Federn, kein Blitz), Hereingleiten aus leichter Unschärfe, gestaffelt; Aufstieg mit aufblühendem
   Licht, das alte Wappen löst sich auf, das neue tritt hervor. Alles einmal je Anlass; reduzierte
   Bewegung zeigt sofort den Endstand. Vorlage: `G · Glow, Liquid Glass und weiche Bewegung`.
+- **Vorlagen:** `design/arena-design.html` (eigenständige Seite mit allen Tokens, Glow-Kachel, Liquid Glass, Zeilen, Bewegung und Aufstieg; im Browser öffnen) und die Entwürfe im Artifact „mayhemstats Design 2“ auf claude.ai (privat, nur dort).
 - **Stand:** Die Mayhem-App ist umgebaut (`src/mayhem/mayhem.css`, 07.10.2026). Schriften liegen in
   `src/mayhem/fonts` (`unbounded-latin.woff2`, `hankengrotesk-latin.woff2`,
   `geistmono-latin.woff2`, je mit OFL-Text). Die Website folgt später.
