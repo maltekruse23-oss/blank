@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Aufteilung großer Dateien (4): `app.css` — 07.10.2026
+
+- Benutzer: „mach einfach weiter“ nach den ersten drei Aufteilungen; reine Verschiebung wie bei `desktop.css`.
+- `src/styles/app.css` ist nur noch die Liste der `@import`s; die 1197 Zeilen liegen unverändert in `src/styles/app/` (base, shell, cards, streams, channels, devices-pc, settings, accessibility, responsive). Import-Reihenfolge = Kaskade. Die allgemeine Bewegungs-Regel (`data-motion='off'`, reduzierte Bewegung) steht jetzt in `app/accessibility.css`.
+- Geprüft: gebautes CSS vorher und nachher byte-identisch.
+
 ## Aufteilung großer Dateien (3/3): `PopoutWindow.tsx` — 07.10.2026
 
 - Benutzerauftrag: reine Aufteilung ohne Verhaltensänderung, je Datei ein PR (vorher `aram.rs`, `desktop.css`).

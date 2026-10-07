@@ -237,7 +237,7 @@ export function PopoutWindow() {
     root.classList.toggle('top', popoutPlace.startsWith('top'));
     root.dataset.side = popoutPlace.split('-')[1];
     // Motion as the popout settings say (also with Windows' animation effects off, if chosen):
-    // on, the popout's own animations run; off, nothing moves (app.css).
+    // on, the popout's own animations run; off, nothing moves (styles/app/accessibility.css).
     root.dataset.motion = fadeMs > 0 ? 'normal' : 'off';
     root.classList.toggle('popout-motion', fadeMs > 0);
     root.style.setProperty('--ease-spring', bouncyCurve.easing);
