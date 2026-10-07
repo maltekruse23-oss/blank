@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Aufteilung großer Dateien (5): `pc.rs` — 07.10.2026
+
+- Reine Verschiebung wie bei `aram.rs`. `pc.rs` (1054 → ~240 Zeilen) behält Typen, Schwellen, `PcState`, `start` und die Tauri-Befehle (`pc_status`, `close_program`, `program_running`); neu unter `src-tauri/src/pc/`: `watch.rs` (Warnungen), `sampler.rs` (Messung), `programs.rs` (`PROTECTED`, Fenster/Prozesse, Windows-Helfer), `gpu.rs` (Grafikkarte), `hardware.rs` (`specs`; nicht `specs.rs`, sonst Namenskonflikt mit der Funktion), `tests.rs`.
+- Nur `pub(super)`, `use`-Zeilen und Moduldoku statt der `// ---`-Abschnittskommentare; per Zeilenvergleich geprüft. `crate::pc::program_pids`/`windows` bleiben gleich.
+
 ## Aufteilung großer Dateien (4): `app.css` — 07.10.2026
 
 - Benutzer: „mach einfach weiter“ nach den ersten drei Aufteilungen; reine Verschiebung wie bei `desktop.css`.
