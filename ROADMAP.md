@@ -23,11 +23,19 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 
 ## Als Nächstes
 
-1. **Lobby-Check**
+1. **Neues Design für Website und Mayhem-App** (Benutzerauftrag 07.10.2026)
+   Ziel: Website und Mayhem-App haben ein neues, gemeinsames Design.
+   Fertig, wenn: malte hat aus drei Entwürfen (Startseite, Rangliste, App-Fenster) einen gewählt, MAYHEM-DESIGN.md beschreibt ihn, Website und App sind umgebaut, die Website ist veröffentlicht und live geprüft, die App ist auf Windows getestet.
+
+2. **Lobby-Check**
    Ziel: In der Champ-Auswahl zeigt die App je Mitspieler Rang, Leistung Ø als Note, seltensten Tag und Spiele mit dem Champion aus mayhemstats.lol, zusammen mit der Champ-Karte in einer Karte.
    Fertig, wenn: In einer echten Champ-Auswahl stehen bei allen Mitspielern diese Werte (oder „nicht in der Datenbank“), jeder Champion auf der Bank hat eine Stufe S bis D. Die App liest nur und nur Daten von mayhemstats.lol. Die Version ist auf Windows getestet und veröffentlicht. Danach folgen die Gegner auf dem Ladebildschirm (Live-Client-Schnittstelle einmal beim Spielstart).
 
 ## Später
+
+- **Mayhem-App ausbauen** (Benutzerwunsch 07.10.2026, „machen wir später“)
+  Ziel: Die App kann mehr als die Champ-Karte.
+  Fertig, wenn: malte hat entschieden, welche Teile dazukommen (z. B. eigenes Profil und Rang, Tier-Liste, Karte nach dem Spiel), und sie sind gebaut und getestet.
 
 - **Champ-Karte in blank. mit echtem Client bestätigen** (malte)
   Ziel: Es ist belegt, dass die Champ-Karte in einer echten Mayhem-Champ-Auswahl funktioniert.

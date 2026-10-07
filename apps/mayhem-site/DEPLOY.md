@@ -3,6 +3,35 @@
 Für Codex beim Veröffentlichen der Website `apps/mayhem-site/` aus `main`. Claude veröffentlicht
 nicht selbst.
 
+## Aktueller Auftrag: Englische Version mit Server-Filter (07.10.2026)
+
+Stand `main` nach PR #58 (Englisch/Deutsch) und #59 (Server-Kürzel und -Filter). Ablauf wie unten
+(„Vorher“, dann veröffentlichen, dann „Danach prüfen“), dieselbe Site und Projekt-ID, **keine neue
+Migration** (`drizzle/` unverändert seit 0006). Neu ist nur:
+
+- Englisch ist jetzt Standard an der Wurzel (`/leaderboard`, `/records`, `/tier-list`, `/join`,
+  `/game/<id>`, `/scoring`, `/privacy`), Deutsch unter `/de` (`/de/rangliste` …). `proxy.ts`
+  (Next-16-Middleware) setzt nur einen Kopf für die Sprache; `next.config.ts` leitet alte deutsche
+  Adressen dauerhaft auf `/de/…` weiter. Beides muss im Deployment mitlaufen.
+- `/api/leaderboard` und `/api/players/<id>` haben je Spieler `server` (EUW, NA …).
+
+Zusätzlich zu „Danach prüfen“ live prüfen und dem Benutzer melden:
+
+1. `https://mayhemstats.lol/` ist englisch (`<html lang="en"`, Fußzeile „isn't endorsed by Riot
+   Games“), `https://mayhemstats.lol/de` deutsch (`lang="de"`, „inoffizielles Fanprojekt“).
+2. Der Umschalter EN/DE oben rechts führt auf dieselbe Seite der anderen Sprache (z. B. ein Spiel
+   `/game/<id>?p=…` ↔ `/de/spiel/<id>?p=…`).
+3. `https://mayhemstats.lol/rangliste` und `/spiel/<id>` antworten mit 308 und `Location: /de/…`.
+4. Rangliste: Spieler tragen ein Kürzel (EUW, NA …); die Auswahl „Server“ zeigt die vorhandenen Server
+   mit Spielerzahl; mit `?server=euw` stehen nur EUW-Spieler da, Plätze ab 1. Ein Profil zeigt das
+   Kürzel vor Siegen/Niederlagen.
+5. Eine unbekannte Adresse zeigt „Page not found“, unter `/de/…` „Seite nicht gefunden“.
+6. `GET /api/leaderboard`: jeder Spieler hat das Feld `server`; keine PUUIDs (nur `a123`).
+
+Hinweis: Gespeicherte Antworten (`snapshots`) von vor dem Veröffentlichen haben noch kein `server`;
+sie laufen nach höchstens 5 Minuten oder mit dem nächsten Spiel ab. Kürzel fehlen also kurz nach dem
+Veröffentlichen, das ist kein Fehler.
+
 ## Ziel
 
 - Bestehende Site: `https://blank-mayhem.maltevfx.chatgpt.site`
