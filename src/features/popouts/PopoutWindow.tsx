@@ -7,37 +7,17 @@ import {
   useState,
   type CSSProperties,
   type MouseEvent,
-  type ReactNode,
 } from 'react';
-import {
-  BatteryLow,
-  Bell,
-  Gauge,
-  Info,
-  Music2,
-  Pause,
-  Play,
-  Radio,
-  Repeat,
-  Repeat1,
-  Shuffle,
-  SkipBack,
-  SkipForward,
-} from 'lucide-react';
+import { BatteryLow, Bell, Gauge, Info, Radio } from 'lucide-react';
 import { ChannelAvatar } from '../../components/ui';
 import {
-  controlMedia,
   onMediaChanged,
-  openPlayer,
   readMedia,
   readTimeline,
-  seekMedia,
-  type MediaAction,
   type NowPlaying,
   type Timeline,
 } from '../../adapters/media';
 import {
-  controlMix,
   hidePopout,
   onPopoutFullScreen,
   onPopoutItem,
@@ -49,7 +29,6 @@ import {
   presentPopout,
   setPopoutRegion,
   takePendingPopouts,
-  type MixItem,
   type PopoutItem,
 } from '../../platform/popout';
 import { CloseProgramButton } from '../pc/CloseProgramButton';
@@ -62,6 +41,15 @@ import {
 import { popoutEasings, popoutPlaces, popoutScreens } from './placement';
 import { AramResultCard } from '../aram/AramResult';
 import { ChampCard } from '../aram/ChampCardView';
+import { MusicPopout, UpNextPopout } from './MusicPopout';
+import {
+  fromMix,
+  fromPreview,
+  fromSystem,
+  useCoverColor,
+  type Playing,
+  type Sample,
+} from './playing';
 
 /** After the mouse leaves a popout (or a click in it), it stays at least this long. */
 const AFTER_HOVER_MS = 3_000;
@@ -145,444 +133,6 @@ function enqueue(list: PopoutItem[], item: PopoutItem) {
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
-/** 1:05, 12:40, 1:02:03 */
-function clock(seconds: number) {
-  const s = Math.max(0, Math.floor(seconds));
-  const [h, m, r] = [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60];
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`;
-}
-
-/**
- * The cover's main colour (the average of its more colourful pixels), for "Cover-Farbe als
- * Akzent" and the glow backgrounds; null while unknown or if the image may not be read.
- */
-function useCoverColor(src: string | null) {
-  const [color, setColor] = useState<{ fill: string; ink: string } | null>(null);
-  useEffect(() => {
-    setColor(null);
-    if (!src) return;
-    let active = true;
-    const image = new Image();
-    if (!src.startsWith('data:')) image.crossOrigin = 'anonymous';
-    image.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 16;
-        const context = canvas.getContext('2d');
-        if (!context) return;
-        context.drawImage(image, 0, 0, 16, 16);
-        const data = context.getImageData(0, 0, 16, 16).data;
-        let [r, g, b, weight] = [0, 0, 0, 0];
-        for (let i = 0; i < data.length; i += 4) {
-          const [pr, pg, pb] = [data[i]!, data[i + 1]!, data[i + 2]!];
-          const saturation = Math.max(pr, pg, pb) - Math.min(pr, pg, pb);
-          const w = 1 + saturation * saturation;
-          [r, g, b, weight] = [r + pr * w, g + pg * w, b + pb * w, weight + w];
-        }
-        [r, g, b] = [r / weight, g / weight, b / weight].map(Math.round) as [
-          number,
-          number,
-          number,
-        ];
-        const light = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
-        if (active)
-          setColor({
-            fill: `rgb(${r}, ${g}, ${b})`,
-            ink: light ? 'rgb(20, 20, 20)' : 'rgb(255, 255, 255)',
-          });
-      } catch {
-        // An image from another server without permission to read it: the design's colours stay.
-      }
-    };
-    image.src = src;
-    return () => {
-      active = false;
-    };
-  }, [src]);
-  return color;
-}
-
-/** One view for both sources: any player (Windows) and blank.'s own mix (the app). */
-type Playing = {
-  title: string;
-  artist: string;
-  app: string;
-  playing: boolean;
-  cover: string | null;
-  canPrevious: boolean;
-  canNext: boolean;
-  canToggle: boolean;
-  repeat: 'none' | 'one' | 'all' | null;
-  shuffle: boolean | null;
-  canRepeat: boolean;
-  canShuffle: boolean;
-  timeline: Timeline | null;
-  run: (action: MediaAction) => Promise<void>;
-  seek: ((seconds: number) => Promise<void>) | null;
-  open: () => Promise<void>;
-};
-
-function fromMix(item: MixItem): Playing {
-  return {
-    title: item.title,
-    artist: item.artist,
-    app: 'blank. Mix',
-    playing: item.playing,
-    cover: item.cover,
-    canPrevious: false,
-    canNext: true,
-    canToggle: true,
-    // A mix always plays in random order and goes on after each track.
-    repeat: null,
-    shuffle: true,
-    canRepeat: false,
-    canShuffle: false,
-    timeline:
-      item.duration && item.position !== null
-        ? {
-            position: item.position / 1000,
-            duration: item.duration / 1000,
-            updatedAt: item.at,
-            canSeek: true,
-          }
-        : null,
-    run: (action) => controlMix(action === 'next' ? 'next' : 'toggle'),
-    seek: (seconds) => controlMix('seek', Math.round(seconds * 1000)),
-    open: () => openApp('music'),
-  };
-}
-
-function fromSystem(media: NowPlaying, timeline: Timeline | null): Playing {
-  return {
-    ...media,
-    timeline,
-    run: (action) => controlMedia?.(action) ?? Promise.resolve(),
-    seek: seekMedia,
-    open: () => openPlayer?.() ?? Promise.resolve(),
-  };
-}
-
-/** The made-up track of the settings preview; buttons change only the preview itself. */
-type Sample = {
-  playing: boolean;
-  repeat: 'none' | 'one' | 'all';
-  shuffle: boolean;
-  /** Seconds into the track at `at` (ms). */
-  position: number;
-  at: number;
-};
-const SAMPLE_LENGTH = 214;
-
-let sampleCover: string | null = null;
-/** A cover for the preview, drawn once here (nothing is loaded). */
-function previewCover() {
-  if (sampleCover) return sampleCover;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 96;
-  const context = canvas.getContext('2d');
-  if (!context) return null;
-  const fill = context.createLinearGradient(0, 0, 96, 96);
-  fill.addColorStop(0, '#2f8f7a');
-  fill.addColorStop(1, '#6b3fc0');
-  context.fillStyle = fill;
-  context.fillRect(0, 0, 96, 96);
-  sampleCover = canvas.toDataURL('image/png');
-  return sampleCover;
-}
-
-function fromPreview(sample: Sample, set: (next: Sample) => void): Playing {
-  const now = () => {
-    const at = Date.now();
-    const since = sample.playing ? (at - sample.at) / 1000 : 0;
-    return { at, position: Math.min(SAMPLE_LENGTH, sample.position + since) };
-  };
-  return {
-    title: 'Beispiel-Titel',
-    artist: 'So sehen deine Popouts aus',
-    app: 'Vorschau',
-    playing: sample.playing,
-    repeat: sample.repeat,
-    shuffle: sample.shuffle,
-    cover: previewCover(),
-    canPrevious: true,
-    canNext: true,
-    canToggle: true,
-    canRepeat: true,
-    canShuffle: true,
-    timeline: {
-      position: sample.position,
-      duration: SAMPLE_LENGTH,
-      updatedAt: sample.at,
-      canSeek: true,
-    },
-    run: async (action) => {
-      if (action === 'toggle') set({ ...sample, ...now(), playing: !sample.playing });
-      if (action === 'repeat') set({ ...sample, repeat: nextRepeat[sample.repeat] });
-      if (action === 'shuffle') set({ ...sample, shuffle: !sample.shuffle });
-    },
-    seek: async (seconds) => set({ ...sample, position: seconds, at: Date.now() }),
-    open: async () => undefined,
-  };
-}
-
-/** Where the track is now: the last known position plus the time since, while it plays. */
-function positionOf(timeline: Timeline, playing: boolean, now: number) {
-  const since = playing ? (now - timeline.updatedAt) / 1000 : 0;
-  return Math.min(timeline.duration, Math.max(0, timeline.position + since));
-}
-
-function Seekbar({ playing }: { playing: Playing }) {
-  const [now, setNow] = useState(Date.now());
-  const [drag, setDrag] = useState<number | null>(null);
-  const [jumped, setJumped] = useState<Timeline | null>(null);
-  const timeline = jumped ?? playing.timeline;
-  // Only while the popout is on screen, once a second.
-  useEffect(() => {
-    if (!playing.playing) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [playing.playing]);
-  // A newer report from the player replaces the own jump.
-  const reported = playing.timeline
-    ? `${playing.timeline.position}|${playing.timeline.updatedAt}`
-    : '';
-  useEffect(() => setJumped(null), [reported]);
-  if (!timeline) return null;
-  const position = drag ?? positionOf(timeline, playing.playing, now);
-  const canSeek = timeline.canSeek && playing.seek !== null;
-  const commit = () => {
-    if (drag === null || !playing.seek) return;
-    setJumped({ ...timeline, position: drag, updatedAt: Date.now() });
-    setDrag(null);
-    void playing.seek(drag).catch(() => undefined);
-  };
-  return (
-    <div className="popout-seek">
-      <span>{clock(position)}</span>
-      <input
-        type="range"
-        min={0}
-        max={Math.ceil(timeline.duration)}
-        step={1}
-        value={Math.round(position)}
-        disabled={!canSeek}
-        aria-label="Stelle im Titel"
-        aria-valuetext={`${clock(position)} von ${clock(timeline.duration)}`}
-        style={{ '--value': `${(position / timeline.duration) * 100}%` } as CSSProperties}
-        onChange={(event) => setDrag(Number(event.target.value))}
-        onPointerUp={commit}
-        onKeyUp={commit}
-      />
-      <span>{clock(timeline.duration)}</span>
-    </div>
-  );
-}
-
-/**
- * The compact popout's progress (user's wish): a slim bar where the buttons were, how far the
- * track or video has played. Nothing without a length (a Twitch live stream) or with "Fortschritt"
- * off. Moves on once a second, only while it plays and the popout is on screen; hovering opens the
- * full popout with pause and the seek bar.
- */
-function MiniProgress({ playing }: { playing: Playing }) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    if (!playing.playing) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [playing.playing]);
-  const timeline = playing.timeline;
-  if (!timeline || !(timeline.duration > 0)) return null;
-  const share = positionOf(timeline, playing.playing, now) / timeline.duration;
-  return (
-    <span
-      className="popout-mini-progress"
-      role="progressbar"
-      aria-label="Fortschritt"
-      aria-valuemin={0}
-      aria-valuemax={Math.ceil(timeline.duration)}
-      aria-valuenow={Math.round(share * timeline.duration)}
-      style={{ '--value': `${share * 100}%` } as CSSProperties}
-    />
-  );
-}
-
-function Cover({ src, size }: { src: string | null; size: number }) {
-  return src ? (
-    <img className="popout-cover" src={src} alt="" />
-  ) : (
-    <span className="popout-cover empty">
-      <Music2 size={size} />
-    </span>
-  );
-}
-
-/** What a click changes, shown at once; the player's next report replaces it. */
-type Guess = Partial<Pick<Playing, 'playing' | 'repeat' | 'shuffle'>>;
-/** Repeat as Windows steps through it (media.rs): off → all → this track → off. */
-const nextRepeat = { none: 'all', all: 'one', one: 'none' } as const;
-/** If a player never answers, the guess goes after this long. */
-const GUESS_MS = 3_000;
-
-function MusicPopout({
-  playing: reported,
-  look,
-  compact,
-}: {
-  playing: Playing;
-  look: Preferences;
-  /** One slim row; hovering a compact popout shows the full one (the window decides). */
-  compact: boolean;
-}) {
-  const [failed, setFailed] = useState<string | null>(null);
-  // Instant feedback: pause, repeat and shuffle change on the click, not when the player reports.
-  const [guess, setGuess] = useState<Guess | null>(null);
-  const reportKey = `${reported.title}|${reported.playing}|${reported.repeat}|${reported.shuffle}`;
-  useEffect(() => setGuess(null), [reportKey]);
-  useEffect(() => {
-    if (!guess) return;
-    const timer = window.setTimeout(() => setGuess(null), GUESS_MS);
-    return () => window.clearTimeout(timer);
-  }, [guess]);
-  const playing: Playing = { ...reported, ...guess };
-  const run = (action: MediaAction) => {
-    setFailed(null);
-    if (action === 'toggle') setGuess((g) => ({ ...g, playing: !playing.playing }));
-    if (action === 'repeat' && playing.repeat)
-      setGuess((g) => ({ ...g, repeat: nextRepeat[playing.repeat!] }));
-    if (action === 'shuffle' && playing.shuffle !== null)
-      setGuess((g) => ({ ...g, shuffle: !playing.shuffle }));
-    reported.run(action).catch(() => {
-      setGuess(null);
-      setFailed(`${playing.app} reagiert nicht`);
-    });
-  };
-  const open = () => {
-    setFailed(null);
-    playing.open().catch(() => setFailed(`${playing.app} nicht gefunden`));
-  };
-  const button = (
-    action: MediaAction,
-    label: string,
-    enabled: boolean,
-    icon: ReactNode,
-    extra = '',
-    pressed?: boolean,
-  ) => (
-    <button
-      className={`popout-button ${extra}`}
-      aria-label={label}
-      aria-pressed={pressed}
-      title={label}
-      disabled={!enabled}
-      onClick={() => run(action)}
-    >
-      {icon}
-    </button>
-  );
-  const main = (
-    <>
-      {button(
-        'previous',
-        'Vorheriger Titel',
-        playing.canPrevious,
-        <SkipBack size={16} fill="currentColor" />,
-      )}
-      {button(
-        'toggle',
-        playing.playing ? 'Pause' : 'Abspielen',
-        playing.canToggle,
-        playing.playing ? (
-          <Pause size={16} fill="currentColor" />
-        ) : (
-          <Play size={16} fill="currentColor" />
-        ),
-        'play',
-      )}
-      {button(
-        'next',
-        'Nächster Titel',
-        playing.canNext,
-        <SkipForward size={16} fill="currentColor" />,
-      )}
-    </>
-  );
-  const artist = failed ?? playing.artist;
-  if (compact)
-    return (
-      <div className="popout-media compact">
-        <Cover src={playing.cover} size={18} />
-        <div className="popout-now">
-          <b title={playing.title}>{playing.title}</b>
-          <span title={`${playing.artist} · ${playing.app}`}>{artist || playing.app}</span>
-        </div>
-        {look.popoutSeek && <MiniProgress playing={playing} />}
-      </div>
-    );
-  const repeatLabel =
-    playing.repeat === 'one'
-      ? 'Wiederholen: dieser Titel'
-      : playing.repeat === 'all'
-        ? 'Wiederholen: alle'
-        : 'Wiederholen: aus';
-  return (
-    <>
-      <div className="popout-media">
-        <Cover src={playing.cover} size={28} />
-        <div className={`popout-now ${look.popoutCenter ? '' : 'left'}`}>
-          <b title={playing.title}>{playing.title}</b>
-          {artist && <span title={artist}>{artist}</span>}
-          <div className="popout-controls">
-            {main}
-            {look.popoutRepeat &&
-              button(
-                'repeat',
-                repeatLabel,
-                playing.canRepeat,
-                playing.repeat === 'one' ? <Repeat1 size={15} /> : <Repeat size={15} />,
-                playing.repeat && playing.repeat !== 'none' ? 'on' : '',
-                playing.repeat === null ? undefined : playing.repeat !== 'none',
-              )}
-            {look.popoutShuffle &&
-              button(
-                'shuffle',
-                playing.shuffle ? 'Zufall: an' : 'Zufall: aus',
-                playing.canShuffle,
-                <Shuffle size={15} />,
-                playing.shuffle ? 'on' : '',
-                playing.shuffle ?? undefined,
-              )}
-            {look.popoutPlayerName && (
-              <button className="popout-app" title={`${playing.app} öffnen`} onClick={open}>
-                <Music2 size={12} />
-                <span>{playing.app}</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-      {look.popoutSeek && <Seekbar playing={playing} />}
-    </>
-  );
-}
-
-/** "Als Nächstes": small, after a track ended and the next one started by itself. */
-function UpNextPopout({ playing }: { playing: Playing }) {
-  return (
-    <div className="popout-row upnext">
-      <span className="popout-label">
-        <Music2 size={14} /> Als Nächstes:
-      </span>
-      <Cover src={playing.cover} size={16} />
-      <span className="popout-text">
-        <b title={playing.title}>{playing.title}</b>
-        {playing.artist && <small>{playing.artist}</small>}
-      </span>
-    </div>
-  );
-}
-
 /**
  * No × on popouts (user's wish: they are switched off in the settings only). A notice without a
  * button of its own goes on a click on it; clicks on its buttons do what they say (and put it away
@@ -602,41 +152,13 @@ function lookOf(look: Preferences) {
   return { light: false, theme: look.theme };
 }
 
+export { PopoutCrashed } from './PopoutCrashed';
+
 /**
  * The popout window's content, laid out like FluentFlyout: one notice at a time, the next one
  * after it. How long each kind stays is a setting (or until it is closed); while the mouse is on
  * it, or after a click in it, it stays. It fades in and out as set; hidden when none is left.
  */
-const RELOADED_KEY = 'blank.popout.reloaded';
-const RELOAD_AT_MOST_MS = 60_000;
-
-/**
- * The popout failed to draw (the error is in the log): it hides and loads itself again for the
- * next notice; at most once a minute, so a notice that always fails cannot loop.
- */
-export function PopoutCrashed() {
-  useEffect(() => {
-    void hidePopout().catch(() => undefined);
-    let last = 0;
-    try {
-      last = Number(sessionStorage.getItem(RELOADED_KEY)) || 0;
-    } catch {
-      // No storage: reload anyway, the minute cannot be kept.
-    }
-    if (Date.now() - last < RELOAD_AT_MOST_MS) return;
-    const timer = window.setTimeout(() => {
-      try {
-        sessionStorage.setItem(RELOADED_KEY, String(Date.now()));
-      } catch {
-        // See above.
-      }
-      window.location.reload();
-    }, 1000);
-    return () => window.clearTimeout(timer);
-  }, []);
-  return null;
-}
-
 export function PopoutWindow() {
   const [queue, setQueue] = useState<PopoutItem[]>([]);
   /** undefined: not read yet. */

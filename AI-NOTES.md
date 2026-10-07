@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Aufteilung großer Dateien (3/3): `PopoutWindow.tsx` — 07.10.2026
+
+- Benutzerauftrag: reine Aufteilung ohne Verhaltensänderung, je Datei ein PR (vorher `aram.rs`, `desktop.css`).
+- `src/features/popouts/PopoutWindow.tsx` (1400 → ~930 Zeilen) behält Warteschlange, Fenster-Steuerung und Darstellung; neu daneben: `playing.ts` (`Playing`, `fromMix`/`fromSystem`/`fromPreview`, `useCoverColor`, `clock`, `positionOf`, `nextRepeat`), `MusicPopout.tsx` (`MusicPopout`, `UpNextPopout`, Seekbar, `MiniProgress`, Cover), `PopoutCrashed.tsx` (wird aus `PopoutWindow.tsx` weiter exportiert, `main.tsx` unverändert).
+- Per Zeilenvergleich geprüft: außer Import-/`export`-Zeilen nichts geändert.
+
 ## Aufteilung großer Dateien (1/3): `aram.rs` — 07.10.2026
 
 - Benutzerauftrag: reine Aufteilung ohne Verhaltensänderung, je Datei ein PR (danach `desktop.css`, dann `PopoutWindow.tsx`).
