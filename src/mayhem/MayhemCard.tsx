@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { championSplash } from '../adapters/aram';
 import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
@@ -14,6 +14,9 @@ import { percent } from '../features/aram/format';
 
 export const itemImage = (id: number) =>
   `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/item/${id}.png`;
+/** Staggers a row's soft entrance (mayhem.css, .mayhem-in). */
+const step = (i: number) => ({ ['--i' as string]: i }) as CSSProperties;
+
 export const games = (n: number) => `${n.toLocaleString('de-DE')} ${n === 1 ? 'Spiel' : 'Spiele'}`;
 
 /** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game). */
@@ -28,8 +31,8 @@ function AugmentIcon({ rarity, image }: { rarity: string; image: string | null }
 function Builds({ builds }: { builds: BuildPick[] }) {
   return (
     <ul className="mayhem-builds">
-      {builds.map((b) => (
-        <li key={b.items.map((i) => i.id).join(',')}>
+      {builds.map((b, n) => (
+        <li key={b.items.map((i) => i.id).join(',')} className="mayhem-in" style={step(n + 2)}>
           <span className="mayhem-items">
             {b.items.map((i) => (
               <img
@@ -63,6 +66,7 @@ function Builds({ builds }: { builds: BuildPick[] }) {
 
 /** Every augment of the direction, grouped by tier S–D (the game offers three; look them up). */
 function TierList({ augments, label }: { augments: TieredAugment[]; label: string }) {
+  let n = 4;
   return (
     <div className="mayhem-tiers">
       {TIERS.map((tier) => {
@@ -77,6 +81,8 @@ function TierList({ augments, label }: { augments: TieredAugment[]; label: strin
               {list.map((a) => (
                 <li
                   key={a.id}
+                  className="mayhem-in"
+                  style={step(n++)}
                   title={
                     a.general
                       ? `Zu wenig ${label}-Spiele: Stufe nach dem allgemeinen Wert`
@@ -125,15 +131,19 @@ export function MayhemCard({
   return (
     <article className="mayhem-card">
       <header
-        className="mayhem-hero"
+        className="mayhem-hero mayhem-in"
         style={splash ? { ['--splash' as string]: `url("${splash}")` } : undefined}
       >
-        <h1>{label}</h1>
-        <p>{view.games ? games(view.games) : 'Noch keine Spiele'}</p>
-        <p>
-          {sourceLabel(view)}
-          {sample && ' · Beispiel'}
-        </p>
+        <div className="mayhem-hero-glass">
+          <h1>{label}</h1>
+          <div className="mayhem-pills">
+            <span className="mayhem-pill gold">
+              {view.games ? games(view.games) : 'Noch keine Spiele'}
+            </span>
+            <span className="mayhem-pill">{sourceLabel(view)}</span>
+            {sample && <span className="mayhem-pill">Beispiel</span>}
+          </div>
+        </div>
         {onClose && (
           <button type="button" className="mayhem-button small" onClick={onClose}>
             Zurück
@@ -143,7 +153,12 @@ export function MayhemCard({
 
       {plan ? (
         <>
-          <div className="mayhem-directions" role="group" aria-label="Build-Richtung">
+          <div
+            className="mayhem-directions mayhem-in"
+            style={step(1)}
+            role="group"
+            aria-label="Build-Richtung"
+          >
             {plans.map((p) => (
               <button
                 key={p.direction}
@@ -182,8 +197,8 @@ export function MayhemCard({
             <section className="mayhem-section">
               <h2>Beste Augments</h2>
               <ul className="mayhem-best">
-                {view.augments.map((a) => (
-                  <li key={a.id}>
+                {view.augments.map((a, n) => (
+                  <li key={a.id} className="mayhem-in" style={step(n + 2)}>
                     <AugmentIcon rarity={a.rarity} image={a.image} />
                     <span className="mayhem-aug-name">{a.name}</span>
                     <span className="mayhem-facts">

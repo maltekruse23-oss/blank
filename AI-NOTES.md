@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App im Design „Arena“ — 07.10.2026
+
+- Benutzer: „Website erstmal hinten an, erst App“. `src/mayhem/mayhem.css` neu: Glow-Kachel als Wartebildschirm, Champion mit Splash-Art und Glas-Leiste samt Pillen, Build-Richtungen als Glas-Schalter, Item-Kerne und Augments als Zeilen mit Schein links (bester Kern gold, Augments in ihrer Seltenheit, Prisma eisblau statt Pink), Stufen-Buchstaben als kleine Glow-Kacheln, Kopfzeile als Glas. Weiches, gestaffeltes Hereingleiten (`.mayhem-in`, `--i`), reduzierte Bewegung = sofort da. Noten behalten ihre Datenfarben.
+- Neue Schriften (OFL) selbst gehostet in `src/mayhem/fonts` (nur die App; Benutzer: „es soll nur die Mayhem-App bearbeitet werden“). ROADMAP: App-Umbau unter „Jetzt“, englische Website (fertig, wartet auf Codex) unter „Als Nächstes“.
+- Geprüft: Vorschau im Browser mit erfundenen Werten (Wartebildschirm, Karte), `pnpm test`/`lint`/`format:check`, `pnpm mayhem:web`. Offen: Test in `mayhem.exe` auf Windows.
+
 ## Neues Design „Arena“ gewählt — 07.10.2026
 
 - Drei Entwurfsrunden im Artifact „mayhemstats Design 2“ (Runde 1: Almanach, Heulende Schlucht, Chaos-Plakat; Runde 2: Arena, Augment-Rausch, Stille; dann Mix aus Arena und Augment-Rausch mit Blitz als Anregung). Benutzer: Regenbogen-Verlauf weg, Augment-Seite von Blitz „besonders gut“, Spielerseite mit Matchverlauf als Vorlage für alles, „ok gut“.

@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Arena Design</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Hanken+Grotesk:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ===== Arena: Tokens ===================================================== */
+      :root {
+        --bg: #07080b; /* fast schwarz */
+        --surface: #0b0c10; /* Kacheln */
+        --surface-2: #13151c; /* Karten */
+        --line: #222631;
+        --text: #eef0f6;
+        --muted: #9aa1b5;
+        --faint: #6f768a;
+
+        --gold: #f2c14e; /* einziger Akzent, Stufe S, Platz 1 */
+        --gold-soft: #fff3d6;
+        --silver: #dfe5ec; /* Platz 2, Silber-Augments */
+        --bronze: #d99a66; /* Platz 3 */
+        --prisma: #6fd6ff; /* Prisma-Augments, einfarbig, nie Regenbogen */
+        --win: #7ee0a1;
+        --loss: #ff8070;
+
+        --radius-tile: 28px;
+        --radius-card: 20px;
+        --radius-row: 16px;
+
+        --ease: cubic-bezier(0.22, 1, 0.36, 1); /* weich auslaufen, kein Federn */
+        --ease-io: cubic-bezier(0.65, 0, 0.35, 1); /* gleichmäßig, für Balken */
+
+        --font: 'Hanken Grotesk', system-ui, sans-serif;
+        --font-title: 'Unbounded', sans-serif;
+        --font-mono: 'Geist Mono', ui-monospace, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1100px 500px at 50% -160px, #1a1712, var(--bg) 70%) fixed,
+          var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+      }
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+        display: grid;
+        gap: 40px;
+      }
+      h1,
+      h2 {
+        font-family: var(--font-title);
+        font-weight: 800;
+        margin: 0;
+      }
+      h1 {
+        font-size: 30px;
+      }
+      h2 {
+        font-size: 18px;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+      .mono {
+        font-family: var(--font-mono);
+      }
+
+      /* ===== Glow-Kachel: Licht von unten, eine Farbe je Kachel ================ */
+      .tile {
+        --glow-1: rgba(255, 200, 90, 0.95); /* je Kachel überschreiben */
+        --glow-2: rgba(230, 110, 20, 0.55);
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        min-height: 240px;
+        padding: 24px;
+        border-radius: var(--radius-tile);
+        background: var(--surface);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition:
+          transform 0.6s var(--ease),
+          box-shadow 0.6s var(--ease),
+          border-color 0.6s var(--ease);
+      }
+      .tile::before {
+        /* das Licht */
+        content: '';
+        position: absolute;
+        z-index: -1;
+        left: -10%;
+        right: -10%;
+        bottom: -45%;
+        height: 95%;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, var(--glow-1), var(--glow-2) 55%, transparent);
+        filter: blur(28px);
+        opacity: 0.7;
+        transition:
+          opacity 0.6s var(--ease),
+          transform 0.6s var(--ease);
+      }
+      .tile:hover {
+        transform: translateY(-4px);
+      }
+      .tile:hover::before {
+        transform: scale(1.12);
+        opacity: 0.9;
+      }
+      .tile[aria-pressed='true'] {
+        border-color: var(--glow-1);
+        box-shadow: 0 30px 80px -20px var(--glow-1);
+      }
+      .tile[aria-pressed='true']::before {
+        opacity: 1;
+      }
+      .tile.prisma {
+        --glow-1: rgba(120, 220, 255, 0.95);
+        --glow-2: rgba(40, 90, 255, 0.55);
+      }
+      .tile.gold {
+        --glow-1: rgba(255, 200, 90, 0.95);
+        --glow-2: rgba(230, 110, 20, 0.55);
+      }
+      .tile.silver {
+        --glow-1: rgba(235, 240, 248, 0.85);
+        --glow-2: rgba(130, 145, 170, 0.45);
+      }
+      .tile.win {
+        --glow-1: rgba(126, 224, 161, 0.85);
+        --glow-2: rgba(40, 140, 90, 0.35);
+      }
+      .tile .icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .tile .name {
+        display: block;
+        margin-top: 18px;
+        font: 800 20px var(--font-title);
+      }
+      .tile .text {
+        display: block;
+        margin-top: 6px;
+        font-size: 13px;
+        color: #c4c9d6;
+      }
+      .tile .meta {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 18px;
+        font: 12px var(--font-mono);
+      }
+      button.tile {
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      /* ===== Liquid Glass ====================================================== */
+      .glass {
+        position: relative;
+        overflow: hidden;
+        border-radius: 26px;
+        padding: 22px;
+        background: linear-gradient(
+          160deg,
+          rgba(255, 255, 255, 0.1),
+          rgba(255, 255, 255, 0.03) 45%,
+          rgba(255, 255, 255, 0.05)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.28),
+          /* helle Oberkante */ inset 0 -40px 60px -40px rgba(255, 255, 255, 0.1),
+          /* milchig nach unten */ 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(22px) saturate(140%);
+        -webkit-backdrop-filter: blur(22px) saturate(140%);
+        transition: transform 0.7s var(--ease);
+      }
+      .glass:hover {
+        transform: translateY(-4px);
+      }
+      .glass::after {
+        /* Lichtreflex beim Hovern */
+        content: '';
+        position: absolute;
+        top: -20%;
+        bottom: -20%;
+        left: 0;
+        width: 35%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+        transform: translateX(-120%) skewX(-18deg);
+        pointer-events: none;
+      }
+      .glass:hover::after {
+        animation: sweep 1.4s var(--ease) both;
+      }
+      .stage {
+        /* Bühne hinter dem Glas */
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        min-height: 440px;
+        padding: 28px;
+        background: var(--bg);
+        border: 1px solid #1a1d24;
+      }
+      .stage .bigword {
+        position: absolute;
+        inset: 70px 0 auto;
+        text-align: center;
+        font: 800 clamp(80px, 15vw, 190px)/1 var(--font-title);
+        letter-spacing: -4px;
+        color: #f4f1ea;
+      }
+      .stage .light {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(42px);
+      }
+      .stage .cards {
+        position: relative;
+        margin-top: 110px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 18px;
+      }
+      .btn-solid {
+        display: block;
+        margin-top: 16px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.92);
+        color: #0b0c10;
+        text-align: center;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 10px;
+        text-decoration: none;
+      }
+
+      /* ===== Zeilen (Rangliste, Matchverlauf) ================================== */
+      .row {
+        --row: var(--line);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-radius: var(--radius-row);
+        padding: 10px 14px;
+        background: #0f1117;
+        border: 1px solid #1c2029;
+      }
+      .row::before {
+        /* Schein links in der Platzfarbe */
+        content: '';
+        position: absolute;
+        left: -40px;
+        top: -20px;
+        bottom: -20px;
+        width: 150px;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, var(--row), transparent);
+        filter: blur(18px);
+      }
+      .row > * {
+        position: relative;
+      }
+      .row.p1 {
+        --row: rgba(242, 193, 78, 0.55);
+      }
+      .row.p2 {
+        --row: rgba(220, 228, 240, 0.35);
+      }
+      .row.p3 {
+        --row: rgba(217, 154, 102, 0.4);
+      }
+      .row .place {
+        font: 800 16px var(--font-title);
+        width: 22px;
+      }
+      .row .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+      }
+      .pill {
+        border: 1px solid #2a2f3d;
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 12px;
+      }
+      .pill.gold {
+        border-color: #3a3322;
+        background: #1d1910;
+        color: var(--gold);
+        font-weight: 700;
+      }
+      .server {
+        border: 1px solid #2a2f3d;
+        border-radius: 4px;
+        padding: 0 5px;
+        font: 11px var(--font-mono);
+        color: var(--muted);
+      }
+
+      /* ===== Bewegung: einmal, weich, nie dauerhaft ============================ */
+      @keyframes softIn {
+        from {
+          opacity: 0;
+          transform: translateY(26px) scale(0.97);
+          filter: blur(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+          filter: blur(0);
+        }
+      }
+      @keyframes glowUp {
+        from {
+          opacity: 0;
+          transform: translateY(40%) scale(0.8);
+        }
+        to {
+          opacity: 0.7;
+          transform: none;
+        }
+      }
+      @keyframes sweep {
+        from {
+          transform: translateX(-120%) skewX(-18deg);
+        }
+        to {
+          transform: translateX(320%) skewX(-18deg);
+        }
+      }
+      @keyframes bloom {
+        0% {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        45% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.75;
+          transform: scale(1);
+        }
+      }
+      @keyframes emblem {
+        from {
+          opacity: 0;
+          transform: translateY(30px) scale(0.85);
+          filter: blur(14px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+          filter: blur(0);
+        }
+      }
+      @keyframes fadeAway {
+        to {
+          opacity: 0;
+          filter: blur(12px);
+          transform: scale(0.9);
+        }
+      }
+      @keyframes word {
+        from {
+          opacity: 0;
+          letter-spacing: 22px;
+          filter: blur(12px);
+        }
+        to {
+          opacity: 1;
+          letter-spacing: 4px;
+          filter: blur(0);
+        }
+      }
+      @keyframes drift {
+        0% {
+          opacity: 0;
+          transform: translateY(0) scale(0.6);
+        }
+        20% {
+          opacity: 0.9;
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-180px) scale(1.1);
+        }
+      }
+      @keyframes barFill {
+        from {
+          width: 62%;
+        }
+        to {
+          width: 100%;
+        }
+      }
+
+      .in {
+        animation: softIn 0.9s var(--ease) both;
+        animation-delay: calc(var(--i, 0) * 120ms);
+      }
+      .tile.in::before {
+        animation: glowUp 1.6s var(--ease) both;
+        animation-delay: calc(var(--i, 0) * 120ms + 250ms);
+      }
+
+      /* Aufstieg */
+      .promo {
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        min-height: 460px;
+        padding: 28px;
+        background: #08090c;
+        border: 1px solid #2a2418;
+        text-align: center;
+      }
+      .promo .bloom {
+        position: absolute;
+        left: 50%;
+        bottom: -260px;
+        width: 900px;
+        height: 600px;
+        margin-left: -450px;
+        border-radius: 50%;
+        background: radial-gradient(
+          closest-side,
+          rgba(255, 214, 120, 0.95),
+          rgba(242, 193, 78, 0.55) 40%,
+          rgba(150, 95, 20, 0.25) 70%,
+          transparent
+        );
+        filter: blur(40px);
+        animation: bloom 2.6s var(--ease) 1.9s both;
+      }
+      .promo .emblems {
+        position: relative;
+        height: 210px;
+        margin-top: 10px;
+      }
+      .promo .emblems img {
+        position: absolute;
+        left: 50%;
+      }
+      .promo .old {
+        top: 20px;
+        width: 160px;
+        margin-left: -80px;
+        animation: fadeAway 1.1s var(--ease-io) 1.7s both;
+      }
+      .promo .new {
+        top: 4px;
+        width: 190px;
+        margin-left: -95px;
+        filter: drop-shadow(0 0 30px rgba(255, 214, 120, 0.7));
+        animation: emblem 1.6s var(--ease) 2.2s both;
+      }
+      .promo .title {
+        position: relative;
+        font: 800 52px var(--font-title);
+        color: var(--gold-soft);
+        text-shadow: 0 0 40px rgba(242, 193, 78, 0.8);
+        animation: word 1.6s var(--ease) 2.7s both;
+      }
+      .promo .orb {
+        position: absolute;
+        bottom: 60px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 236, 190, 0.95), rgba(242, 193, 78, 0) 70%);
+        animation: drift 3.2s var(--ease) both;
+      }
+      .bar {
+        position: relative;
+        height: 6px;
+        max-width: 420px;
+        margin: 16px auto 0;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .bar span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 62%;
+        background: var(--gold-soft);
+        border-radius: 3px;
+        box-shadow: 0 0 14px rgba(255, 214, 120, 0.9);
+        animation: barFill 1.6s var(--ease-io) 0.3s both;
+      }
+
+      /* Wer Bewegung reduziert, sieht sofort den Endstand. */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+        .promo .old,
+        .promo .orb {
+          opacity: 0;
+        }
+        .bar span {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Arena · Glow, Liquid Glass, weiche Bewegung</h1>
+        <p class="hint">Beispielwerte. Neu laden spielt die Bewegung noch einmal ab.</p>
+      </header>
+
+      <section>
+        <h2>Augment-Wahl (Glow-Kacheln)</h2>
+        <p class="hint">Klick wählt eine Kachel.</p>
+        <div
+          style="
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 22px;
+          "
+        >
+          <button class="tile prisma in" style="--i: 0" aria-pressed="false">
+            <span class="icon"
+              ><svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M12 3v18M5 8l7-5 7 5M7 14h10" /></svg
+            ></span>
+            <span class="name">Goliath</span
+            ><span class="text">Groß werden, mehr Leben und Kraft.</span>
+            <span class="meta"
+              ><span style="color: var(--prisma)">PRISMA · S</span><span>58,1 %</span></span
+            >
+          </button>
+          <button class="tile gold in" style="--i: 1" aria-pressed="false">
+            <span class="icon"
+              ><svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" /></svg
+            ></span>
+            <span class="name">[Augment]</span
+            ><span class="text">Wiederbeleben nach vollen Stapeln.</span>
+            <span class="meta"
+              ><span style="color: var(--gold)">GOLD · S</span><span>57,4 %</span></span
+            >
+          </button>
+          <button class="tile silver in" style="--i: 2" aria-pressed="false">
+            <span class="icon"
+              ><svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M4 20l16-16M14 4h6v6" /></svg
+            ></span>
+            <span class="name">[Augment]</span><span class="text">Mehr Tempo nach jedem Kill.</span>
+            <span class="meta"
+              ><span style="color: var(--silver)">SILBER · A</span><span>54,6 %</span></span
+            >
+          </button>
+        </div>
+      </section>
+
+      <section class="stage">
+        <h2 style="position: relative; z-index: 2">Liquid Glass</h2>
+        <div class="bigword in" style="--i: 2">MAYHEM</div>
+        <span
+          class="light"
+          style="
+            left: 6%;
+            bottom: -120px;
+            width: 380px;
+            height: 300px;
+            background: radial-gradient(closest-side, rgba(120, 220, 255, 0.8), transparent);
+          "
+        ></span>
+        <span
+          class="light"
+          style="
+            right: 8%;
+            bottom: -140px;
+            width: 420px;
+            height: 320px;
+            background: radial-gradient(closest-side, rgba(255, 200, 90, 0.85), transparent);
+          "
+        ></span>
+        <div class="cards">
+          <article class="glass in" style="--i: 4">
+            <div class="hint" style="margin: 0">Season 3 · 2026</div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 10px">
+              <img src="../apps/mayhem-site/public/ranks/ss.png" alt="SS" width="60" height="60" />
+              <div>
+                <div style="font: 800 26px var(--font-title)">SS I</div>
+                <div style="font-size: 13px">88 MP · Top 1%</div>
+              </div>
+            </div>
+            <div class="bar" style="margin: 14px 0 0; max-width: none">
+              <span style="width: 88%; animation: none"></span>
+            </div>
+            <a class="btn-solid" href="#">Profil ansehen</a>
+          </article>
+          <article class="glass in" style="--i: 5">
+            <div class="hint" style="margin: 0; color: var(--prisma)">Prisma · Stufe S</div>
+            <div style="font: 800 26px var(--font-title); margin-top: 10px">Goliath</div>
+            <div style="font-size: 13px; margin-top: 4px">Groß werden, mehr Leben und Kraft.</div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-top: 14px;
+                font-size: 13px;
+              "
+            >
+              <span class="hint" style="margin: 0">Siegquote</span><b class="mono">58,1 %</b>
+            </div>
+          </article>
+          <article class="glass in" style="--i: 6">
+            <div class="hint" style="margin: 0; color: var(--win)">Letztes Spiel · Sieg</div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 10px">
+              <img
+                src="../apps/mayhem-site/public/grades/sss.png"
+                alt="Note SSS"
+                width="60"
+                height="60"
+                style="border-radius: 14px"
+              />
+              <div>
+                <div style="font: 800 26px var(--font-title)">+28 MP</div>
+                <div style="font-size: 13px">Alistar · 8/2/31</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Rangliste (Zeilen mit Schein)</h2>
+        <div style="margin-top: 14px; display: grid; gap: 10px">
+          <div class="row p1 in" style="--i: 1">
+            <b class="place" style="color: var(--gold)">1</b
+            ><img
+              class="avatar"
+              src="https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Alistar.png"
+              alt=""
+            /><b style="flex: 1">Player One <span class="pill gold">Bulwark</span></b
+            ><span class="server">EUW</span><b>SS I</b>
+          </div>
+          <div class="row p2 in" style="--i: 2">
+            <b class="place" style="color: var(--silver)">2</b
+            ><img
+              class="avatar"
+              src="https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Brand.png"
+              alt=""
+            /><b style="flex: 1">Second Pick</b><span class="server">NA</span><b>SS II</b>
+          </div>
+          <div class="row p3 in" style="--i: 3">
+            <b class="place" style="color: var(--bronze)">3</b
+            ><img
+              class="avatar"
+              src="https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Jinx.png"
+              alt=""
+            /><b style="flex: 1">Third Wheel</b><span class="server">KR</span><b>S I</b>
+          </div>
+        </div>
+      </section>
+
+      <section class="promo">
+        <span class="bloom"></span>
+        <span
+          class="orb"
+          style="left: 30%; width: 16px; height: 16px; animation-delay: 2.2s"
+        ></span>
+        <span
+          class="orb"
+          style="left: 46%; width: 22px; height: 22px; animation-delay: 2.5s"
+        ></span>
+        <span
+          class="orb"
+          style="left: 62%; width: 12px; height: 12px; animation-delay: 2.4s"
+        ></span>
+        <span
+          class="orb"
+          style="left: 72%; width: 18px; height: 18px; animation-delay: 2.7s"
+        ></span>
+        <h2 style="position: relative; text-align: left">Aufstieg</h2>
+        <div class="emblems">
+          <img class="old" src="../apps/mayhem-site/public/ranks/s.png" alt="S" />
+          <img class="new" src="../apps/mayhem-site/public/ranks/ss.png" alt="SS" />
+        </div>
+        <div class="title">AUFSTIEG</div>
+        <div class="mono" style="position: relative; color: #f5e3b5">
+          S I → SS IV · 3 Spiele Schutz
+        </div>
+        <div class="bar"><span></span></div>
+      </section>
+    </main>
+    <script>
+      // Nur die Auswahl der Augment-Kacheln; alles andere ist reines CSS.
+      for (const tile of document.querySelectorAll('button.tile')) {
+        tile.addEventListener('click', () => {
+          for (const other of document.querySelectorAll('button.tile'))
+            other.setAttribute('aria-pressed', String(other === tile));
+        });
+      }
+    </script>
+  </body>
+</html>

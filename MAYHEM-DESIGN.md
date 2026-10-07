@@ -24,6 +24,21 @@ Bis zum Umbau (ROADMAP „Als Nächstes“) gilt unten weiter „Tribüne“; da
 - **Bilder:** Champion-Icons, Splash-Arts und Items von Data Dragon, Wappen und Noten-Symbole aus
   `public/ranks` und `public/grades`.
 
+- **Glow** (Benutzerwahl nach Pinterest-Vorlagen): dunkle Kacheln, Licht scheint verschwommen von
+  unten herein (`::before` mit `radial-gradient` und `blur`), je Kachel nur eine Farbfamilie: Prisma
+  eisblau, Gold amber, Silber weißlich, Sieg grün. Zeilen leuchten links leicht in ihrer Farbe.
+- **Liquid Glass** (Benutzerwunsch „diesen liquid Effekt“): halbdurchsichtige Flächen mit
+  `backdrop-filter: blur(18–22px) saturate(140%)`, heller Oberkante (`inset 0 1px 0`), unten leicht
+  milchig; sparsam: Kopfzeile, Champion bzw. Rang-Karte, große Ergebnis-Karten, nicht jede Zeile.
+- **Bewegung** (Benutzer: „alles sehr smooth“): nur `cubic-bezier(.22,1,.36,1)` (weich auslaufen, kein
+  Federn, kein Blitz), Hereingleiten aus leichter Unschärfe, gestaffelt; Aufstieg mit aufblühendem
+  Licht, das alte Wappen löst sich auf, das neue tritt hervor. Alles einmal je Anlass; reduzierte
+  Bewegung zeigt sofort den Endstand. Vorlage: `G · Glow, Liquid Glass und weiche Bewegung`.
+- **Vorlagen:** `design/arena-design.html` (eigenständige Seite mit allen Tokens, Glow-Kachel, Liquid Glass, Zeilen, Bewegung und Aufstieg; im Browser öffnen) und die Entwürfe im Artifact „mayhemstats Design 2“ auf claude.ai (privat, nur dort).
+- **Stand:** Die Mayhem-App ist umgebaut (`src/mayhem/mayhem.css`, 07.10.2026). Schriften liegen in
+  `src/mayhem/fonts` (`unbounded-latin.woff2`, `hankengrotesk-latin.woff2`,
+  `geistmono-latin.woff2`, je mit OFL-Text). Die Website folgt später.
+
 ## Bisher: „Tribüne“
 
 Verbindliche Gestaltung für alles rund um ARAM: Mayhem: die Seite `apps/mayhem-site` (mayhemstats.lol)
