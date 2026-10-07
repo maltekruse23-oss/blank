@@ -1,0 +1,82 @@
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+  gap: 15px;
+}
+.device-grid,
+.pc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+}
+.device-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.device-card-top .eyebrow {
+  margin: 0;
+}
+.device-card > p {
+  margin-top: 8px;
+}
+.device-illustration {
+  height: 190px;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--accent) 50%, var(--muted));
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--accent) 12%, transparent),
+    transparent 65%
+  );
+}
+.disconnected .device-illustration {
+  color: var(--subtle);
+}
+.battery-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 13px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.battery-header strong {
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 500;
+}
+.device-grid + .notice {
+  margin-top: 25px;
+}
+.metric-icon {
+  color: var(--accent);
+}
+.metric-value {
+  font-size: 45px;
+  font-weight: 400;
+  letter-spacing: -2px;
+  margin: 19px 0;
+}
+.metric-value small {
+  font-size: 16px;
+  letter-spacing: 0;
+  margin-left: 10px;
+}
+.pc-grid .badge {
+  margin-top: 15px;
+}
+.system-rows > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.system-rows > div > span:last-child {
+  color: var(--subtle);
+}

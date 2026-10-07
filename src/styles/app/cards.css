@@ -1,0 +1,233 @@
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 23px;
+  min-width: 0;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.icon-button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: transparent;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 5px 8px;
+  background: var(--border);
+  color: var(--muted);
+  border: 1px solid color-mix(in srgb, var(--border) 85%, var(--muted));
+  border-radius: calc(5px * var(--radius-scale));
+  font-size: 9px;
+  letter-spacing: 0.2px;
+}
+.badge.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  border-color: var(--accent-line);
+}
+.badge i {
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+}
+.card-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.card-summary strong {
+  font-size: 25px;
+  color: var(--accent);
+  font-weight: 500;
+}
+.card-summary strong span {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 8px;
+}
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.list-row:last-of-type {
+  border-bottom: 0;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  border-radius: calc(11px * var(--radius-scale));
+  font-size: 12px;
+  flex-shrink: 0;
+  color: var(--avatar-1-ink);
+}
+.forest {
+  background: var(--avatar-1);
+}
+.violet {
+  background: var(--avatar-2);
+  color: var(--avatar-2-ink);
+}
+.blue {
+  background: var(--avatar-3);
+  color: var(--avatar-3-ink);
+}
+.neutral {
+  background: var(--avatar-0);
+  color: var(--avatar-0-ink);
+}
+.row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.row-copy b {
+  font-size: 12px;
+  font-weight: 500;
+}
+.row-copy small {
+  font-size: 10px;
+}
+.live-dot {
+  width: 5px;
+  height: 5px;
+  margin: 0;
+}
+.card > p {
+  font-size: 12px;
+  margin-top: 12px;
+}
+.card > h3 {
+  margin-bottom: 8px;
+}
+.text-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--accent);
+  font-size: 11px;
+  margin-top: 23px;
+}
+.device-small {
+  width: 38px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: var(--border);
+  border-radius: calc(10px * var(--radius-scale));
+  color: var(--muted);
+}
+.battery-number {
+  font-size: 12px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.battery-header strong.battery-low,
+.battery-number.battery-low {
+  color: var(--danger-text);
+}
+.footnote {
+  font-size: 10px !important;
+  color: var(--subtle);
+  margin-top: 17px !important;
+}
+.mini-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 23px 25px;
+}
+.mini-metrics > div > span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.mini-metrics strong {
+  display: block;
+  font-size: 23px;
+  font-weight: 500;
+  margin: 6px 0 13px;
+}
+.mini-metrics strong small {
+  font-size: 10px;
+}
+.meter {
+  height: 4px;
+  background: color-mix(in srgb, var(--border) 90%, var(--muted));
+  border-radius: calc(5px * var(--radius-scale));
+  overflow: hidden;
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: calc(5px * var(--radius-scale));
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 26px 0;
+  color: var(--subtle);
+  font-size: 10px;
+}
+.toolbar {
+  display: flex;
+  gap: 15px;
+}
+.search {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: calc(9px * var(--radius-scale));
+  padding: 0 14px;
+  max-width: 440px;
+  width: 100%;
+  color: var(--muted);
+}
+input {
+  background: none;
+  border: 0;
+  color: var(--text);
+  width: 100%;
+  padding: 13px 0;
+  outline-offset: 0 !important;
+}
+.filter-button.selected {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.filter-button span {
+  font-size: 11px;
+}
+.section-note {
+  font-size: 12px;
+  margin: 18px 0 24px;
+}

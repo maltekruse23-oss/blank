@@ -1,0 +1,126 @@
+.settings-layout {
+  max-width: 850px;
+  display: grid;
+  gap: var(--gap);
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 21px 0;
+  border-bottom: 1px solid var(--border);
+}
+.setting-row > div {
+  flex: 1;
+}
+.setting-row h3 {
+  font-size: 13px;
+}
+.setting-row p {
+  font-size: 11px;
+  margin-top: 6px;
+}
+.switch {
+  border: 1px solid color-mix(in srgb, var(--border) 70%, var(--muted));
+  background: color-mix(in srgb, var(--border) 90%, var(--muted));
+  border-radius: calc(20px * var(--radius-scale));
+  width: 38px;
+  height: 22px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.switch > span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform var(--motion-normal);
+}
+.switch[aria-checked='true'] {
+  background: color-mix(in srgb, var(--accent) 40%, var(--bg));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--bg));
+}
+.switch[aria-checked='true'] > span {
+  transform: translateX(15px);
+  background: var(--accent);
+}
+.setting-row > .theme-picker {
+  flex: none;
+  display: flex;
+  gap: 9px;
+}
+/* Each swatch carries its own data-theme, so it shows that scheme's colours. */
+.theme-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 3px solid var(--accent);
+}
+.theme-swatch[aria-pressed='true'] {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px var(--accent);
+}
+.volume-slider {
+  appearance: none;
+  width: 150px;
+  height: 4px;
+  padding: 0;
+  border-radius: calc(4px * var(--radius-scale));
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--value, 0%),
+    color-mix(in srgb, var(--border) 70%, var(--muted)) var(--value, 0%)
+  );
+}
+.volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-line);
+}
+.volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-line);
+}
+.volume-slider:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.volume-slider:focus-visible {
+  outline-offset: 6px;
+}
+.volume-value {
+  width: 34px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.settings-layout .secondary-button {
+  margin-top: 20px;
+  font-size: 11px;
+}
+.about {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  padding: 20px;
+}
+.about b {
+  font-size: 28px;
+  letter-spacing: -1px;
+}
+.about p {
+  font-size: 11px;
+}

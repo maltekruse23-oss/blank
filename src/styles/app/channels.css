@@ -1,0 +1,120 @@
+.watch-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.watch-row:last-child {
+  border-bottom: 0;
+}
+.watch-rule {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 3px 3px 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: calc(5px * var(--radius-scale));
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+}
+.chip button {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  border-radius: calc(4px * var(--radius-scale));
+  background: none;
+}
+.chip button:hover {
+  background: color-mix(in srgb, var(--accent) 22%, var(--accent-soft));
+}
+.game-add,
+.game-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px dashed var(--border);
+  border-radius: calc(5px * var(--radius-scale));
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+}
+.game-option {
+  border-style: solid;
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.game-picker {
+  flex-basis: 100%;
+  padding-left: 47px;
+}
+.game-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.setup-steps {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.setup-steps b {
+  color: var(--text);
+  font-weight: 500;
+}
+.device-login {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.device-code {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--accent);
+}
+.device-login .secondary-button {
+  margin-top: 4px;
+}
+.text-link {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  border-radius: calc(10px * var(--radius-scale));
+  padding: 16px 18px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+select {
+  background: var(--panel);
+  color: var(--text);
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: calc(7px * var(--radius-scale));
+  width: 100%;
+}
