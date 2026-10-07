@@ -17,13 +17,13 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
    Ziel: `mayhem.exe` läuft auf Windows und zeigt die Champ-Karte mit Zahlen von arammeta.com im Tribüne-Look.
    Fertig, wenn: Der alte lokale arammeta-Stand ist verworfen, `pnpm mayhem:build` läuft auf malte's PC durch, `mayhem.exe` startet, „Beispiel: Alistar“ sieht richtig aus, Werte (mit „arammeta.com, Patch …“) und Bilder kommen, Funde sind behoben und malte hat #46 gemergt.
 
-## Als Nächstes
-
-1. **Englische Version der Website mit Server-Kürzel und Server-Filter** (Empfehlung)
+2. **Englische Version der Website mit Server-Kürzel und Server-Filter**
    Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.
    Fertig, wenn: Alle Seiten und Meldungen gibt es auf Englisch und Deutsch, die Sprache ist umschaltbar und hat eigene Adressen, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft.
 
-2. **Lobby-Check**
+## Als Nächstes
+
+1. **Lobby-Check**
    Ziel: In der Champ-Auswahl zeigt die App je Mitspieler Rang, Leistung Ø als Note, seltensten Tag und Spiele mit dem Champion aus mayhemstats.lol, zusammen mit der Champ-Karte in einer Karte.
    Fertig, wenn: In einer echten Champ-Auswahl stehen bei allen Mitspielern diese Werte (oder „nicht in der Datenbank“), jeder Champion auf der Bank hat eine Stufe S bis D. Die App liest nur und nur Daten von mayhemstats.lol. Die Version ist auf Windows getestet und veröffentlicht. Danach folgen die Gegner auf dem Ladebildschirm (Live-Client-Schnittstelle einmal beim Spielstart).
 
