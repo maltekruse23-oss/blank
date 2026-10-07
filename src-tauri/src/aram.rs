@@ -320,6 +320,11 @@ fn parse_lockfile(text: &str) -> Option<(u16, String)> {
     valid.then(|| (port, password.to_string()))
 }
 
+/// The League client runs (its lockfile is there).
+pub fn client_open() -> bool {
+    lockfile().is_some()
+}
+
 /// The lockfile next to the running client (it exists only while the client runs).
 fn lockfile() -> Option<PathBuf> {
     crate::pc::program_pids(CLIENT_EXE)

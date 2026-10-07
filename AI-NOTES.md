@@ -3,6 +3,19 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Champ-Karte: Zahlen von arammeta.com — 06.10.2026
+
+- Benutzerwahl („mach weiter“ zu arammeta als Datenquelle): Champ-Karte in blank. und Mayhem-App nehmen zuerst arammeta.com (offene JSON im MIT-Repo Lanternko/ARAM-Mayhem-Database, `docs/api`), sonst wie bisher mayhemstats.lol. Nie gemischt; die Karte nennt „arammeta.com, Patch …“. Rust `meta_info` (aram_live.rs), Auswertung `metaView`/`parseMeta` in champCard.ts, Tests mit der echten Form (alle 173 Dateien des Repos einmal lokal gelesen, alle gültig). CSP erlaubt arammeta.com für Augment-Symbole.
+- arammeta teilt Augments nicht nach Build-Richtung: Kategorie-Bonus `CATEGORY_BONUS` (Heuristik, in der Doku benannt). Builds = Kern-Gruppe (`itemClusters`) + beste Option.
+- Offen: Lizenz der Daten ist nur über das MIT-Repo abgedeckt (Daten liegen im Repo); vor einer öffentlichen Version den Macher fragen. Die Website nutzt arammeta nicht (Regel: keine gemischten Quellen).
+
+## Mayhem-App: erste Version (eigene EXE) — 06.10.2026
+
+- Benutzerwünsche: eigene App neben blank. im Website-Look, „ganz ganz schlicht“, Champ-Karte „kein Popup, direkt in der App“. Umgesetzt als `mayhem.exe` aus derselben Crate mit eigener Config (`src-tauri/tauri.mayhem.conf.json`, `mayhem.rs`, `src/mayhem/`), Einzelheiten in MAYHEM-BERATER.md 8a. Release-Ablauf hängt `mayhem.exe` zusätzlich an.
+- Nicht drin (bewusst): Popouts, Einstellungen, Rang, Rekorde, Karte nach dem Spiel, Erkennung im Spiel. Nur auf malte's Wunsch ergänzen.
+- Look „Tribüne“ wie die Website (MAYHEM-DESIGN.md, Tokens und Schriften aus `apps/mayhem-site`), nur Mayhem, nichts von blank. Daten zuerst arammeta.com, sonst mayhemstats.lol (CLAUDE.md, Champ-Karte).
+- Offen: Prüfung auf Windows (VALIDATION, Nachtrag Mayhem-App), echter Abruf von arammeta, Datenlizenz vor einer öffentlichen Version beim Macher erfragen.
+
 ## Website: Design „Tribüne“ nach dem Taste-Skill — 06.10.2026
 
 - Benutzerwunsch: „Augment-Wahl“ gefiel doch nicht; die ganze Seite samt Anordnung soll nach dem Taste-Skill (Leonxlnx/taste-skill, MIT) überarbeitet werden. Dritte Entwurfsrunde im selben Artifact; ohne ausdrückliche Wahl genommen: „Tribüne“ (Empfehlung). Vorgabe in [MAYHEM-DESIGN.md](MAYHEM-DESIGN.md), gilt auch für die Mayhem-App.

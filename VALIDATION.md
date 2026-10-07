@@ -1,5 +1,15 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 06.10.2026: Champ-Karte mit arammeta.com
+
+- `champCard.test.ts`: arammeta zuerst mit Quelle und Patch, ohne arammeta die Website (nie gemischt), Kern-Gruppen ohne nutzlose Items, Mana zählt dagegen, AP-Richtung hebt AP-Augments, wenige Spiele fallen weg, nur Symbole aus arammetas Ordner, strenge Prüfung. Rust-Test `reads_arammetas_augment_list`. Einmalig lokal: alle 173 Champion-Dateien aus dem Repo von arammeta bestehen `parseMeta`.
+- **Offen, auf Windows:** echter Abruf von arammeta.com (in der Sandbox gesperrt), Symbole laden (CSP), Karte zeigt „arammeta.com, Patch …“.
+
+## Nachtrag 06.10.2026: Mayhem-App (erste Version)
+
+- Eigene EXE aus demselben Code (`pnpm mayhem:build`, MAYHEM-BERATER.md 8a). Geprüft hier (Linux): `pnpm mayhem:web`, `pnpm build`, Lint, Tests; `cargo clippy --all-targets -D warnings` für Windows mit blank.- und mit Mayhem-Config (`TAURI_CONFIG`); Ansicht der Karte und des Wartezustands bei 460 × 760 im Browser mit erfundenen Werten (Bilder in der Sandbox gesperrt).
+- **Offen, auf Windows prüfen:** `pnpm mayhem:build` ergibt `src-tauri/target/release/mayhem.exe`; sie startet ohne blank., zeigt „League-Client offen/zu“, „Beispiel: Alistar“ lädt echte Zahlen, AP/AD/Tank wechseln die Liste, in einer ARAM-Mayhem-Auswahl erscheint der Champion von selbst. blank. danach neu bauen: unverändert.
+
 ## Nachtrag 06.10.2026: Champ-Karte „Testen“
 
 - Settings → Popouts → Meldungen → Champ-Karte hat „Testen“ (Benutzerwunsch „Spiel simulieren“): zeigt die Karte für Alistar mit den echten Zahlen von mayhemstats.lol, ohne Champ-Auswahl. Prüft Website-Abruf, Data Dragon, Popout und die Knöpfe AP/AD/Tank; die Erkennung über den Client prüft es nicht.

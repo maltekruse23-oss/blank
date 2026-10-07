@@ -49,16 +49,23 @@ jobs:
       - run: pnpm desktop:build
         env:
           BLANK_TWITCH_CLIENT_ID: ${{ vars.TWITCH_CLIENT_ID }}
-      # The browser extension for watching together, as a zip to unpack and load.
-      - run: pnpm extension:build
-
-      # Always the same file names, so the README links .../releases/latest/download/blank.exe and
-      # blank-extension.zip work (the updater only takes blank.exe).
-      - name: Collect the download
+      # blank.exe aside before the Mayhem app is built from the same crate (same target folder).
+      - name: Keep blank.exe
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force download | Out-Null
           Copy-Item src-tauri/target/release/blank.exe download/blank.exe
+      # The Mayhem app (mayhem.rs, its own config): src-tauri/target/release/mayhem.exe.
+      - run: pnpm mayhem:build
+      # The browser extension for watching together, as a zip to unpack and load.
+      - run: pnpm extension:build
+
+      # Always the same file names, so the README links .../releases/latest/download/blank.exe,
+      # mayhem.exe and blank-extension.zip work (the updater only takes blank.exe).
+      - name: Collect the download
+        shell: pwsh
+        run: |
+          Copy-Item src-tauri/target/release/mayhem.exe download/mayhem.exe
           Compress-Archive -Path extension/dist/* -DestinationPath download/blank-extension.zip
 
       - uses: softprops/action-gh-release@v2
@@ -67,6 +74,7 @@ jobs:
           name: blank. ${{ github.ref_name }}
           files: |
             download/blank.exe
+            download/mayhem.exe
             download/blank-extension.zip
           body_path: .github/release-notes.md
 
@@ -76,4 +84,5 @@ jobs:
           name: blank-windows-x64
           path: |
             download/blank.exe
+            download/mayhem.exe
             download/blank-extension.zip

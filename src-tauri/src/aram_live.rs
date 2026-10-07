@@ -6,17 +6,21 @@
 //! subscribed to the champion select only; nothing is sent to the client except that subscription,
 //! nothing is triggered, the game itself is never touched. No polling: the client reports changes.
 //!
-//! `aram_champ_info` then reads what the card shows: the champion's public stats from the website
-//! (nothing personal is sent, only the champion's number) and the item list from Data Dragon (name,
-//! finished or not, mana), reduced here.
+//! `aram_champ_info` then reads what the card shows: the champion's public Mayhem stats from
+//! arammeta.com (user's choice 06.10.2026: open JSON files of an MIT-licensed project, ARAM Mayhem
+//! only, many more games) and from our website, and the item list from Data Dragon (name, finished
+//! or not, mana), reduced here. Nothing personal is sent, only the champion's number.
 use super::{champion_names, lockfile, parse_lockfile, Lcu, MAYHEM_QUEUE, SESSION};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     collections::HashMap,
-    sync::atomic::{AtomicBool, AtomicI64, Ordering},
-    time::Duration,
+    sync::{
+        atomic::{AtomicBool, AtomicI64, Ordering},
+        Arc, Mutex,
+    },
+    time::{Duration, Instant},
 };
 use tauri::{AppHandle, Emitter};
 use tokio_tungstenite::{
@@ -37,6 +41,13 @@ const EVENT_NAME: &str = "aram-champ";
 const SITE: &str = "https://mayhemstats.lol";
 const DDRAGON: &str = "https://ddragon.leagueoflegends.com/cdn";
 const MAX_ANSWER: usize = 8 * 1024 * 1024;
+/// arammeta.com: per champion `/api/champions/<id>.json`, the augment list in `/api/tier-list.json`.
+const META: &str = "https://arammeta.com";
+/// The augment list (3 MB) is read again after this long; it changes about once a day.
+const META_KEEP: Duration = Duration::from_secs(6 * 60 * 60);
+
+/// arammeta's augment list and champion games, reduced, kept for `META_KEEP`.
+static META_LIST: Mutex<Option<(Instant, Arc<MetaList>)>> = Mutex::new(None);
 
 /// The card is switched on (setting `popoutChamp`, told by the app window).
 static WANTED: AtomicBool = AtomicBool::new(false);
@@ -104,7 +115,10 @@ fn tell(app: &AppHandle, champion_id: i64, names: &HashMap<i64, (String, String)
             alias,
             name,
         };
-        let _ = app.emit_to("main", EVENT_NAME, champ);
+        // blank.'s window, or the Mayhem app's (mayhem.rs); only one of them exists.
+        for window in ["main", crate::mayhem::WINDOW] {
+            let _ = app.emit_to(window, EVENT_NAME, champ.clone());
+        }
     }
 }
 
@@ -256,6 +270,81 @@ pub struct ChampInfo {
     /// The website's `/api/augments` (names and rarity).
     augments: Option<String>,
     items: HashMap<u32, ItemInfo>,
+    /// arammeta's numbers; None when it did not answer (the card then uses the website's).
+    meta: Option<MetaInfo>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetaInfo {
+    /// Patch of the numbers, like "16.19".
+    patch: String,
+    /// The champion's Mayhem games counted there.
+    games: Option<u32>,
+    /// `/api/champions/<id>.json` as it came (checked in the app).
+    champion: Option<String>,
+    augments: HashMap<u32, MetaAugment>,
+}
+
+/// An augment as arammeta lists it (English name; rarity kSilver/kGold/kPrismatic; categories
+/// like "ap", "ad", "tank"; icon path on arammeta.com).
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+#[serde(default)]
+pub struct MetaAugment {
+    #[serde(rename(deserialize = "name_en"))]
+    name: String,
+    rarity: String,
+    cats: Vec<String>,
+    icon: String,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct MetaList {
+    patch_prefix: String,
+    champs: HashMap<String, MetaChamp>,
+    augs: HashMap<String, MetaAugment>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct MetaChamp {
+    g: u32,
+}
+
+/// arammeta's augment list, from memory while fresh.
+async fn meta_list(http: &reqwest::Client) -> Option<Arc<MetaList>> {
+    let kept = META_LIST.lock().ok()?.clone();
+    if let Some((at, list)) = kept {
+        if at.elapsed() < META_KEEP {
+            return Some(list);
+        }
+    }
+    let bytes = fetch(http, &format!("{META}/api/tier-list.json")).await.ok()??;
+    let list = Arc::new(serde_json::from_slice::<MetaList>(&bytes).ok()?);
+    if let Ok(mut kept) = META_LIST.lock() {
+        *kept = Some((Instant::now(), list.clone()));
+    }
+    Some(list)
+}
+
+async fn meta_info(http: &reqwest::Client, champion_id: u32) -> Option<MetaInfo> {
+    let url = format!("{META}/api/champions/{champion_id}.json");
+    let (list, champion) = tokio::join!(meta_list(http), fetch(http, &url));
+    let list = list?;
+    let champion = champion
+        .ok()?
+        .and_then(|bytes| String::from_utf8(bytes).ok());
+    Some(MetaInfo {
+        patch: list.patch_prefix.chars().take(12).collect(),
+        games: list.champs.get(&champion_id.to_string()).map(|c| c.g),
+        champion,
+        augments: list
+            .augs
+            .iter()
+            .filter_map(|(id, a)| Some((id.parse::<u32>().ok()?, a.clone())))
+            .collect(),
+    })
 }
 
 #[derive(Deserialize)]
@@ -374,10 +463,11 @@ pub async fn aram_champ_info(champion_id: u32, version: String) -> Result<ChampI
     let champion_url = format!("{SITE}/api/champions/{champion_id}");
     let augments_url = format!("{SITE}/api/augments");
     let items_url = format!("{DDRAGON}/{version}/data/de_DE/item.json");
-    let (champion, augments, items) = tokio::join!(
+    let (champion, augments, items, meta) = tokio::join!(
         fetch(&http, &champion_url),
         fetch(&http, &augments_url),
         fetch(&http, &items_url),
+        meta_info(&http, champion_id),
     );
     let items = match items? {
         Some(bytes) => items_of(
@@ -385,10 +475,17 @@ pub async fn aram_champ_info(champion_id: u32, version: String) -> Result<ChampI
         ),
         None => HashMap::new(),
     };
+    // One of the two sources is enough (arammeta first, the card says which).
+    let champion = match champion {
+        Ok(champion) => text(champion),
+        Err(error) if meta.is_none() => return Err(error),
+        Err(_) => None,
+    };
     Ok(ChampInfo {
-        champion: text(champion?),
+        champion,
         augments: text(augments.unwrap_or(None)),
         items,
+        meta,
     })
 }
 
@@ -453,6 +550,30 @@ mod tests {
         assert!(!items[&1058].done);
         assert!(!items[&3020].done);
         assert!(!items[&2003].done);
+    }
+
+    #[test]
+    fn reads_arammetas_augment_list() {
+        let list: MetaList = serde_json::from_value(json!({
+            "patch_prefix": "16.19",
+            "champs": {"12": {"g": 60574, "name_en": "Alistar", "top": {"kGold": []}}},
+            "augs": {"1025": {
+                "name_en": "Dive Bomber", "name": "x", "icon": "assets/icons/divebomber_large.png",
+                "rarity": "kSilver", "cats": ["amp"], "wr": 0.49
+            }},
+            "itemLut": {}
+        }))
+        .unwrap();
+        assert_eq!(list.patch_prefix, "16.19");
+        assert_eq!(list.champs["12"].g, 60574);
+        let augment = &list.augs["1025"];
+        assert_eq!(augment.name, "Dive Bomber");
+        assert_eq!(augment.rarity, "kSilver");
+        assert_eq!(augment.cats, ["amp"]);
+        // Sent on to the app with plain field names.
+        let sent = serde_json::to_value(augment).unwrap();
+        assert_eq!(sent["name"], "Dive Bomber");
+        assert_eq!(sent["icon"], "assets/icons/divebomber_large.png");
     }
 
     #[test]

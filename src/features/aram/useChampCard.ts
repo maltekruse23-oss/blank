@@ -4,13 +4,12 @@ import { hasPopouts, showPopout } from '../../platform/popout';
 import type { Preferences } from '../settings/preferences';
 import { champView } from './champCard';
 
+export { SAMPLE_CHAMP } from './champCard';
+
 /** Swaps and rerolls come in quick turns: the card waits for the pick to settle this long. */
 const SETTLE_MS = 1_200;
 
 let serial = 0;
-
-/** Champion of "Testen" in the settings (the user's own example: AP-Alistar). */
-export const SAMPLE_CHAMP: HeldChamp = { championId: 12, alias: 'Alistar', name: 'Alistar' };
 
 /**
  * Reads the champion's numbers from the website and shows the card. `current` says whether the

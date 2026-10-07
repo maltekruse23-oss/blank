@@ -31,7 +31,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://static-cdn.jtvnw.net https://ddragon.leagueoflegends.com https://mayhemstats.lol https://*.sndcdn.com; connect-src 'self' https://soundcloud.com; frame-src https://w.soundcloud.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://static-cdn.jtvnw.net https://ddragon.leagueoflegends.com https://mayhemstats.lol https://arammeta.com https://*.sndcdn.com; connect-src 'self' https://soundcloud.com; frame-src https://w.soundcloud.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     }
   },
   "bundle": {

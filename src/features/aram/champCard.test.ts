@@ -10,9 +10,12 @@ import {
   buildPlans,
   champView,
   directionOf,
+  metaImage,
   parseAugments,
   parseChampion,
+  parseMeta,
   shrunk,
+  sourceLabel,
   USELESS_ITEMS,
 } from './champCard';
 
@@ -127,6 +130,8 @@ describe('Champ-Karte', () => {
     const champ = { championId: 12, alias: 'Alistar', name: 'Alistar' };
     expect(champView(champ, { champion: null, augments: null, items: {} })).toEqual({
       ...champ,
+      source: 'mayhemstats',
+      patch: null,
       games: 0,
       augments: [],
       builds: [],
@@ -280,3 +285,116 @@ function entry(player: number, gameId: number): AramEntry {
     lobby,
   };
 }
+
+describe('Champ-Karte mit arammeta', () => {
+  const champ = { championId: 12, alias: 'Alistar', name: 'Alistar' };
+  const tank = (name: string): ChampItem => item(name, true, false, 'tank');
+  const MetaItems: Record<string, ChampItem> = {
+    '3084': tank('Heartsteel'),
+    '3083': tank('Warmog'),
+    '3075': tank('Thornmail'),
+    '2502': tank('Unending Despair'),
+    '3040': item('Seraphs', true, true),
+    '3179': item('Umbral', true, false, 'ad'),
+  };
+  // The shape of arammeta's /api/champions/<id>.json (only the parts the card reads).
+  const file = {
+    poolAugments: [
+      { id: 1, g: 2000, wr: 0.56, pick: 0.03 },
+      { id: 2, g: 2000, wr: 0.55, pick: 0.03 },
+      { id: 3, g: 2000, wr: 0.54, pick: 0.03 },
+      { id: 4, g: 10, wr: 0.9, pick: 0.001 },
+    ],
+    itemClusters: {
+      groups: [
+        {
+          core: [{ id: 3084 }, { id: 3083 }],
+          g: 20000,
+          wr: 0.54,
+          options: [
+            { id: 2502, g: 9000, wr: 0.53 },
+            { id: 3075, g: 8000, wr: 0.5 },
+            { id: 3179, g: 5000, wr: 0.6 },
+            { id: 3040, g: 5000, wr: 0.55 },
+          ],
+        },
+      ],
+    },
+    bot: {},
+  };
+  const meta = {
+    patch: '16.19',
+    games: 60574,
+    champion: JSON.stringify(file),
+    augments: {
+      '1': {
+        name: 'Tank Engine',
+        rarity: 'kPrismatic',
+        cats: ['tank'],
+        icon: 'assets/icons/a.png',
+      },
+      '2': { name: 'Mystic Punch', rarity: 'kGold', cats: ['ap'], icon: 'assets/icons/b.png' },
+      '3': { name: 'Blade Waltz', rarity: 'kSilver', cats: ['ad'], icon: '../evil.png' },
+    },
+  };
+
+  it('nimmt arammeta zuerst und nennt die Quelle mit Patch', () => {
+    const view = champView(champ, { champion: null, augments: null, items: MetaItems, meta })!;
+    expect(view.source).toBe('arammeta');
+    expect(view.patch).toBe('16.19');
+    expect(view.games).toBe(60574);
+    expect(sourceLabel(view)).toBe('arammeta.com, Patch 16.19');
+    // Without arammeta the website's numbers, never mixed.
+    const site = champView(champ, {
+      champion: null,
+      augments: null,
+      items: MetaItems,
+      meta: null,
+    })!;
+    expect(site.source).toBe('mayhemstats');
+  });
+
+  it('Build-Richtungen: der meistgespielte Kern zuerst, nutzlose Items nie, Mana zählt dagegen', () => {
+    const view = champView(champ, { champion: null, augments: null, items: MetaItems, meta })!;
+    expect(view.plans.map((p) => p.direction)).toEqual(['tank', 'ap', 'ad']);
+    expect(view.plans[0].share).toBe(1);
+    const builds = view.plans[0].builds;
+    expect(builds[0].items.map((i) => i.id)).toEqual([3084, 3083, 2502]);
+    expect(builds.flatMap((b) => b.items.map((i) => i.id))).not.toContain(3179);
+    const seraphs = view.builds.find((b) => b.items.some((i) => i.id === 3040));
+    expect(seraphs?.mana ?? 1).toBe(1);
+    // A direction without its own core still ranks the augments for it.
+    expect(view.plans[1].builds).toEqual([]);
+  });
+
+  it('AP-Richtung hebt AP-Augments, wenige Spiele zählen nicht, nur eigene Symbole', () => {
+    const view = champView(champ, { champion: null, augments: null, items: MetaItems, meta })!;
+    const ap = view.plans.find((p) => p.direction === 'ap')!;
+    expect(ap.augments[0]).toMatchObject({ id: 2, tier: 'S', rarity: 'gold' });
+    expect(ap.augments.at(-1)!.id).toBe(3);
+    const tankPlan = view.plans.find((p) => p.direction === 'tank')!;
+    expect(tankPlan.augments[0]).toMatchObject({ id: 1, rarity: 'prismatic' });
+    expect(tankPlan.augments.map((a) => a.id)).not.toContain(4);
+    expect(tankPlan.augments[0].image).toBe('https://arammeta.com/assets/icons/a.png');
+    expect(ap.augments.find((a) => a.id === 3)!.image).toBeNull();
+    expect(metaImage('assets/icons/x.png')).toBe('https://arammeta.com/assets/icons/x.png');
+    expect(metaImage('https://evil.example/x.png')).toBeNull();
+  });
+
+  it('prüft arammetas Datei streng', () => {
+    expect(parseMeta(null)).toBeNull();
+    expect(parseMeta('{')).toBeNull();
+    expect(parseMeta(JSON.stringify({ poolAugments: [{ id: 1, g: -1, wr: 0.5 }] }))).toBeNull();
+    expect(parseMeta(JSON.stringify({ poolAugments: [{ id: 1, g: 5, wr: 1.5 }] }))).toBeNull();
+    expect(parseMeta(JSON.stringify({ poolAugments: [] }))).toEqual({ pool: [], groups: [] });
+    // Unreadable file: back to the website.
+    const broken = { ...meta, champion: '[]' };
+    const view = champView(champ, {
+      champion: null,
+      augments: null,
+      items: MetaItems,
+      meta: broken,
+    })!;
+    expect(view.source).toBe('mayhemstats');
+  });
+});

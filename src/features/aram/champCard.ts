@@ -1,10 +1,20 @@
 // Champ-Karte (user's wish): for the champion held in an ARAM Mayhem champion select, the best
-// augments and item builds from the website's games (mayhemstats.lol, /api/champions/<id>; only
-// our own raw Mayhem games). Always several choices with their numbers, never one prescription
+// augments and item builds. Source: arammeta.com (user's choice 06.10.2026: open JSON of an
+// MIT-licensed project, ARAM Mayhem only, far more games), else the website's own games
+// (mayhemstats.lol, /api/champions/<id>). The card names its source; the two are never mixed. Always several choices with their numbers, never one prescription
 // (Riot: apps may highlight choices, not dictate them). Mana items count against a build (user's
 // rule: mana is useless in ARAM). Pure, tested in champCard.test.ts.
-import type { ChampInfo, ChampItem } from '../../adapters/aramChamp';
+import type { ChampInfo, ChampItem, MetaAugment } from '../../adapters/aramChamp';
 import { gradeOf, type Grade } from './aramPerformance';
+
+/** Where the card's numbers come from, as the card names it. */
+export const sourceLabel = (view: { source: 'arammeta' | 'mayhemstats'; patch: string | null }) =>
+  view.source === 'arammeta'
+    ? `arammeta.com${view.patch ? `, Patch ${view.patch}` : ''}`
+    : 'mayhemstats.lol';
+
+/** Champion of "Testen" (settings) and "Beispiel" (Mayhem app): the user's own example, AP-Alistar. */
+export const SAMPLE_CHAMP = { championId: 12, alias: 'Alistar', name: 'Alistar' } as const;
 
 /** Shown per list. */
 export const AUGMENTS_SHOWN = 5;
@@ -48,6 +58,8 @@ export type AugmentPick = {
   rarity: string;
   /** The website has a picture of it. */
   icon: boolean;
+  /** Its picture (website or arammeta), if there is one. */
+  image: string | null;
   games: number;
   winRate: number | null;
   grade: Grade | null;
@@ -66,8 +78,11 @@ export type ChampView = {
   championId: number;
   alias: string;
   name: string;
-  /** Counted games of the champion on the website. */
+  /** Counted games of the champion at the source. */
   games: number;
+  /** Where the numbers come from; arammeta with its patch. */
+  source: 'arammeta' | 'mayhemstats';
+  patch: string | null;
   augments: AugmentPick[];
   builds: BuildPick[];
   /** Build directions with enough games, most played first: the user picks one before the game. */
@@ -100,6 +115,7 @@ export type TieredAugment = {
   name: string;
   rarity: string;
   icon: boolean;
+  image: string | null;
   tier: Tier;
   /** Ø percentile in this direction, pulled to the augment's general value when few. */
   score: number;
@@ -194,6 +210,10 @@ export function parseAugments(text: string | null): Map<number, AugmentInfo> {
   return out;
 }
 
+/** Pictures of Mayhem augments on the website (Data Dragon has none). */
+const siteImage = (id: number, icon: boolean) =>
+  icon ? `https://mayhemstats.lol/api/augments/${id}.png` : null;
+
 /** A percentile from few games, pulled towards the middle. */
 export const shrunk = (pct: number, games: number) => (pct * games + 0.5 * PRIOR) / (games + PRIOR);
 
@@ -209,6 +229,7 @@ export function bestAugments(rows: AugmentRow[], names: Map<number, AugmentInfo>
       name: names.get(row.id)?.name ?? `Augment ${row.id}`,
       rarity: names.get(row.id)?.rarity ?? '',
       icon: names.get(row.id)?.icon ?? false,
+      image: siteImage(row.id, names.get(row.id)?.icon ?? false),
       games: row.games,
       winRate: row.winRate,
       grade: row.pct === null ? null : gradeOf(row.pct),
@@ -352,6 +373,7 @@ export function buildPlans(
             name: names.get(id)?.name ?? `Augment ${id}`,
             rarity: names.get(id)?.rarity ?? '',
             icon: names.get(id)?.icon ?? false,
+            image: siteImage(id, names.get(id)?.icon ?? false),
             score,
             games: here.length,
             general: here.length < MIN_AUGMENT_GAMES,
@@ -376,15 +398,210 @@ export function champView(
   champ: { championId: number; alias: string; name: string },
   info: ChampInfo,
 ): ChampView | null {
+  const meta = info.meta && metaView(champ, info.meta, info.items);
+  if (meta) return meta;
+  const site = { source: 'mayhemstats', patch: null } as const;
   const names = parseAugments(info.augments);
-  if (info.champion === null) return { ...champ, games: 0, augments: [], builds: [], plans: [] };
+  if (info.champion === null)
+    return { ...champ, ...site, games: 0, augments: [], builds: [], plans: [] };
   const parsed = parseChampion(info.champion);
   if (!parsed) return null;
   return {
     ...champ,
+    ...site,
     games: parsed.games,
     augments: bestAugments(parsed.augments, names),
     builds: bestBuilds(parsed.builds, info.items),
     plans: buildPlans(parsed.builds, info.items, names),
+  };
+}
+
+// --- arammeta.com ---
+
+/** arammeta's augments of a champion from fewer games than this are left out. */
+export const META_MIN_GAMES = 30;
+/** Win rates from few games are pulled towards 50 % as if this many average games were added. */
+export const META_PRIOR = 200;
+/**
+ * arammeta does not split augments by build direction; an augment of the direction's category
+ * (arammeta's "ap", "ad", "tank") counts this much win rate more, one of the other damage type
+ * this much less (user's rule: AP-Alistar, AP augments first).
+ */
+export const CATEGORY_BONUS = 0.03;
+/** Item options per core read from a group. */
+const META_OPTIONS = 4;
+
+type MetaRow = { id: number; g: number; wr: number };
+type MetaGroup = { core: number[]; g: number; wr: number; options: MetaRow[] };
+
+const RARITY: Record<string, string> = {
+  kSilver: 'silver',
+  kGold: 'gold',
+  kPrismatic: 'prismatic',
+};
+
+/** Only icons in arammeta's own icon folder. */
+export const metaImage = (icon: string) =>
+  /^assets\/icons\/[a-z0-9_.-]{1,80}\.png$/i.test(icon) && !icon.includes('..')
+    ? `https://arammeta.com/${icon}`
+    : null;
+
+const metaRow = (v: unknown): MetaRow | null => {
+  if (!isObject(v)) return null;
+  const id = count(v.id);
+  const g = count(v.g);
+  const wr = share(v.wr);
+  return id === null || g === null || wr === null ? null : { id, g, wr };
+};
+
+/** arammeta's champion file, checked; null if anything does not fit. */
+export function parseMeta(text: string | null) {
+  if (!text) return null;
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!isObject(json) || !Array.isArray(json.poolAugments) || json.poolAugments.length > 400)
+    return null;
+  const pool: MetaRow[] = [];
+  for (const a of json.poolAugments) {
+    const row = metaRow(a);
+    if (!row) return null;
+    pool.push(row);
+  }
+  const groups: MetaGroup[] = [];
+  const clusters = isObject(json.itemClusters) ? json.itemClusters.groups : [];
+  if (!Array.isArray(clusters) || clusters.length > 50) return null;
+  for (const c of clusters) {
+    if (!isObject(c) || !Array.isArray(c.core) || !Array.isArray(c.options)) return null;
+    const core = c.core.map((i) => (isObject(i) ? count(i.id) : null));
+    const g = count(c.g);
+    const wr = share(c.wr);
+    if (core.some((id) => id === null) || core.length > 6 || g === null || wr === null) return null;
+    const options: MetaRow[] = [];
+    for (const o of c.options.slice(0, 40)) {
+      const row = metaRow(o);
+      if (!row) return null;
+      options.push(row);
+    }
+    groups.push({ core: core as number[], g, wr, options });
+  }
+  return { pool, groups };
+}
+
+const pulled = (wr: number, g: number) => (wr * g + 0.5 * META_PRIOR) / (g + META_PRIOR);
+const OTHER_DAMAGE: Partial<Record<Direction, string>> = { ap: 'ad', ad: 'ap' };
+
+/** The card from arammeta's numbers; null when its champion file is missing or does not fit. */
+export function metaView(
+  champ: { championId: number; alias: string; name: string },
+  meta: {
+    patch: string;
+    games: number | null;
+    champion: string | null;
+    augments: Record<string, MetaAugment>;
+  },
+  items: Record<string, ChampItem>,
+): ChampView | null {
+  const parsed = parseMeta(meta.champion);
+  if (!parsed) return null;
+  const info = (id: number) => {
+    const a = meta.augments[String(id)];
+    return {
+      name: a?.name ? a.name.slice(0, 80) : `Augment ${id}`,
+      rarity: RARITY[a?.rarity ?? ''] ?? '',
+      image: a ? metaImage(a.icon) : null,
+      cats: a?.cats ?? [],
+    };
+  };
+  const item = (id: number) => ({
+    id,
+    name: items[String(id)]?.name ?? `Item ${id}`,
+    mana: !!items[String(id)]?.mana,
+  });
+  const usable = (id: number) => !(id in USELESS_ITEMS);
+
+  // Each core group of items with its direction (from the core and its most played options).
+  const groups = parsed.groups
+    .filter((g) => g.core.every(usable))
+    .map((g) => ({
+      ...g,
+      direction: directionOf([...g.core, ...g.options.slice(0, 3).map((o) => o.id)], items),
+    }));
+  const total = groups.reduce((t, g) => t + g.g, 0);
+  const builds = (list: typeof groups): BuildPick[] =>
+    list
+      .flatMap((g) =>
+        g.options
+          .filter((o) => usable(o.id) && !g.core.includes(o.id))
+          .slice(0, META_OPTIONS)
+          .map((o) => {
+            const ids = [...g.core, o.id];
+            const mana = ids.filter((id) => items[String(id)]?.mana).length;
+            return {
+              score: pulled(o.wr, o.g) - MANA_PENALTY * mana,
+              pick: { items: ids.map(item), games: o.g, winRate: o.wr, grade: null, mana },
+            };
+          }),
+      )
+      .sort((a, b) => b.score - a.score || b.pick.games - a.pick.games)
+      .slice(0, PLAN_BUILDS_SHOWN)
+      .map((b) => b.pick);
+
+  const pool = parsed.pool.filter((a) => a.g >= META_MIN_GAMES);
+  const known = pool.length > 0 || groups.length > 0;
+  const plans: BuildPlan[] = (known ? DIRECTIONS : [])
+    .map((d) => {
+      const own = groups.filter((g) => g.direction === d);
+      const games = own.reduce((t, g) => t + g.g, 0);
+      const rows = pool
+        .map((a) => {
+          const { cats, ...shown } = info(a.id);
+          const fits = cats.includes(d) ? 1 : cats.includes(OTHER_DAMAGE[d] ?? '') ? -1 : 0;
+          return {
+            id: a.id,
+            ...shown,
+            icon: shown.image !== null,
+            score: pulled(a.wr, a.g) + CATEGORY_BONUS * fits,
+            games: a.g,
+            general: false,
+            turns: null,
+          };
+        })
+        .sort((a, b) => b.score - a.score || b.games - a.games || a.id - b.id);
+      return {
+        direction: d,
+        games,
+        share: total ? games / total : 0,
+        builds: builds(own),
+        augments: tiered(rows),
+      };
+    })
+    .sort((a, b) => b.games - a.games);
+
+  const best: AugmentPick[] = [...pool]
+    .sort((a, b) => pulled(b.wr, b.g) - pulled(a.wr, a.g) || b.g - a.g)
+    .slice(0, AUGMENTS_SHOWN)
+    .map((a) => {
+      const { cats: _cats, ...shown } = info(a.id);
+      return {
+        id: a.id,
+        ...shown,
+        icon: shown.image !== null,
+        games: a.g,
+        winRate: a.wr,
+        grade: null,
+      };
+    });
+  return {
+    ...champ,
+    games: meta.games ?? 0,
+    source: 'arammeta',
+    patch: meta.patch || null,
+    augments: best,
+    builds: builds(groups),
+    plans,
   };
 }

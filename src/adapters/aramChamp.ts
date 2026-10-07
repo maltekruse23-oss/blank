@@ -20,6 +20,20 @@ export type ChampInfo = {
   champion: string | null;
   augments: string | null;
   items: Record<string, ChampItem>;
+  /** arammeta.com's numbers (user's choice, Rust `meta_info`); null when it did not answer. */
+  meta?: MetaInfo | null;
+};
+
+/** An augment as arammeta lists it: English name, rarity kSilver/kGold/kPrismatic, categories
+ * like "ap", "ad", "tank", icon path on arammeta.com. */
+export type MetaAugment = { name: string; rarity: string; cats: string[]; icon: string };
+
+export type MetaInfo = {
+  patch: string;
+  games: number | null;
+  /** `/api/champions/<id>.json` as it came (checked in champCard.ts). */
+  champion: string | null;
+  augments: Record<string, MetaAugment>;
 };
 
 /** Follow the champion select while the client runs (on), or stop (off). */
@@ -38,3 +52,14 @@ export function onChamp(handler: (champ: HeldChamp) => void) {
 
 export const readChampInfo = (championId: number): Promise<ChampInfo> =>
   invoke<ChampInfo>('aram_champ_info', { championId, version: DDRAGON_VERSION });
+
+/** Mayhem app only (src-tauri/src/mayhem.rs): whether the League client runs. */
+export const leagueClientOpen = () =>
+  isTauri() ? invoke<boolean>('league_client_open').catch(() => false) : Promise.resolve(false);
+
+/** Mayhem app only: the League client opened (true) or closed (false). */
+export function onLeagueClient(handler: (open: boolean) => void) {
+  if (!isTauri()) return () => undefined;
+  const stop = listen<boolean>('league-client', ({ payload }) => handler(payload));
+  return () => void stop.then((unlisten) => unlisten());
+}

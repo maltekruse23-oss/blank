@@ -1,0 +1,28 @@
+{
+  "productName": "Mayhem",
+  "mainBinaryName": "mayhem",
+  "identifier": "lol.mayhemstats.desktop",
+  "build": {
+    "beforeBuildCommand": "pnpm mayhem:web",
+    "frontendDist": "../dist-mayhem"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Mayhem",
+        "label": "mayhem",
+        "url": "mayhem.html",
+        "width": 460,
+        "height": 760,
+        "minWidth": 400,
+        "minHeight": 520,
+        "resizable": true,
+        "center": true,
+        "backgroundColor": "#111010"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://ddragon.leagueoflegends.com https://mayhemstats.lol https://arammeta.com; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    }
+  }
+}

@@ -17,6 +17,8 @@ mod fullscreen;
 #[cfg(windows)]
 mod gpu;
 #[cfg(windows)]
+mod mayhem;
+#[cfg(windows)]
 mod media;
 #[cfg(windows)]
 mod memory;
@@ -59,6 +61,13 @@ pub use memory::{clean_elevated as clean_memory_elevated, CLEAN_ARG as CLEAN_MEM
 pub use update::{mark_updated, wait_for_old as wait_for_old_version, AFTER_UPDATE_ARG};
 
 pub fn run() {
+    let context = tauri::generate_context!();
+    // The Mayhem app is the same code with its own config (tauri.mayhem.conf.json): it runs only
+    // the Champ-Karte, none of blank. (mayhem.rs).
+    #[cfg(windows)]
+    if context.config().identifier == mayhem::IDENTIFIER {
+        return mayhem::run(context);
+    }
     #[cfg(windows)]
     if !single_instance::acquire() {
         return;
@@ -306,6 +315,6 @@ pub fn run() {
             twitch::twitch_search_categories,
             twitch::twitch_live_streams,
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("blank. could not start");
 }
