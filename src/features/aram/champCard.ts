@@ -1,7 +1,10 @@
 // Champ-Karte (user's wish): for the champion held in an ARAM Mayhem champion select, the best
 // augments and item builds. Source: arammeta.com (user's choice 06.10.2026: open JSON of an
 // MIT-licensed project, ARAM Mayhem only, far more games), else the website's own games
-// (mayhemstats.lol, /api/champions/<id>). The card names its source; the two are never mixed. Always several choices with their numbers, never one prescription
+// (mayhemstats.lol, /api/champions/<id>). The card names its source; numbers of the two are never
+// added together. Only a build direction arammeta has no item core for (e.g. AP-Alistar, user's
+// choice 07.10.2026) takes the website's direction instead, and the card names that source there.
+// Always several choices with their numbers, never one prescription
 // (Riot: apps may highlight choices, not dictate them). Mana items count against a build (user's
 // rule: mana is useless in ARAM). Pure, tested in champCard.test.ts.
 import type { ChampInfo, ChampItem, MetaAugment } from '../../adapters/aramChamp';
@@ -109,6 +112,11 @@ export const PLAN_BUILDS_SHOWN = 2;
 export const TIERS = ['S', 'A', 'B', 'C', 'D'] as const;
 export type Tier = (typeof TIERS)[number];
 const CUTS: Record<Tier, number> = { S: 0.1, A: 0.3, B: 0.7, C: 0.9, D: 1 };
+/**
+ * At most this many places up to and including the tier (user's wish 07.10.2026: S was about 15
+ * augments long and did not help to choose). Only the card; the website's tier list is unchanged.
+ */
+export const TIER_PLACES: Partial<Record<Tier, number>> = { S: 5, A: 15 };
 
 export type TieredAugment = {
   id: number;
@@ -130,8 +138,10 @@ export type TieredAugment = {
 export type BuildPlan = {
   direction: Direction;
   games: number;
-  /** Share of the champion's games with a clear direction. */
+  /** Share of the champion's games with a clear direction (at the card's main source). */
   share: number;
+  /** Where this direction's numbers come from (the website when arammeta has no core for it). */
+  source: 'arammeta' | 'mayhemstats';
   builds: BuildPick[];
   /** Every augment of the champion with a value, best first (the game ranks offers by this). */
   augments: TieredAugment[];
@@ -311,8 +321,11 @@ function tiered<T extends { score: number }>(rows: T[]): (T & { tier: Tier })[] 
   return rows.map((row, i) => {
     const first = rows.findIndex((r) => r.score === row.score);
     // Rows ahead of it, as a share: the best is always S, even in a short list.
-    const ahead = Math.min(i, first) / rows.length;
-    return { ...row, tier: TIERS.find((t) => ahead < CUTS[t])! };
+    const place = Math.min(i, first);
+    const tier = TIERS.find(
+      (t) => place < Math.min(CUTS[t] * rows.length, TIER_PLACES[t] ?? Infinity),
+    )!;
+    return { ...row, tier };
   });
 }
 
@@ -385,11 +398,26 @@ export function buildPlans(
         direction: d,
         games: own.length,
         share: base[d],
+        source: 'mayhemstats' as const,
         builds: bestBuilds(own, items).slice(0, PLAN_BUILDS_SHOWN),
         augments: tiered(rows),
       };
     })
     .sort((a, b) => b.games - a.games);
+}
+
+/**
+ * A line under the direction when its numbers are not the card's usual ones: taken from the
+ * website, or arammeta has no games of that direction (its tiers then rest on all games).
+ */
+export function planNote(view: Pick<ChampView, 'source' | 'name' | 'alias'>, plan: BuildPlan) {
+  const dir = DIRECTION_LABEL[plan.direction];
+  const n = plan.games.toLocaleString('de-DE');
+  if (plan.source !== view.source)
+    return `Für ${dir} hat arammeta.com kaum Spiele. Kern und Augments kommen von mayhemstats.lol (${n} ${plan.games === 1 ? 'Spiel' : 'Spiele'}).`;
+  if (plan.source === 'arammeta' && !plan.builds.length)
+    return `arammeta.com hat kaum ${dir}-Spiele mit ${view.name || view.alias}. Die Stufen beruhen auf allen Spielen, passende Augments stehen höher.`;
+  return null;
 }
 
 /** The card for a champion; null when the website's answer does not fit. A champion without
@@ -399,12 +427,21 @@ export function champView(
   info: ChampInfo,
 ): ChampView | null {
   const meta = info.meta && metaView(champ, info.meta, info.items);
-  if (meta) return meta;
-  const site = { source: 'mayhemstats', patch: null } as const;
   const names = parseAugments(info.augments);
+  const parsed = info.champion === null ? null : parseChampion(info.champion);
+  if (meta) {
+    // A direction without an item core at arammeta (none of its games go there): the website's
+    // games of that direction, if it has enough; arammeta's share stays on the tab.
+    const site = parsed ? buildPlans(parsed.builds, info.items, names) : [];
+    const plans = meta.plans.map((p) => {
+      const own = p.builds.length ? null : site.find((s) => s.direction === p.direction);
+      return own ? { ...own, share: p.share } : p;
+    });
+    return { ...meta, plans };
+  }
+  const site = { source: 'mayhemstats', patch: null } as const;
   if (info.champion === null)
     return { ...champ, ...site, games: 0, augments: [], builds: [], plans: [] };
-  const parsed = parseChampion(info.champion);
   if (!parsed) return null;
   return {
     ...champ,
@@ -424,10 +461,11 @@ export const META_MIN_GAMES = 30;
 export const META_PRIOR = 200;
 /**
  * arammeta does not split augments by build direction; an augment of the direction's category
- * (arammeta's "ap", "ad", "tank") counts this much win rate more, one of the other damage type
- * this much less (user's rule: AP-Alistar, AP augments first).
+ * (arammeta's "ap", "ad", "tank") counts this much win rate more, one of another direction this
+ * much less (user's rule: AP-Alistar, AP augments first; 07.10.2026: 0.03 left tank augments like
+ * Icathia's Fall on top for AP). Augments without a direction (cooldown, amp, mechanic) stay.
  */
-export const CATEGORY_BONUS = 0.03;
+export const CATEGORY_BONUS = 0.06;
 /** Item options per core read from a group. */
 const META_OPTIONS = 4;
 
@@ -492,7 +530,9 @@ export function parseMeta(text: string | null) {
 }
 
 const pulled = (wr: number, g: number) => (wr * g + 0.5 * META_PRIOR) / (g + META_PRIOR);
-const OTHER_DAMAGE: Partial<Record<Direction, string>> = { ap: 'ad', ad: 'ap' };
+/** How an augment of these categories fits a direction: 1 its own, -1 another one, 0 neither. */
+export const fitOf = (cats: string[], d: Direction) =>
+  cats.includes(d) ? 1 : DIRECTIONS.some((o) => o !== d && cats.includes(o)) ? -1 : 0;
 
 /** The card from arammeta's numbers; null when its champion file is missing or does not fit. */
 export function metaView(
@@ -559,7 +599,7 @@ export function metaView(
       const rows = pool
         .map((a) => {
           const { cats, ...shown } = info(a.id);
-          const fits = cats.includes(d) ? 1 : cats.includes(OTHER_DAMAGE[d] ?? '') ? -1 : 0;
+          const fits = fitOf(cats, d);
           return {
             id: a.id,
             ...shown,
@@ -575,6 +615,7 @@ export function metaView(
         direction: d,
         games,
         share: total ? games / total : 0,
+        source: 'arammeta' as const,
         builds: builds(own),
         augments: tiered(rows),
       };

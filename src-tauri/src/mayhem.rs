@@ -18,6 +18,9 @@ const CLIENT_EVENT: &str = "league-client";
 const LOOK_EVERY: Duration = Duration::from_secs(5);
 
 pub fn run(context: tauri::Context<tauri::Wry>) {
+    if !only_one() {
+        return;
+    }
     tauri::Builder::default()
         .setup(|app| {
             crate::errors::init(app.handle());
@@ -58,4 +61,42 @@ fn look_for_client(app: AppHandle) {
             thread::sleep(LOOK_EVERY);
         }
     });
+}
+
+/// Only one Mayhem app at a time (found in the Windows test 07.10.2026: a second start opened a
+/// second window). A second start brings the running window to the front and exits. Its own mutex,
+/// not blank.'s (single_instance.rs): both apps may run side by side. Nothing is hidden in the
+/// notification area here, so finding the window by its title is enough.
+fn only_one() -> bool {
+    use windows_sys::Win32::{
+        Foundation::{GetLastError, ERROR_ALREADY_EXISTS},
+        System::Threading::CreateMutexW,
+        UI::WindowsAndMessaging::{
+            FindWindowW, IsIconic, SetForegroundWindow, ShowWindow, SW_RESTORE,
+        },
+    };
+    let wide = |text: &str| text.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
+    let name = wide(r"Local\mayhem.single-instance");
+    // SAFETY: the name is null-terminated. The handle stays open for the whole process on purpose;
+    // Windows releases it at the end.
+    let handle = unsafe { CreateMutexW(std::ptr::null(), 0, name.as_ptr()) };
+    // SAFETY: reads the error of the call above.
+    if handle.is_null() || unsafe { GetLastError() } != ERROR_ALREADY_EXISTS {
+        // Also when the mutex cannot be created: better a second window than none.
+        return true;
+    }
+    // The window's title from tauri.mayhem.conf.json.
+    let (class, title) = (wide("Tauri Window"), wide("Mayhem"));
+    // SAFETY: both strings are null-terminated; the window handle is checked and only passed back
+    // to Windows.
+    unsafe {
+        let window = FindWindowW(class.as_ptr(), title.as_ptr());
+        if !window.is_null() {
+            if IsIconic(window) != 0 {
+                ShowWindow(window, SW_RESTORE);
+            }
+            SetForegroundWindow(window);
+        }
+    }
+    false
 }

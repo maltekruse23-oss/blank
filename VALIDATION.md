@@ -1,5 +1,11 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 07.10.2026: Mayhem-App auf Windows getestet, Funde behoben
+
+- Windows (malte's PC, `main` 678bad1): `pnpm mayhem:build` läuft, `mayhem.exe` startet ohne blank., „League-Client zu“, „Beispiel: Alistar“ mit „arammeta.com, Patch 16.19“, Bilder laden, AP/AD/Tank wechseln die Liste. Noch nicht geprüft: echte Champ-Auswahl.
+- Neue Tests in `champCard.test.ts`: Kappung S/A bei 60 Augments, `fitOf` und Reihenfolge bei AP, Richtung ohne arammeta-Kern mit Website-Zahlen und Hinweis. Hier (Sandbox ohne npm-Zugang) nur mit bun gelaufen; `pnpm test`, Lint und Build auf Windows.
+- **Offen, auf Windows:** `only_one` in `mayhem.rs` (zweiter Start holt das Fenster nach vorne), Hinweiszeile unter den Reitern, S höchstens 5.
+
 ## Nachtrag 06.10.2026: Champ-Karte mit arammeta.com
 
 - `champCard.test.ts`: arammeta zuerst mit Quelle und Patch, ohne arammeta die Website (nie gemischt), Kern-Gruppen ohne nutzlose Items, Mana zählt dagegen, AP-Richtung hebt AP-Augments, wenige Spiele fallen weg, nur Symbole aus arammetas Ordner, strenge Prüfung. Rust-Test `reads_arammetas_augment_list`. Einmalig lokal: alle 173 Champion-Dateien aus dem Repo von arammeta bestehen `parseMeta`.
