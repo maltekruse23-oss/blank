@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App als Desktop-Dashboard — 08.10.2026
+
+- Benutzer: „es soll eine Desktop-PC-App werden, wie Blitz“, dann Vorlagen (Streaming-Dashboard, Bento-Stats) → Canvas „mayhemstats Design 2“, Seite „App UI“; „App · Home (Dashboard) ist gut“. Umgesetzt in `src/mayhem`: Seitenleiste (Home, Champ, Augments, Champions, Rang, „Bald“, Client-Status), Fenster 1280 × 820 (`tauri.mayhem.conf.json`).
+- Home (`HomePage` in `pages.tsx`): Hero, Pill-Reiter, Top Augments (echt), letzte Spiele, Bento mit Rang und MP-Kurve, Zahlen, Rekorden, Ziel – alles zum Spieler ist Mock und so markiert, bis die App den Spieler aus dem Client liest (`aram_site_profile`/`aram_site_ranks` gibt es in blank. schon).
+- Augments (Karten wie Blitz, nach Seltenheit, Suche, Filter Seltenheit/Stufe) und Champions (Stufen-Blöcke mit Icon-Raster, Klassen-Filter): echte Werte über Rust `mayhem_tiers` (aus arammetas `tier-list.json`, die die Champ-Karte schon 6 h hält; Felder streng geprüft, Test `tier_lists_keep_only_sound_entries`), Stufen S–D nach Siegquote mit 200 Spielen zur Mitte gezogen, Schnitt 10/20/40/20/10 % (`src/mayhem/tiers.ts`, Test). arammetas Platzhalter „[數值]“ wird „?“.
+- Champ-Karte zweispaltig (links Champion, Richtung, Item-Kerne; rechts Augments).
+- Geprüft: `pnpm test`/`lint`/`format:check`, `pnpm mayhem:web`, Clippy, Rust-Test, und die App mit `pnpm mayhem:dev` auf malte's PC angesehen (Home mit echten Top Augments, Augments-Seite). Offen: `mayhem.exe` (Release-Build) auf Windows, echter Spieler statt Mock.
+
 ## Mayhem-App im Design „Arena“ — 07.10.2026
 
 - Benutzer: „Website erstmal hinten an, erst App“. `src/mayhem/mayhem.css` neu: Glow-Kachel als Wartebildschirm, Champion mit Splash-Art und Glas-Leiste samt Pillen, Build-Richtungen als Glas-Schalter, Item-Kerne und Augments als Zeilen mit Schein links (bester Kern gold, Augments in ihrer Seltenheit, Prisma eisblau statt Pink), Stufen-Buchstaben als kleine Glow-Kacheln, Kopfzeile als Glas. Weiches, gestaffeltes Hereingleiten (`.mayhem-in`, `--i`), reduzierte Bewegung = sofort da. Noten behalten ihre Datenfarben.

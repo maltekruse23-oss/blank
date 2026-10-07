@@ -12,13 +12,13 @@
         "title": "Mayhem",
         "label": "mayhem",
         "url": "mayhem.html",
-        "width": 460,
-        "height": 760,
-        "minWidth": 400,
-        "minHeight": 520,
+        "width": 1280,
+        "height": 820,
+        "minWidth": 1024,
+        "minHeight": 660,
         "resizable": true,
         "center": true,
-        "backgroundColor": "#111010"
+        "backgroundColor": "#07080b"
       }
     ],
     "security": {

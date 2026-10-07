@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mayhem-tiers"
+description = "Enables the mayhem_tiers command without any pre-configured scope."
+commands.allow = ["mayhem_tiers"]
+
+[[permission]]
+identifier = "deny-mayhem-tiers"
+description = "Denies the mayhem_tiers command without any pre-configured scope."
+commands.deny = ["mayhem_tiers"]

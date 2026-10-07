@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { House, LayoutGrid, Plus, Sparkles, Swords, Trophy } from 'lucide-react';
 import {
   leagueClientOpen,
   onChamp,
@@ -9,6 +10,33 @@ import {
 } from '../adapters/aramChamp';
 import { champView, SAMPLE_CHAMP, type ChampView } from '../features/aram/champCard';
 import { MayhemCard } from './MayhemCard';
+import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
+import { loadTiers } from './tiers';
+
+export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'rank';
+
+/** The sidebar (user, 08.10.2026: dashboard like the canvas "App · Home"; the app grows by
+ * entries like these, the dashed "Bald" marks the room for the next ones). */
+const PAGES: { id: Page; label: string; Icon: typeof Swords }[] = [
+  { id: 'home', label: 'Home', Icon: House },
+  { id: 'champ', label: 'Champ', Icon: Swords },
+  { id: 'augments', label: 'Augments', Icon: Sparkles },
+  { id: 'champions', label: 'Champions', Icon: LayoutGrid },
+  { id: 'rank', label: 'Rang', Icon: Trophy },
+];
+
+/** The tier lists from arammeta.com into `set` (loading, then ready or failed). */
+function requestTiers(set: (tiers: TierState) => void) {
+  set({ state: 'loading' });
+  loadTiers().then(
+    (lists) => set({ state: 'ready', lists }),
+    (e: unknown) =>
+      set({
+        state: 'failed',
+        message: e instanceof Error && e.message ? e.message : 'arammeta.com antwortet nicht.',
+      }),
+  );
+}
 
 /** Swaps and rerolls come in quick turns: the card waits for the pick to settle this long. */
 const SETTLE_MS = 600;
@@ -29,6 +57,14 @@ export function MayhemApp() {
   const [client, setClient] = useState<boolean | null>(null);
   const [shown, setShown] = useState<Shown>({ state: 'none' });
   const asked = useRef(0);
+  const [page, setPage] = useState<Page>('home');
+  const [tiers, setTiers] = useState<TierState | null>(null);
+
+  const fetchTiers = () => requestTiers(setTiers);
+  const open = (next: Page) => {
+    setPage(next);
+    if (next !== 'champ' && next !== 'rank' && (!tiers || tiers.state === 'failed')) fetchTiers();
+  };
 
   const show = (champ: HeldChamp, sample: boolean) => {
     const ask = ++asked.current;
@@ -45,6 +81,9 @@ export function MayhemApp() {
   const showRef = useRef(show);
   showRef.current = show;
 
+  // Home shows the top augments: the list is asked for once at the start.
+  useEffect(() => requestTiers(setTiers), []);
+
   useEffect(() => {
     void leagueClientOpen().then(setClient);
     const stopClient = onLeagueClient(setClient);
@@ -53,7 +92,11 @@ export function MayhemApp() {
     const stopChamp = onChamp((champ) => {
       window.clearTimeout(timer);
       if (champ.championId <= 0) return;
-      timer = window.setTimeout(() => showRef.current(champ, false), SETTLE_MS);
+      timer = window.setTimeout(() => {
+        // A champion select: the card comes to the front.
+        setPage('champ');
+        showRef.current(champ, false);
+      }, SETTLE_MS);
     });
     return () => {
       window.clearTimeout(timer);
@@ -65,50 +108,83 @@ export function MayhemApp() {
 
   return (
     <div className="mayhem">
-      <header className="mayhem-top">
-        <span className="mayhem-brand">Mayhem</span>
-        <span className="mayhem-status" data-open={client === true}>
-          {client === null ? '' : client ? 'League-Client offen' : 'League-Client zu'}
+      <aside className="mayhem-side">
+        <span className="mayhem-logo" aria-label="Mayhem">
+          m
         </span>
-      </header>
-      <main className="mayhem-main">
-        {shown.state === 'ready' ? (
-          <MayhemCard
-            key={`${shown.view.championId}-${shown.sample}`}
-            view={shown.view}
-            sample={shown.sample}
-            onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
-          />
-        ) : shown.state === 'loading' ? (
-          <p className="mayhem-note mayhem-in">Lade {shown.champ.name || shown.champ.alias} …</p>
-        ) : shown.state === 'failed' ? (
-          <div className="mayhem-wait">
-            <div className="mayhem-glow mayhem-in">
-              <p>Die Werte kamen nicht an. Prüfe die Verbindung.</p>
-              <button
-                type="button"
-                className="mayhem-button"
-                onClick={() => show(shown.champ, shown.sample)}
-              >
-                Nochmal
-              </button>
+        <nav className="mayhem-nav" aria-label="Bereiche">
+          {PAGES.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              type="button"
+              aria-current={page === id ? 'page' : undefined}
+              onClick={() => open(id)}
+            >
+              <Icon size={20} strokeWidth={1.9} aria-hidden />
+              <span>{label}</span>
+            </button>
+          ))}
+          <span className="mayhem-soon" title="Hier kommen weitere Bereiche dazu">
+            <Plus size={20} strokeWidth={1.9} aria-hidden />
+            <span>Bald</span>
+          </span>
+        </nav>
+        <span
+          className="mayhem-client"
+          data-open={client === true}
+          title={client ? 'League-Client offen' : 'League-Client zu'}
+        >
+          Client
+        </span>
+      </aside>
+      <main className="mayhem-main" key={page}>
+        <div className="mayhem-wrap">
+          {page === 'home' ? (
+            <HomePage tiers={tiers ?? { state: 'loading' }} onOpen={open} />
+          ) : page === 'augments' ? (
+            <AugmentsPage tiers={tiers ?? { state: 'loading' }} onRetry={fetchTiers} />
+          ) : page === 'champions' ? (
+            <ChampionsPage tiers={tiers ?? { state: 'loading' }} onRetry={fetchTiers} />
+          ) : page === 'rank' ? (
+            <RankPage />
+          ) : shown.state === 'ready' ? (
+            <MayhemCard
+              key={`${shown.view.championId}-${shown.sample}`}
+              view={shown.view}
+              sample={shown.sample}
+              onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
+            />
+          ) : shown.state === 'loading' ? (
+            <p className="mayhem-note mayhem-in">Lade {shown.champ.name || shown.champ.alias} …</p>
+          ) : shown.state === 'failed' ? (
+            <div className="mayhem-wait">
+              <div className="mayhem-glow mayhem-in">
+                <p>Die Werte kamen nicht an. Prüfe die Verbindung.</p>
+                <button
+                  type="button"
+                  className="mayhem-button"
+                  onClick={() => show(shown.champ, shown.sample)}
+                >
+                  Nochmal
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="mayhem-wait">
-            <div className="mayhem-glow mayhem-in">
-              <h1>{client ? 'Warte auf die Champ-Auswahl' : 'Starte League'}</h1>
-              <p>Hier steht dein Build, sobald du in ARAM Mayhem einen Champion hast.</p>
-              <button
-                type="button"
-                className="mayhem-button primary"
-                onClick={() => show(SAMPLE_CHAMP, true)}
-              >
-                Beispiel: {SAMPLE_CHAMP.name}
-              </button>
+          ) : (
+            <div className="mayhem-wait">
+              <div className="mayhem-glow mayhem-in">
+                <h1>{client ? 'Warte auf die Champ-Auswahl' : 'Starte League'}</h1>
+                <p>Hier steht dein Build, sobald du in ARAM Mayhem einen Champion hast.</p>
+                <button
+                  type="button"
+                  className="mayhem-button primary"
+                  onClick={() => show(SAMPLE_CHAMP, true)}
+                >
+                  Beispiel: {SAMPLE_CHAMP.name}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
     </div>
   );

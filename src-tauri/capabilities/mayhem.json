@@ -8,6 +8,7 @@
     "core:event:allow-unlisten",
     "allow-aram-champ-watch",
     "allow-aram-champ-info",
+    "allow-mayhem-tiers",
     "allow-league-client-open",
     "allow-log-error"
   ]

@@ -128,31 +128,35 @@ export function MayhemCard({
   const [chosen, setChosen] = useState(plans[0]?.direction);
   const plan = plans.find((p) => p.direction === chosen) ?? plans[0];
   const note = plan ? planNote(view, plan) : null;
-  return (
-    <article className="mayhem-card">
-      <header
-        className="mayhem-hero mayhem-in"
-        style={splash ? { ['--splash' as string]: `url("${splash}")` } : undefined}
-      >
-        <div className="mayhem-hero-glass">
-          <h1>{label}</h1>
-          <div className="mayhem-pills">
-            <span className="mayhem-pill gold">
-              {view.games ? games(view.games) : 'Noch keine Spiele'}
-            </span>
-            <span className="mayhem-pill">{sourceLabel(view)}</span>
-            {sample && <span className="mayhem-pill">Beispiel</span>}
-          </div>
+  const hero = (
+    <header
+      className="mayhem-hero mayhem-in"
+      style={splash ? { ['--splash' as string]: `url("${splash}")` } : undefined}
+    >
+      <div className="mayhem-hero-glass">
+        <h1>{label}</h1>
+        <div className="mayhem-pills">
+          <span className="mayhem-pill gold">
+            {view.games ? games(view.games) : 'Noch keine Spiele'}
+          </span>
+          <span className="mayhem-pill">{sourceLabel(view)}</span>
+          {sample && <span className="mayhem-pill">Beispiel</span>}
         </div>
-        {onClose && (
-          <button type="button" className="mayhem-button small" onClick={onClose}>
-            Zurück
-          </button>
-        )}
-      </header>
-
-      {plan ? (
-        <>
+      </div>
+      {onClose && (
+        <button type="button" className="mayhem-button small" onClick={onClose}>
+          Zurück
+        </button>
+      )}
+    </header>
+  );
+  // Desktop like Blitz: the champion, its directions and item cores on the left, the augments
+  // (the longest list) on the right.
+  if (plan)
+    return (
+      <article className="mayhem-card">
+        <div className="mayhem-card-side">
+          {hero}
           <div
             className="mayhem-directions mayhem-in"
             style={step(1)}
@@ -180,40 +184,47 @@ export function MayhemCard({
               <p className="mayhem-note">Noch zu wenig Spiele für einen Kern.</p>
             )}
           </section>
+        </div>
+        <section className="mayhem-section mayhem-card-main">
+          <h2>Augments für {DIRECTION_LABEL[plan.direction]}</h2>
+          <TierList augments={plan.augments} label={DIRECTION_LABEL[plan.direction]} />
+        </section>
+      </article>
+    );
+  return (
+    <article className="mayhem-card">
+      <div className="mayhem-card-side">
+        {hero}
+        {view.builds.length > 0 && (
           <section className="mayhem-section">
-            <h2>Augments für {DIRECTION_LABEL[plan.direction]}</h2>
-            <TierList augments={plan.augments} label={DIRECTION_LABEL[plan.direction]} />
+            <h2>Builds</h2>
+            <Builds builds={view.builds} />
           </section>
-        </>
-      ) : view.augments.length || view.builds.length ? (
-        <>
-          {view.builds.length > 0 && (
-            <section className="mayhem-section">
-              <h2>Builds</h2>
-              <Builds builds={view.builds} />
-            </section>
-          )}
-          {view.augments.length > 0 && (
-            <section className="mayhem-section">
-              <h2>Beste Augments</h2>
-              <ul className="mayhem-best">
-                {view.augments.map((a, n) => (
-                  <li key={a.id} className="mayhem-in" style={step(n + 2)}>
-                    <AugmentIcon rarity={a.rarity} image={a.image} />
-                    <span className="mayhem-aug-name">{a.name}</span>
-                    <span className="mayhem-facts">
-                      {a.winRate !== null && <b>{percent(a.winRate)} Siege</b>}
-                      <span>{games(a.games)}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </>
-      ) : (
-        <p className="mayhem-note">Noch zu wenig Spiele für Augments und Builds.</p>
-      )}
+        )}
+      </div>
+      <div className="mayhem-card-main">
+        {view.augments.length > 0 ? (
+          <section className="mayhem-section">
+            <h2>Beste Augments</h2>
+            <ul className="mayhem-best">
+              {view.augments.map((a, n) => (
+                <li key={a.id} className="mayhem-in" style={step(n + 2)}>
+                  <AugmentIcon rarity={a.rarity} image={a.image} />
+                  <span className="mayhem-aug-name">{a.name}</span>
+                  <span className="mayhem-facts">
+                    {a.winRate !== null && <b>{percent(a.winRate)} Siege</b>}
+                    <span>{games(a.games)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : (
+          !view.builds.length && (
+            <p className="mayhem-note">Noch zu wenig Spiele für Augments und Builds.</p>
+          )
+        )}
+      </div>
     </article>
   );
 }

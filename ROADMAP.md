@@ -14,8 +14,8 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 ## Jetzt
 
 1. **Mayhem-App im Design „Arena“** (Benutzerwunsch 07.10.2026: „Website erstmal hinten an, erst App“)
-   Ziel: `mayhem.exe` sieht aus wie der Canvas „mayhemstats Design 2“: Glow-Kacheln, Liquid Glass, weiche Bewegung.
-   Fertig, wenn: Der Umbau ist gemergt, `pnpm mayhem:build` läuft auf malte's PC, Wartebildschirm und „Beispiel: Alistar“ sehen in `mayhem.exe` aus wie in der Vorschau, und mit ausgeschalteten Windows-Animationen steht alles sofort da.
+   Ziel: `mayhem.exe` ist eine Desktop-App wie Blitz im Design „Arena“ (Canvas „mayhemstats Design 2“, Seite „App UI“): Seitenleiste, Home-Dashboard, Champ-Karte, Augment- und Champion-Tier-Liste; Rang folgt.
+   Fertig, wenn: Der Umbau ist gemergt, `pnpm mayhem:build` läuft auf malte's PC, Home, Champ („Beispiel: Alistar“), Augments und Champions sehen in `mayhem.exe` aus wie im Canvas und zeigen arammetas Zahlen, und mit ausgeschalteten Windows-Animationen steht alles sofort da.
 
 ## Als Nächstes
 
