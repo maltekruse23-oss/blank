@@ -3,6 +3,7 @@ import { championSplash } from '../adapters/aram';
 import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
   DIRECTION_LABEL,
+  planNote,
   sourceLabel,
   TIERS,
   type BuildPick,
@@ -120,6 +121,7 @@ export function MayhemCard({
   const plans = view.plans;
   const [chosen, setChosen] = useState(plans[0]?.direction);
   const plan = plans.find((p) => p.direction === chosen) ?? plans[0];
+  const note = plan ? planNote(view, plan) : null;
   return (
     <article className="mayhem-card">
       <header
@@ -154,6 +156,7 @@ export function MayhemCard({
               </button>
             ))}
           </div>
+          {note && <p className="mayhem-note">{note}</p>}
           <section className="mayhem-section">
             <h2>Item-Kern</h2>
             {plan.builds.length ? (

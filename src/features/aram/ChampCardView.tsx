@@ -3,6 +3,7 @@ import { DDRAGON_VERSION } from '../../data/proStreamers';
 import { useState } from 'react';
 import {
   DIRECTION_LABEL,
+  planNote,
   PLAN_AUGMENTS_SHOWN,
   sourceLabel,
   type BuildPick,
@@ -67,6 +68,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
   const plans = view.plans;
   const [chosen, setChosen] = useState(plans[0]?.direction);
   const plan = plans.find((p) => p.direction === chosen) ?? plans[0];
+  const note = plan ? planNote(view, plan) : null;
   return (
     <div className="champ-card" title="Klick: ausblenden" onClick={onDismiss}>
       <header className="champ-card-head">
@@ -101,6 +103,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
                 </button>
               ))}
             </div>
+            {note && <p className="champ-card-empty">{note}</p>}
             {plan.builds.length > 0 ? (
               <Builds builds={plan.builds} />
             ) : (

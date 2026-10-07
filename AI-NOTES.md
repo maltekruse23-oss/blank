@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: Funde aus dem Windows-Test — 07.10.2026
+
+- Test auf malte's PC von `main` (678bad1): Build läuft, `mayhem.exe` startet, „Beispiel: Alistar“ mit arammeta-Zahlen (Patch 16.19), Bilder, AP/AD/Tank wechseln. Funde und Benutzerwahl („ja“ zur Empfehlung):
+- arammeta hat für Alistar nur Tank-Kerne (alle mit Heartsteel), AP und AD standen bei 0 %. Neu: Richtung ohne arammeta-Kern nimmt Kern und Augments aus den Spielen der Website (`champView`, `BuildPlan.source`), die Karte nennt die Quelle darunter (`planNote`); Zahlen werden nie addiert, der Anteil auf dem Reiter bleibt arammetas. Ohne Website-Daten sagt die Karte, dass arammeta kaum Spiele der Richtung hat.
+- S war rund 15 Augments lang: `TIER_PLACES` (S höchstens 5, S+A höchstens 15), nur Karte, Website-Tierliste unverändert.
+- Tank-Augments standen bei AP oben: `CATEGORY_BONUS` 0.06 und `fitOf` (jede andere Richtung zählt dagegen, neutrale bleiben).
+- Zweiter Start öffnete ein zweites Fenster: `mayhem.rs` `only_one` (eigener Mutex, holt das Fenster nach vorne).
+
 ## Champ-Karte: Zahlen von arammeta.com — 06.10.2026
 
 - Benutzerwahl („mach weiter“ zu arammeta als Datenquelle): Champ-Karte in blank. und Mayhem-App nehmen zuerst arammeta.com (offene JSON im MIT-Repo Lanternko/ARAM-Mayhem-Database, `docs/api`), sonst wie bisher mayhemstats.lol. Nie gemischt; die Karte nennt „arammeta.com, Patch …“. Rust `meta_info` (aram_live.rs), Auswertung `metaView`/`parseMeta` in champCard.ts, Tests mit der echten Form (alle 173 Dateien des Repos einmal lokal gelesen, alle gültig). CSP erlaubt arammeta.com für Augment-Symbole.
