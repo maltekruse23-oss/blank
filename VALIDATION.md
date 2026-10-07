@@ -1,5 +1,11 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 07.10.2026: Aufräumen, neue Tests
+
+- `tsconfig.tsbuildinfo` nicht mehr in Git (kein Skript braucht sie, `tsc --noEmit` ohne `incremental`), `*.tsbuildinfo` in `.gitignore`.
+- Neue Tests: `settingsFile.test.ts` (Export → Import, Ablehnung fremder/neuerer/leerer Dateien, Musik, Twitch, Programme, Rückfall auf Standardwerte), `mayhemCard.test.ts` (Spielezahl, Item-Bild), Rust `mayhem::tests` (Kennung, Fenster-Label und -Titel, Capability, Befehl und Ereignis im Adapter).
+- Geprüft auf Windows: `pnpm format:check` (geänderte Dateien), Lint, Tests, Build, `extension:build`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
+
 ## Nachtrag 07.10.2026: Mayhem-App auf Windows getestet, Funde behoben
 
 - Windows (malte's PC, `main` 678bad1): `pnpm mayhem:build` läuft, `mayhem.exe` startet ohne blank., „League-Client zu“, „Beispiel: Alistar“ mit „arammeta.com, Patch 16.19“, Bilder laden, AP/AD/Tank wechseln die Liste. Noch nicht geprüft: echte Champ-Auswahl.

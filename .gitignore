@@ -15,3 +15,4 @@ apps/**/gen/
 apps/**/.wrangler/
 apps/**/.sites-runtime/
 apps/mayhem-site/public/downloads/
+*.tsbuildinfo

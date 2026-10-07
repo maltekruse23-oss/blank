@@ -12,9 +12,9 @@ import {
 } from '../features/aram/champCard';
 import { percent } from '../features/aram/format';
 
-const itemImage = (id: number) =>
+export const itemImage = (id: number) =>
   `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/item/${id}.png`;
-const games = (n: number) => `${n.toLocaleString('de-DE')} ${n === 1 ? 'Spiel' : 'Spiele'}`;
+export const games = (n: number) => `${n.toLocaleString('de-DE')} ${n === 1 ? 'Spiel' : 'Spiele'}`;
 
 /** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game). */
 function AugmentIcon({ rarity, image }: { rarity: string; image: string | null }) {
