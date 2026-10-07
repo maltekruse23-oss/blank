@@ -13,6 +13,8 @@ use tauri::{AppHandle, Emitter};
 pub const IDENTIFIER: &str = "lol.mayhemstats.desktop";
 /// The one window (also in `capabilities/mayhem.json`).
 pub const WINDOW: &str = "mayhem";
+/// The window's title from tauri.mayhem.conf.json; a second start finds the window by it.
+const TITLE: &str = "Mayhem";
 /// Tells the window whether the League client runs (true/false), on every change.
 const CLIENT_EVENT: &str = "league-client";
 const LOOK_EVERY: Duration = Duration::from_secs(5);
@@ -85,8 +87,7 @@ fn only_one() -> bool {
         // Also when the mutex cannot be created: better a second window than none.
         return true;
     }
-    // The window's title from tauri.mayhem.conf.json.
-    let (class, title) = (wide("Tauri Window"), wide("Mayhem"));
+    let (class, title) = (wide("Tauri Window"), wide(TITLE));
     // SAFETY: both strings are null-terminated; the window handle is checked and only passed back
     // to Windows.
     unsafe {
@@ -99,4 +100,53 @@ fn only_one() -> bool {
         }
     }
     false
+}
+
+// The Mayhem app's names are spread over Rust, the config, the capability and the adapter; a typo
+// in one of them only shows on Windows (no window, no permission, no event). Checked here instead.
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Value;
+
+    fn read(path: &str) -> String {
+        std::fs::read_to_string(format!("{}/{path}", env!("CARGO_MANIFEST_DIR")))
+            .unwrap_or_else(|e| panic!("{path}: {e}"))
+    }
+
+    fn json(path: &str) -> Value {
+        serde_json::from_str(&read(path)).unwrap_or_else(|e| panic!("{path}: {e}"))
+    }
+
+    #[test]
+    fn identifier_starts_only_the_mayhem_app() {
+        assert_eq!(json("tauri.mayhem.conf.json")["identifier"], IDENTIFIER);
+        // blank.'s own config must never start the Mayhem app.
+        assert_ne!(json("tauri.conf.json")["identifier"], IDENTIFIER);
+    }
+
+    #[test]
+    fn window_label_and_title_match_the_config() {
+        let config = json("tauri.mayhem.conf.json");
+        let windows = config["app"]["windows"].as_array().expect("windows");
+        assert_eq!(windows.len(), 1, "one window only");
+        assert_eq!(windows[0]["label"], WINDOW);
+        // only_one() finds the running window by this title.
+        assert_eq!(windows[0]["title"], TITLE);
+    }
+
+    #[test]
+    fn capability_covers_only_the_mayhem_window() {
+        let capability = json("capabilities/mayhem.json");
+        assert_eq!(capability["windows"], serde_json::json!([WINDOW]));
+        let permissions = capability["permissions"].as_array().expect("permissions");
+        assert!(permissions.contains(&Value::from("allow-league-client-open")));
+    }
+
+    #[test]
+    fn adapter_uses_the_same_command_and_event() {
+        let adapter = read("../src/adapters/aramChamp.ts");
+        assert!(adapter.contains("'league_client_open'"));
+        assert!(adapter.contains(&format!("'{CLIENT_EVENT}'")));
+    }
 }
