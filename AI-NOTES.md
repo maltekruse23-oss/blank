@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: Server-Kürzel und Server-Filter (Etappe „Englische Version“, Teil 2) — 07.10.2026
+
+- Server eines Spielers = Plattform seines neuesten archivierten Spiels (`archive_matches.platformId`, über `archive_participants`), als Kürzel wie im Client (`src/servers.ts`: `EUW1` → EUW, `EUN1` → EUNE, `NA1` → NA, `LA1`/`LA2` → LAN/LAS, `OC1` → OCE …; Test `siteServers.test.ts`). Uploads aus blank. haben keine Plattform; sie zählen nur, wenn dasselbe Spiel (gleiche `gameId`) im Archiv liegt. Ohne archiviertes Spiel kein Kürzel (`null`, auf der Seite nichts). Keine Migration; `serversOf` in `src/api.ts` braucht zwei Abfragen für alle.
+- `/api/leaderboard` und `/api/players/<id>` haben je Spieler `server`. Rangliste und Spielerseite zeigen das Kürzel als kleines Kästchen; die Rangliste hat die Auswahl „Server“ (`?server=euw`, nur vorhandene Server mit Spielerzahl). Benutzerwahl: mit Filter zählen Platz, Top % und Verteilung innerhalb des Servers; Ränge bleiben gleich.
+- Geprüft: `tests/all-players.mjs` (Archiv mit EUW1 und NA1, Kürzel in Rangliste und Profil), Rauch- und Integrationstest gegen frische lokale D1, Ansicht mit erfundenen EUW-/NA-Spielern (Filter NA: nur NA, Plätze ab 1; deutsch unter `/de/rangliste?server=euw`), `pnpm test`/`lint`/`format:check`/`build`.
+
 ## Website auf Englisch und Deutsch (Etappe „Englische Version“, Teil 1) — 07.10.2026
 
 - Benutzerwahl: Englisch ist Standard an der Wurzel mit englischen Seitennamen (`/leaderboard`, `/records`, `/tier-list`, `/join`, `/game/<id>`, `/scoring`, `/privacy`, `/privacy/remove`), Deutsch unter `/de` mit den alten Namen (`/de/rangliste`, `/de/spiel/<id>` …). Alte deutsche Adressen an der Wurzel leiten dauerhaft auf `/de/…` weiter (`next.config.ts` `redirects`, Anfrage bleibt erhalten). `/players`, `/champions`, `/augments`, `/items`, `/api-guide` heißen gleich und sind an der Wurzel jetzt englisch.

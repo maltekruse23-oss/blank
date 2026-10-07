@@ -119,13 +119,18 @@ export default function PlayerPage() {
             {tag && <small>#{tag}</small>}
           </h1>
           <div className="facts num">
+            {data.server && (
+              <span className="server-tag" title={t('Server of the latest archived game', 'Server des letzten archivierten Spiels')}>
+                {data.server}
+              </span>
+            )}
             <span>
               {data.wins}
               {t('W', 'S')} {losses}
               {t('L', 'N')}
             </span>
             <span>
-              {data.games ? Math.round((data.wins / data.games) * 100) : 0} % {t('wins', 'Siege')}
+              {t(`${data.games ? Math.round((data.wins / data.games) * 100) : 0}% wins`, `${data.games ? Math.round((data.wins / data.games) * 100) : 0} % Siege`)}
             </span>
             <span>
               {history.length} {t('rated games', 'gewertete Spiele')}
@@ -315,8 +320,8 @@ export default function PlayerPage() {
 
 /** "only 4 %": how rare a tag is among all players. */
 const shareText = (share: number, t: T) => {
-  const value = `${share < 0.01 ? '<1' : Math.round(share * 100)} %`;
-  return share < 0.5 ? t(`only ${value}`, `nur ${value}`) : `${Math.round(share * 100)} %`;
+  const n = share < 0.01 ? '<1' : String(Math.round(share * 100));
+  return share < 0.5 ? t(`only ${n}%`, `nur ${n} %`) : t(`${n}%`, `${n} %`);
 };
 
 /** Data Dragon's class names (English) in German. */
@@ -338,7 +343,7 @@ function Preferences({ steps, dragon }: { steps: ProfileStep[]; dragon: Dragon }
     steps.map((h) => h.entry),
     (id) => dragon?.champions.get(id)?.tags[0],
   );
-  const pct = (share: number) => `${Math.round(share * 100)} %`;
+  const pct = (share: number) => t(`${Math.round(share * 100)}%`, `${Math.round(share * 100)} %`);
   const width = (share: number) => ({ width: `${Math.round(share * 1000) / 10}%` });
   return (
     <div className="card prefs">
@@ -627,7 +632,7 @@ function Champions({ steps, dragon }: { steps: ProfileStep[]; dragon: Dragon }) 
               <td>
                 <GradeChip grade={r.grade} />
               </td>
-              <td className="right num hide-sm">{Math.round((r.wins / r.games) * 100)} %</td>
+              <td className="right num hide-sm">{t(`${Math.round((r.wins / r.games) * 100)}%`, `${Math.round((r.wins / r.games) * 100)} %`)}</td>
               <td className="right num">
                 {num(r.kills, 1)} / {num(r.deaths, 1)} / {num(r.assists, 1)}
               </td>

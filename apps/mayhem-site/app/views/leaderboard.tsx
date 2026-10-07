@@ -2,9 +2,11 @@
 // The leaderboard (op.gg-like): the distribution of the tiers with the apex lines beside it, the
 // table over the full width (by rank or by performance), then how it counts and the way to join.
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { seasonOf } from '../../src/features/aram/aramRating';
 import { apexLines, distributionOf, topShare } from '../../src/insights';
+import { serverParam, serversIn } from '../../src/servers';
 import ArchiveCounter from '../archive-counter';
 import { GradeChip, Histogram, Img, Problem, RankLine, Tabs, TierMark } from '../ui/bits';
 import { championImage, championKey, profileHref, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from '../ui/data';
@@ -27,7 +29,16 @@ export default function Ranking() {
   const dragon = useDragon();
   const now = useNow();
 
-  const players = data?.players ?? [];
+  // ?server=euw: only that server's players; places, Top % and distribution count within it.
+  const router = useRouter();
+  const server = serverParam(useSearchParams().get('server'));
+  const everyone = data?.players ?? [];
+  const servers = serversIn(everyone);
+  const players = server ? everyone.filter((p) => p.server === server) : everyone;
+  const pickServer = (next: string) => {
+    setLimit(PAGE);
+    router.replace(href(next ? `/leaderboard?server=${next.toLowerCase()}` : '/leaderboard'), { scroll: false });
+  };
   const ranks = players.map((p) => p.rank);
   const sorted =
     view === 'rank'
@@ -52,6 +63,7 @@ export default function Ranking() {
           <h1>{t('Leaderboard', 'Rangliste')}</h1>
           <p className="page-sub num">
             {season(seasonOf(now))} ·{' '}
+            {server && <>{server} · </>}
             {t(
               `${num(ranked)} ranked, ${num(players.length - ranked)} in placement, ${data ? num(data.trackedGames) : '–'} games`,
               `${num(ranked)} eingestuft, ${num(players.length - ranked)} in der Einstufung, ${data ? num(data.trackedGames) : '–'} Spiele`,
@@ -109,6 +121,18 @@ export default function Ranking() {
               { id: 'performance', label: t('By avg performance', 'Nach Leistung Ø') },
             ]}
           />
+          <label className="server-filter">
+            <span>Server</span>
+            <select value={server ?? ''} onChange={(e) => pickServer(e.target.value)}>
+              <option value="">{t('All servers', 'Alle Server')}</option>
+              {server && !servers.some((s) => s.server === server) && <option value={server}>{server}</option>}
+              {servers.map((s) => (
+                <option key={s.server} value={s.server}>
+                  {s.server} ({num(s.players)})
+                </option>
+              ))}
+            </select>
+          </label>
           {myIndex >= 0 && (
             <button type="button" className="button me-jump" onClick={jump}>
               {meText(t).jump} · <span className="num">#{myIndex + 1}</span>
@@ -144,7 +168,9 @@ export default function Ranking() {
           {!data && !error && <p className="empty">{t('Loading leaderboard …', 'Rangliste wird geladen …')}</p>}
           {data && sorted.length === 0 && (
             <p className="empty">
-              {view === 'rank'
+              {server && everyone.length > 0
+                ? t(`No players from ${server} yet.`, `Noch keine Spieler von ${server}.`)
+                : view === 'rank'
                 ? t('No games in this ranking yet.', 'Noch keine Spiele in dieser Wertung.')
                 : t('Nobody with rated games yet.', 'Noch niemand mit gewerteten Spielen.')}
             </p>
@@ -214,8 +240,9 @@ function Row({
               {mine && <span className="me-tag">{meText(t).you}</span>}
             </b>
             <small className="num">
+              {p.server && <span className="server-tag">{p.server}</span>}
               {t(`${p.wins}W ${losses}L · ${p.games} games`, `${p.wins}S ${losses}N · ${p.games} Spiele`)}
-              {top !== null ? ` · Top ${Math.max(1, Math.round(top * 100))} %` : ''}
+              {top !== null ? t(` · Top ${Math.max(1, Math.round(top * 100))}%`, ` · Top ${Math.max(1, Math.round(top * 100))} %`) : ''}
               {p.climbing ? t(' · climbing', ' · klettert') : ''}
             </small>
           </span>

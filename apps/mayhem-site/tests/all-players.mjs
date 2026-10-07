@@ -21,7 +21,7 @@ let n=0;
 const get = async p => { const r = await mf.dispatchFetch(base+p); return { status:r.status, body: await r.json() }; };
 const pid = i => `puuid-${String(i).padStart(30,'0')}`;
 const CH=[103,54,16,22,1,2,3,4,5,6];
-function raw(gameId, at, shift){ return { gameId, platformId:'EUW1', queueId:2400, gameCreation:at, gameDuration:18*60, gameVersion:'16.19.712.1',
+function raw(gameId, at, shift){ return { gameId, platformId: gameId===8 ? 'NA1' : 'EUW1', queueId:2400, gameCreation:at, gameDuration:18*60, gameVersion:'16.19.712.1',
   participantIdentities: CH.map((_,i)=>({participantId:i+1, player:{puuid:pid((i+shift)%20), gameName:`Spieler ${(i+shift)%20}`, tagLine:'EUW', profileIcon:4000+i}})),
   participants: CH.map((c,i)=>({participantId:i+1, teamId:i<5?100:200, championId:CH[(i+gameId)%10], stats:{win:i<5, kills:3+((i*7+gameId)%11), deaths:2+((i*3+gameId)%7), assists:5+i, totalDamageDealtToChampions:15000+((i*5113+gameId*911)%30000), totalDamageTaken:20000+((i*3001+gameId*97)%20000), damageSelfMitigated:9000, totalHeal:2000+i*300, totalDamageShieldedOnTeammates:0, goldEarned:12000+i*150, champLevel:18, item0:3089}})) }; }
 const post = (body) => mf.dispatchFetch(base+'/api/archive/matches',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+'f'.repeat(64),'X-Archive-Captured-At':String(Date.now()),'X-Archive-Collector-Version':'local-check','cf-connecting-ip':'x'+(++n)},body:JSON.stringify(body)});
@@ -32,9 +32,13 @@ assert.equal(c.n, 80);
 let lb = await get('/api/leaderboard'); assert.equal(lb.status,200);
 console.log('players', lb.body.players.length, 'ranked', lb.body.players.filter(p=>p.rank).length, 'tracked', lb.body.trackedGames);
 assert(lb.body.players.every(p=>!p.puuid.startsWith('puuid-')), 'no PUUID leaks');
+// Server from the newest archived game: game 8 is on NA1, all others on EUW1.
+const servers = new Set(lb.body.players.map(p=>p.server)); console.log('servers', [...servers].join(','));
+assert.deepEqual([...servers].sort(), ['EUW','NA']);
 const someone = lb.body.players[0]; console.log('top', someone.puuid, someone.name, someone.rank?.tier?.name, someone.icon);
 const prof = await get('/api/players/'+someone.puuid); assert.equal(prof.status,200); console.log('profile', prof.body.puuid, prof.body.name, prof.body.games, prof.body.history.length);
 assert(!JSON.stringify(prof.body).includes('puuid-'), 'profile leaks no PUUID');
+assert.equal(prof.body.server, someone.server, 'profile shows the same server');
 assert.equal((await get('/api/players/a99999')).status,404);
 const bySlug = await get('/api/players/'+encodeURIComponent(someone.name.replace('#','-')));
 assert.equal(bySlug.status,200); assert.equal(bySlug.body.puuid, someone.puuid); console.log('by Riot ID', bySlug.body.name);

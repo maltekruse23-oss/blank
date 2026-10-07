@@ -329,7 +329,7 @@ function Explain(props: {
             {champ?.name ?? p.champion ?? 'Champion'}
             {mark &&
               t(
-                ` · better than ${Math.round(mark.pct * 100)} % of all games`,
+                ` · better than ${Math.round(mark.pct * 100)}% of all games`,
                 ` · besser als ${Math.round(mark.pct * 100)} % aller Spiele`,
               )}
           </small>
