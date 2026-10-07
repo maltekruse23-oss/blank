@@ -18,6 +18,7 @@ import { ARCHIVE_ENTRY_VERSION, archiveIdOf, mergeEntries, publicId } from './ar
 import { indexPending } from './archive-index';
 import { puuidsIn, withPublicIds } from './public-ids';
 import { censusOf, statsOf, type TagStats } from './tags';
+import { serverName } from './servers';
 class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -184,7 +185,7 @@ async function publicIdsOf(puuids: ReadonlySet<string>) {
 /** An answer without PUUIDs (user's decision: none leaves the server), except the one the request named. */
 async function masked<T>(value: T, keep: string | null = null): Promise<T> { return withPublicIds(value, await publicIdsOf(puuidsIn(value, keep)), keep); }
 async function hiddenPlayers() { return new Set((await rows<{ puuid: string }>('SELECT puuid FROM hidden_players')).map(r => r.puuid)); }
-async function withIcons(list: Standing[]) { const known = await playersOf(list.map(s => s.puuid)); return list.map(s => summary(s, known.get(s.puuid)?.icon ?? null)); }
+async function withIcons(list: Standing[]) { const ids = list.map(s => s.puuid); const known = await playersOf(ids); const servers = await serversOf(ids); return list.map(s => ({ ...summary(s, known.get(s.puuid)?.icon ?? null), server: servers.get(s.puuid) ?? null })); }
 async function rate(req: Request) { const ip = req.headers.get('cf-connecting-ip') ?? 'local'; const now = Date.now(), bucket = Math.floor(now / 60000); const key = await hash(`${bucket}:${ip}`); const results = await db().batch([query('DELETE FROM rate_limits WHERE expires<=?', now), query('INSERT INTO rate_limits (key,expires,count) VALUES (?,?,1) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count', key, (bucket + 1) * 60000)]); const count = (results[1].results[0] as {
     count: number;
 }).count; if (count > 30)
@@ -431,6 +432,31 @@ async function playersOf(ids: string[]) {
     }
     return players;
 }
+/** Each player's server (EUW, NA …) from the platform of their newest archived game, keyed like
+ * playersOf (public id or a profile's PUUID). A profile's own uploads count when the same game is
+ * archived. Players without an archived game have none. Two queries for everyone (one per id would
+ * cost thousands on the leaderboard). */
+async function serversOf(ids: string[]) {
+    const wanted = new Set(ids);
+    const servers = new Map<string, string>();
+    const newest = new Map<string, number>();
+    const take = (id: string, platformId: string, at: number) => {
+        if (!wanted.has(id) || (newest.get(id) ?? -1) >= at)
+            return;
+        newest.set(id, at);
+        servers.set(id, serverName(platformId));
+    };
+    const one = ids.length === 1 ? ids[0] : null;
+    const oneArchive = one === null ? null : archiveIdOf(one);
+    // SQLite takes platformId from the row of MAX(…).
+    for (const r of await rows<{ playerId: number; puuid: string; platformId: string; at: number }>(`SELECT a.playerId,p.puuid,m.platformId,MAX(m.gameCreation) AS at FROM archive_participants a JOIN archive_players p ON p.id=a.playerId JOIN archive_matches m ON m.matchKey=a.matchKey${one === null ? '' : oneArchive === null ? ' WHERE p.puuid=?' : ' WHERE a.playerId=?'} GROUP BY a.playerId`, ...(one === null ? [] : [oneArchive ?? one]))) {
+        take(publicId(r.playerId), r.platformId, r.at);
+        take(r.puuid, r.platformId, r.at);
+    }
+    for (const r of await rows<{ puuid: string; platformId: string; at: number }>(`SELECT g.puuid,m.platformId,MAX(g.at) AS at FROM games g JOIN archive_matches m ON m.gameId=g.gameId AND m.queueId=2400${one === null ? '' : ' WHERE g.puuid=?'} GROUP BY g.puuid`, ...(one === null ? [] : [one])))
+        take(r.puuid, r.platformId, r.at);
+    return servers;
+}
 /** The games of the champions pages: all time or this season. */
 async function championGames(url: URL) {
     const c = await context(url);
@@ -645,7 +671,8 @@ async function dispatch(req: Request, url: URL): Promise<Response> {
         const s = standings(await entries(c.since, own, false, true), c.since)[0];
         // The public id (pages of a PUUID link move there); head.puuid stays as the request named it.
         const publicIdOf = archiveIdOf(head.puuid) !== null ? head.puuid : (await publicIdsOf(new Set([own]))).get(own)!;
-        return json({ ...head, id: publicIdOf, season: c.season, ...(s ? { ...open(s), puuid: head.puuid } : { rank: null, games: 0, wins: 0, placed: 0, climbing: false, average: null, seasons: [] }), history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.pct - a.mark.pct || a.entry.gameId - b.entry.gameId).slice(0, 5) });
+        const server = (await serversOf([head.puuid])).get(head.puuid) ?? null;
+        return json({ ...head, id: publicIdOf, server, season: c.season, ...(s ? { ...open(s), puuid: head.puuid } : { rank: null, games: 0, wins: 0, placed: 0, climbing: false, average: null, seasons: [] }), history: s?.history ?? [], bestGames: [...(s?.history ?? [])].sort((a, b) => b.mark.pct - a.mark.pct || a.entry.gameId - b.entry.gameId).slice(0, 5) });
     }
     if (pm) {
         const id = puuid.parse(decodeURIComponent(pm[1]));

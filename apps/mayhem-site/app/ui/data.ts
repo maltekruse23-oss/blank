@@ -26,6 +26,8 @@ export type PlayerSummary = {
   seasons: { season: Season; rank: Rank }[];
   champions: Champion[];
   last6: { gameId: number; at: number; gain: number | null; grade: Grade; change: Step['change'] }[];
+  /** Short server name (EUW, NA …) from the newest archived game; null when none is known. */
+  server?: string | null;
 };
 
 export type Board = {

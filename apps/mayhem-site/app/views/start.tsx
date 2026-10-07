@@ -402,7 +402,7 @@ function PlaceItem({ place: p, id }: { place: Placement; id: string }) {
           <b>{label}</b>
           <small className="faint num">
             {ME_TEXT.placesFrom} {num(p.of)}
-            {p.of >= 10 ? ` · Top ${top} %` : ''}
+            {p.of >= 10 ? t(` · Top ${top}%`, ` · Top ${top} %`) : ''}
           </small>
         </span>
         {value && <span className="num my-place-value">{value}</span>}
