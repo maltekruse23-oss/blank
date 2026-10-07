@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Aufteilung großer Dateien (6): `flyout.rs` — 07.10.2026
+
+- Reine Verschiebung wie bei `aram.rs`/`pc.rs`. `flyout.rs` (1054 → ~510 Zeilen) behält Konstanten (`KINDS`, `PLACES`, `SCREENS`, `PAGES`), `FlyoutState`, Prüfungen und alle Tauri-Befehle (`#[tauri::command]` bleibt in der Wurzel, sonst müsste `lib.rs` die erzeugten Makros anders erreichen); neu unter `src-tauri/src/flyout/`: `window.rs` (Fenster-Handle, Anzeigen ohne Fokus, Erzeugen, Rahmen), `place.rs` (Bildschirm, Taskleiste, `keep_above_taskbar`, `corner`), `tests.rs`.
+- Nur `pub(super)` und `use`-Zeilen; per Zeilenvergleich geprüft.
+
 ## Aufteilung großer Dateien (5): `pc.rs` — 07.10.2026
 
 - Reine Verschiebung wie bei `aram.rs`. `pc.rs` (1054 → ~240 Zeilen) behält Typen, Schwellen, `PcState`, `start` und die Tauri-Befehle (`pc_status`, `close_program`, `program_running`); neu unter `src-tauri/src/pc/`: `watch.rs` (Warnungen), `sampler.rs` (Messung), `programs.rs` (`PROTECTED`, Fenster/Prozesse, Windows-Helfer), `gpu.rs` (Grafikkarte), `hardware.rs` (`specs`; nicht `specs.rs`, sonst Namenskonflikt mit der Funktion), `tests.rs`.
