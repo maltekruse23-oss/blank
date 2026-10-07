@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website englisch: Übergabe an Codex (Etappe „Englische Version“, Teil 3) — 07.10.2026
+
+- `apps/mayhem-site/DEPLOY.md` oben: „Aktueller Auftrag: Englische Version mit Server-Filter“ mit den Live-Prüfungen. Keine Migration. Claude veröffentlicht nicht; nach Codex' Veröffentlichung live prüfen, dann den Punkt aus ROADMAP.md „Jetzt“ entfernen und hier mit Datum festhalten.
+- ROADMAP: neues Design für Website und App unter „Als Nächstes“ (Benutzer: erst Englisch fertig, dann drei Entwürfe zur Wahl), App-Ausbau unter „Später“.
+
 ## Website: Server-Kürzel und Server-Filter (Etappe „Englische Version“, Teil 2) — 07.10.2026
 
 - Server eines Spielers = Plattform seines neuesten archivierten Spiels (`archive_matches.platformId`, über `archive_participants`), als Kürzel wie im Client (`src/servers.ts`: `EUW1` → EUW, `EUN1` → EUNE, `NA1` → NA, `LA1`/`LA2` → LAN/LAS, `OC1` → OCE …; Test `siteServers.test.ts`). Uploads aus blank. haben keine Plattform; sie zählen nur, wenn dasselbe Spiel (gleiche `gameId`) im Archiv liegt. Ohne archiviertes Spiel kein Kürzel (`null`, auf der Seite nichts). Keine Migration; `serversOf` in `src/api.ts` braucht zwei Abfragen für alle.
