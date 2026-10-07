@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Neues Design „Arena“ gewählt — 07.10.2026
+
+- Drei Entwurfsrunden im Artifact „mayhemstats Design 2“ (Runde 1: Almanach, Heulende Schlucht, Chaos-Plakat; Runde 2: Arena, Augment-Rausch, Stille; dann Mix aus Arena und Augment-Rausch mit Blitz als Anregung). Benutzer: Regenbogen-Verlauf weg, Augment-Seite von Blitz „besonders gut“, Spielerseite mit Matchverlauf als Vorlage für alles, „ok gut“.
+- Festgehalten in MAYHEM-DESIGN.md („Nächstes Design Arena“); gebaut wird erst nach dem Live-Gang der englischen Version (ROADMAP).
+
 ## Website englisch: Übergabe an Codex (Etappe „Englische Version“, Teil 3) — 07.10.2026
 
 - `apps/mayhem-site/DEPLOY.md` oben: „Aktueller Auftrag: Englische Version mit Server-Filter“ mit den Live-Prüfungen. Keine Migration. Claude veröffentlicht nicht; nach Codex' Veröffentlichung live prüfen, dann den Punkt aus ROADMAP.md „Jetzt“ entfernen und hier mit Datum festhalten.
