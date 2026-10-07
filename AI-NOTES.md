@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Aufteilung großer Dateien (1/3): `aram.rs` — 07.10.2026
+
+- Benutzerauftrag: reine Aufteilung ohne Verhaltensänderung, je Datei ein PR (danach `desktop.css`, dann `PopoutWindow.tsx`).
+- `aram.rs` (2291 Zeilen) bleibt Wurzel des Moduls (Konstanten, gespeicherte Typen, `sync`, Tauri-Befehle); neu unter `src-tauri/src/aram/`: `client.rs` (Lockfile, `Lcu`), `games.rs` (Antworten des Clients, `Summary`, `from_history`/`from_eog`, `entries`), `after_game.rs` (`league_seen`, Spielende, Karte), `validate.rs` (`quality`, `valid_entry`), `tests.rs`. `aram_live.rs`, `aram_website.rs`, `aram_archive.rs`, `aram_lcu_probe.rs` liegen unverändert daneben (`#[path]`).
+- Nur Sichtbarkeit (`pub(super)`) und `use`-Zeilen kamen hinzu; per Zeilenvergleich geprüft, dass sonst nichts geändert ist. Pfade von außen (`aram::league_seen`, `aram::client_open`, Befehle) bleiben gleich.
+
 ## Mayhem-App: Funde aus dem Windows-Test — 07.10.2026
 
 - Test auf malte's PC von `main` (678bad1): Build läuft, `mayhem.exe` startet, „Beispiel: Alistar“ mit arammeta-Zahlen (Patch 16.19), Bilder, AP/AD/Tank wechseln. Funde und Benutzerwahl („ja“ zur Empfehlung):
