@@ -163,81 +163,33 @@ button {
 
 .mayhem {
   display: flex;
-  flex-direction: column;
   height: 100%;
-}
-
-/* The bar as liquid glass: the card scrolls under it. */
-.mayhem-top {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 12, 16, 0.55);
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-.mayhem-brand {
-  font: 800 16px var(--font-title);
-  letter-spacing: -0.01em;
-}
-
-.mayhem-brand b {
-  color: var(--accent);
-  font-weight: 800;
-}
-
-.mayhem-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  font: 400 12px var(--font-mono);
-  color: var(--muted);
-}
-
-.mayhem-status:empty {
-  display: none;
-}
-
-.mayhem-status::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--faint);
-}
-
-.mayhem-status[data-open='true'] {
-  border-color: color-mix(in oklab, var(--up) 35%, transparent);
-  color: var(--text);
-}
-
-.mayhem-status[data-open='true']::before {
-  background: var(--up);
-  box-shadow: 0 0 8px var(--up);
 }
 
 .mayhem-main {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  margin-top: -50px;
-  padding: 68px 16px 18px;
+}
+
+.mayhem-wrap {
+  max-width: 1180px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 28px 32px 48px;
 }
 
 /* --- Waiting: one gold glow tile ---------------------------------------------------------- */
 
 .mayhem-wait {
   display: grid;
-  align-content: center;
-  min-height: 100%;
+  place-items: center;
+  min-height: calc(100vh - 160px);
+}
+
+.mayhem-wait .mayhem-glow,
+.mayhem-narrow {
+  width: min(560px, 100%);
 }
 
 .mayhem-glow {
@@ -328,7 +280,21 @@ button {
 
 .mayhem-card {
   display: grid;
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.mayhem-card-side,
+.mayhem-card-main {
+  display: grid;
   gap: 18px;
+  min-width: 0;
+}
+
+.mayhem-card-side {
+  position: sticky;
+  top: 0;
 }
 
 /* The champion: splash art behind, liquid glass for the name. */
@@ -336,7 +302,7 @@ button {
   position: relative;
   display: grid;
   align-content: end;
-  min-height: 190px;
+  min-height: 260px;
   padding: 12px;
   border-radius: var(--radius-tile);
   overflow: hidden;
@@ -709,4 +675,1115 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
     transparent
   );
   filter: blur(8px);
+}
+
+/* --- Navigation and pages (desktop, as Blitz) -------------------------------------------- */
+
+/* The sidebar (canvas "App · Home"): logo, the areas with icon and label, "Bald" for the next
+   ones, the client's state at the bottom. */
+.mayhem-side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  width: 86px;
+  padding: 18px 0 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(11, 12, 16, 0.55);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.mayhem-logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(242, 193, 78, 0.35);
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--accent);
+  font: 800 18px var(--font-title);
+}
+
+.mayhem-nav {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.mayhem-nav button,
+.mayhem-soon {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 66px;
+  padding: 9px 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--slow) var(--ease),
+    color var(--slow) var(--ease);
+}
+
+.mayhem-nav button:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mayhem-nav button[aria-current='page'] {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  color: var(--text);
+}
+
+.mayhem-nav button[aria-current='page'] svg {
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px rgba(242, 193, 78, 0.6));
+}
+
+/* Room for what comes next: not a button, does nothing. */
+.mayhem-soon {
+  margin-top: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  color: #4f5566;
+  cursor: default;
+}
+
+.mayhem-client {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--faint);
+}
+
+.mayhem-client::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+
+.mayhem-client[data-open='true'] {
+  color: var(--up);
+}
+
+.mayhem-client[data-open='true']::before {
+  background: var(--up);
+  box-shadow: 0 0 8px var(--up);
+}
+
+.mayhem-page {
+  display: grid;
+  gap: 22px;
+}
+
+.mayhem-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mayhem-page-head h1 {
+  font: 800 28px/1.15 var(--font-title);
+  letter-spacing: -0.01em;
+}
+
+.mayhem-page-head .mayhem-note {
+  margin-top: 4px;
+}
+
+/* "Mock": values that are invented for now (CLAUDE.md: never hide simulated data). */
+.mayhem-pill.mock {
+  flex: none;
+  border-color: rgba(255, 128, 112, 0.4);
+  background: rgba(255, 128, 112, 0.1);
+  color: var(--down);
+  font-weight: 700;
+}
+
+.mayhem-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.mayhem-search {
+  flex: 1 1 320px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  transition: border-color var(--slow) var(--ease);
+}
+
+.mayhem-search:focus {
+  outline: none;
+  border-color: rgba(242, 193, 78, 0.5);
+}
+
+.mayhem-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mayhem-chips button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--slow) var(--ease),
+    color var(--slow) var(--ease),
+    border-color var(--slow) var(--ease);
+}
+
+.mayhem-chips button[data-rarity='prismatic'] {
+  color: var(--prisma);
+}
+
+.mayhem-chips button[data-rarity='gold'] {
+  color: var(--accent);
+}
+
+.mayhem-chips button[data-rarity='silver'] {
+  color: var(--silver);
+}
+
+.mayhem-chips button[aria-pressed='true'] {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0b0c10;
+}
+
+/* Augments as cards, grouped by rarity (after Blitz's augment page). */
+.mayhem-group {
+  display: grid;
+  gap: 12px;
+}
+
+.mayhem-group h2 {
+  font: 800 19px var(--font-title);
+}
+
+.mayhem-group[data-rarity='prismatic'] h2 {
+  color: var(--prisma);
+}
+
+.mayhem-group[data-rarity='gold'] h2 {
+  color: var(--accent);
+}
+
+.mayhem-group[data-rarity='silver'] h2 {
+  color: var(--silver);
+}
+
+.mayhem-aug-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.mayhem-aug-card {
+  --glow: rgba(242, 193, 78, 0.55);
+  --ring: var(--accent);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  min-height: 230px;
+  padding: 26px 16px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  text-align: center;
+  transition:
+    transform var(--slow) var(--ease),
+    border-color var(--slow) var(--ease);
+}
+
+.mayhem-aug-card[data-rarity='prismatic'] {
+  --glow: rgba(111, 214, 255, 0.55);
+  --ring: var(--prisma);
+}
+
+.mayhem-aug-card[data-rarity='silver'] {
+  --glow: rgba(223, 229, 236, 0.35);
+  --ring: var(--silver);
+}
+
+.mayhem-aug-card::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -10%;
+  right: -10%;
+  bottom: -70%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--glow), transparent);
+  filter: blur(26px);
+  opacity: 0.6;
+  transition:
+    opacity var(--slow) var(--ease),
+    transform var(--slow) var(--ease);
+}
+
+.mayhem-aug-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.mayhem-aug-card:hover::before {
+  opacity: 0.95;
+  transform: scale(1.1);
+}
+
+.mayhem-aug-card-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  box-shadow:
+    0 0 0 2px var(--ring),
+    0 0 22px -4px var(--ring);
+}
+
+.mayhem-aug-card-icon img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.mayhem-aug-card h3 {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.mayhem-aug-card p {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #b8bfcf;
+  font-size: 12.5px;
+  line-height: 1.45;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.mayhem-aug-card-games {
+  margin-top: auto;
+  padding-top: 6px;
+  font: 400 11px var(--font-mono);
+  color: var(--faint);
+}
+
+.mayhem-aug-card-rate {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font: 500 12px var(--font-mono);
+  color: var(--up);
+}
+
+.mayhem-aug-card-tier {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 24px;
+  padding: 1px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--muted);
+  font: 800 12px var(--font-title);
+}
+
+.mayhem-aug-card-tier[data-tier='S'] {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.mayhem-aug-card-tier[data-tier='A'] {
+  border-color: var(--silver);
+  color: var(--silver);
+}
+
+.mayhem-aug-card-tier[data-tier='B'] {
+  border-color: #d99a66;
+  color: #d99a66;
+}
+
+/* Champion tier list: a lit block with the letter, the champions beside it (as Blitz). */
+.mayhem-tier-block {
+  --c: var(--muted);
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.mayhem-tier-block[data-tier='S'] {
+  --c: var(--accent);
+}
+
+.mayhem-tier-block[data-tier='A'] {
+  --c: var(--silver);
+}
+
+.mayhem-tier-block[data-tier='B'] {
+  --c: #d99a66;
+}
+
+.mayhem-tier-block[data-tier='D'] {
+  --c: var(--faint);
+}
+
+.mayhem-tier-side {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  border: 1px solid color-mix(in oklab, var(--c) 35%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.mayhem-tier-side::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -30%;
+  right: -30%;
+  bottom: -60%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--c) 75%, transparent),
+    transparent
+  );
+  filter: blur(22px);
+}
+
+.mayhem-tier-side span {
+  color: var(--c);
+  font: 800 40px var(--font-title);
+  line-height: 1;
+}
+
+.mayhem-tier-side small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.mayhem-tier-block .mayhem-champ-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+}
+
+.mayhem-champ {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 12px;
+  transition: background var(--slow) var(--ease);
+}
+
+.mayhem-champ:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mayhem-champ img {
+  flex: none;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--c) 70%, transparent);
+}
+
+.mayhem-champ > span {
+  display: grid;
+  min-width: 0;
+}
+
+.mayhem-champ b {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mayhem-champ small {
+  font: 400 12px var(--font-mono);
+  color: var(--up);
+}
+
+/* Two columns: side (rank, ladder) and main (match history), like the website's player page. */
+.mayhem-columns {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.mayhem-column-side {
+  display: grid;
+  gap: 22px;
+}
+
+.mayhem-glass {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-card);
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.05)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -30px 50px -36px rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.mayhem-rank {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background:
+    radial-gradient(260px 140px at 20% 120%, rgba(242, 193, 78, 0.28), transparent),
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.03) 45%,
+      rgba(255, 255, 255, 0.05)
+    );
+}
+
+.mayhem-rank > div {
+  flex: 1;
+}
+
+.mayhem-rank-name {
+  font: 800 26px var(--font-title);
+  color: var(--accent);
+}
+
+.mayhem-rank-facts {
+  margin-top: 6px;
+  font: 400 12px var(--font-mono);
+  color: var(--muted);
+}
+
+.mayhem-bar {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.mayhem-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  box-shadow: 0 0 10px rgba(255, 214, 120, 0.8);
+}
+
+.mayhem-games,
+.mayhem-ladder {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-games li,
+.mayhem-ladder li {
+  --row: rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-row);
+  background: var(--panel);
+}
+
+.mayhem-games li {
+  padding: 14px 16px;
+  border-left-width: 4px;
+}
+
+.mayhem-games li::before,
+.mayhem-ladder li::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -40px;
+  top: -20px;
+  bottom: -20px;
+  width: 180px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--row), transparent);
+  filter: blur(18px);
+}
+
+.mayhem-games li[data-win='true'] {
+  --row: rgba(126, 224, 161, 0.4);
+  border-left-color: var(--up);
+}
+
+.mayhem-games li[data-win='false'] {
+  --row: rgba(255, 128, 112, 0.35);
+  border-left-color: var(--down);
+}
+
+.mayhem-games img,
+.mayhem-ladder img:first-of-type {
+  border-radius: 10px;
+}
+
+.mayhem-game-main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  font: 400 13px var(--font-mono);
+  color: var(--muted);
+}
+
+.mayhem-game-main b {
+  font: 700 16px var(--font);
+  color: var(--text);
+}
+
+li[data-win='true'] .mayhem-game-main b {
+  color: var(--up);
+}
+
+li[data-win='false'] .mayhem-game-main b {
+  color: var(--down);
+}
+
+.mayhem-game-grade {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.mayhem-mp {
+  font: 500 13px var(--font-mono);
+  color: var(--up);
+}
+
+.mayhem-ladder li[data-place='1'] {
+  --row: rgba(242, 193, 78, 0.5);
+}
+
+.mayhem-ladder li[data-place='2'] {
+  --row: rgba(223, 229, 236, 0.3);
+}
+
+.mayhem-ladder li[data-place='3'] {
+  --row: rgba(217, 154, 102, 0.38);
+}
+
+.mayhem-place {
+  width: 16px;
+  font: 800 14px var(--font-title);
+}
+
+li[data-place='1'] .mayhem-place {
+  color: var(--accent);
+}
+
+li[data-place='2'] .mayhem-place {
+  color: var(--silver);
+}
+
+li[data-place='3'] .mayhem-place {
+  color: #d99a66;
+}
+
+.mayhem-ladder .mayhem-aug-name {
+  flex: 1;
+}
+
+.mayhem-server {
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  font: 400 11px var(--font-mono);
+  color: var(--muted);
+}
+
+.mayhem-ladder-rank {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 72px;
+  font-weight: 700;
+}
+
+/* --- Home: dashboard (canvas "App · Home") ------------------------------------------------- */
+
+.mayhem-home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+
+.mayhem-home-main,
+.mayhem-bento {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.mayhem-hero-big {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  align-content: end;
+  height: 250px;
+  padding: 26px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 26px;
+  background:
+    linear-gradient(90deg, rgba(7, 8, 11, 0.92) 18%, rgba(7, 8, 11, 0.35) 60%, rgba(7, 8, 11, 0.1)),
+    linear-gradient(0deg, rgba(7, 8, 11, 0.7), transparent 55%),
+    var(--splash, none) 60% 22% / cover no-repeat,
+    var(--panel);
+}
+
+.mayhem-hero-big > .mayhem-pill {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(11, 12, 16, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+.mayhem-kicker {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mayhem-hero-text h1 {
+  margin-top: 6px;
+  font: 300 52px/1 var(--font-title);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mayhem-hero-text p {
+  margin-top: 8px;
+  color: #c4c9d6;
+  font-size: 14px;
+}
+
+.mayhem-hero-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mayhem-tabs {
+  display: flex;
+  gap: 4px;
+  justify-self: start;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mayhem-tabs button {
+  min-height: 34px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--slow) var(--ease),
+    color var(--slow) var(--ease);
+}
+
+.mayhem-tabs button:hover {
+  color: var(--text);
+}
+
+.mayhem-tabs button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.mayhem-row {
+  display: grid;
+  gap: 10px;
+}
+
+.mayhem-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mayhem-row-head h2 {
+  font: 800 15px var(--font-title);
+}
+
+.mayhem-link {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mayhem-link:hover {
+  color: var(--accent);
+}
+
+.mayhem-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* A small augment tile lit from below in its rarity. */
+.mayhem-mini {
+  --glow: rgba(255, 200, 90, 0.8);
+  --ring: var(--accent);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: grid;
+  align-content: end;
+  justify-items: start;
+  gap: 2px;
+  height: 168px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--slow) var(--ease),
+    border-color var(--slow) var(--ease);
+}
+
+.mayhem-mini[data-rarity='prismatic'] {
+  --glow: rgba(120, 220, 255, 0.8);
+  --ring: var(--prisma);
+}
+
+.mayhem-mini[data-rarity='silver'] {
+  --glow: rgba(235, 240, 248, 0.6);
+  --ring: var(--silver);
+}
+
+.mayhem-mini::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -15%;
+  right: -15%;
+  bottom: -70%;
+  height: 110%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--glow), transparent);
+  filter: blur(24px);
+  transition: transform var(--slow) var(--ease);
+}
+
+.mayhem-mini:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mayhem-mini:hover::before {
+  transform: scale(1.12);
+}
+
+.mayhem-mini .mayhem-aug-card-icon {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+}
+
+.mayhem-aug-card-icon.small {
+  width: 44px;
+  height: 44px;
+}
+
+.mayhem-aug-card-icon.small img {
+  width: 40px;
+  height: 40px;
+}
+
+.mayhem-mini b {
+  font-weight: 700;
+}
+
+.mayhem-mini small {
+  font: 400 12px var(--font-mono);
+  color: var(--up);
+}
+
+.mayhem-game-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mayhem-game-card {
+  position: relative;
+  overflow: hidden;
+  height: 116px;
+  padding: 14px;
+  border: 1px solid rgba(126, 224, 161, 0.3);
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, rgba(7, 8, 11, 0.92) 35%, rgba(7, 8, 11, 0.3)),
+    var(--splash, none) 60% 25% / cover no-repeat,
+    var(--panel);
+  transition: transform var(--slow) var(--ease);
+}
+
+.mayhem-game-card:hover {
+  transform: translateY(-3px);
+}
+
+.mayhem-game-card[data-win='false'] {
+  border-color: rgba(255, 128, 112, 0.3);
+}
+
+.mayhem-game-card div {
+  display: grid;
+}
+
+.mayhem-game-card b {
+  color: var(--up);
+}
+
+.mayhem-game-card[data-win='false'] b {
+  color: var(--down);
+}
+
+.mayhem-game-card small {
+  font: 400 12px var(--font-mono);
+  color: #c4c9d6;
+}
+
+.mayhem-game-card strong {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  font: 800 18px var(--font-title);
+}
+
+.mayhem-game-card img {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  border-radius: 12px;
+}
+
+/* Bento column: rank with the MP curve, two numbers, records, a goal lit in gold. */
+.mayhem-bento-rank {
+  overflow: hidden;
+  padding: 18px;
+}
+
+.mayhem-bento-rank-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.mayhem-bento-rank-head > div {
+  display: grid;
+}
+
+.mayhem-bento-rank-head img {
+  filter: drop-shadow(0 0 18px rgba(242, 193, 78, 0.45));
+}
+
+.mayhem-curve {
+  display: block;
+  width: 100%;
+  height: 70px;
+  margin-top: 8px;
+}
+
+.mayhem-curve-line {
+  fill: none;
+  stroke: var(--accent-soft);
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 6px rgba(255, 214, 120, 0.9));
+}
+
+.mayhem-curve-scale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: 400 11px var(--font-mono);
+  color: var(--faint);
+}
+
+.mayhem-bento-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mayhem-tile {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--panel);
+}
+
+.mayhem-tile strong {
+  font: 800 26px var(--font-title);
+}
+
+.mayhem-tile small {
+  font: 400 11px var(--font-mono);
+  color: var(--up);
+}
+
+.mayhem-tile-grade {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mayhem-tile-grade img {
+  border-radius: 8px;
+}
+
+.mayhem-records {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.mayhem-records span {
+  display: grid;
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mayhem-records span[data-best='true'] {
+  border-color: rgba(242, 193, 78, 0.25);
+  background: rgba(242, 193, 78, 0.08);
+}
+
+.mayhem-records strong {
+  font: 800 15px var(--font-title);
+}
+
+.mayhem-records span[data-best='true'] strong {
+  color: var(--accent);
+}
+
+.mayhem-records small {
+  color: #c4c9d6;
+  font: 400 11px var(--font);
+}
+
+.mayhem-goal {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid rgba(242, 193, 78, 0.25);
+  border-radius: 24px;
+  background: var(--surface);
+}
+
+.mayhem-goal::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -20%;
+  right: -20%;
+  bottom: -70%;
+  height: 120%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 200, 90, 0.9),
+    rgba(230, 110, 20, 0.4) 55%,
+    transparent
+  );
+  filter: blur(30px);
+}
+
+.mayhem-goal strong {
+  font: 800 20px/1.2 var(--font-title);
+}
+
+.mayhem-goal small {
+  color: #c4c9d6;
+  font-size: 12px;
 }

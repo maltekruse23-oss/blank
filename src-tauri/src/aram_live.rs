@@ -296,6 +296,13 @@ pub struct MetaAugment {
     rarity: String,
     cats: Vec<String>,
     icon: String,
+    /// Win rate and games over all champions (only for the Mayhem app's tier list).
+    #[serde(skip_serializing)]
+    wr: f64,
+    #[serde(skip_serializing)]
+    g: u32,
+    #[serde(rename(deserialize = "desc_en"), skip_serializing)]
+    text: String,
 }
 
 #[derive(Deserialize, Default)]
@@ -310,6 +317,10 @@ struct MetaList {
 #[serde(default)]
 struct MetaChamp {
     g: u32,
+    wr: f64,
+    name_en: String,
+    alias: String,
+    tags: Vec<String>,
 }
 
 /// arammeta's augment list, from memory while fresh.
@@ -345,6 +356,102 @@ async fn meta_info(http: &reqwest::Client, champion_id: u32) -> Option<MetaInfo>
             .filter_map(|(id, a)| Some((id.parse::<u32>().ok()?, a.clone())))
             .collect(),
     })
+}
+
+/// One champion of the Mayhem app's tier list (arammeta's numbers over all its Mayhem games).
+#[derive(Serialize)]
+pub struct TierChampion {
+    id: u32,
+    name: String,
+    alias: String,
+    tags: Vec<String>,
+    wr: f64,
+    games: u32,
+}
+
+/// One augment of the Mayhem app's tier list.
+#[derive(Serialize)]
+pub struct TierAugment {
+    id: u32,
+    name: String,
+    rarity: String,
+    icon: String,
+    text: String,
+    cats: Vec<String>,
+    wr: f64,
+    games: u32,
+}
+
+#[derive(Serialize)]
+pub struct Tiers {
+    patch: String,
+    champions: Vec<TierChampion>,
+    augments: Vec<TierAugment>,
+}
+
+/// Every champion and augment with arammeta's win rate and games (Mayhem app, tier lists). The
+/// app ranks them itself; this only reads the list the champ card already keeps.
+#[tauri::command]
+pub async fn mayhem_tiers() -> Result<Tiers, String> {
+    let http = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(30))
+        .user_agent(concat!("blank/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let list = meta_list(&http)
+        .await
+        .ok_or_else(|| "arammeta.com antwortet nicht.".to_string())?;
+    Ok(tiers_of(&list))
+}
+
+fn tiers_of(list: &MetaList) -> Tiers {
+    let short = |text: &str, max: usize| text.chars().take(max).collect::<String>();
+    let champions = list
+        .champs
+        .iter()
+        .filter_map(|(id, c)| {
+            let id = id.parse::<u32>().ok()?;
+            let ok = c.g > 0 && (0.0..=1.0).contains(&c.wr) && alias_ok(&c.alias);
+            ok.then(|| TierChampion {
+                id,
+                name: short(&c.name_en, 40),
+                alias: c.alias.clone(),
+                tags: c.tags.iter().take(3).map(|t| short(t, 20)).collect(),
+                wr: c.wr,
+                games: c.g,
+            })
+        })
+        .collect();
+    let augments = list
+        .augs
+        .iter()
+        .filter_map(|(id, a)| {
+            let id = id.parse::<u32>().ok()?;
+            let ok = a.g > 0 && (0.0..=1.0).contains(&a.wr);
+            ok.then(|| TierAugment {
+                id,
+                name: short(&a.name, 60),
+                rarity: short(&a.rarity, 20),
+                icon: short(&a.icon, 200),
+                text: short(&a.text, 400),
+                cats: a.cats.iter().take(6).map(|c| short(c, 20)).collect(),
+                wr: a.wr,
+                games: a.g,
+            })
+        })
+        .collect();
+    Tiers {
+        patch: short(&list.patch_prefix, 12),
+        champions,
+        augments,
+    }
+}
+
+/// Data Dragon keys are plain letters and digits.
+fn alias_ok(alias: &str) -> bool {
+    (1..=40).contains(&alias.len()) && alias.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
 #[derive(Deserialize)]
@@ -574,6 +681,27 @@ mod tests {
         let sent = serde_json::to_value(augment).unwrap();
         assert_eq!(sent["name"], "Dive Bomber");
         assert_eq!(sent["icon"], "assets/icons/divebomber_large.png");
+    }
+
+    #[test]
+    fn tier_lists_keep_only_sound_entries() {
+        let list: MetaList = serde_json::from_str(
+            r#"{"patch_prefix":"16.19",
+                "champs":{"12":{"g":3912,"wr":0.56,"name_en":"Alistar","alias":"Alistar","tags":["Tank"]},
+                          "13":{"g":0,"wr":0.5,"name_en":"None","alias":"None"},
+                          "14":{"g":10,"wr":0.5,"name_en":"Bad","alias":"../x"}},
+                "augs":{"1001":{"name_en":"Goliath","rarity":"kPrismatic","icon":"assets/icons/g.png",
+                                "desc_en":"Grow.","cats":["tank"],"wr":0.58,"g":8210},
+                        "1002":{"name_en":"Odd","wr":1.5,"g":5}}}"#,
+        )
+        .unwrap();
+        let tiers = tiers_of(&list);
+        assert_eq!(tiers.patch, "16.19");
+        assert_eq!(tiers.champions.len(), 1);
+        assert_eq!(tiers.champions[0].alias, "Alistar");
+        assert_eq!(tiers.augments.len(), 1);
+        assert_eq!(tiers.augments[0].name, "Goliath");
+        assert_eq!(tiers.augments[0].text, "Grow.");
     }
 
     #[test]

@@ -33,6 +33,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::errors::log_error,
             crate::aram::live::aram_champ_watch,
             crate::aram::live::aram_champ_info,
+            crate::aram::live::mayhem_tiers,
             league_client_open,
         ])
         .run(context)
