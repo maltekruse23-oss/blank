@@ -26,6 +26,18 @@ export const AXES: Record<Metric, string> = {
   death: 'Überleben',
 };
 
+/** The same axes in English (AXES stays German for the API and the tests). */
+export const AXES_EN: Record<Metric, string> = {
+  dmg: 'Damage',
+  tank: 'Tanking',
+  care: 'Healing & shields',
+  part: 'Kill participation',
+  death: 'Survival',
+};
+
+/** The axis names of a language. */
+export const axesIn = (lang: 'en' | 'de') => (lang === 'de' ? AXES : AXES_EN);
+
 const mean = (values: number[]) =>
   values.length ? values.reduce((t, v) => t + v, 0) / values.length : 0;
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
@@ -46,7 +58,7 @@ export function radarOf(entries: AramEntry[]): number[] | null {
   return METRICS.map((_, i) => mean(all.map((a) => a[i])));
 }
 
-export type Badge = { id: string; name: string; hint: string };
+export type Badge = { id: string; name: string; hint: string; nameEn: string; hintEn: string };
 
 /** Playstyle badges from the radar (fixed rules, never a judgement: one per strong axis, at most
  * three, strongest first). */
@@ -54,15 +66,17 @@ export function badgesOf(radar: number[] | null, games: number): Badge[] {
   if (!radar || games < 5) return [];
   const [dmg, tank, care, part, death] = radar;
   const all: (Badge & { score: number })[] = [
-    { id: 'carry', name: 'Schadensmacher', hint: 'Mehr Schaden als sein Champion üblich', score: dmg },
-    { id: 'front', name: 'Frontliner', hint: 'Steckt mehr ein als sein Champion üblich', score: tank },
-    { id: 'care', name: 'Heiler', hint: 'Heilt und schützt mehr als sein Champion üblich', score: care },
-    { id: 'team', name: 'Teamspieler', hint: 'An mehr Kills beteiligt als üblich', score: part },
-    { id: 'alive', name: 'Überlebenskünstler', hint: 'Stirbt seltener als üblich', score: death },
+    { id: 'carry', name: 'Schadensmacher', hint: 'Mehr Schaden als sein Champion üblich', nameEn: 'Damage dealer', hintEn: 'More damage than their champion usually does', score: dmg },
+    { id: 'front', name: 'Frontliner', hint: 'Steckt mehr ein als sein Champion üblich', nameEn: 'Frontliner', hintEn: 'Takes more damage than their champion usually does', score: tank },
+    { id: 'care', name: 'Heiler', hint: 'Heilt und schützt mehr als sein Champion üblich', nameEn: 'Healer', hintEn: 'Heals and shields more than their champion usually does', score: care },
+    { id: 'team', name: 'Teamspieler', hint: 'An mehr Kills beteiligt als üblich', nameEn: 'Team player', hintEn: 'In on more kills than usual', score: part },
+    { id: 'alive', name: 'Überlebenskünstler', hint: 'Stirbt seltener als üblich', nameEn: 'Survivor', hintEn: 'Dies less often than usual', score: death },
     {
       id: 'glass',
       name: 'Glaskanone',
       hint: 'Viel Schaden, stirbt aber oft',
+      nameEn: 'Glass cannon',
+      hintEn: 'Lots of damage, but dies often',
       score: dmg > 0.4 && death < -0.4 ? (dmg - death) / 2 : -Infinity,
     },
   ];
@@ -70,7 +84,7 @@ export function badgesOf(radar: number[] | null, games: number): Badge[] {
     .filter((b) => b.score >= 0.4)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
-    .map(({ id, name, hint }) => ({ id, name, hint }));
+    .map(({ id, name, hint, nameEn, hintEn }) => ({ id, name, hint, nameEn, hintEn }));
 }
 
 /** The grades of all ten in a game (same rule as one's own grade, seen from each seat). */

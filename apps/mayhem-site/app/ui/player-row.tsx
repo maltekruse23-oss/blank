@@ -1,9 +1,10 @@
 'use client';
-// One compact row of a ladder (start page): place, player, rank and Leistung Ø.
+// One compact row of a ladder (start page): place, player, rank and Leistung Ø (avg performance).
 import Link from 'next/link';
 import { GradeChip, Img, RankLine } from './bits';
 import { profileHref, profileImage, splitName, useDragon, type PlayerSummary } from './data';
-import { ME_TEXT, useMe } from './me';
+import { useLang } from './i18n';
+import { meText, useMe } from './me';
 
 export function PlayerRow({
   player: p,
@@ -14,10 +15,11 @@ export function PlayerRow({
   place: number;
   dragon: ReturnType<typeof useDragon>;
 }) {
+  const { t, href: to } = useLang();
   const me = useMe();
   const mine = me?.id === p.puuid;
   const { name, tag } = splitName(p.name);
-  const href = profileHref(p);
+  const href = to(profileHref(p));
   return (
     <tr data-place={place} data-me={mine || undefined}>
       <td className="place num">{place}</td>
@@ -27,7 +29,7 @@ export function PlayerRow({
           <span>
             <b>{name}</b>
             {tag && <span className="faint">#{tag}</span>}
-            {mine && <span className="me-tag">{ME_TEXT.you}</span>}
+            {mine && <span className="me-tag">{meText(t).you}</span>}
           </span>
         </Link>
       </td>

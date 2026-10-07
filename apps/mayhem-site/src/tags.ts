@@ -58,6 +58,9 @@ export type TagDef = {
   id: string;
   name: string;
   hint: string;
+  /** English name and hint (name/hint stay German for the API and the tests). */
+  nameEn: string;
+  hintEn: string;
 } & ({ rule: (s: TagStats) => boolean; cut?: undefined } | { cut: Percentile; rule?: undefined });
 
 const top = (stat: StatKey, share = 0.1): Percentile => ({ stat, side: 'top', share });
@@ -66,56 +69,89 @@ const atLeast = (value: number | null, limit: number) => value !== null && value
 
 export const TAGS: readonly TagDef[] = [
   // How the games went, compared with what the champion usually reaches (the grade's axes).
-  { id: 'carry', name: 'Schadensmaschine', hint: 'Macht mehr Schaden, als sein Champion üblich schafft', cut: top('dmg') },
-  { id: 'wall', name: 'Bollwerk', hint: 'Steckt mehr ein, als sein Champion üblich schafft', cut: top('tank') },
-  { id: 'angel', name: 'Schutzengel', hint: 'Heilt und schützt mehr, als sein Champion üblich schafft', cut: top('care') },
-  { id: 'team', name: 'Teamplayer', hint: 'An mehr Kills beteiligt, als sein Champion üblich ist', cut: top('part') },
-  { id: 'immortal', name: 'Unsterblich', hint: 'Stirbt viel seltener, als sein Champion üblich stirbt', cut: top('survive') },
+  {
+    id: 'carry', name: 'Schadensmaschine', hint: 'Macht mehr Schaden, als sein Champion üblich schafft',
+    nameEn: 'Damage machine', hintEn: 'Deals more damage than their champion usually does', cut: top('dmg'),
+  },
+  {
+    id: 'wall', name: 'Bollwerk', hint: 'Steckt mehr ein, als sein Champion üblich schafft',
+    nameEn: 'Bulwark', hintEn: 'Takes more damage than their champion usually does', cut: top('tank'),
+  },
+  {
+    id: 'angel', name: 'Schutzengel', hint: 'Heilt und schützt mehr, als sein Champion üblich schafft',
+    nameEn: 'Guardian angel', hintEn: 'Heals and shields more than their champion usually does', cut: top('care'),
+  },
+  {
+    id: 'team', name: 'Teamplayer', hint: 'An mehr Kills beteiligt, als sein Champion üblich ist',
+    nameEn: 'Team player', hintEn: 'In on more kills than their champion usually is', cut: top('part'),
+  },
+  {
+    id: 'immortal', name: 'Unsterblich', hint: 'Stirbt viel seltener, als sein Champion üblich stirbt',
+    nameEn: 'Immortal', hintEn: 'Dies far less often than their champion usually does', cut: top('survive'),
+  },
   {
     id: 'glass', name: 'Glaskanone', hint: 'Viel mehr Schaden als üblich, stirbt aber auch viel öfter',
+    nameEn: 'Glass cannon', hintEn: 'Far more damage than usual, but dies far more often too',
     rule: (s) => atLeast(s.dmg, 0.4) && s.survive !== null && s.survive <= -0.4,
   },
   // Raw numbers per game.
-  { id: 'hunter', name: 'Kopfgeldjäger', hint: 'Die meisten Kills pro Spiel', cut: top('kills') },
-  { id: 'kamikaze', name: 'Kamikaze', hint: 'Die meisten Tode pro Spiel', cut: top('deaths') },
-  { id: 'wingman', name: 'Wingman', hint: 'Die meisten Assists pro Spiel', cut: top('assists') },
-  { id: 'army', name: 'Ein-Mann-Armee', hint: 'Der größte Anteil am Schaden des eigenen Teams', cut: top('teamShare', 0.05) },
-  { id: 'gold', name: 'Goldesel', hint: 'Mehr Gold als der Rest der Lobby', cut: top('goldShare') },
-  { id: 'cc', name: 'Kontrollfreak', hint: 'Hält Gegner am längsten fest (CC pro Minute)', cut: top('ccPerMinute') },
-  { id: 'wrecker', name: 'Abrissbirne', hint: 'Der meiste Schaden an Türmen', cut: top('turrets') },
-  { id: 'crit', name: 'Kritiker', hint: 'Die größten kritischen Treffer', cut: top('crit') },
-  { id: 'true', name: 'Gnadenlos', hint: 'Der größte Anteil an absolutem Schaden', cut: top('trueShare') },
+  { id: 'hunter', name: 'Kopfgeldjäger', hint: 'Die meisten Kills pro Spiel', nameEn: 'Bounty hunter', hintEn: 'Most kills per game', cut: top('kills') },
+  { id: 'kamikaze', name: 'Kamikaze', hint: 'Die meisten Tode pro Spiel', nameEn: 'Kamikaze', hintEn: 'Most deaths per game', cut: top('deaths') },
+  { id: 'wingman', name: 'Wingman', hint: 'Die meisten Assists pro Spiel', nameEn: 'Wingman', hintEn: 'Most assists per game', cut: top('assists') },
+  {
+    id: 'army', name: 'Ein-Mann-Armee', hint: 'Der größte Anteil am Schaden des eigenen Teams',
+    nameEn: 'One-man army', hintEn: "Biggest share of their own team's damage", cut: top('teamShare', 0.05),
+  },
+  { id: 'gold', name: 'Goldesel', hint: 'Mehr Gold als der Rest der Lobby', nameEn: 'Gold hoarder', hintEn: 'More gold than the rest of the lobby', cut: top('goldShare') },
+  {
+    id: 'cc', name: 'Kontrollfreak', hint: 'Hält Gegner am längsten fest (CC pro Minute)',
+    nameEn: 'Control freak', hintEn: 'Locks enemies down the longest (CC per minute)', cut: top('ccPerMinute'),
+  },
+  { id: 'wrecker', name: 'Abrissbirne', hint: 'Der meiste Schaden an Türmen', nameEn: 'Wrecking ball', hintEn: 'Most damage to turrets', cut: top('turrets') },
+  { id: 'crit', name: 'Kritiker', hint: 'Die größten kritischen Treffer', nameEn: 'Crit king', hintEn: 'Biggest critical strikes', cut: top('crit') },
+  { id: 'true', name: 'Gnadenlos', hint: 'Der größte Anteil an absolutem Schaden', nameEn: 'Merciless', hintEn: 'Biggest share of true damage', cut: top('trueShare') },
   // Damage type.
-  { id: 'mage', name: 'Zauberer', hint: 'Mindestens 70 % magischer Schaden', rule: (s) => atLeast(s.ap, 0.7) },
-  { id: 'blade', name: 'Klingenmeister', hint: 'Mindestens 70 % normaler Schaden', rule: (s) => atLeast(s.ad, 0.7) },
-  { id: 'hybrid', name: 'Hybrid', hint: 'Magischer und normaler Schaden halbe-halbe', rule: (s) => atLeast(s.ap, 0.35) && atLeast(s.ad, 0.35) },
+  { id: 'mage', name: 'Zauberer', hint: 'Mindestens 70 % magischer Schaden', nameEn: 'Sorcerer', hintEn: 'At least 70 % magic damage', rule: (s) => atLeast(s.ap, 0.7) },
+  { id: 'blade', name: 'Klingenmeister', hint: 'Mindestens 70 % normaler Schaden', nameEn: 'Blade master', hintEn: 'At least 70 % physical damage', rule: (s) => atLeast(s.ad, 0.7) },
+  {
+    id: 'hybrid', name: 'Hybrid', hint: 'Magischer und normaler Schaden halbe-halbe',
+    nameEn: 'Hybrid', hintEn: 'Magic and physical damage half and half', rule: (s) => atLeast(s.ap, 0.35) && atLeast(s.ad, 0.35),
+  },
   // Champions.
-  { id: 'onetrick', name: 'One-Trick', hint: 'Mindestens 40 % der Spiele auf einem Champion', rule: (s) => s.topChampion >= 0.4 },
-  { id: 'chameleon', name: 'Chamäleon', hint: 'Spielt die meisten verschiedenen Champions', cut: top('variety') },
-  { id: 'skins', name: 'Skin-Sammler', hint: 'Fast immer mit Skin unterwegs', rule: (s) => atLeast(s.skins, 0.8) },
-  { id: 'classic', name: 'Puristin', hint: 'Spielt fast nie mit Skin', rule: (s) => s.skins !== null && s.skins <= 0.1 },
+  {
+    id: 'onetrick', name: 'One-Trick', hint: 'Mindestens 40 % der Spiele auf einem Champion',
+    nameEn: 'One-trick', hintEn: 'At least 40 % of games on one champion', rule: (s) => s.topChampion >= 0.4,
+  },
+  { id: 'chameleon', name: 'Chamäleon', hint: 'Spielt die meisten verschiedenen Champions', nameEn: 'Chameleon', hintEn: 'Plays the most different champions', cut: top('variety') },
+  { id: 'skins', name: 'Skin-Sammler', hint: 'Fast immer mit Skin unterwegs', nameEn: 'Skin collector', hintEn: 'Almost always plays with a skin', rule: (s) => atLeast(s.skins, 0.8) },
+  { id: 'classic', name: 'Puristin', hint: 'Spielt fast nie mit Skin', nameEn: 'Purist', hintEn: 'Almost never plays with a skin', rule: (s) => s.skins !== null && s.skins <= 0.1 },
   // Augments.
-  { id: 'prisma', name: 'Prisma-Jäger', hint: 'Der größte Anteil an Prisma-Augments', cut: top('prismatic') },
-  { id: 'habit', name: 'Gewohnheitstier', hint: 'Nimmt in mindestens 30 % der Spiele dasselbe Augment', rule: (s) => s.habit >= 0.3 },
+  { id: 'prisma', name: 'Prisma-Jäger', hint: 'Der größte Anteil an Prisma-Augments', nameEn: 'Prismatic hunter', hintEn: 'Biggest share of prismatic augments', cut: top('prismatic') },
+  {
+    id: 'habit', name: 'Gewohnheitstier', hint: 'Nimmt in mindestens 30 % der Spiele dasselbe Augment',
+    nameEn: 'Creature of habit', hintEn: 'Takes the same augment in at least 30 % of games', rule: (s) => s.habit >= 0.3,
+  },
   // Highlights.
-  { id: 'penta', name: 'Pentakill-Legende', hint: 'Hat schon einen Pentakill geschafft', rule: (s) => s.pentas >= 1 },
-  { id: 'multi', name: 'Multikill-Künstler', hint: 'Mindestens drei Quadrakills', rule: (s) => s.quadras >= 3 },
+  { id: 'penta', name: 'Pentakill-Legende', hint: 'Hat schon einen Pentakill geschafft', nameEn: 'Penta legend', hintEn: 'Has landed a pentakill', rule: (s) => s.pentas >= 1 },
+  { id: 'multi', name: 'Multikill-Künstler', hint: 'Mindestens drei Quadrakills', nameEn: 'Multikill artist', hintEn: 'At least three quadrakills', rule: (s) => s.quadras >= 3 },
   // Grades and luck.
-  { id: 'talent', name: 'Ausnahmetalent', hint: 'Die besten Noten im Schnitt', cut: top('average', 0.03) },
-  { id: 'clockwork', name: 'Uhrwerk', hint: 'Die gleichmäßigsten Noten', cut: top('steadiness') },
-  { id: 'rollercoaster', name: 'Achterbahn', hint: 'Die wechselhaftesten Noten', cut: top('swing') },
+  { id: 'talent', name: 'Ausnahmetalent', hint: 'Die besten Noten im Schnitt', nameEn: 'Prodigy', hintEn: 'Best average grades', cut: top('average', 0.03) },
+  { id: 'clockwork', name: 'Uhrwerk', hint: 'Die gleichmäßigsten Noten', nameEn: 'Clockwork', hintEn: 'Most consistent grades', cut: top('steadiness') },
+  { id: 'rollercoaster', name: 'Achterbahn', hint: 'Die wechselhaftesten Noten', nameEn: 'Rollercoaster', hintEn: 'Most up-and-down grades', cut: top('swing') },
   {
     id: 'lucky', name: 'Glückspilz', hint: 'Gewinnt mindestens 60 %, obwohl die Noten unter dem Schnitt liegen',
+    nameEn: 'Lucky charm', hintEn: 'Wins at least 60 % despite below-average grades',
     rule: (s) => s.wins >= 0.6 && atLeast(0.45 - (s.average ?? 1), 0),
   },
   {
     id: 'unlucky', name: 'Pechvogel', hint: 'Gute Noten, gewinnt aber höchstens 40 %',
+    nameEn: 'Cursed', hintEn: 'Good grades, but wins 40 % at most',
     rule: (s) => s.wins <= 0.4 && atLeast(s.average, 0.6),
   },
   // Habits.
-  { id: 'marathon', name: 'Marathonläufer', hint: 'Die längsten Spiele', cut: top('minutes') },
-  { id: 'blitz', name: 'Blitzkrieger', hint: 'Die kürzesten Spiele', cut: bottom('minutes') },
-  { id: 'grinder', name: 'Dauerzocker', hint: 'Die meisten Spiele', cut: top('games', 0.05) },
+  { id: 'marathon', name: 'Marathonläufer', hint: 'Die längsten Spiele', nameEn: 'Marathoner', hintEn: 'Longest games', cut: top('minutes') },
+  { id: 'blitz', name: 'Blitzkrieger', hint: 'Die kürzesten Spiele', nameEn: 'Speedrunner', hintEn: 'Shortest games', cut: bottom('minutes') },
+  { id: 'grinder', name: 'Dauerzocker', hint: 'Die meisten Spiele', nameEn: 'Grinder', hintEn: 'Most games', cut: top('games', 0.05) },
 ];
 
 const mean = (values: number[]) => (values.length ? values.reduce((t, v) => t + v, 0) / values.length : null);
@@ -224,17 +260,20 @@ export function censusOf(all: TagStats[]): TagCensus {
   return { players: all.length, cutoffs, counts };
 }
 
-/** A player's tags with their rarity, rarest first; only with enough players to compare. */
-export function rankedTags(stats: TagStats, census: TagCensus) {
+/** A player's tags with their rarity, rarest first; only with enough players to compare. Names
+ * and hints in `lang` (German by default, as the API sends them). */
+export function rankedTags(stats: TagStats, census: TagCensus, lang: 'en' | 'de' = 'de') {
   if (census.players < MIN_PLAYERS) return [];
   return tagsOf(stats, census.cutoffs)
     .map((id) => {
       const tag = TAGS.find((t) => t.id === id)!;
       // The player has it, so it counts at least once (the census may be a few minutes older).
       const share = Math.max(1, census.counts[id] ?? 0) / census.players;
-      return { id, name: tag.name, hint: tag.hint, share };
+      return lang === 'de'
+        ? { id, name: tag.name, hint: tag.hint, share }
+        : { id, name: tag.nameEn, hint: tag.hintEn, share };
     })
-    .sort((a, b) => a.share - b.share || a.name.localeCompare(b.name, 'de'));
+    .sort((a, b) => a.share - b.share || a.name.localeCompare(b.name, lang));
 }
 
 /** What someone likes to play, for the "Vorlieben" card: champions, classes (from Data Dragon's

@@ -9,30 +9,47 @@ export type Me = { id: string; name: string };
 const KEY = 'mayhem.me.v1';
 const EVENT = 'mayhem-me';
 
-/** The texts of this feature in one place (the site gets an English version later). */
-export const ME_TEXT = {
-  mark: 'Das bin ich',
-  marked: 'Das bin ich ✓',
-  unmark: 'Nicht mehr ich',
-  markHint: 'Merkt sich nur dieser Browser. Dann sind deine Zeilen überall markiert und die Startseite zeigt deine Plätze.',
-  you: 'Du',
-  jump: 'Zu mir springen',
-  findTitle: 'Bist du schon drin?',
-  findLead: 'Such deine Riot-ID. Jeder aus einem hochgeladenen Mayhem-Spiel steht hier mit Rang, Noten und Rekorden.',
-  notFound: (name: string) => `„${name}“ ist noch nicht in der Datenbank.`,
-  notFoundCta: 'Spiele hinzufügen',
-  notFoundShort: 'Lad den Collector, dann bist du nach dem nächsten Start dabei.',
-  markNudge: 'Gefunden? Klick auf deinem Profil auf „Das bin ich“, dann zeigt dir die Startseite deine Plätze.',
-  notFoundLead:
+/** The texts of this feature in one place, in the page's language (t from useLang). */
+export const meText = (t: (en: string, de: string) => string) => ({
+  mark: t("That's me", 'Das bin ich'),
+  marked: t("That's me ✓", 'Das bin ich ✓'),
+  unmark: t('Not me anymore', 'Nicht mehr ich'),
+  markHint: t(
+    'Only this browser remembers it. Your rows are then marked everywhere and the start page shows your places.',
+    'Merkt sich nur dieser Browser. Dann sind deine Zeilen überall markiert und die Startseite zeigt deine Plätze.',
+  ),
+  you: t('You', 'Du'),
+  jump: t('Jump to me', 'Zu mir springen'),
+  findTitle: t('Are you already in?', 'Bist du schon drin?'),
+  findLead: t(
+    'Search your Riot ID. Everyone from an uploaded Mayhem game is here with rank, grades and records.',
+    'Such deine Riot-ID. Jeder aus einem hochgeladenen Mayhem-Spiel steht hier mit Rang, Noten und Rekorden.',
+  ),
+  notFound: (name: string) => t(`"${name}" is not in the database yet.`, `„${name}“ ist noch nicht in der Datenbank.`),
+  notFoundCta: t('Add games', 'Spiele hinzufügen'),
+  notFoundShort: t(
+    "Get the Collector and you're in after its next start.",
+    'Lad den Collector, dann bist du nach dem nächsten Start dabei.',
+  ),
+  markNudge: t(
+    "Found yourself? Click \"That's me\" on your profile and the start page shows your places.",
+    'Gefunden? Klick auf deinem Profil auf „Das bin ich“, dann zeigt dir die Startseite deine Plätze.',
+  ),
+  notFoundLead: t(
+    "Everyone from a Mayhem game uploaded by the Collector or blank. is here. Get the Collector and you're in after its next start, with your latest games.",
     'Hier steht jeder aus einem Mayhem-Spiel, das der Collector oder blank. hochgeladen hat. Lad den Collector, dann bist du nach dem nächsten Start dabei, samt deinen letzten Spielen.',
-  placesTitle: 'Deine Plätze',
-  placesEmpty: 'Noch keine Plätze. Sie erscheinen nach deinem ersten gewerteten Spiel.',
-  placesFrom: 'von',
-  ladder: 'Rangliste gesamt',
-  performance: 'Leistung Ø',
-  profile: 'Zum Profil',
-  change: 'Anderer Spieler',
-} as const;
+  ),
+  placesTitle: t('Your places', 'Deine Plätze'),
+  placesEmpty: t(
+    'No places yet. They appear after your first rated game.',
+    'Noch keine Plätze. Sie erscheinen nach deinem ersten gewerteten Spiel.',
+  ),
+  placesFrom: t('of', 'von'),
+  ladder: t('Overall leaderboard', 'Rangliste gesamt'),
+  performance: t('Performance avg', 'Leistung Ø'),
+  profile: t('Go to profile', 'Zum Profil'),
+  change: t('Other player', 'Anderer Spieler'),
+});
 
 function read(): Me | null {
   try {
@@ -81,7 +98,7 @@ function subscribe(change: () => void) {
   };
 }
 
-/** The player marked as "Das bin ich" (null on the server and when none). */
+/** The player marked as "That's me" (null on the server and when none). */
 export function useMe(): Me | null {
   return useSyncExternalStore(subscribe, snapshot, () => null);
 }

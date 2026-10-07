@@ -23,6 +23,19 @@ export const ROLES: Record<Role, string> = {
   Tank: 'Tank',
 };
 
+/** The role names in English (ROLES are the German ones). */
+export const ROLES_EN: Record<Role, string> = {
+  Assassin: 'Assassin',
+  Fighter: 'Fighter',
+  Mage: 'Mage',
+  Marksman: 'Marksman',
+  Support: 'Support',
+  Tank: 'Tank',
+};
+
+/** The name of a role in a language of the site. */
+export const roleName = (role: Role, lang: 'en' | 'de') => (lang === 'de' ? ROLES : ROLES_EN)[role];
+
 const TOP: readonly Grade[] = ['SSS', 'MAYHEM'];
 
 type Seat = {

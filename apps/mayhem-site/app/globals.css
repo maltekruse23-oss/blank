@@ -240,19 +240,19 @@ select {
 }
 
 /* The one call to action of the site: the way to more data. */
-.nav a[href='/mitmachen'] {
+.nav a.cta {
   margin-left: 6px;
   color: var(--accent-ink);
   background: var(--accent);
   font-weight: 700;
 }
 
-.nav a[href='/mitmachen']:hover {
+.nav a.cta:hover {
   color: var(--accent-ink);
   background: color-mix(in oklab, var(--accent) 86%, white);
 }
 
-.nav a[href='/mitmachen'][aria-current='page'] {
+.nav a.cta[aria-current='page'] {
   box-shadow: none;
   border-radius: var(--radius-sm);
 }
@@ -261,6 +261,30 @@ select {
   position: relative;
   margin-left: auto;
   width: min(260px, 40vw);
+}
+
+/* EN | DE: two small links, the current language in the text colour. */
+.lang-switch {
+  display: flex;
+  gap: 2px;
+  margin-left: -12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.lang-switch a {
+  padding: 6px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--faint);
+}
+
+.lang-switch a:hover {
+  color: var(--text);
+}
+
+.lang-switch a[aria-current] {
+  color: var(--text);
+  font-weight: 500;
 }
 
 .search input {
