@@ -1,0 +1,122 @@
+/* Starting the leaderboard anew (Spieler), with a question first. */
+.aram-reset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--subtle);
+  font-size: 12px;
+}
+.aram-reset > span {
+  margin-right: auto;
+}
+.aram-reset p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--text);
+}
+.aram-reset .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+}
+.aram-reset .secondary-button.danger {
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--border));
+  color: var(--danger-text);
+}
+.aram-reset .text-link {
+  font-size: 12px;
+}
+/* Friends in the same game below the result (AramResult.tsx, Mates). */
+.aram-result.with-mates .aram-result-splash,
+.aram-result.with-mates::before {
+  height: 232px;
+  bottom: auto;
+}
+.aram-result.with-mates .aram-result-body {
+  height: var(--body-height, 232px);
+}
+.aram-result-mates {
+  padding: 8px 22px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+}
+.aram-result-mates-head {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 6px;
+  color: var(--subtle);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.aram-result-mates-head b {
+  color: var(--rank-1);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.aram-result-mates ol {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-result-mates li {
+  display: grid;
+  grid-template-columns: 16px 18px 130px 1fr 64px;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  font-size: 12px;
+}
+.aram-result-mates img,
+.aram-mate-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: calc(4px * var(--radius-scale));
+}
+.aram-mate-icon {
+  background: var(--surface-hover);
+}
+.aram-mate-name {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-result-mates li.me .aram-mate-name {
+  color: var(--text);
+  font-weight: 700;
+}
+.aram-mate-name small {
+  margin-left: 5px;
+  color: var(--danger-text);
+  font-size: 10px;
+}
+.aram-mate-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-hover);
+}
+.aram-mate-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--place) 45%, transparent),
+    var(--place)
+  );
+  transform-origin: left center;
+}
+.aram-mate-damage {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

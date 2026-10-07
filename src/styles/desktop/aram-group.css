@@ -1,0 +1,78 @@
+/* The group (AramGroupCard.tsx): create or join; in it, its code, link and members. */
+.aram-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+}
+.aram-group-lead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.aram-group > .primary-button {
+  width: 100%;
+}
+.aram-group-join {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.aram-group-join input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.aram-group-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 6px 6px 6px 12px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: calc(10px * var(--radius-scale));
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.aram-group-code code {
+  color: var(--text);
+  font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  font-size: 15px;
+  letter-spacing: 2px;
+}
+.aram-group-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: var(--subtle);
+  font-size: 11px;
+}
+.aram-group-link::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--subtle);
+}
+.aram-group-link.up::before {
+  background: var(--accent);
+}
+.aram-steps {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 12.5px;
+}

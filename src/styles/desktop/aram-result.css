@@ -1,0 +1,287 @@
+/* The card after an ARAM Mayhem game (features/aram/AramResult.tsx): popout and dialog. */
+.aram-result {
+  position: relative;
+  isolation: isolate;
+  width: 560px;
+  height: 232px;
+  overflow: hidden;
+  border-radius: calc(12px * var(--radius-scale));
+  color: var(--text);
+  font-family: var(--font);
+}
+.aram-result-splash {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -2;
+  width: 68%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  /* Only the mask's opacity counts, not its colour. */
+  mask-image: linear-gradient(to right, transparent, var(--text) 48%);
+}
+/* Keeps the numbers readable over bright splash art. */
+.aram-result::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--panel) 70%, transparent) 30%,
+    transparent 75%
+  );
+  pointer-events: none;
+}
+.aram-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  height: 100%;
+  padding: 18px 22px;
+}
+.aram-result-head {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  max-width: 62%;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* One line: outcome · champion · time · player (who played, for a friend's game). */
+.aram-result-head > * + *::before {
+  content: '·';
+  margin: 0 7px;
+  color: var(--subtle);
+}
+.aram-result-outcome {
+  font-size: 11.5px;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.aram-result-champion {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+}
+.aram-result-player {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-result.win .aram-result-outcome {
+  color: var(--accent);
+}
+.aram-result.loss .aram-result-outcome {
+  color: var(--danger-text);
+}
+.aram-result-time {
+  color: var(--muted);
+}
+.aram-result-damage {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 4px;
+}
+.aram-result-damage strong {
+  display: inline-block;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 12px color-mix(in srgb, var(--panel) 80%, transparent);
+  transform-origin: left center;
+}
+.aram-result.tier-top .aram-result-damage strong,
+.aram-result.tier-legend .aram-result-damage strong {
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 2px 12px color-mix(in srgb, var(--panel) 80%, transparent);
+}
+.aram-result-damage > span {
+  color: var(--muted);
+  font-size: 16px;
+  font-style: italic;
+}
+.aram-result-stats {
+  display: flex;
+  gap: 28px;
+  margin: 2px 0 0;
+}
+/* New records of this game (aramHighlight.ts) as small chips in their category's hue. */
+.aram-result-records {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.aram-result-records span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--hue, var(--accent)) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hue, var(--accent)) 16%, var(--panel));
+  color: color-mix(in srgb, var(--hue, var(--accent)) 55%, var(--text));
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.aram-result-records span.more {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--muted);
+}
+.aram-result-stat {
+  display: flex;
+  flex-direction: column;
+}
+.aram-result-stat {
+  text-shadow: 0 1px 8px var(--panel);
+}
+.aram-result-stat dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-result-stat dt {
+  order: 1;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.aram-result-loadout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+}
+.aram-result-loadout .aram-items {
+  margin-top: 0;
+}
+.aram-result-badge {
+  position: absolute;
+  top: 14px;
+  right: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.aram-result-crown {
+  display: inline-flex;
+}
+/* A shine sweeping once over a special game, and its glowing frame. */
+.aram-result-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    color-mix(in srgb, var(--text) 26%, transparent) 50%,
+    transparent 65%
+  );
+  pointer-events: none;
+}
+.aram-result-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid var(--accent);
+  border-radius: inherit;
+  box-shadow: inset 0 0 36px color-mix(in srgb, var(--accent) 30%, transparent);
+  pointer-events: none;
+}
+.aram-result-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.aram-result-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  color: var(--muted);
+}
+.aram-result-close:hover {
+  color: var(--text);
+}
+/* In the popout window the popout itself draws background and frame; nearly opaque whatever the
+   "Deckkraft" setting, so the numbers stay readable over the windows behind. */
+.popout.aram {
+  padding: 0;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+}
+.aram-result.clickable {
+  cursor: pointer;
+}
+/* In the app: larger, over the dimmed window. */
+.aram-result-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.aram-result-zoom {
+  width: calc(560px * 1.3);
+}
+.aram-result-zoom .aram-result {
+  transform: scale(1.3);
+  transform-origin: top left;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow-overlay);
+}
+.aram-result-actions {
+  display: flex;
+  justify-content: center;
+}
+/* "Ansehen" on a game of the collection. */
+.aram-game-show {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  color: var(--text);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.aram-game-show:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

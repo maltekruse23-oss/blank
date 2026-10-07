@@ -1,0 +1,595 @@
+/* Do not disturb switched on. */
+/* A tab with a single card: the tab already names it, so the card's own heading goes (search
+   still shows every heading, where it tells the results apart). */
+.settings-layout > .tab-enter > .card:only-child > .card-header {
+  display: none;
+}
+.window-button.settings-toggle.on {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.window-button.quiet {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.toast.warning .toast-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: calc(9px * var(--radius-scale));
+  background: var(--accent-soft);
+  color: var(--danger-text);
+}
+.metric-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* "Close program" in overload warnings (notice and popout). */
+.close-program {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: calc(7px * var(--radius-scale));
+  background: var(--surface-hover);
+  color: var(--text);
+  font-size: 11px;
+}
+.close-program span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.close-program.force {
+  border-color: color-mix(in srgb, var(--danger-text) 45%, var(--border));
+  color: var(--danger-text);
+}
+.close-program:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.close-program.done,
+.close-program.failed {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.close-program.done {
+  color: var(--accent);
+}
+.close-program.failed {
+  color: var(--danger-text);
+}
+/* Music (SoundCloud): the embedded player stays invisible; the page shows its own controls and
+   the required credits (track, uploader, SoundCloud, links). */
+.music-frame {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 320px;
+  height: 166px;
+  border: 0;
+  pointer-events: none;
+}
+.music-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.now-playing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.music-status {
+  flex: 1;
+  font-size: 12px;
+  color: var(--muted);
+}
+.music-link {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.music-link:hover {
+  color: var(--accent);
+}
+.row-copy > .music-link b {
+  font-size: 12px;
+  font-weight: 500;
+}
+.music-controls {
+  display: flex;
+  gap: 6px;
+}
+.music-progress,
+.music-volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.music-progress .volume-slider {
+  flex: 1;
+  width: auto;
+}
+/* Settings → Übertragen: contents of a chosen file, confirmed before it replaces anything. */
+.import-check {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent-line);
+  border-radius: calc(10px * var(--radius-scale));
+  background: var(--accent-soft);
+  font-size: 12px;
+}
+.import-check p + p {
+  margin-top: 4px;
+  color: var(--muted);
+}
+.import-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+/* PC page: "Bereinigen" next to the RAM card's icon (the card must not grow). */
+.ram-clean {
+  position: absolute;
+  top: 13px;
+  right: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: calc(7px * var(--radius-scale));
+  background: var(--surface-hover);
+  color: var(--text);
+  font-size: 11px;
+}
+.ram-clean:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+.ram-clean:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+/* Category colours of the PC metric icons (tokens; all accent in the classic design). */
+.metric-icon.tone-1 {
+  color: var(--tone-1);
+}
+.metric-icon.tone-2 {
+  color: var(--tone-2);
+}
+.metric-icon.tone-3 {
+  color: var(--tone-3);
+}
+.metric-icon.tone-4 {
+  color: var(--tone-4);
+}
+/* "Update" in the title bar when a newer version is on GitHub. */
+.update-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: calc(6px * var(--radius-scale));
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+.update-chip:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+}
+/* Apps (reset helper): lists scroll; the install button sits under the chosen programs. */
+.apps-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.apps-layout .toolbar {
+  margin-bottom: 0;
+}
+.apps-install {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.apps-install .filter-button {
+  flex-shrink: 0;
+}
+.apps-install p {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--subtle);
+}
+.text-link.apps-all {
+  margin-bottom: 4px;
+}
+/* Online backup: steps and move code (Apps), code entry over the whole app. */
+.move-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.move-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+.move-steps li > span,
+.move-steps li > svg {
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: content-box;
+  width: 16px;
+  height: 16px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 10px;
+  color: var(--text);
+}
+.move-steps li.ok {
+  color: var(--text);
+}
+.move-steps li.ok > svg {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.move-code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.move-code {
+  padding: 8px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: calc(8px * var(--radius-scale));
+  background: var(--accent-soft);
+  color: var(--text);
+  font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  font-size: 16px;
+  letter-spacing: 1px;
+  user-select: all;
+}
+.restore-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+}
+.restore-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 420px;
+  padding: 22px;
+  border: 1px solid var(--accent-line);
+  border-radius: calc(14px * var(--radius-scale));
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+}
+.restore-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.restore-card h2 {
+  font-size: 17px;
+}
+.restore-card p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.restore-card .restore-note {
+  color: var(--muted);
+}
+.restore-card .search {
+  max-width: none;
+}
+.restore-card input {
+  font-family: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  letter-spacing: 1px;
+}
+
+/* Settings → Popouts: sub-headings and the app filter list. */
+.setting-group {
+  margin-top: 18px;
+  padding-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.filter-apps {
+  padding: 10px 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.filter-app-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filter-app-list .section-note {
+  margin: 0;
+}
+.filter-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+}
+.filter-app button {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+}
+.filter-app-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.filter-app-add .search {
+  flex: 1;
+}
+.filter-apps .section-note {
+  margin: 8px 0 0;
+}
+/* Settings search: rows and cards that do not match are hidden. */
+.settings-layout [hidden] {
+  display: none !important;
+}
+.settings-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-search .search {
+  flex: 1;
+}
+/* Choices side by side (popout time, layout, screen). */
+.setting-row > .segment-picker {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 440px;
+  margin-left: auto;
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+/* Watch together (features/twitch/WatchPanel.tsx): code, who is there, what runs. */
+.watch-join {
+  margin-top: 10px;
+}
+.watch-room-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.room-code {
+  margin-right: 4px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+.watch-leave {
+  margin-left: auto;
+}
+.watch-members {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0;
+}
+.watch-members .chip {
+  padding: 3px 8px;
+}
+.watch-members small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.watch-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 11px 0;
+  margin-bottom: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.watch-now .row-copy {
+  flex: 1;
+  min-width: 160px;
+}
+/* Settings in sections (SettingsPage) and the four parts of Popouts: one row of choices. */
+.settings-tabs,
+.settings-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.settings-parts {
+  margin-bottom: 4px;
+}
+/* Slimmer than other buttons, so all seven fit in one row. */
+.settings-tabs {
+  gap: 5px;
+}
+.settings-tabs .filter-button {
+  padding: 8px 11px;
+}
+/* "Mehr Einstellungen (n)": rarely used rows, folded (More.tsx). */
+.more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+.more-toggle:hover {
+  filter: none;
+  color: var(--text);
+}
+.more-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.setting-input {
+  max-width: 220px;
+}
+.setting-input input {
+  padding: 9px 0;
+}
+/* Home and Twitch: none of the own channels live – a short line (Home: then the biggest live pros). */
+.home-none-live {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--muted);
+}
+.home-pros-title {
+  display: block;
+  margin-bottom: 2px;
+}
+.twitch-none-live {
+  margin: 0 0 14px;
+}
+/* Watch together: the last room, offered to join again. */
+.watch-last {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.watch-last .row-copy {
+  flex: 1;
+}
+.watch-last small {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+/* Settings → Darstellung (features/settings/LookCard.tsx). Rows with many choices may wrap. */
+.setting-row-wide {
+  flex-wrap: wrap;
+}
+.setting-row-wide > .segment-picker {
+  max-width: 100%;
+}
+.preset-own {
+  display: inline-flex;
+}
+.preset-own .filter-button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.preset-own .filter-button + .filter-button {
+  padding-inline: 7px;
+  border-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.segment-picker .preset-add {
+  gap: 5px;
+}
+.setting-undo {
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  border: 0;
+  border-radius: calc(6px * var(--radius-scale));
+  background: none;
+  color: var(--muted);
+}
+.setting-undo:hover {
+  filter: none;
+  color: var(--text);
+  background: var(--surface-hover);
+}
+/* Accent swatches show their own colour through the same variables as the scheme swatches. */
+.accent-swatch,
+.accent-custom[data-on='true'] {
+  --accent: var(--swatch);
+  --accent-soft: color-mix(in srgb, var(--swatch) 18%, var(--surface));
+}
+.accent-custom {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--muted);
+  cursor: pointer;
+}
+.accent-custom[data-on='false'] {
+  border: 1px dashed var(--muted);
+  background: none;
+}
+.accent-custom[data-on='true'] {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px var(--accent);
+}
+.accent-custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.accent-custom:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}

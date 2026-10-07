@@ -1,0 +1,215 @@
+/*
+ * Motion (design system, src/design; user's wish: bold, can be switched off). Motion (the library)
+ * moves pages, tabs, highlights, panels, notices and the dialog with springs (App.tsx,
+ * components/TabMotion.tsx, components/Reveal.tsx, LiveToasts.tsx); CSS does what needs no script,
+ * with the bouncy spring as easing (--ease-spring over --motion-spring). html[data-motion='off']
+ * stops all of it.
+ */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes app-in {
+  from {
+    opacity: 0;
+    transform: scale(calc(1 - 0.015 * var(--motion-travel)));
+  }
+}
+@keyframes app-out {
+  to {
+    opacity: 0;
+    transform: scale(calc(1 - 0.015 * var(--motion-travel)));
+  }
+}
+.app.enter {
+  animation: app-in var(--motion-normal) var(--ease-enter) both;
+}
+.app.leave {
+  animation: app-out var(--motion-fast) var(--ease-exit) both;
+}
+/* A page or tab that leaves is taken out of the flow meanwhile (popLayout): place it here. */
+main,
+.settings-layout,
+.card {
+  position: relative;
+}
+.settings-layout > .tab-enter {
+  display: grid;
+  gap: var(--gap);
+}
+
+/* The first cards of a page spring in one after another (App.tsx sets data-stagger and --i). */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(18px * var(--motion-travel)))
+      scale(calc(1 - 0.04 * var(--motion-travel)));
+  }
+}
+.page .card[data-stagger] {
+  animation: card-in var(--motion-spring) var(--ease-spring) backwards;
+  animation-delay: calc(60ms + var(--i, 0) * 45ms);
+}
+
+/* The highlight of the chosen navigation entry glides between entries (layoutId in App.tsx). */
+.nav-item {
+  isolation: isolate;
+}
+.nav-current {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--surface);
+}
+.nav-current::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 calc(3px * var(--radius-scale)) calc(3px * var(--radius-scale)) 0;
+  background: var(--accent);
+}
+
+/* Tabs: the frame of the chosen tab glides to the next one (components/TabMotion.tsx). */
+.settings-tabs .filter-button,
+.settings-parts .filter-button {
+  position: relative;
+  isolation: isolate;
+}
+.settings-tabs .filter-button.selected,
+.settings-parts .filter-button.selected {
+  border-color: var(--border);
+}
+.tab-pill {
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border: 1px solid var(--accent);
+  border-radius: inherit;
+  background: var(--accent-soft);
+}
+.filter-button .tab-label {
+  font-size: inherit;
+}
+
+/* Opening below a button (components/Reveal.tsx animates the height). */
+.reveal {
+  overflow: hidden;
+}
+.game-picker-reveal {
+  flex-basis: 100%;
+}
+
+/* Overview and stream cards lean towards the mouse and a soft light follows it (useTilt.ts). */
+.dashboard-grid > .card,
+.home-grid:not(.editing) > .home-tile,
+.device-grid > .card,
+.pc-grid > .card,
+.stream-card {
+  transition:
+    transform var(--motion-spring) var(--ease-spring),
+    box-shadow var(--motion-normal) ease;
+}
+.dashboard-grid > .card::after,
+.home-grid:not(.editing) > .home-tile::after,
+.device-grid > .card::after,
+.pc-grid > .card::after,
+.stream-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--accent) 14%, transparent),
+    transparent 65%
+  );
+  transition: opacity var(--motion-normal) ease;
+}
+.tilting {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-3px);
+  box-shadow: var(--shadow-floating);
+}
+.dashboard-grid > .card.tilting,
+.home-grid > .home-tile.tilting,
+.device-grid > .card.tilting,
+.pc-grid > .card.tilting,
+.stream-card.tilting {
+  transition:
+    transform 90ms linear,
+    box-shadow var(--motion-normal) ease;
+}
+.tilting::after {
+  opacity: 1;
+}
+
+/* Bars grow in with a spring and follow new values the same way. */
+@keyframes meter-in {
+  from {
+    width: 0;
+  }
+}
+.meter > span {
+  transition: width var(--motion-spring) var(--ease-spring);
+  animation: meter-in var(--motion-spring) var(--ease-spring) 120ms backwards;
+}
+
+/* Buttons give way a little under the click and spring back. */
+:is(
+  .filter-button,
+  .primary-button,
+  .secondary-button,
+  .icon-button,
+  .nav-item,
+  .window-button,
+  .game-add,
+  .theme-swatch,
+  .more-toggle,
+  .setting-undo
+) {
+  transition:
+    transform 260ms var(--ease-spring),
+    background calc(var(--motion-normal) * 0.8),
+    border-color calc(var(--motion-normal) * 0.8),
+    color calc(var(--motion-normal) * 0.8);
+}
+:is(
+    .filter-button,
+    .primary-button,
+    .secondary-button,
+    .icon-button,
+    .nav-item,
+    .window-button,
+    .game-add,
+    .theme-swatch,
+    .more-toggle,
+    .setting-undo
+  ):active:not(:disabled) {
+  transform: scale(0.95);
+  transition-duration: 70ms;
+}
+
+/* The switch knob springs over and stretches while pressed. */
+.switch > span {
+  transition:
+    transform var(--motion-spring) var(--ease-spring),
+    width 160ms var(--ease-standard),
+    background calc(var(--motion-normal) * 0.8);
+}
+.switch:active:not(:disabled) > span {
+  width: 19px;
+}
+.switch[aria-checked='true']:active:not(:disabled) > span {
+  transform: translateX(10px);
+}
+
+/* The dialog blurs what lies behind it. */
+.restore-dialog {
+  backdrop-filter: blur(6px);
+}

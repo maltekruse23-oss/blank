@@ -1,0 +1,298 @@
+/* Leaderboard as categories with bars (features/aram/AramRanking.tsx, user's wish). */
+/* Two columns: room for the number one with picture, champion and a large value. */
+.aram-categories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+}
+.aram-category {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  border-color: color-mix(in srgb, var(--hue) 26%, var(--border));
+  background:
+    radial-gradient(
+      120% 70% at 0% 0%,
+      color-mix(in srgb, var(--hue) 14%, transparent),
+      transparent 70%
+    ),
+    var(--surface);
+}
+.aram-category-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.aram-category-head h2 {
+  margin: 0;
+  font-size: 13px;
+}
+.aram-category-head small {
+  display: block;
+  overflow: hidden;
+  color: var(--subtle);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-category-title {
+  flex: 1;
+  min-width: 0;
+}
+/* A best game that went up: its value lights up while it counts. */
+.aram-bars li.rising .aram-bar-value {
+  color: var(--accent);
+}
+.aram-category-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: calc(8px * var(--radius-scale));
+  background: color-mix(in srgb, var(--hue) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue) 35%, transparent);
+  color: var(--hue);
+}
+.aram-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aram-bar-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+/* The place as a small medal (user's wish, classic colours): gold, silver, bronze, then neutral. */
+.aram-bar-place {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--place) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--place) 55%, transparent);
+  color: var(--place);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-bars li.lead .aram-bar-place {
+  background: var(--place);
+  color: var(--panel);
+}
+.aram-bar-line .avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--place) 70%, transparent);
+  width: 18px;
+  height: 18px;
+  border-radius: calc(5px * var(--radius-scale));
+  font-size: 8px;
+}
+.aram-bar-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-bars li.me .aram-bar-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.aram-bar-champion {
+  flex-shrink: 0;
+  border-radius: calc(4px * var(--radius-scale));
+}
+.aram-bar-value {
+  flex-shrink: 0;
+  color: var(--text);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.aram-bar-track {
+  height: 6px;
+  margin: 4px 0 0 20px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-hover);
+}
+.aram-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--place) 45%, transparent),
+    var(--place)
+  );
+  opacity: 0.8;
+}
+.aram-bars li.lead .aram-bar-fill {
+  opacity: 1;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--place) 60%, transparent);
+}
+.aram-bars li.lead .aram-bar-value {
+  color: var(--place);
+}
+/* The number one large: bigger picture with a glowing ring, name bold, value large. */
+.aram-bars li.lead .aram-bar-line {
+  gap: 8px;
+  font-size: 13px;
+}
+.aram-bars li.lead .aram-bar-line .avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+  box-shadow:
+    0 0 0 2px var(--place),
+    0 0 14px color-mix(in srgb, var(--place) 45%, transparent);
+}
+.aram-bars li.lead .aram-bar-name {
+  color: var(--text);
+  font-weight: 700;
+}
+.aram-bar-name small {
+  display: block;
+  overflow: hidden;
+  color: var(--subtle);
+  font-size: 10.5px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+.aram-bars li.lead .aram-bar-value {
+  font-size: 16px;
+  font-weight: 800;
+}
+.aram-bars li.lead .aram-bar-place {
+  width: 20px;
+  height: 20px;
+}
+.aram-bars li.lead .aram-bar-track {
+  height: 8px;
+  margin-left: 28px;
+}
+/* A category while it counts up: its tint a little stronger. */
+.aram-category.counting {
+  border-color: color-mix(in srgb, var(--hue) 55%, var(--border));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--hue) 18%, transparent);
+}
+/* What a new game added, while counting and a moment after. */
+.aram-gain {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-new-leader {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--rank-1);
+  color: var(--bg);
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+/* Crowns: who holds the most number ones (AramRanking.tsx, live while counting). */
+.aram-crowns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 var(--gap);
+  padding: 0;
+  list-style: none;
+}
+.aram-crowns li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+}
+.aram-crowns li .avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 9px;
+}
+.aram-crowns-name {
+  max-width: 110px;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aram-crowns li.me .aram-crowns-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.aram-crowns-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--subtle);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aram-crowns li.top {
+  border-color: color-mix(in srgb, var(--rank-1) 60%, var(--border));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--rank-1) 16%, var(--surface)),
+    var(--surface)
+  );
+  box-shadow: 0 0 14px color-mix(in srgb, var(--rank-1) 22%, transparent);
+}
+.aram-crowns li.top .aram-crowns-count {
+  color: var(--rank-1);
+}
+/* Once each: a crown lands, a count or badge pops, a gain slides in (only with motion on). */
+html[data-motion='normal'] .aram-bars li.lead .aram-bar-place svg {
+  animation: aram-crown-land var(--motion-spring) var(--ease-spring);
+}
+html[data-motion='normal'] .aram-crowns-count,
+html[data-motion='normal'] .aram-new-leader {
+  animation: aram-pop var(--motion-spring) var(--ease-spring);
+}
+html[data-motion='normal'] .aram-gain {
+  animation: aram-gain-in var(--motion-normal) ease-out;
+}
+@keyframes aram-pop {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+@keyframes aram-crown-land {
+  from {
+    opacity: 0;
+    translate: 0 calc(-8px * var(--motion-travel));
+    rotate: -25deg;
+    scale: 1.4;
+  }
+}
+@keyframes aram-gain-in {
+  from {
+    opacity: 0;
+    translate: 0 calc(4px * var(--motion-travel));
+  }
+}

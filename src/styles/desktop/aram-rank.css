@@ -1,0 +1,466 @@
+/* Rang (Mayhem rating): one row per player with the tier's emblem, the season value, the way to
+ * the next tier and the latest marks. */
+.rank-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--gap) * 0.6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rank-row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 8px var(--space-card) 8px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--motion-normal),
+    border-color var(--motion-normal);
+}
+.rank-row:hover {
+  background: var(--surface-hover);
+}
+.rank-row.me {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.rank-emblem-box {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 68px;
+}
+.rank-emblem {
+  /* Transparent PNGs (server/tools/emblems.mjs takes the black matte off). */
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--shadow) 60%, transparent));
+}
+.rank-placing {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 2px dashed var(--border);
+  border-radius: calc(12px * var(--radius-scale));
+  color: var(--muted);
+  font-size: 20px;
+  font-weight: 800;
+}
+.rank-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.rank-name {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rank-tier {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.rank-tier b {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+.rank-value {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.placing-text {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+.rank-progress {
+  display: block;
+  max-width: 260px;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-hover);
+}
+.rank-progress > span {
+  display: block;
+  width: calc(var(--progress) * 100%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--motion-spring) var(--ease-spring);
+}
+.rank-marks {
+  display: flex;
+  gap: 5px;
+}
+.rank-mark {
+  min-width: 34px;
+  padding: 3px 0;
+  border-radius: calc(7px * var(--radius-scale));
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.rank-mark.high {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+}
+.rank-mark.low {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger-text);
+}
+.rank-emblem.provisional {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+.rank-row {
+  grid-template-columns: 22px 76px minmax(0, 1fr) auto;
+}
+.rank-place {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.rank-mark.promoted,
+.rank-mark.placed {
+  outline: 1px solid var(--accent);
+}
+.rank-mark.demoted {
+  outline: 1px solid var(--danger);
+}
+
+/* The game on the ladder on the card after the game (RankStrip.tsx). */
+.rank-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 50px;
+  max-width: 330px;
+  padding: 4px 12px 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: calc(12px * var(--radius-scale));
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
+.rank-strip.up {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.rank-strip.down {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+}
+.rank-strip-emblem {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+}
+.rank-strip-emblem .rank-emblem {
+  width: 46px;
+  height: 46px;
+}
+.rank-strip-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.rank-placing.small {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+.rank-strip-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.rank-strip-name {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rank-strip-name b {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
+}
+.rank-strip-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+.rank-strip-bar {
+  max-width: none;
+}
+.rank-strip-bar > span {
+  transition: none;
+}
+.rank-strip-gain {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.rank-strip-gain b {
+  font-size: 20px;
+  font-weight: 900;
+}
+.rank-strip-gain small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.rank-strip-gain.plus b {
+  color: var(--accent);
+}
+.rank-strip-gain.minus b {
+  color: var(--danger-text);
+}
+.rank-strip-label {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.rank-strip-label.down {
+  background: var(--danger);
+  color: var(--text);
+}
+
+/* The user's rank on the ARAM widget of Home. */
+.widget-rank {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.widget-rank .rank-emblem {
+  width: 52px;
+  height: 52px;
+}
+.widget-rank-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.widget-rank-main b {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+/* Ranked profile of a player (RankHistory.tsx): as in the client and on op.gg. */
+.rank-record {
+  color: var(--muted);
+}
+.rank-climb {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.rank-climb.small {
+  padding: 2px 5px;
+}
+.rank-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rank-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: calc(12px * var(--radius-scale));
+  background: var(--panel);
+}
+.rank-card .rank-emblem {
+  width: 72px;
+  height: 72px;
+}
+.rank-card-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.rank-card-main b {
+  font-size: 18px;
+  font-weight: 900;
+}
+.rank-card-season,
+.rank-card-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.rank-seasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rank-seasons li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 4px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 12px;
+}
+.rank-seasons .rank-emblem {
+  width: 22px;
+  height: 22px;
+}
+.rank-matches {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.rank-matches th {
+  padding: 4px 6px;
+  color: var(--muted);
+  font-weight: 700;
+  text-align: left;
+}
+.rank-matches td {
+  padding: 5px 6px;
+  border-top: 1px solid var(--border);
+}
+.rank-matches tr.win td:first-child {
+  color: var(--accent);
+  font-weight: 700;
+}
+.rank-matches tr.loss td:first-child {
+  color: var(--danger-text);
+  font-weight: 700;
+}
+.rank-matches td.plus {
+  color: var(--accent);
+  font-weight: 800;
+}
+.rank-matches td.minus {
+  color: var(--danger-text);
+  font-weight: 800;
+}
+.rank-matches em {
+  font-style: normal;
+  font-weight: 800;
+}
+.rank-matches em.up {
+  color: var(--accent);
+}
+.rank-matches em.down {
+  color: var(--danger-text);
+}
+.rank-matches-sum {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* The grade of a game, F–MAYHEM (GradeBadge.tsx): independent of the rank. */
+.grade-badge {
+  --grade: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 1px 5px;
+  border-radius: calc(6px * var(--radius-scale));
+  background: color-mix(in srgb, var(--grade) 18%, transparent);
+  color: var(--grade);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  line-height: 1.5;
+}
+.grade-badge.large {
+  min-width: 34px;
+  padding: 3px 8px;
+  font-size: 15px;
+}
+.grade-badge.bad {
+  --grade: var(--danger-text);
+}
+.grade-badge.mid {
+  --grade: var(--text);
+}
+.grade-badge.good {
+  --grade: var(--accent);
+}
+.grade-badge.top {
+  --grade: var(--rank-1);
+}
+.grade-badge.peak {
+  --grade: var(--rank-1);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--rank-1) 30%, transparent),
+    color-mix(in srgb, var(--accent) 30%, transparent)
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rank-1) 45%, transparent);
+}
+.rank-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 3px;
+}
+.rank-mark .grade-badge {
+  min-width: 18px;
+}
+.rank-record .grade-badge {
+  vertical-align: baseline;
+}
