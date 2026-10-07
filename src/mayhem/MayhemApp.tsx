@@ -80,29 +80,33 @@ export function MayhemApp() {
             onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
           />
         ) : shown.state === 'loading' ? (
-          <p className="mayhem-note">Lade {shown.champ.name || shown.champ.alias} …</p>
+          <p className="mayhem-note mayhem-in">Lade {shown.champ.name || shown.champ.alias} …</p>
         ) : shown.state === 'failed' ? (
           <div className="mayhem-wait">
-            <p>Die Werte kamen nicht an. Prüfe die Verbindung.</p>
-            <button
-              type="button"
-              className="mayhem-button"
-              onClick={() => show(shown.champ, shown.sample)}
-            >
-              Nochmal
-            </button>
+            <div className="mayhem-glow mayhem-in">
+              <p>Die Werte kamen nicht an. Prüfe die Verbindung.</p>
+              <button
+                type="button"
+                className="mayhem-button"
+                onClick={() => show(shown.champ, shown.sample)}
+              >
+                Nochmal
+              </button>
+            </div>
           </div>
         ) : (
           <div className="mayhem-wait">
-            <h1>{client ? 'Warte auf die Champ-Auswahl' : 'Starte League'}</h1>
-            <p>Hier steht dein Build, sobald du in ARAM Mayhem einen Champion hast.</p>
-            <button
-              type="button"
-              className="mayhem-button primary"
-              onClick={() => show(SAMPLE_CHAMP, true)}
-            >
-              Beispiel: {SAMPLE_CHAMP.name}
-            </button>
+            <div className="mayhem-glow mayhem-in">
+              <h1>{client ? 'Warte auf die Champ-Auswahl' : 'Starte League'}</h1>
+              <p>Hier steht dein Build, sobald du in ARAM Mayhem einen Champion hast.</p>
+              <button
+                type="button"
+                className="mayhem-button primary"
+                onClick={() => show(SAMPLE_CHAMP, true)}
+              >
+                Beispiel: {SAMPLE_CHAMP.name}
+              </button>
+            </div>
           </div>
         )}
       </main>

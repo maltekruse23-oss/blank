@@ -13,22 +13,22 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 
 ## Jetzt
 
-1. **Mayhem-App (PR #46) auf Windows testen**
-   Ziel: `mayhem.exe` läuft auf Windows und zeigt die Champ-Karte mit Zahlen von arammeta.com im Tribüne-Look.
-   Fertig, wenn: Der alte lokale arammeta-Stand ist verworfen, `pnpm mayhem:build` läuft auf malte's PC durch, `mayhem.exe` startet, „Beispiel: Alistar“ sieht richtig aus, Werte (mit „arammeta.com, Patch …“) und Bilder kommen, Funde sind behoben und malte hat #46 gemergt.
-
-2. **Englische Version der Website mit Server-Kürzel und Server-Filter**
-   Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.
-   Fertig, wenn: Alle Seiten und Meldungen gibt es auf Englisch und Deutsch, die Sprache ist umschaltbar und hat eigene Adressen, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft.
+1. **Mayhem-App im Design „Arena“** (Benutzerwunsch 07.10.2026: „Website erstmal hinten an, erst App“)
+   Ziel: `mayhem.exe` sieht aus wie der Canvas „mayhemstats Design 2“: Glow-Kacheln, Liquid Glass, weiche Bewegung.
+   Fertig, wenn: Der Umbau ist gemergt, `pnpm mayhem:build` läuft auf malte's PC, Wartebildschirm und „Beispiel: Alistar“ sehen in `mayhem.exe` aus wie in der Vorschau, und mit ausgeschalteten Windows-Animationen steht alles sofort da.
 
 ## Als Nächstes
 
-1. **Neues Design für Website und Mayhem-App** (Benutzerauftrag 07.10.2026)
+1. **Englische Version der Website mit Server-Kürzel und Server-Filter**
+   Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.
+   Fertig, wenn: Alle Seiten und Meldungen gibt es auf Englisch und Deutsch, die Sprache ist umschaltbar und hat eigene Adressen, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft. (Gebaut und gemergt in #58–#60; wartet auf Codex, Benutzer: Website erstmal hinten an.)
+
+2. **Neues Design für Website und Mayhem-App** (Benutzerauftrag 07.10.2026)
    Ziel: Website und Mayhem-App haben ein neues, gemeinsames Design.
    Gewählt am 07.10.2026: „Arena“ (MAYHEM-DESIGN.md, Vorlage Spielerseite im Artifact „mayhemstats Design 2“).
-   Fertig, wenn: Website und App sind im Design „Arena“ umgebaut, die Website ist veröffentlicht und live geprüft, die App ist auf Windows getestet.
+   Fertig, wenn: Die Website ist im Design „Arena“ umgebaut (die App folgt unter „Jetzt“), die Website ist veröffentlicht und live geprüft, die App ist auf Windows getestet.
 
-2. **Lobby-Check**
+3. **Lobby-Check**
    Ziel: In der Champ-Auswahl zeigt die App je Mitspieler Rang, Leistung Ø als Note, seltensten Tag und Spiele mit dem Champion aus mayhemstats.lol, zusammen mit der Champ-Karte in einer Karte.
    Fertig, wenn: In einer echten Champ-Auswahl stehen bei allen Mitspielern diese Werte (oder „nicht in der Datenbank“), jeder Champion auf der Bank hat eine Stufe S bis D. Die App liest nur und nur Daten von mayhemstats.lol. Die Version ist auf Windows getestet und veröffentlicht. Danach folgen die Gegner auf dem Ladebildschirm (Live-Client-Schnittstelle einmal beim Spielstart).
 
