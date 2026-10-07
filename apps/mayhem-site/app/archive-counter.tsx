@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useLang } from './ui/i18n';
 
 export default function ArchiveCounter() {
+    const { t, href, num } = useLang();
     const [stats, setStats] = useState<{ matches: number; players: number; timelines: number } | null>(null);
     const [unavailable, setUnavailable] = useState(false);
     useEffect(() => {
@@ -22,12 +24,13 @@ export default function ArchiveCounter() {
         const timer = setInterval(() => void refresh(), 30000);
         return () => { controller.abort(); clearInterval(timer); };
     }, []);
+    const count = (n: number | undefined) => (n === undefined ? '–' : num(n));
     return <><p className="fine" role="status" aria-live="polite">
-        Rohdatenarchiv: <strong>{stats?.matches.toLocaleString('de-DE') ?? '–'}</strong> eindeutige Matches,
-        {' '}{stats?.players.toLocaleString('de-DE') ?? '–'} Spieler,
-        {' '}{stats?.timelines.toLocaleString('de-DE') ?? '–'} Timelines.
-        {unavailable && ' Aktualisierung gerade nicht verfügbar.'}
-    </p><p className="fine">Jedes Spiel mehr macht Siegquoten, Tier-Liste und Builds genauer.{' '}
-        <a href="/mitmachen">Collector laden und mitmachen</a>
+        {t('Raw data archive', 'Rohdatenarchiv')}: <strong>{count(stats?.matches)}</strong> {t('unique matches', 'eindeutige Matches')},
+        {' '}{count(stats?.players)} {t('players', 'Spieler')},
+        {' '}{count(stats?.timelines)} Timelines.
+        {unavailable && t(' Updates not available right now.', ' Aktualisierung gerade nicht verfügbar.')}
+    </p><p className="fine">{t('Every extra game makes win rates, the tier list and builds more accurate.', 'Jedes Spiel mehr macht Siegquoten, Tier-Liste und Builds genauer.')}{' '}
+        <a href={href('/join')}>{t('Get the Collector and join', 'Collector laden und mitmachen')}</a>
     </p></>;
 }

@@ -5,8 +5,23 @@ import assert from 'node:assert/strict';
 const base = 'http://127.0.0.1:5173';
 const get = async (path, status = 200) => { const r = await fetch(base + path, { headers: { 'cf-connecting-ip': 'smoke' } }); assert.equal(r.status, status, `${path}: ${r.status}`); return r; };
 const data = async (path, status = 200) => (await get(path, status)).json();
-const pages = ['/', '/rangliste', '/rekorde', '/champions', '/augments', '/items', '/tierliste', '/mitmachen', '/wertung', '/datenschutz', '/datenschutz/entfernen', '/api-guide'];
-const page = async (path, status = 200) => { const html = await (await get(path, status)).text(); assert.match(html, /<main id="inhalt"/, path); assert.match(html, /inoffizielles Fanprojekt/, `${path}: Riot notice`); return html; };
+// English at the root, German under /de with German page names (app/ui/lang.ts).
+const english = ['/', '/leaderboard', '/records', '/champions', '/augments', '/items', '/tier-list', '/join', '/scoring', '/privacy', '/privacy/remove', '/api-guide'];
+const german = ['/de', '/de/rangliste', '/de/rekorde', '/de/champions', '/de/augments', '/de/items', '/de/tierliste', '/de/mitmachen', '/de/wertung', '/de/datenschutz', '/de/datenschutz/entfernen', '/de/api-guide'];
+const pages = [...english, ...german];
+const page = async (path, status = 200) => {
+    const html = await (await get(path, status)).text(); const de = path === '/de' || path.startsWith('/de/');
+    assert.match(html, /<main id="inhalt"/, path);
+    assert.match(html, de ? /<html lang="de"/ : /<html lang="en"/, `${path}: language`);
+    assert.match(html, de ? /inoffizielles Fanprojekt/ : /isn't endorsed by Riot Games|isn&#x27;t endorsed by Riot Games/, `${path}: Riot notice`);
+    return html;
+};
+// Old German addresses at the root move permanently to /de, query included.
+for (const [from, to] of [['/rangliste', '/de/rangliste'], ['/spiel/5?p=a1', '/de/spiel/5?p=a1'], ['/datenschutz/entfernen?spiel=5', '/de/datenschutz/entfernen?spiel=5']]) {
+    const r = await fetch(base + from, { redirect: 'manual', headers: { 'cf-connecting-ip': 'smoke' } });
+    assert.ok([301, 308].includes(r.status), `${from}: ${r.status}`);
+    assert.equal(new URL(r.headers.get('location'), base).pathname + new URL(r.headers.get('location'), base).search, to, from);
+}
 const api = async () => {
   const start = await data('/api/start');
   for (const k of ['trackedGames', 'players', 'grades', 'top', 'records']) assert.ok(k in start, `start.${k}`);
@@ -30,7 +45,8 @@ for (const p of players) await send('/api/players/' + p.puuid, undefined, p.toke
 // 1. As the database is.
 for (const p of pages) await page(p);
 const empty = await api();
-for (const p of ['/nicht-da', '/spiel/1/x']) assert.match(await page(p, 404), /Seite nicht gefunden/);
+for (const p of ['/nicht-da', '/game/1/x']) assert.match(await page(p, 404), /Page not found/);
+for (const p of ['/de/nicht-da', '/de/spiel/1/x']) assert.match(await page(p, 404), /Seite nicht gefunden/);
 await data('/api/spiel/1', 404);
 await data('/api/champions/Zzzz', 404);
 await data('/api/stats/items/9999999', 404);
@@ -69,7 +85,7 @@ assert.equal(game.players.length, 10);
 assert.deepEqual(game.players.filter(s => s.puuid).map(s => s.puuid), [publicOf(players[0].name)], 'only the uploader is linked, under the public id');
 for (const p of players) assert.ok(!JSON.stringify(game).includes(p.puuid), 'no PUUID in the game');
 assert.equal((await data('/api/players/' + players[0].puuid)).games, 6);
-for (const p of [...pages, '/spiel/8100000000', '/champions/Ashe', '/augments/1', '/items/3006', '/players/' + publicOf(players[1].name)]) await page(p);
+for (const p of [...pages, '/game/8100000000', '/de/spiel/8100000000', '/champions/Ashe', '/de/champions/Ashe', '/augments/1', '/items/3006', '/de/items/3006', '/players/' + publicOf(players[1].name), '/de/players/' + publicOf(players[1].name)]) await page(p);
 
 // 3. Gone again everywhere, also from the stored pages.
 for (const p of players) assert.equal((await send('/api/players/' + p.puuid, undefined, p.token, 'DELETE')).status, 200);

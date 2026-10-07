@@ -1,4 +1,4 @@
-// The records page (/rekorde): one ranking per category, the best ten players, each with the game
+// The records page (/records, /de/rekorde): one ranking per category, the best ten players, each with the game
 // of their value. The same categories, order and counting as the app's leaderboard
 // (src/features/aram/aramCategories.ts, recordCategories; src/features/aram/siteRecords.test.ts
 // checks both). Only games someone uploaded, so every player here has a profile.
@@ -9,8 +9,12 @@ export type RecordHue = 'fire' | 'magic' | 'physical' | 'gold' | 'guard';
 export type RecordCategory = {
   id: string;
   hue: RecordHue;
+  /** German title and note (the app's wording, checked by siteRecords.test.ts). */
   title: string;
   note: string;
+  /** The same in English (the site's default language). */
+  titleEn: string;
+  noteEn: string;
   /** best: highest single game (with that game); total: summed up. */
   kind: 'best' | 'total';
   /** How the value reads: whole number, or seconds. */
@@ -22,22 +26,36 @@ const detail = (pick: (d: AramDetails) => number) => (g: AramEntry) => (g.detail
 const perMinute = (g: AramEntry) => (g.seconds >= 60 ? g.damage / (g.seconds / 60) : null);
 
 export const RECORDS: RecordCategory[] = [
-  { id: 'damage', hue: 'fire', title: 'Höchster Schaden', note: 'an Champions · bestes Spiel', kind: 'best', unit: 'number', value: (g) => g.damage },
-  { id: 'dpm', hue: 'fire', title: 'Schaden pro Minute', note: 'an Champions · bestes Spiel', kind: 'best', unit: 'number', value: perMinute },
-  { id: 'pentas', hue: 'gold', title: 'Pentakills', note: 'insgesamt', kind: 'total', unit: 'number', value: (g) => g.pentas },
-  { id: 'ap', hue: 'magic', title: 'AP-Schaden', note: 'Magieschaden · bestes Spiel', kind: 'best', unit: 'number', value: detail((d) => d.magic) },
-  { id: 'ad', hue: 'physical', title: 'AD-Schaden', note: 'Physisch · bestes Spiel', kind: 'best', unit: 'number', value: detail((d) => d.physical) },
-  { id: 'kills', hue: 'physical', title: 'Meiste Kills', note: 'bestes Spiel', kind: 'best', unit: 'number', value: (g) => g.kills },
-  { id: 'tank', hue: 'guard', title: 'Größter Tank', note: 'Eingesteckt · bestes Spiel', kind: 'best', unit: 'number', value: (g) => g.taken },
-  { id: 'heal', hue: 'guard', title: 'Meiste Heilung', note: 'bestes Spiel', kind: 'best', unit: 'number', value: (g) => g.healed },
-  { id: 'true', hue: 'fire', title: 'True-Schaden', note: 'bestes Spiel', kind: 'best', unit: 'number', value: detail((d) => d.trueDamage) },
-  { id: 'mitigated', hue: 'guard', title: 'Abgewehrt', note: 'durch Rüstung · bestes Spiel', kind: 'best', unit: 'number', value: detail((d) => d.mitigated) },
-  { id: 'crit', hue: 'physical', title: 'Größter Krit', note: 'ein Treffer', kind: 'best', unit: 'number', value: detail((d) => d.largestCrit) },
-  { id: 'cc', hue: 'magic', title: 'Meiste Kontrolle', note: 'Sekunden CC · bestes Spiel', kind: 'best', unit: 'seconds', value: detail((d) => d.ccSeconds) },
-  { id: 'spree', hue: 'physical', title: 'Längste Serie', note: 'Kills ohne Tod', kind: 'best', unit: 'number', value: detail((d) => d.largestSpree) },
-  { id: 'gold', hue: 'gold', title: 'Meistes Gold', note: 'bestes Spiel', kind: 'best', unit: 'number', value: (g) => g.gold },
-  { id: 'turrets', hue: 'fire', title: 'Turm-Schaden', note: 'bestes Spiel', kind: 'best', unit: 'number', value: detail((d) => d.turretDamage) },
+  { id: 'damage', hue: 'fire', title: 'Höchster Schaden', note: 'an Champions · bestes Spiel', titleEn: 'Highest damage', noteEn: 'to champions · best game', kind: 'best', unit: 'number', value: (g) => g.damage },
+  { id: 'dpm', hue: 'fire', title: 'Schaden pro Minute', note: 'an Champions · bestes Spiel', titleEn: 'Damage per minute', noteEn: 'to champions · best game', kind: 'best', unit: 'number', value: perMinute },
+  { id: 'pentas', hue: 'gold', title: 'Pentakills', note: 'insgesamt', titleEn: 'Pentakills', noteEn: 'total', kind: 'total', unit: 'number', value: (g) => g.pentas },
+  { id: 'ap', hue: 'magic', title: 'AP-Schaden', note: 'Magieschaden · bestes Spiel', titleEn: 'AP damage', noteEn: 'magic damage · best game', kind: 'best', unit: 'number', value: detail((d) => d.magic) },
+  { id: 'ad', hue: 'physical', title: 'AD-Schaden', note: 'Physisch · bestes Spiel', titleEn: 'AD damage', noteEn: 'physical · best game', kind: 'best', unit: 'number', value: detail((d) => d.physical) },
+  { id: 'kills', hue: 'physical', title: 'Meiste Kills', note: 'bestes Spiel', titleEn: 'Most kills', noteEn: 'best game', kind: 'best', unit: 'number', value: (g) => g.kills },
+  { id: 'tank', hue: 'guard', title: 'Größter Tank', note: 'Eingesteckt · bestes Spiel', titleEn: 'Biggest tank', noteEn: 'damage taken · best game', kind: 'best', unit: 'number', value: (g) => g.taken },
+  { id: 'heal', hue: 'guard', title: 'Meiste Heilung', note: 'bestes Spiel', titleEn: 'Most healing', noteEn: 'best game', kind: 'best', unit: 'number', value: (g) => g.healed },
+  { id: 'true', hue: 'fire', title: 'True-Schaden', note: 'bestes Spiel', titleEn: 'True damage', noteEn: 'best game', kind: 'best', unit: 'number', value: detail((d) => d.trueDamage) },
+  { id: 'mitigated', hue: 'guard', title: 'Abgewehrt', note: 'durch Rüstung · bestes Spiel', titleEn: 'Mitigated', noteEn: 'by armor · best game', kind: 'best', unit: 'number', value: detail((d) => d.mitigated) },
+  { id: 'crit', hue: 'physical', title: 'Größter Krit', note: 'ein Treffer', titleEn: 'Biggest crit', noteEn: 'one hit', kind: 'best', unit: 'number', value: detail((d) => d.largestCrit) },
+  { id: 'cc', hue: 'magic', title: 'Meiste Kontrolle', note: 'Sekunden CC · bestes Spiel', titleEn: 'Most crowd control', noteEn: 'seconds of CC · best game', kind: 'best', unit: 'seconds', value: detail((d) => d.ccSeconds) },
+  { id: 'spree', hue: 'physical', title: 'Längste Serie', note: 'Kills ohne Tod', titleEn: 'Longest spree', noteEn: 'kills without dying', kind: 'best', unit: 'number', value: detail((d) => d.largestSpree) },
+  { id: 'gold', hue: 'gold', title: 'Meistes Gold', note: 'bestes Spiel', titleEn: 'Most gold', noteEn: 'best game', kind: 'best', unit: 'number', value: (g) => g.gold },
+  { id: 'turrets', hue: 'fire', title: 'Turm-Schaden', note: 'bestes Spiel', titleEn: 'Turret damage', noteEn: 'best game', kind: 'best', unit: 'number', value: detail((d) => d.turretDamage) },
 ];
+
+/** Title and note of a category in a language. Takes a category (or anything with its id or German
+ * title, e.g. from an older API answer or src/places.ts) and finds the English by id. */
+export function recordText(
+  category: { id?: string; title: string; note?: string; titleEn?: string; noteEn?: string },
+  lang: 'en' | 'de',
+): { title: string; note: string } {
+  const known = RECORDS.find((c) => c.id === category.id || c.title === category.title);
+  if (lang === 'de') return { title: category.title, note: category.note ?? known?.note ?? '' };
+  return {
+    title: category.titleEn ?? known?.titleEn ?? category.title,
+    note: category.noteEn ?? known?.noteEn ?? category.note ?? '',
+  };
+}
 
 /** Places shown per category. */
 export const PLACES = 10;

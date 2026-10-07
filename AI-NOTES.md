@@ -3,6 +3,14 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website auf Englisch und Deutsch (Etappe „Englische Version“, Teil 1) — 07.10.2026
+
+- Benutzerwahl: Englisch ist Standard an der Wurzel mit englischen Seitennamen (`/leaderboard`, `/records`, `/tier-list`, `/join`, `/game/<id>`, `/scoring`, `/privacy`, `/privacy/remove`), Deutsch unter `/de` mit den alten Namen (`/de/rangliste`, `/de/spiel/<id>` …). Alte deutsche Adressen an der Wurzel leiten dauerhaft auf `/de/…` weiter (`next.config.ts` `redirects`, Anfrage bleibt erhalten). `/players`, `/champions`, `/augments`, `/items`, `/api-guide` heißen gleich und sind an der Wurzel jetzt englisch.
+- Aufbau ohne neue Abhängigkeit: Seiteninhalte liegen in `app/views/`, die Routen (`app/<en>/page.tsx`, `app/de/<de>/page.tsx`) exportieren sie nur. Sprache nur aus der Adresse (`app/ui/lang.ts`, Test `src/features/aram/siteLang.test.ts`); Client-Komponenten nutzen `useLang()` (`app/ui/i18n.ts`: `t('English', 'Deutsch')`, `href('/englische-adresse')`, `num`, `date`, `ago`, `season`), Server-Seiten (Wertung, Datenschutz, API-Anleitung) bekommen `lang`. `proxy.ts` setzt nur den Kopf `x-site-lang`, damit `<html lang>`, Titel und Fußzeile stimmen. Umschalter EN/DE in der Kopfzeile (`LangSwitch`).
+- Neue Texte immer als Paar `t(en, de)`, Links immer als englische Adresse durch `href()`. Beschriftungen aus `src/` (Rekorde, Achsen, Tags, Rollen, Erklärungen) behalten ihr deutsches Feld (API und Tests unverändert) und haben ein englisches daneben (`titleEn`, `nameEn`, `AXES_EN`, `ROLES_EN`, `recordText`, `rankedTags(…, lang)`). Die API selbst und ihre Fehlermeldungen bleiben deutsch; die Seiten übersetzen bekannte Meldungen (`apiError` in `app/ui/data.ts`). Data Dragon lädt Champion- und Item-Namen in der Sprache der Seite; Augment-Namen kommen nur deutsch aus dem Client.
+- Geprüft: Website tsc/lint/build, Rauchtest (beide Sprachen, `lang`, Riot-Hinweis, Weiterleitungen, 404) und Integrationstest gegen lokale Vorschau mit frischer D1, `pnpm test`/`lint`/`format:check`/`build`, Umschalter im Browser.
+- Offen in dieser Etappe: Server-Kürzel und Server-Filter (nächster PR), Übergabe an Codex, Veröffentlichen und Live-Prüfung.
+
 ## Aufteilung großer Dateien (6): `flyout.rs` — 07.10.2026
 
 - Reine Verschiebung wie bei `aram.rs`/`pc.rs`. `flyout.rs` (1054 → ~510 Zeilen) behält Konstanten (`KINDS`, `PLACES`, `SCREENS`, `PAGES`), `FlyoutState`, Prüfungen und alle Tauri-Befehle (`#[tauri::command]` bleibt in der Wurzel, sonst müsste `lib.rs` die erzeugten Makros anders erreichen); neu unter `src-tauri/src/flyout/`: `window.rs` (Fenster-Handle, Anzeigen ohne Fokus, Erzeugen, Rahmen), `place.rs` (Bildschirm, Taskleiste, `keep_above_taskbar`, `corner`), `tests.rs`.

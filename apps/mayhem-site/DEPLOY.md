@@ -19,7 +19,7 @@ nicht selbst.
 
 1. `public/downloads/` aus dem bisherigen Deployment-Checkout übernehmen (Collector-EXE und
    `collector-info.txt`). Diese Dateien liegen absichtlich nicht in Git; ohne sie zeigen die
-   Download-Links der Archiv-Karte und der Seite `/mitmachen` ins Leere (Dateiname in
+   Download-Links der Archiv-Karte und der Seite `/join` bzw. `/de/mitmachen` ins Leere (Dateiname in
    `app/ui/join.ts`).
 2. `npm ci`, `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 3. Im Repo-Wurzelordner `pnpm test` (die Website-Logik wird dort mit Vitest geprüft).
@@ -38,16 +38,16 @@ an. Nie eine bereits angewendete Datei ändern. Alle legen nur neue Tabellen an,
 | Datei | Tabelle | Wofür |
 | --- | --- | --- |
 | `drizzle/0003_mysterious_stepford_cuckoos.sql` | `augments` | Namen und Symbole der Augments |
-| `drizzle/0004_windy_venus.sql` | `hidden_players` | Namen ausblenden (`/datenschutz/entfernen`) |
+| `drizzle/0004_windy_venus.sql` | `hidden_players` | Namen ausblenden (`/privacy/remove`) |
 | `drizzle/0005_gorgeous_lord_tyger.sql` | `snapshots` | Gespeicherte Ergebnisse der Seiten |
 | `drizzle/0006_flaky_wasp.sql` | `archive_entries`, `archive_indexed` | Alle Spieler aus dem Rohdatenarchiv (Etappe 7) |
 
 ## Danach prüfen
 
-- `/`, `/rangliste`, `/rekorde`, `/champions`, `/wertung`, `/datenschutz` laden mit echten Daten.
+- `/`, `/leaderboard`, `/records`, `/champions`, `/scoring`, `/privacy` (Englisch) und `/de`, `/de/rangliste`, `/de/rekorde`, `/de/wertung` (Deutsch) laden mit echten Daten; der Umschalter EN/DE oben rechts führt auf dieselbe Seite der anderen Sprache. Alte Adressen wie `/rangliste` oder `/spiel/<id>` leiten dauerhaft auf `/de/…` weiter.
 - Ein Profil und ein Spiel öffnen; eine unbekannte Adresse zeigt „Seite nicht gefunden“.
 - `GET /api/leaderboard` zweimal: gleiche Antwort (zweites Mal aus `snapshots`).
 - Downloads unter `/downloads/` erreichbar.
 - Etappe 7: Die älteren Archivspiele baut die Seite selbst auf, bis zu 20 je Seitenaufruf. Nach dem
-  Veröffentlichen `/rangliste` einige Male neu laden, bis die Zahl der Spieler etwa der Spielerzahl
+  Veröffentlichen `/leaderboard` einige Male neu laden, bis die Zahl der Spieler etwa der Spielerzahl
   im Kasten „Mitmachen“ entspricht. Kein Schritt von Hand nötig.
