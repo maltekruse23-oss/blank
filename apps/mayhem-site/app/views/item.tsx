@@ -1,17 +1,16 @@
 'use client';
-// One item: games, pick rate, win rate and Ø grade, the champions that built it and the augments
-// taken with it most often.
+// One item: how often it wins (on top), the champions it does best on and the augments taken with it.
 import { useParams } from 'next/navigation';
 import { Img } from '../ui/bits';
 import { itemImage, useAugments, useDragon, useItems } from '../ui/data';
 import { num } from '../ui/format';
-import { AugmentLink, augmentLabel, itemLabel } from '../ui/meta';
+import { augmentLabel, augmentPicture, itemLabel } from '../ui/meta';
 import { MetaDetailPage } from '../ui/meta-page';
 
 const KIND = {
   done: 'Finished item',
   boots: 'Boots',
-  other: 'Component or other',
+  other: 'Part or other',
 } as const;
 
 export default function ItemPage() {
@@ -30,10 +29,11 @@ export default function ItemPage() {
       icon={id ? <Img className="item" src={itemImage(dragon, id)} size={64} /> : null}
       facts={info ? `${KIND[info.kind]}${info.gold ? ` · ${num(info.gold)} gold` : ''}` : null}
       paired={{
-        title: 'Augments with it',
+        title: 'Best augments with it',
         noun: 'Augment',
+        href: (n) => `/augments/${n}`,
         label: (n) => augmentLabel(augments, n),
-        cell: (n) => <AugmentLink id={n} known={augments} />,
+        picture: (n) => augmentPicture(augments, n),
       }}
     />
   );

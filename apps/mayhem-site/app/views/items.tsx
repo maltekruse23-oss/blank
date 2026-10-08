@@ -1,8 +1,8 @@
 'use client';
-// All items in the final builds: how often each is in a build, the win rate and Ø grade of those
-// games, sortable, by default only finished items. Names and pictures from Data Dragon.
+// All items in the final builds: which ones win most? By default only finished items. Names and
+// pictures from Data Dragon.
 import { useDragon, useItems, type ItemKind } from '../ui/data';
-import { ItemLink, itemLabel } from '../ui/meta';
+import { itemLabel, itemPicture } from '../ui/meta';
 import { MetaListPage } from '../ui/meta-page';
 
 type Only = ItemKind | 'all';
@@ -14,19 +14,22 @@ export default function ItemsPage() {
     <MetaListPage<Only>
       kind="items"
       title="Items"
+      question="Which items win most?"
       noun="Item"
       label={(id) => itemLabel(known, id)}
-      cell={(id) => <ItemLink id={id} known={known} dragon={dragon} />}
+      picture={(id, size) => itemPicture(dragon, id, size)}
       // Before Data Dragon answers, all items are shown.
       filter={(id, only) => only === 'all' || !known.size || (known.get(id)?.kind ?? 'other') === only}
       filters={[
-        { id: 'done', label: 'Finished items' },
+        { id: 'done', label: 'Finished' },
         { id: 'boots', label: 'Boots' },
-        { id: 'other', label: 'Components and other' },
-        { id: 'all', label: 'All items' },
+        { id: 'other', label: 'Parts and other' },
+        { id: 'all', label: 'All' },
       ]}
+      // Tiers as on the tier list: finished items and boots; before Data Dragon answers, all.
+      ranked={(id) => !known.size || (known.get(id)?.kind ?? 'other') !== 'other'}
       initialFilter="done"
-      note="What counts is what was in the inventory when the game ended."
+      note="What counts is the inventory when the game ended."
     />
   );
 }
