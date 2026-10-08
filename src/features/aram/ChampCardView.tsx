@@ -1,5 +1,5 @@
 import { championSquare } from '../../adapters/aram';
-import { chooseBuild } from '../../adapters/aramChamp';
+import { chooseBuild, markTaken } from '../../adapters/aramChamp';
 import { DDRAGON_VERSION } from '../../data/proStreamers';
 import { useState } from 'react';
 import {
@@ -72,6 +72,27 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
   const [chosen, setChosen] = useState(view.offer?.direction ?? plans[0]?.direction);
   const plan = plans.find((p) => p.direction === chosen) ?? plans[0];
   const note = plan ? planNote(view, plan) : null;
+  const offer = view.offer;
+  const taken = (id: number) => !!offer?.taken.some((t) => t.id === id);
+  // In the game an offered row is a button: a click marks it taken (or undoes it), offers.rs.
+  const name = (a: { id: number; name: string }) =>
+    offer ? (
+      <button
+        type="button"
+        className="champ-card-name champ-card-take"
+        aria-pressed={taken(a.id)}
+        aria-label={`${a.name} genommen`}
+        title="Klick: als genommen markieren"
+        onClick={(event) => {
+          event.stopPropagation();
+          void markTaken(a.id);
+        }}
+      >
+        {a.name}
+      </button>
+    ) : (
+      <span className="champ-card-name">{a.name}</span>
+    );
   return (
     <div className="champ-card" title="Klick: ausblenden" onClick={onDismiss}>
       <header className="champ-card-head">
@@ -118,6 +139,11 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
             <h3>
               {view.offer ? 'Angebot' : 'Augments'} für {DIRECTION_LABEL[plan.direction]}
             </h3>
+            {offer && offer.taken.length > 0 && (
+              <p className="champ-card-empty">
+                Bisher: {offer.taken.map((t) => t.name).join(', ')}
+              </p>
+            )}
             <ul className="champ-card-list">
               {(view.offer
                 ? offerRows(plan, view.offer)
@@ -125,8 +151,8 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
               ).map((a) =>
                 'missing' in a ? (
                   <li key={a.id}>
-                    <span className="champ-card-name">{a.name}</span>
-                    <small>keine Spiele</small>
+                    {name(a)}
+                    <small>{taken(a.id) && 'genommen · '}keine Spiele</small>
                   </li>
                 ) : (
                   <li key={a.id}>
@@ -141,8 +167,9 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
                     <span className={`champ-card-augment ${a.rarity}`}>
                       {a.image && <img src={a.image} alt="" width={24} height={24} />}
                     </span>
-                    <span className="champ-card-name">{a.name}</span>
+                    {name(a)}
                     <small>
+                      {taken(a.id) && 'genommen · '}
                       {a.turns && `Umwandler → ${DIRECTION_LABEL[a.turns]} · `}
                       {a.general ? 'allgemein' : games(a.games)}
                     </small>

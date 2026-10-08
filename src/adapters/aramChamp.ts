@@ -88,7 +88,13 @@ export type Offers = {
   championId: number;
   direction: 'ap' | 'ad' | 'tank' | null;
   offers: { id: number; name: string }[];
+  /** The augments taken so far in this game, as far as known (Etappe 3a, display only). */
+  taken: { id: number; name: string }[];
 };
+
+/** A click on an offered row: that augment was taken, a second click undoes it (offers.rs). */
+export const markTaken = (id: number) =>
+  isTauri() ? invoke<void>('aram_offer_taken', { id }).catch(() => undefined) : Promise.resolve();
 
 export function onOffers(handler: (offers: Offers) => void) {
   if (!isTauri()) return () => undefined;

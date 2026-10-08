@@ -522,6 +522,7 @@ describe('Angebot im Spiel', () => {
         { id: 9, name: 'Neu' },
         { id: 1, name: 'Eins' },
       ],
+      taken: [],
     });
     expect(rows.map((r) => [r.id, r.tier])).toEqual([
       [2, 'B'],

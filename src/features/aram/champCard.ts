@@ -95,7 +95,12 @@ export type ChampView = {
   offer?: Offer;
 };
 
-export type Offer = { direction: Direction | null; augments: { id: number; name: string }[] };
+export type Offer = {
+  direction: Direction | null;
+  augments: { id: number; name: string }[];
+  /** Taken so far in this game, as far as known (shown only, ranks nothing). */
+  taken: { id: number; name: string }[];
+};
 
 /** Where a build goes. */
 export type Direction = 'ap' | 'ad' | 'tank';
