@@ -328,8 +328,11 @@ fn replace(which: Exe, exe: &Path, bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// `Ok(true)`: the new version starts and this app closes. `Ok(false)`: the new file is in place,
+/// but it could not be started (e.g. a virus scanner holds it); the app says "start it again" –
+/// checking or installing again would only offer the same version to the old process.
 #[tauri::command]
-pub async fn update_install(app: AppHandle, state: State<'_, UpdateState>) -> Result<(), String> {
+pub async fn update_install(app: AppHandle, state: State<'_, UpdateState>) -> Result<bool, String> {
     let which = Exe::of(&app);
     let asset = state
         .0
@@ -346,22 +349,21 @@ pub async fn update_install(app: AppHandle, state: State<'_, UpdateState>) -> Re
         ));
     }
     replace(which, &exe, &bytes)?;
-    // The new EXE must be able to become the one instance; it waits for this process to end.
-    // Each app holds only its own guard, the other call does nothing.
-    single_instance::release();
-    crate::mayhem::release();
-    std::process::Command::new(&exe)
+    let started = std::process::Command::new(&exe)
         .arg(AFTER_UPDATE_ARG)
         .arg(std::process::id().to_string())
         .spawn()
-        .map_err(|_| {
-            which.say(
-                "Update installiert – bitte blank. neu starten.",
-                "Update installed. Please start Mayhem again.",
-            )
-        })?;
+        .is_ok();
+    if !started {
+        // Keeps the one instance, so a start by hand brings this window back instead of a second.
+        return Ok(false);
+    }
+    // The new EXE waits for this process to end before it becomes the one instance (main.rs); each
+    // app holds only its own guard, the other call does nothing.
+    single_instance::release();
+    crate::mayhem::release();
     app.exit(0);
-    Ok(())
+    Ok(true)
 }
 
 /// Start of the new EXE: waits (at most 15 s) until the old process has ended.

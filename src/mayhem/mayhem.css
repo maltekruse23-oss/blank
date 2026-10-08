@@ -820,6 +820,13 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(11, 12, 16, 0.55);
   backdrop-filter: blur(18px) saturate(140%);
+  /* Last resort when even the short layout below does not fit (zoomed, very short window): the
+     sidebar scrolls; nothing spills into the page or gets squeezed. */
+  overflow-y: auto;
+}
+
+.mayhem-side > * {
+  flex-shrink: 0;
 }
 
 .mayhem-logo {
@@ -906,6 +913,20 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent);
+}
+
+/* Short windows (the allowed 660 px, a maximized laptop at 150 %): the sidebar needs about 700 px
+   (770 px with the zoom from 1700 px width), tighter entries about 620 px. */
+@media (max-height: 780px) {
+  .mayhem-logo {
+    margin-bottom: 10px;
+  }
+
+  .mayhem-nav button,
+  .mayhem-soon,
+  .mayhem-update {
+    padding: 5px 0;
+  }
 }
 
 .mayhem-client {

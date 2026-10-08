@@ -40,6 +40,15 @@ describe('Mayhem update dialog', () => {
     expect(updateView(failed, false)).toMatchObject({ title: "You're offline", action: 'retry' });
   });
 
+  it('installed but not restarted: says to start again, offers nothing else', () => {
+    expect(updateView({ status: 'installed', latest: '0.9.3' }, true)).toEqual({
+      title: 'Update installed',
+      text: 'Close Mayhem and open it again to use version 0.9.3.',
+      action: null,
+      percent: null,
+    });
+  });
+
   it('the release text has English notes for after the update', () => {
     const items = newsItems(notes, MAYHEM_NEWS);
     expect(items.length).toBeGreaterThanOrEqual(1);

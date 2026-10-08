@@ -38,6 +38,11 @@ export function updateView(state: UpdateState, online: boolean): UpdateView {
         ),
         percent: state.percent,
       };
+    case 'installed':
+      return view(
+        'Update installed',
+        `Close Mayhem and open it again to use version ${state.latest}.`,
+      );
     case 'ready':
       return state.info.available
         ? view(
