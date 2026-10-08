@@ -60,4 +60,3 @@ Private Windows-App. Stack: Tauri **2**, React, TypeScript (strict), Vite, pnpm.
 ## Noch nicht umgesetzt
 
 League-Client über die ARAM-Rangliste hinaus (umgesetzt: nur lesend in `aram.rs`), Live-Spieldaten, Riots Web-API, Bluetooth und weitere HID-Geräte (umgesetzt: nur lesende Akkuabfrage für Logitech HID++ und HyperX Cloud Alpha Wireless in `battery.rs`, der Leerzustand nennt sie – `SUPPORTED_DEVICES`; nie Einstellungen an Geräten schreiben), PC-Temperaturen und -Sensoren über Zusatztreiber (umgesetzt: Auslastung von CPU, RAM, Grafikkarte und Systemlaufwerk sowie Programme mit der meisten Last in `pc.rs`, nur lesend), Installer, Signierung, weitere Accounts oder Twitch-Scopes und weitere Secret-Speicher. Nicht eigenständig ergänzen.
-
