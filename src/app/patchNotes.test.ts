@@ -1,6 +1,6 @@
 ﻿import { describe, expect, it } from 'vitest';
 import notes from '../../.github/release-notes.md?raw';
-import { newsItems } from './PatchNotes';
+import { newsItems } from './releaseNotes';
 
 describe('Neuigkeiten nach Updates', () => {
   it('liest den Abschnitt „Neu in dieser Version“ der Release-Notizen', () => {
