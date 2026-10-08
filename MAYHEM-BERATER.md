@@ -200,6 +200,11 @@ und Lord Dominik's als „Anti-Tank“.
 
 ## 6. Live-Erkennung (Etappe 2b)
 
+Stand 08.10.2026: gebaut in blank. (`aram/offers.rs`, Schalter „Augments im Spiel“), auf Windows
+noch nicht geprüft. Abweichungen vom Plan: gelesen wird nach jedem Stufenaufstieg (die
+Angebots-Stufen sind nicht fest eingetragen), Anzeige nur als Popout; „welches genommen wurde“
+folgt mit Etappe 3.
+
 - **Champion:** wie Etappe 1 aus der Champ-Auswahl, im Spiel aus der Gameflow-Sitzung.
 - **Gewählter Build:** Die Wahl auf der Champ-Karte geht wie die Knöpfe des Mix-Popouts an die App
   zurück und gilt bis zum Spielende.

@@ -4,6 +4,7 @@ import type { ChampItem } from '../../adapters/aramChamp';
 import { championView } from '../../../apps/mayhem-site/src/champions';
 import {
   itemSetOf,
+  offerRows,
   AUGMENTS_SHOWN,
   MANA_PENALTY,
   bestAugments,
@@ -489,5 +490,44 @@ describe('Item-Set der Champ-Karte', () => {
 
   it('schreibt ohne Build nichts', () => {
     expect(itemSetOf(plan([]))).toBeNull();
+  });
+});
+
+describe('Angebot im Spiel', () => {
+  it('zeigt die angebotenen Augments in Kartenfolge mit ihrer Stufe', () => {
+    const row = (id: number, tier: 'S' | 'B') => ({
+      id,
+      name: `A${id}`,
+      rarity: 'gold',
+      icon: false,
+      image: null,
+      tier,
+      score: 0.5,
+      games: 3,
+      general: false,
+      turns: null,
+    });
+    const plan = {
+      direction: 'ap' as const,
+      games: 9,
+      share: 1,
+      source: 'arammeta' as const,
+      builds: [],
+      augments: [row(1, 'S'), row(2, 'B')],
+    };
+    const rows = offerRows(plan, {
+      direction: 'ap',
+      augments: [
+        { id: 2, name: 'Zwei' },
+        { id: 9, name: 'Neu' },
+        { id: 1, name: 'Eins' },
+      ],
+    });
+    expect(rows.map((r) => [r.id, r.tier])).toEqual([
+      [2, 'B'],
+      [9, null],
+      [1, 'S'],
+    ]);
+    expect(rows[1].name).toBe('Neu');
   });
 });

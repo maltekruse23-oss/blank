@@ -19,7 +19,7 @@
     "allow-media-seek",
     "allow-media-open-player",
     "allow-flyout-mix",
-    "allow-aram-item-set",
+    "allow-aram-champ-build",
     "allow-twitch-open-channel",
     "allow-close-program",
     "allow-program-running",

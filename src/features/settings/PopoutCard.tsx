@@ -479,6 +479,12 @@ export function PopoutCard({
               'Schneeball und Blitz, bis du selbst änderst',
               false,
             )}
+            {toggle(
+              'champOffers',
+              'Augments im Spiel',
+              'Liest die Angebote vom Bildschirm, Stufe für deinen Build',
+              off,
+            )}
             {toggle('popoutNoticeAlways', 'Immer anzeigen', 'Bleibt, bis du schließt')}
             {slider(
               'popoutNoticeSeconds',

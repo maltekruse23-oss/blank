@@ -1,10 +1,11 @@
 import { championSquare } from '../../adapters/aram';
-import { writeItemSet } from '../../adapters/aramChamp';
+import { chooseBuild } from '../../adapters/aramChamp';
 import { DDRAGON_VERSION } from '../../data/proStreamers';
 import { useState } from 'react';
 import {
   DIRECTION_LABEL,
   itemSetOf,
+  offerRows,
   planNote,
   PLAN_AUGMENTS_SHOWN,
   sourceLabel,
@@ -68,7 +69,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
   const label = view.name || view.alias || `Champion ${view.championId}`;
   const empty = !view.augments.length && !view.builds.length;
   const plans = view.plans;
-  const [chosen, setChosen] = useState(plans[0]?.direction);
+  const [chosen, setChosen] = useState(view.offer?.direction ?? plans[0]?.direction);
   const plan = plans.find((p) => p.direction === chosen) ?? plans[0];
   const note = plan ? planNote(view, plan) : null;
   return (
@@ -98,7 +99,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
                   onClick={(event) => {
                     event.stopPropagation();
                     setChosen(p.direction);
-                    void writeItemSet(view.championId, p.direction, itemSetOf(p));
+                    void chooseBuild(view.championId, p.direction, itemSetOf(p));
                   }}
                 >
                   {DIRECTION_LABEL[p.direction]}
@@ -114,28 +115,40 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
             )}
           </section>
           <section>
-            <h3>Augments für {DIRECTION_LABEL[plan.direction]}</h3>
+            <h3>
+              {view.offer ? 'Angebot' : 'Augments'} für {DIRECTION_LABEL[plan.direction]}
+            </h3>
             <ul className="champ-card-list">
-              {plan.augments.slice(0, PLAN_AUGMENTS_SHOWN).map((a) => (
-                <li key={a.id}>
-                  <TierLetter
-                    tier={a.tier}
-                    title={
-                      a.general
-                        ? `Stufe ${a.tier} (allgemein, zu wenig ${DIRECTION_LABEL[plan.direction]}-Spiele)`
-                        : `Stufe ${a.tier} für ${DIRECTION_LABEL[plan.direction]}`
-                    }
-                  />
-                  <span className={`champ-card-augment ${a.rarity}`}>
-                    {a.image && <img src={a.image} alt="" width={24} height={24} />}
-                  </span>
-                  <span className="champ-card-name">{a.name}</span>
-                  <small>
-                    {a.turns && `Umwandler → ${DIRECTION_LABEL[a.turns]} · `}
-                    {a.general ? 'allgemein' : games(a.games)}
-                  </small>
-                </li>
-              ))}
+              {(view.offer
+                ? offerRows(plan, view.offer)
+                : plan.augments.slice(0, PLAN_AUGMENTS_SHOWN)
+              ).map((a) =>
+                'missing' in a ? (
+                  <li key={a.id}>
+                    <span className="champ-card-name">{a.name}</span>
+                    <small>keine Spiele</small>
+                  </li>
+                ) : (
+                  <li key={a.id}>
+                    <TierLetter
+                      tier={a.tier}
+                      title={
+                        a.general
+                          ? `Stufe ${a.tier} (allgemein, zu wenig ${DIRECTION_LABEL[plan.direction]}-Spiele)`
+                          : `Stufe ${a.tier} für ${DIRECTION_LABEL[plan.direction]}`
+                      }
+                    />
+                    <span className={`champ-card-augment ${a.rarity}`}>
+                      {a.image && <img src={a.image} alt="" width={24} height={24} />}
+                    </span>
+                    <span className="champ-card-name">{a.name}</span>
+                    <small>
+                      {a.turns && `Umwandler → ${DIRECTION_LABEL[a.turns]} · `}
+                      {a.general ? 'allgemein' : games(a.games)}
+                    </small>
+                  </li>
+                ),
+              )}
             </ul>
           </section>
         </>

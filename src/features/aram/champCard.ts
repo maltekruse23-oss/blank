@@ -90,7 +90,12 @@ export type ChampView = {
   builds: BuildPick[];
   /** Build directions with enough games, most played first: the user picks one before the game. */
   plans: BuildPlan[];
+  /** In the game: the augments offered right now (read off the screen, offers.rs) and the build
+   * chosen in the champion select; the card then shows them with their tier for that build. */
+  offer?: Offer;
 };
+
+export type Offer = { direction: Direction | null; augments: { id: number; name: string }[] };
 
 /** Where a build goes. */
 export type Direction = 'ap' | 'ad' | 'tank';
@@ -434,6 +439,16 @@ export function itemSetOf(plan: BuildPlan): { core: number[]; more: number[] } |
     ...new Set(rest.flatMap((b) => b.items.filter((i) => manaOk || !i.mana).map((i) => i.id))),
   ].filter((id) => !core.includes(id));
   return { core, more };
+}
+
+/**
+ * The offered augments with their tier in the build (null: the champion's games have none with
+ * it), in the order of the cards; the name the client shows when there is no row.
+ */
+export function offerRows(plan: BuildPlan, offer: Offer) {
+  return offer.augments.map(
+    (o) => plan.augments.find((a) => a.id === o.id) ?? { ...o, tier: null, missing: true as const },
+  );
 }
 
 /** The card for a champion; null when the website's answer does not fit. A champion without

@@ -6,6 +6,11 @@
 - Neue Tests: `settingsFile.test.ts` (Export → Import, Ablehnung fremder/neuerer/leerer Dateien, Musik, Twitch, Programme, Rückfall auf Standardwerte), `mayhemCard.test.ts` (Spielezahl, Item-Bild), Rust `mayhem::tests` (Kennung, Fenster-Label und -Titel, Capability, Befehl und Ereignis im Adapter).
 - Geprüft auf Windows: `pnpm format:check` (geänderte Dateien), Lint, Tests, Build, `extension:build`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 
+## Nachtrag 08.10.2026: Augments im Spiel (Etappe 2b)
+
+- Settings → Popouts → Meldungen: „Augments im Spiel“ (Standard aus). Geprüft: Rust-Tests `cards_are_read_in_columns_left_to_right` (Spalten, umbrochene Namen, ein falscher Buchstabe von acht), `no_text_no_offer`, Vitest `Angebot im Spiel`, build/lint/test/clippy.
+- Nicht geprüft (braucht ein Mayhem-Spiel, Benutzer will vorerst nicht testen): ob das mittlere Band (x 10–90 %, y 15–75 % des Spielfensters) die Kartennamen trifft, ob die Texterkennung die Spielschrift liest, Fenstertitel/-klasse `League of Legends (TM) Client`/`RiotWindowClass`, Zeit je Lesen (CPU), Live Client Data `activeplayer.level`, ob die IDs von arammeta/mayhemstats denen der Client-Liste entsprechen. Ein Reroll, nachdem die Karte schon zu ist, zeigt nichts (Update nur an Ort und Stelle).
+
 ## Nachtrag 08.10.2026: Item-Set und Beschwörerzauber (Etappe 2c)
 
 - Settings → Popouts → Meldungen: „Item-Set schreiben“ und „Beschwörerzauber setzen“ (Standard aus, wirken auch ohne Popouts). Geprüft: Rust-Tests `spells_keep_flash_on_its_key` (Blitz bleibt auf seiner Taste, Singed Geist, nie Erschöpfung/Barriere) und `item_sets_replace_only_blanks_own_for_the_champion` (eigene Sets und „blank.“-Sets anderer Champs bleiben), Vitest `Item-Set der Champ-Karte`, build/lint/test/clippy.

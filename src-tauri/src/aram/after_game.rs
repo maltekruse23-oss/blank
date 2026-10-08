@@ -18,8 +18,8 @@ use super::games::{
     champion_names, entries, friend_set, from_eog, riot_id, Eog, Summary, Summoner,
 };
 use super::{
-    add_augments, live, load, now_ms, save, sync, take_card, website, AramState, Entry, Player,
-    AFTER_CLIENT_START, AFTER_GAME, CATCH_UP_MS, EOG, EOG_TRIES, FINISH_AFTER, GAME_EXE,
+    add_augments, live, load, now_ms, offers, save, sync, take_card, website, AramState, Entry,
+    Player, AFTER_CLIENT_START, AFTER_GAME, CATCH_UP_MS, EOG, EOG_TRIES, FINISH_AFTER, GAME_EXE,
     MAX_ENTRIES, MAX_SKIN, MAYHEM_QUEUE, SESSION, SUMMONER,
 };
 
@@ -139,9 +139,11 @@ struct SessionQueue {
 }
 
 /// A game started: while it runs the client knows its id and queue. A Mayhem game's end is awaited
-/// (Windows reports the end of its process), then its card follows at once.
+/// (Windows reports the end of its process), then its card follows at once. Its augment offers
+/// are read while it runs, with that switch on (offers.rs).
 async fn game_started(app: AppHandle) {
-    if !app.state::<AramState>().path.is_file() {
+    let cards = app.state::<AramState>().path.is_file();
+    if !cards && !offers::wanted() {
         return;
     }
     let mut info = None;
@@ -161,6 +163,10 @@ async fn game_started(app: AppHandle) {
         return;
     };
     if queue != MAYHEM_QUEUE {
+        return;
+    }
+    offers::follow(&app);
+    if !cards {
         return;
     }
     WATCHING.store(true, Ordering::Relaxed);

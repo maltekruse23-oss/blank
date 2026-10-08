@@ -97,6 +97,8 @@ export type Preferences = {
   champItemSet: boolean;
   /** Champ-Karte sets the summoner spells (Snowball and Flash, exceptions in aram_live.rs). */
   champSpells: boolean;
+  /** Reads the augment offers in a Mayhem game off the screen and shows them on the card (offers.rs). */
+  champOffers: boolean;
   /** Seconds a live notice, warning or note stays (1–30), unless it always stays. */
   popoutNoticeSeconds: number;
   popoutNoticeAlways: boolean;
@@ -171,6 +173,7 @@ export const defaultPreferences: Preferences = {
   popoutChamp: true,
   champItemSet: false,
   champSpells: false,
+  champOffers: false,
   popoutNoticeSeconds: 10,
   popoutNoticeAlways: false,
   popoutTheme: 'app',
@@ -289,6 +292,7 @@ export function readPreferences(raw: unknown): Preferences | null {
     popoutChamp: flag('popoutChamp'),
     champItemSet: flag('champItemSet'),
     champSpells: flag('champSpells'),
+    champOffers: flag('champOffers'),
     popoutNoticeSeconds: seconds('popoutNoticeSeconds'),
     popoutNoticeAlways: always('popoutNoticeAlways'),
     popoutTheme: pick(data.popoutTheme, isPopoutTheme, d.popoutTheme),
