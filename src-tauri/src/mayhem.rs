@@ -9,7 +9,8 @@
 //! Mayhem games to mayhemstats.lol on click, then after each game while the site lists them) and
 //! "Update" (update.rs, the same verified flow as blank., for mayhem.exe); nothing else of blank.:
 //! no tray, popouts, settings or stored data (only ladder.rs's upload key in the Windows Credential
-//! Manager), and it never writes into the client.
+//! Manager), and it never writes into the client. blank. is paused: its update installs this app
+//! as blank.exe, which then cleans up after blank. once (from_blank.rs).
 //!
 //! The client is looked for every few seconds (the lockfile next to `LeagueClientUx.exe`, as blank.
 //! does via pc.rs); while it runs, the card follows its champion select. Read-only, as in blank.
@@ -40,6 +41,9 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
         .setup(|app| {
             crate::errors::init(app.handle());
             app.manage(crate::update::UpdateState::default());
+            // Only when this start replaced blank. (blank. becomes the Mayhem app); reads the
+            // replaced `.old` before clean_up removes it.
+            crate::from_blank::start(app.handle());
             crate::update::clean_up();
             look_for_client(app.handle().clone());
             Ok(())
@@ -55,6 +59,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::update::update_check,
             crate::update::update_install,
             crate::update::update_news,
+            crate::from_blank::mayhem_moved,
             league_client_open,
         ])
         .run(context)
@@ -184,6 +189,7 @@ mod tests {
             "allow-update-check",
             "allow-update-install",
             "allow-update-news",
+            "allow-mayhem-moved",
         ] {
             assert!(permissions.contains(&Value::from(update)), "{update}");
         }
