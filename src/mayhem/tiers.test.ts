@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { pulled, readTiers, withTiers } from './tiers';
+import { MOCK_TIERS } from './mock';
+import {
+  categoryName,
+  championsWithAugment,
+  filterItems,
+  itemRoles,
+  loadTiers,
+  pointsChange,
+  pulled,
+  readTiers,
+  signedPoints,
+  teamProfile,
+  usedCategories,
+  withTiers,
+} from './tiers';
 
 // The Mayhem app's tier lists (tiers.ts): strict reading of Rust's answer and S–D by place.
 describe('Mayhem tier lists', () => {
@@ -88,5 +102,104 @@ describe('Mayhem tier lists', () => {
     expect(readTiers(null)).toBeNull();
     expect(readTiers({ augments: 'x', champions: [] })).toBeNull();
     expect(readTiers({ augments: [], champions: [] })).toBeNull();
+  });
+});
+
+// The rest of arammeta's list (08.10.2026): champion detail, augment detail, items, patch.
+describe('arammeta pages', () => {
+  const lists = readTiers(MOCK_TIERS)!;
+
+  it('reads every part of the list Rust sends', () => {
+    const alistar = lists.champions.find((c) => c.alias === 'Alistar')!;
+    expect(alistar.top[0]).toMatchObject({ id: 1001, rarity: 'prismatic' });
+    expect(alistar.pairs.length).toBe(9);
+    expect(alistar.comp.front).toBe(3);
+    const goliath = lists.augments.find((a) => a.name === 'Goliath')!;
+    expect(goliath.champions.length).toBe(5);
+    expect(goliath.pick).toBeCloseTo(0.05);
+    expect(lists.items.find((i) => i.id === 3047)?.role).toBeNull();
+    expect(lists.changes?.championAugments.risers[0]).toMatchObject({ id: 1005, champion: 105 });
+    expect(lists.categories[0]).toEqual({ id: 'ad', label: 'AD' });
+  });
+
+  it('drops unsound parts and keeps missing values missing, never 0', () => {
+    const odd = readTiers({
+      patch: '16.20',
+      augments: [],
+      champions: [
+        {
+          id: 1,
+          name: 'Annie',
+          alias: 'Annie',
+          tags: [],
+          wr: 0.5,
+          games: 10,
+          top: [
+            { id: 5, rarity: 'kRainbow', games: 5, wr: 0.5 },
+            { id: 6, rarity: 'kGold', games: 5, wr: 0.5, lift: 4, pick: null },
+          ],
+          pairs: [{ id: 2, games: 0, wr: 0.5 }],
+          comp: { phys: -1, magic: 40, cc: 'x' },
+        },
+      ],
+      items: [
+        { id: 1, name: '' },
+        { id: 2, name: 'Boots', price: null, role: '', text: 'Go' },
+      ],
+      changes: { current: '16.20', baseline: '', champions: {} },
+    })!;
+    const annie = odd.champions[0];
+    expect(annie.top).toEqual([
+      { id: 6, rarity: 'gold', games: 5, winRate: 0.5, lift: null, pick: null },
+    ]);
+    expect(annie.pairs).toEqual([]);
+    expect(annie.comp).toEqual({ magic: 40 });
+    expect(odd.items).toEqual([{ id: 2, name: 'Boots', price: null, role: null, text: 'Go' }]);
+    expect(odd.changes).toBeNull();
+    expect(odd.categories).toEqual([]);
+  });
+
+  it('builds the team profile: damage as shares, scores against the highest champion', () => {
+    const lux = lists.champions.find((c) => c.alias === 'Lux')!;
+    const { damage, scores } = teamProfile(lux, lists.champions);
+    expect(damage.map((d) => d.key)).toEqual(['phys', 'magic', 'true']);
+    expect(damage.reduce((sum, d) => sum + d.share, 0)).toBeCloseTo(1);
+    expect(scores.find((s) => s.key === 'poke')?.share).toBe(1);
+    expect(scores.find((s) => s.key === 'front')?.share).toBeCloseTo(0.4 / 3);
+    expect(teamProfile({ ...lux, comp: {} }, lists.champions)).toEqual({ damage: [], scores: [] });
+  });
+
+  it('filters items by role and search, dearest first', () => {
+    expect(itemRoles(lists.items)).toEqual(['Fighter', 'Mage', 'Marksman', 'Support', 'Tank']);
+    expect(filterItems(lists.items, 'all', '').map((i) => i.id)[0]).toBe(3089);
+    expect(filterItems(lists.items, 'none', '').map((i) => i.name)).toEqual(['Plated Steelcaps']);
+    expect(filterItems(lists.items, 'Tank', 'armor').map((i) => i.id)).toEqual([3075]);
+  });
+
+  it('writes changes in percentage points with one decimal', () => {
+    expect(pointsChange({ currentWr: 0.4623, baselineWr: 0.4394 })).toBe('+2,3');
+    expect(pointsChange({ currentWr: 0.378, baselineWr: 0.5231 })).toBe('−14,5');
+    expect(signedPoints(0)).toBe('±0,0');
+  });
+
+  it('finds the champions an augment is among the best for, surest first', () => {
+    const found = championsWithAugment(lists.champions, 1003);
+    expect(found.length).toBe(lists.champions.length);
+    const sure = (e: (typeof found)[number]) => pulled(e.entry.winRate, e.entry.games);
+    expect(sure(found[0])).toBeGreaterThanOrEqual(sure(found[found.length - 1]));
+    expect(championsWithAugment(lists.champions, 4242)).toEqual([]);
+  });
+
+  it('names categories in German and shows only those some augment has', () => {
+    expect(categoryName(lists, 'tank')).toBe('Verteidigung');
+    expect(categoryName({ categories: [{ id: 'x', label: 'Fresh' }] }, 'x')).toBe('Fresh');
+    expect(usedCategories(lists).map((c) => c.id)).toEqual(lists.categories.map((c) => c.id));
+    expect(usedCategories({ ...lists, augments: [] })).toEqual([]);
+  });
+
+  it('gives the browser preview the invented list, marked as mock', async () => {
+    const loaded = await loadTiers();
+    expect(loaded.mock).toBe(true);
+    expect(loaded.champions.length).toBe(lists.champions.length);
   });
 });

@@ -3,7 +3,8 @@
 //! built with its own config (`tauri.mayhem.conf.json`, `pnpm mayhem:build`). One window, a
 //! desktop dashboard in the look "Arena" (user's wish 07.10.2026, MAYHEM-DESIGN.md): Home, the
 //! Champ-Karte of the ARAM Mayhem champion select (aram_live.rs), augment and champion tier lists
-//! (arammeta.com, `mayhem_tiers`) and the signed-in player's rank with the leaderboard
+//! with champion details, items and patch changes (arammeta.com, all from its one public list,
+//! `mayhem_tiers`) and the signed-in player's rank with the leaderboard
 //! (mayhemstats.lol, read-only, `mayhem_ranks` in aram_website.rs); nothing else of blank.: no
 //! tray, popouts, settings or stored data, and it never writes into the client.
 //!

@@ -1787,3 +1787,261 @@ li[data-place='3'] .mayhem-place {
   color: #c4c9d6;
   font-size: 12px;
 }
+
+/* --- arammeta pages (metaPages.tsx): champion and augment detail, patch, items ------------- */
+
+/* A plain button that looks like its text (names in rows, faces). */
+.mayhem-plain {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mayhem-plain:hover {
+  color: var(--accent);
+}
+
+/* The augment card's name button covers the whole card. */
+.mayhem-stretch {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-weight: inherit;
+  cursor: pointer;
+}
+
+.mayhem-stretch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.mayhem-stretch:focus-visible {
+  outline: none;
+}
+
+.mayhem-stretch:focus-visible::after {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.mayhem-champ {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mayhem-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  font-size: 13px;
+}
+
+.mayhem-meta-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 20px;
+}
+
+.mayhem-meta-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.mayhem-meta-head h1 {
+  font: 800 28px/1.15 var(--font-title);
+}
+
+.mayhem-meta-head[data-rarity='silver'] {
+  --ring: var(--silver);
+}
+
+.mayhem-meta-head[data-rarity='prismatic'] {
+  --ring: var(--prisma);
+}
+
+.mayhem-meta-head .mayhem-aug-card-icon {
+  flex: none;
+}
+
+.mayhem-meta-text {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.mayhem-meta-stats {
+  display: flex;
+  gap: 18px;
+  margin: 0;
+}
+
+.mayhem-meta-stats > div {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.mayhem-meta-stats dt {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.mayhem-meta-stats dd {
+  margin: 0;
+  font: 500 18px var(--font-mono);
+}
+
+/* The tier letter reuses the card's corner badge, here in the flow. */
+.mayhem-meta-stats dd.mayhem-aug-card-tier {
+  position: static;
+}
+
+.mayhem-meta-face {
+  flex: none;
+  border-radius: 10px;
+  background: var(--panel-2);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.mayhem-meta-faces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mayhem-meta-name {
+  display: grid;
+  min-width: 0;
+}
+
+.mayhem-profile {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.mayhem-mix {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.mayhem-mix span[data-key='phys'],
+.mayhem-mix-legend span[data-key='phys']::before {
+  background: var(--accent);
+}
+
+.mayhem-mix span[data-key='magic'],
+.mayhem-mix-legend span[data-key='magic']::before {
+  background: var(--prisma);
+}
+
+.mayhem-mix span[data-key='true'],
+.mayhem-mix-legend span[data-key='true']::before {
+  background: var(--silver);
+}
+
+.mayhem-mix-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font: 400 12px var(--font-mono);
+  color: var(--muted);
+}
+
+.mayhem-mix-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 2px;
+}
+
+.mayhem-profile-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.mayhem-profile-row .mayhem-bar {
+  margin: 0;
+}
+
+.mayhem-profile-row .mono {
+  color: var(--muted);
+  text-align: right;
+}
+
+.mayhem-meta-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+
+.mayhem-facts b[data-down='true'] {
+  color: var(--down);
+}
+
+.mayhem-meta-tiles {
+  display: flex;
+  gap: 22px;
+}
+
+.mayhem-meta-tiles > span {
+  display: grid;
+}
+
+.mayhem-meta-tiles strong {
+  font: 500 20px var(--font-mono);
+}
+
+.mayhem-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.mayhem-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 8px 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+}
+
+.mayhem-item img {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.mayhem-item h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.mayhem-item p {
+  grid-column: 1 / -1;
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  white-space: pre-line;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+}

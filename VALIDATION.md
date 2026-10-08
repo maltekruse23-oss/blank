@@ -6,6 +6,12 @@
 - Neue Tests: `settingsFile.test.ts` (Export → Import, Ablehnung fremder/neuerer/leerer Dateien, Musik, Twitch, Programme, Rückfall auf Standardwerte), `mayhemCard.test.ts` (Spielezahl, Item-Bild), Rust `mayhem::tests` (Kennung, Fenster-Label und -Titel, Capability, Befehl und Ereignis im Adapter).
 - Geprüft auf Windows: `pnpm format:check` (geänderte Dateien), Lint, Tests, Build, `extension:build`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 
+## Nachtrag 08.10.2026: Mayhem-App mit arammetas ganzer Liste
+
+- Neue Seiten in `mayhem.exe`: Champion-Detail (Klick in der Tier-Liste), Augment-Detail (Klick auf eine Karte, auf Home oder in einem Detail), Patch, Items; Augments mit Kategorie-Filter. Alles aus `mayhem_tiers` (arammetas `tier-list.json`, 6 h im Speicher, nichts gespeichert). Jede Quote mit Spielzahl, fehlende Werte „–“.
+- Geprüft: Rust `the_mayhem_pages_get_every_part_of_the_list` (Form wie die echte Datei vom 08.10.2026), `a_changed_extra_field_keeps_the_champ_cards_list` (falsche Form neuer Felder bricht die Liste für blank.'s Champ-Karte nicht), `cargo test --lib the_real_list -- --ignored` (echter Abruf: über 100 Champions mit vollem Team-Profil, `top` und `pairs`, über 100 Augments mit verknüpften Champions, Items, Kategorien, Patch-Änderungen), Vitest `src/mayhem/tiers.test.ts` (Lesen, Verwerfen, Team-Profil, Item-Filter, Prozentpunkte, „Stark bei“, Kategorien, Mock in der Vorschau), build/lint/test/`mayhem:web`/Prettier/fmt/clippy/`cargo test --lib`, Browser-Vorschau (1280 × 820) von Augments, Augment-Detail, Champion-Detail, Patch und Items mit Mock-Werten.
+- Nicht geprüft: die Seiten in `pnpm mayhem:dev`/`mayhem.exe` mit echten Daten (Ladezeit der größeren Antwort, Augment-Symbole von arammeta.com, Item-Bilder von Data Dragon für Patch 16.20). Datenlizenz von arammeta.com weiter offen (ROADMAP).
+
 ## Nachtrag 08.10.2026: Mayhem-App mit echtem Spieler und Rang
 
 - Home und Rang in `mayhem.exe` lesen den im League-Client angemeldeten Spieler (`/lol-summoner/v1/current-summoner`) und fragen mayhemstats.lol nach seinem Profil und der Rangliste (Rust `mayhem_ranks` in `aram_website.rs`, nur lesend, nur die eigene PUUID geht hinaus, Antworten prüft `aramSite.ts` streng). Zustände: Client zu/niemand angemeldet („Starte League“), lädt, keine Verbindung (mit „Nochmal“), nicht in der Datenbank (Rangliste trotzdem), Spieler mit Rang bzw. Einstufung x/5. Fehlende Werte „–“. Mock nur noch in der Browser-Vorschau (`src/mayhem/mock.ts`, Abzeichen „Mock“).
