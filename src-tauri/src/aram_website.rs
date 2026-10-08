@@ -722,6 +722,18 @@ pub async fn mayhem_ranks() -> Result<Option<OwnRanks>, String> {
     Ok(Some(OwnRanks { name, board, me }))
 }
 
+/// Any player's public profile on the Site, for the Mayhem app's player card (user's wish
+/// 08.10.2026: "jeder Name soll anklickbar sein"). Read-only: only the id goes out, the public id
+/// (`a123`) the leaderboard and the records name, or a PUUID of the card after a game. None when
+/// the Site does not list the player.
+#[tauri::command]
+pub async fn mayhem_player(id: String) -> Result<Option<String>, String> {
+    if !plain_id(&id) {
+        return Ok(None);
+    }
+    read_json(&site_client()?, &format!("/api/players/{id}")).await
+}
+
 /// The Mayhem app's records (user's wish 08.10.2026: "die Rekorde von der Website auch als Tab in
 /// der Mayhem-App"): every category's best ten on the Site, all time or this season, as JSON text
 /// the app checks strictly (src/mayhem/records.ts). Read-only and public: only the choice goes out.

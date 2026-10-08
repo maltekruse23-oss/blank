@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mayhem-player"
+description = "Enables the mayhem_player command without any pre-configured scope."
+commands.allow = ["mayhem_player"]
+
+[[permission]]
+identifier = "deny-mayhem-player"
+description = "Denies the mayhem_player command without any pre-configured scope."
+commands.deny = ["mayhem_player"]

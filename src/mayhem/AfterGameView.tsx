@@ -17,6 +17,7 @@ import { rankRun } from '../features/aram/rankRun';
 import { cardLevel, chipText, recordChips, type CardRank } from './afterGame';
 import { number, percent } from './format';
 import { rankImage, step } from './pages';
+import { PlayerName } from './PlayerCard';
 import type { RecordCard } from './records';
 import { GradeMark, Overlay } from './ui';
 
@@ -207,16 +208,18 @@ function RankLine({
 }
 
 /** The player and the others of the game (League friends, listed players) as damage bars. */
-function Mates({ card }: { card: GameCard }) {
+function Mates({ card, siteId }: { card: GameCard; siteId: string | null }) {
   const { entry } = card;
   const rows = [
-    { ...entry, key: 'you', name: 'You', foe: false, me: true },
+    { ...entry, key: 'you', id: siteId, riot: 'You', name: 'You', foe: false, me: true },
     ...[...entry.with]
       .sort((a, b) => b.damage - a.damage)
       .slice(0, MATES)
       .map((m) => ({
         ...m,
         key: m.puuid,
+        id: m.puuid,
+        riot: m.name,
         name: m.name.split('#')[0]!,
         foe: !m.sameTeam,
         me: false,
@@ -238,7 +241,9 @@ function Mates({ card }: { card: GameCard }) {
               height={24}
             />
             <span className="mayhem-result-mate">
-              {row.name}
+              <PlayerName id={row.id} name={row.riot}>
+                {row.name}
+              </PlayerName>
               {row.foe && <small>Enemy</small>}
             </span>
             <span className="mayhem-result-track" aria-hidden>
@@ -385,7 +390,7 @@ export function AfterGame({
             <RankLine rank={rank} run={run} onFindRank={onFindRank} onRetry={onRetry} />
           </div>
         </div>
-        {entry.with.length > 0 && <Mates card={card} />}
+        {entry.with.length > 0 && <Mates card={card} siteId={siteId} />}
         {rank.state === 'ready' && (
           <footer className="mayhem-result-foot">
             <button

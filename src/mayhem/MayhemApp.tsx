@@ -23,6 +23,7 @@ import { cardRank, inEnglish, RANK_ASKS, RANK_GIVE_UP, type CardRank } from './a
 import { found, type FindState } from './findRank';
 import { CARD_PREVIEWS, mockCard, type CardPreview } from './mock';
 import { MayhemCard } from './MayhemCard';
+import { PlayerCard, PlayerProvider, type Who } from './PlayerCard';
 import { AugmentDetail, ChampionDetail } from './metaPages';
 import {
   AugmentsPage,
@@ -35,11 +36,14 @@ import {
 import { loadMe, withChampions, type MeState } from './me';
 import { loadRecords, type RecordCard } from './records';
 import { RecordsPage } from './RecordsPage';
-import { loadTiers } from './tiers';
+import { loadTiers, type TierChampion } from './tiers';
 import { UpdateButton } from './UpdateButton';
 import { WindowBar } from './WindowBar';
 // The app's own icon (mayhem.ico is made from the same file), so the logo and the EXE match.
 import logo from '../../src-tauri/icons/mayhem.svg';
+
+/** Stable while the lists load (the player card reloads when its champions change). */
+const NO_CHAMPIONS: TierChampion[] = [];
 
 export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'rank' | 'history' | 'records';
 
@@ -240,6 +244,8 @@ export function MayhemApp() {
 
   const tierState = tiers ?? { state: 'loading' };
   const lists = tierState.state === 'ready' ? tierState.lists : null;
+  /** The player card over everything (a click on any name, PlayerCard.tsx). */
+  const [player, setPlayer] = useState<Who | null>(null);
   const champion = lists?.champions.find((c) => c.id === detail.champion);
   const augment = lists?.augments.find((a) => a.id === detail.augment);
   const toChampion = (id: number) => openDetail('champions', { champion: id });
@@ -261,156 +267,168 @@ export function MayhemApp() {
   }, [waiting, afterGame]);
 
   return (
-    <div className="mayhem">
-      <aside className="mayhem-side" data-tauri-drag-region>
-        <img className="mayhem-logo" src={logo} alt="Mayhem" width={40} height={40} />
-        <nav className="mayhem-nav" aria-label="Sections">
-          {PAGES.map((group, g) => [
-            g > 0 && <hr key={`line-${g}`} className="mayhem-nav-line" />,
-            ...group.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                type="button"
-                aria-current={page === id ? 'page' : undefined}
-                onClick={() => open(id)}
-              >
-                <Icon size={20} strokeWidth={1.9} aria-hidden />
-                <span>{label}</span>
-              </button>
-            )),
-          ])}
-          <span className="mayhem-soon" title="More sections are coming">
-            <Plus size={20} strokeWidth={1.9} aria-hidden />
-            <span>Soon</span>
+    <PlayerProvider value={setPlayer}>
+      <div className="mayhem">
+        <aside className="mayhem-side" data-tauri-drag-region>
+          <img className="mayhem-logo" src={logo} alt="Mayhem" width={40} height={40} />
+          <nav className="mayhem-nav" aria-label="Sections">
+            {PAGES.map((group, g) => [
+              g > 0 && <hr key={`line-${g}`} className="mayhem-nav-line" />,
+              ...group.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-current={page === id ? 'page' : undefined}
+                  onClick={() => open(id)}
+                >
+                  <Icon size={20} strokeWidth={1.9} aria-hidden />
+                  <span>{label}</span>
+                </button>
+              )),
+            ])}
+            <span className="mayhem-soon" title="More sections are coming">
+              <Plus size={20} strokeWidth={1.9} aria-hidden />
+              <span>Soon</span>
+            </span>
+          </nav>
+          <UpdateButton />
+          <span
+            className="mayhem-client"
+            data-open={client === true}
+            title={client ? 'League client is open' : 'League client is closed'}
+          >
+            Client
           </span>
-        </nav>
-        <UpdateButton />
-        <span
-          className="mayhem-client"
-          data-open={client === true}
-          title={client ? 'League client is open' : 'League client is closed'}
-        >
-          Client
-        </span>
-      </aside>
-      <div className="mayhem-body">
-        <WindowBar />
-        <main className="mayhem-main" key={page} ref={mainRef}>
-          <div className="mayhem-wrap">
-            {page === 'home' ? (
-              <HomePage
-                tiers={tierState}
-                me={meShown}
-                onOpen={open}
-                onAugment={toAugment}
-                onRetry={fetchMe}
-                find={find}
-                onFind={findMine}
-              />
-            ) : page === 'augments' ? (
-              <>
-                <div hidden={!!augment}>
-                  <AugmentsPage tiers={tierState} onRetry={fetchTiers} onSelect={toAugment} />
+        </aside>
+        <div className="mayhem-body">
+          <WindowBar />
+          <main className="mayhem-main" key={page} ref={mainRef}>
+            <div className="mayhem-wrap">
+              {page === 'home' ? (
+                <HomePage
+                  tiers={tierState}
+                  me={meShown}
+                  onOpen={open}
+                  onAugment={toAugment}
+                  onChampion={toChampion}
+                  onRetry={fetchMe}
+                  find={find}
+                  onFind={findMine}
+                />
+              ) : page === 'augments' ? (
+                <>
+                  <div hidden={!!augment}>
+                    <AugmentsPage tiers={tierState} onRetry={fetchTiers} onSelect={toAugment} />
+                  </div>
+                  {lists && augment && (
+                    <AugmentDetail
+                      key={augment.id}
+                      lists={lists}
+                      augment={augment}
+                      onBack={() => setDetail({})}
+                      onChampion={toChampion}
+                    />
+                  )}
+                </>
+              ) : page === 'champions' ? (
+                <>
+                  <div hidden={!!champion}>
+                    <ChampionsPage tiers={tierState} onRetry={fetchTiers} onSelect={toChampion} />
+                  </div>
+                  {lists && champion && (
+                    <ChampionDetail
+                      key={champion.id}
+                      lists={lists}
+                      champion={champion}
+                      onBack={() => setDetail({})}
+                      onChampion={toChampion}
+                      onAugment={toAugment}
+                    />
+                  )}
+                </>
+              ) : page === 'rank' ? (
+                <RankPage
+                  me={meShown}
+                  onRetry={fetchMe}
+                  find={find}
+                  onFind={findMine}
+                  onPreviewCard={() => setAfter(preview('legend'))}
+                  onHistory={() => open('history')}
+                />
+              ) : page === 'history' ? (
+                <MatchHistoryPage me={meShown} onRetry={fetchMe} find={find} onFind={findMine} />
+              ) : page === 'records' ? (
+                <RecordsPage me={me} champions={lists?.champions ?? []} />
+              ) : shown.state === 'ready' ? (
+                <MayhemCard
+                  key={`${shown.view.championId}-${shown.sample}`}
+                  view={shown.view}
+                  sample={shown.sample}
+                  onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
+                />
+              ) : shown.state === 'loading' ? (
+                <p className="mayhem-note mayhem-in">
+                  Loading {shown.champ.name || shown.champ.alias} …
+                </p>
+              ) : shown.state === 'failed' ? (
+                <div className="mayhem-wait">
+                  <div className="mayhem-glow mayhem-in">
+                    <p>The numbers did not arrive. Check your connection.</p>
+                    <button
+                      type="button"
+                      className="mayhem-button"
+                      onClick={() => show(shown.champ, shown.sample)}
+                    >
+                      Try again
+                    </button>
+                  </div>
                 </div>
-                {lists && augment && (
-                  <AugmentDetail
-                    key={augment.id}
-                    lists={lists}
-                    augment={augment}
-                    onBack={() => setDetail({})}
-                    onChampion={toChampion}
-                  />
-                )}
-              </>
-            ) : page === 'champions' ? (
-              <>
-                <div hidden={!!champion}>
-                  <ChampionsPage tiers={tierState} onRetry={fetchTiers} onSelect={toChampion} />
+              ) : (
+                <div className="mayhem-wait">
+                  <div className="mayhem-glow mayhem-in">
+                    <h1>{client ? 'Waiting for champion select' : 'Start League'}</h1>
+                    <p>Your build shows up here once you hold a champion in ARAM Mayhem.</p>
+                    <button
+                      type="button"
+                      className="mayhem-button primary"
+                      onClick={() => show(SAMPLE_CHAMP, true)}
+                    >
+                      Example: {SAMPLE_CHAMP.name}
+                    </button>
+                  </div>
                 </div>
-                {lists && champion && (
-                  <ChampionDetail
-                    key={champion.id}
-                    lists={lists}
-                    champion={champion}
-                    onBack={() => setDetail({})}
-                    onChampion={toChampion}
-                    onAugment={toAugment}
-                  />
-                )}
-              </>
-            ) : page === 'rank' ? (
-              <RankPage
-                me={meShown}
-                onRetry={fetchMe}
-                find={find}
-                onFind={findMine}
-                onPreviewCard={() => setAfter(preview('legend'))}
-                onHistory={() => open('history')}
-              />
-            ) : page === 'history' ? (
-              <MatchHistoryPage me={meShown} onRetry={fetchMe} find={find} onFind={findMine} />
-            ) : page === 'records' ? (
-              <RecordsPage me={me} champions={lists?.champions ?? []} />
-            ) : shown.state === 'ready' ? (
-              <MayhemCard
-                key={`${shown.view.championId}-${shown.sample}`}
-                view={shown.view}
-                sample={shown.sample}
-                onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
-              />
-            ) : shown.state === 'loading' ? (
-              <p className="mayhem-note mayhem-in">
-                Loading {shown.champ.name || shown.champ.alias} …
-              </p>
-            ) : shown.state === 'failed' ? (
-              <div className="mayhem-wait">
-                <div className="mayhem-glow mayhem-in">
-                  <p>The numbers did not arrive. Check your connection.</p>
-                  <button
-                    type="button"
-                    className="mayhem-button"
-                    onClick={() => show(shown.champ, shown.sample)}
-                  >
-                    Try again
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="mayhem-wait">
-                <div className="mayhem-glow mayhem-in">
-                  <h1>{client ? 'Waiting for champion select' : 'Start League'}</h1>
-                  <p>Your build shows up here once you hold a champion in ARAM Mayhem.</p>
-                  <button
-                    type="button"
-                    className="mayhem-button primary"
-                    onClick={() => show(SAMPLE_CHAMP, true)}
-                  >
-                    Example: {SAMPLE_CHAMP.name}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
+              )}
+            </div>
+          </main>
+        </div>
+        {after && afterRank && !selecting && (
+          // By game: a card that failed to draw does not keep the next one away.
+          <Guard key={after.card.entry.gameId} name="Mayhem card" fallback={() => null}>
+            <AfterGame
+              card={inEnglish(after.card, lists)}
+              records={after.records}
+              siteId={meShown.state === 'ready' ? meShown.siteId : null}
+              rank={afterRank}
+              mock={!!after.rank}
+              onClose={() => setAfter(null)}
+              onFindRank={() => {
+                setAfter(null);
+                open('rank');
+              }}
+              onRetry={fetchMe}
+            />
+          </Guard>
+        )}
+        {player && (
+          <Guard key={player.id} name="Player card" fallback={() => null}>
+            <PlayerCard
+              who={player}
+              champions={lists?.champions ?? NO_CHAMPIONS}
+              onClose={() => setPlayer(null)}
+            />
+          </Guard>
+        )}
       </div>
-      {after && afterRank && !selecting && (
-        // By game: a card that failed to draw does not keep the next one away.
-        <Guard key={after.card.entry.gameId} name="Mayhem card" fallback={() => null}>
-          <AfterGame
-            card={inEnglish(after.card, lists)}
-            records={after.records}
-            siteId={meShown.state === 'ready' ? meShown.siteId : null}
-            rank={afterRank}
-            mock={!!after.rank}
-            onClose={() => setAfter(null)}
-            onFindRank={() => {
-              setAfter(null);
-              open('rank');
-            }}
-            onRetry={fetchMe}
-          />
-        </Guard>
-      )}
-    </div>
+    </PlayerProvider>
   );
 }

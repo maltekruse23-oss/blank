@@ -3,7 +3,7 @@ import type { AramEntry } from '../adapters/aram';
 import { standings } from '../features/aram/aramRating';
 import { parseBoard } from '../features/aram/aramSite';
 import { open, summary } from '../../apps/mayhem-site/src/summary';
-import { ago, curvePath, ladderOf, ownState, withChampions } from './me';
+import { ago, aroundOf, curvePath, ladderOf, ownState, playerState, withChampions } from './me';
 
 // The Mayhem app's player (me.ts): the website's answers, in the form it sends them
 // (apps/mayhem-site/src/summary.ts), become what Home and Rang show.
@@ -103,6 +103,18 @@ describe('Mayhem app player', () => {
     expect(state.ladder.find((r) => r.me)).toMatchObject({ name: 'me#EUW', icon: 7 });
   });
 
+  it('opens any player card from their profile, not listed and broken as own states', () => {
+    const card = playerState(profile('other'), [], []);
+    if (card.state !== 'ready') throw new Error(card.state);
+    expect(card).toMatchObject({ name: 'other#EUW', mock: false });
+    expect(card.me.main).toMatchObject({ name: 'Annie', games: 8 });
+    expect(card.me.recent).toHaveLength(8);
+    expect(playerState(null, [], [])).toEqual({ state: 'missing' });
+    expect(playerState('{"nope":1}', [], [])).toEqual({ state: 'failed' });
+    // Ladder rows carry the public id the card opens with.
+    expect(ladderOf(parseBoard(board), undefined)[0]!.siteId).toBeTruthy();
+  });
+
   it('names the champions of archive games by id', () => {
     // The archive sends games without champion names (apps/mayhem-site/src/archive-entries.ts).
     const text = JSON.parse(profile('me'));
@@ -159,6 +171,12 @@ describe('Mayhem app player', () => {
     ]);
     expect(rows.at(-1)).toMatchObject({ name: 'P130', me: true });
     expect(ladderOf(many, 'a2').filter((r) => r.me)).toHaveLength(1);
+    // Home: two places above and below, cut at both ends, nothing when not listed.
+    expect(aroundOf(many, 'a13').map((r) => r.place)).toEqual([11, 12, 13, 14, 15]);
+    expect(aroundOf(many, 'a1').map((r) => r.place)).toEqual([1, 2, 3]);
+    expect(aroundOf(many, 'a13').find((r) => r.me)?.name).toBe('P13');
+    expect(aroundOf(many, 'x9')).toEqual([]);
+    expect(aroundOf(many, undefined)).toEqual([]);
   });
 
   it('draws the MP curve from two games on', () => {

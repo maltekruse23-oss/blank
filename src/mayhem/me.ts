@@ -3,7 +3,7 @@
 // website's answers are checked strictly by aramSite.ts; what the pages need is taken from there.
 // Values the website does not give stay null and show as "–", never 0.
 import { isTauri } from '@tauri-apps/api/core';
-import { readOwnRanks, type OwnRanks } from '../adapters/aramSite';
+import { readOwnRanks, readPlayer, type OwnRanks } from '../adapters/aramSite';
 import { gradeOf, type Grade } from '../features/aram/aramPerformance';
 import type { Rank, Step } from '../features/aram/aramRating';
 import { parseBoard, parseProfile, type Ranked } from '../features/aram/aramSite';
@@ -50,6 +50,8 @@ export type MeView = {
 export type LadderRow = {
   place: number;
   name: string;
+  /** The public id on mayhemstats.lol (opens the player card). */
+  siteId: string | null;
   rank: Rank | null;
   me: boolean;
   /** The profile icon (Data Dragon id); null when the website has none. */
@@ -69,6 +71,8 @@ export type MeState =
       siteId: string | null;
       me: MeView | null;
       ladder: LadderRow[];
+      /** Two places above and below the player (Home); empty when not on the ladder. */
+      around: LadderRow[];
       mock: boolean;
     };
 
@@ -149,26 +153,92 @@ export function withChampions(
   champions: readonly { id: number; name: string; alias: string }[],
 ): MeState {
   if (me.state !== 'ready' || !me.me) return me;
+  return { ...me, me: namedView(me.me, champions) };
+}
+
+function namedView(
+  view: MeView,
+  champions: readonly { id: number; name: string; alias: string }[],
+) {
   const named = <T extends Champ>(c: T): T => {
     if (c.name) return c;
     const known = champions.find((k) => k.id === c.championId);
     return { ...c, name: known?.name ?? '–', alias: c.alias ?? known?.alias ?? null };
   };
-  const { main, recent } = me.me;
-  return { ...me, me: { ...me.me, main: main && named(main), recent: recent.map(named) } };
+  return { ...view, main: view.main && named(view.main), recent: view.recent.map(named) };
 }
+
+/** Another player's card (PlayerCard.tsx): their profile on mayhemstats.lol. */
+export type PlayerState =
+  | { state: 'loading' }
+  /** mayhemstats.lol does not list the player. */
+  | { state: 'missing' }
+  | { state: 'failed' }
+  | { state: 'ready'; name: string; me: MeView; mock: boolean };
+
+/** The answer of mayhem_player; `board` gives the place among everyone (empty: none). */
+export function playerState(
+  text: string | null,
+  board: Ranked[],
+  champions: readonly { id: number; name: string; alias: string }[],
+): PlayerState {
+  if (!text) return { state: 'missing' };
+  try {
+    const profile = parseProfile(text);
+    return {
+      state: 'ready',
+      name: profile.name,
+      me: namedView(meView(profile, board), champions),
+      mock: false,
+    };
+  } catch {
+    return { state: 'failed' };
+  }
+}
+
+/** A player by public id or PUUID; the browser preview shows the mock player under their name. */
+export const loadPlayer = (
+  id: string,
+  name: string,
+  champions: readonly { id: number; name: string; alias: string }[],
+): Promise<PlayerState> =>
+  isTauri()
+    ? readPlayer(id).then(
+        (text) => playerState(text, [], champions),
+        (): PlayerState => ({ state: 'failed' }),
+      )
+    : Promise.resolve(
+        MOCK_STATE.state === 'ready' && MOCK_STATE.me
+          ? { state: 'ready', name, me: MOCK_STATE.me, mock: true }
+          : { state: 'missing' },
+      );
 
 /** The top of the leaderboard in the website's order, and the player below it when further down. */
 export function ladderOf(board: Ranked[], siteId: string | undefined): LadderRow[] {
   const rows = board.map((p, i) => ({
     place: i + 1,
     name: p.name,
+    siteId: p.siteId ?? null,
     rank: p.rank,
     me: siteId !== undefined && p.siteId === siteId,
     icon: p.icon ?? null,
   }));
   const own = rows.find((r) => r.me && r.place > LADDER);
   return [...rows.slice(0, LADDER), ...(own ? [own] : [])];
+}
+
+/** The player's place with up to two neighbours on each side; empty when not listed. */
+export function aroundOf(board: Ranked[], siteId: string | undefined): LadderRow[] {
+  const i = siteId === undefined ? -1 : board.findIndex((p) => p.siteId === siteId);
+  if (i < 0) return [];
+  return board.slice(Math.max(0, i - 2), i + 3).map((p, j) => ({
+    place: Math.max(0, i - 2) + j + 1,
+    name: p.name,
+    siteId: p.siteId ?? null,
+    rank: p.rank,
+    me: p.siteId === siteId,
+    icon: p.icon ?? null,
+  }));
 }
 
 /** The MP curve's box (an SVG viewBox). */
@@ -212,6 +282,7 @@ export function ownState(answer: OwnRanks | null): MeState {
       siteId: profile?.siteId ?? null,
       me: profile && meView(profile, board),
       ladder: ladderOf(board, profile?.siteId),
+      around: aroundOf(board, profile?.siteId),
       mock: false,
     };
   } catch {

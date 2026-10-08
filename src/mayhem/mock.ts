@@ -87,9 +87,9 @@ const LADDER = NAMES.map((name, i) => {
       : i < 6
         ? rank(6, null, 420 - i * 40)
         : rank(5 - Math.floor((i - 6) / 8), 1 + Math.floor(((i - 6) % 8) / 2), 80 - (i % 2) * 35);
-  return { name, rank: r, icon: 500 + i * 37 };
+  return { name, siteId: `a${i + 2}`, rank: r, icon: 500 + i * 37 };
 });
-LADDER.splice(6, 0, { name: 'Example#EUW', rank: rank(5, 1, 88), icon: 29 });
+LADDER.splice(6, 0, { name: 'Example#EUW', siteId: 'a1', rank: rank(5, 1, 88), icon: 29 });
 
 export const MOCK_STATE: MeState = {
   state: 'ready',
@@ -146,6 +146,7 @@ export const MOCK_STATE: MeState = {
     history: [],
   },
   ladder: LADDER.map((p, i) => ({ place: i + 1, ...p, me: p.name === 'Example#EUW' })),
+  around: LADDER.slice(4, 9).map((p, i) => ({ place: i + 5, ...p, me: p.name === 'Example#EUW' })),
 };
 
 const CHAMPS: [number, string, string, number, number][] = [
