@@ -589,6 +589,46 @@ pub async fn aram_site_profile(app: AppHandle, puuid: String) -> Result<Option<S
     read_json(&site_client()?, &format!("/api/players/{puuid}")).await
 }
 
+/// The Mayhem app's rank (mayhem.rs, ROADMAP "Jetzt 2"): the player signed in to the League client,
+/// their profile and the leaderboard from the Site, as JSON text the app checks strictly
+/// (aramSite.ts). The Mayhem app has no settings and uploads nothing, so this only reads: the one
+/// thing that goes out is the user's own PUUID in the address.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OwnRanks {
+    /// The Riot ID from the client ("Name#TAG"), also when the Site does not know the player.
+    pub name: String,
+    pub board: Option<String>,
+    /// None: the Site has no profile of the player.
+    pub me: Option<String>,
+}
+
+/// The signed-in player's PUUID and Riot ID, if the client names a plain one.
+fn own_player(me: &super::Summoner) -> Option<(String, String)> {
+    (super::valid_puuid(&me.puuid) && plain_id(&me.puuid)).then(|| {
+        (
+            me.puuid.clone(),
+            super::riot_id(&me.game_name, &me.tag_line, ""),
+        )
+    })
+}
+
+/// None while the client is closed or nobody is signed in.
+#[tauri::command]
+pub async fn mayhem_ranks() -> Result<Option<OwnRanks>, String> {
+    let Some(lcu) = super::Lcu::connect()? else {
+        return Ok(None);
+    };
+    let summoner: super::Summoner = lcu.get(super::SUMMONER).await?;
+    let Some((puuid, name)) = own_player(&summoner) else {
+        return Ok(None);
+    };
+    let http = site_client()?;
+    let me = read_json(&http, &format!("/api/players/{puuid}")).await?;
+    let board = read_json(&http, "/api/leaderboard").await?;
+    Ok(Some(OwnRanks { name, board, me }))
+}
+
 fn site_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
@@ -621,6 +661,28 @@ mod tests {
         assert!(!plain_id("a/../b"));
         assert!(!plain_id("a?x=1"));
         assert!(!plain_id(&"a".repeat(101)));
+    }
+
+    #[test]
+    fn only_a_signed_in_player_with_a_plain_puuid_is_asked_for() {
+        let summoner = |puuid: &str, name: &str, tag: &str| super::super::Summoner {
+            puuid: puuid.into(),
+            game_name: name.into(),
+            tag_line: tag.into(),
+            profile_icon_id: 1,
+        };
+        let id = "0123abcd-0123-abcd-0123-0123456789ab";
+        assert_eq!(
+            own_player(&summoner(id, "Name", "EUW")),
+            Some((id.into(), "Name#EUW".into()))
+        );
+        // Nobody signed in: the client answers with an empty PUUID.
+        assert_eq!(own_player(&summoner("", "", "")), None);
+        assert_eq!(
+            own_player(&summoner("../api/leaderboard-xxxxxxxxxxxxxxx", "a", "b")),
+            None
+        );
+        assert_eq!(own_player(&summoner(&"a".repeat(101), "a", "b")), None);
     }
 
     #[test]

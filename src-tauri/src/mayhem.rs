@@ -3,8 +3,9 @@
 //! built with its own config (`tauri.mayhem.conf.json`, `pnpm mayhem:build`). One window, a
 //! desktop dashboard in the look "Arena" (user's wish 07.10.2026, MAYHEM-DESIGN.md): Home, the
 //! Champ-Karte of the ARAM Mayhem champion select (aram_live.rs), augment and champion tier lists
-//! (arammeta.com, `mayhem_tiers`) and the rank; nothing else of blank.: no tray, popouts, settings
-//! or stored data, and it never writes into the client.
+//! (arammeta.com, `mayhem_tiers`) and the signed-in player's rank with the leaderboard
+//! (mayhemstats.lol, read-only, `mayhem_ranks` in aram_website.rs); nothing else of blank.: no
+//! tray, popouts, settings or stored data, and it never writes into the client.
 //!
 //! The client is looked for every few seconds (the lockfile next to `LeagueClientUx.exe`, as blank.
 //! does via pc.rs); while it runs, the card follows its champion select. Read-only, as in blank.
@@ -36,6 +37,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::aram_champ_watch,
             crate::aram::live::aram_champ_info,
             crate::aram::live::mayhem_tiers,
+            crate::aram::website::mayhem_ranks,
             league_client_open,
         ])
         .run(context)
@@ -143,6 +145,7 @@ mod tests {
         let capability = json("capabilities/mayhem.json");
         assert_eq!(capability["windows"], serde_json::json!([WINDOW]));
         let permissions = capability["permissions"].as_array().expect("permissions");
+        assert!(permissions.contains(&Value::from("allow-mayhem-ranks")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
     }
 

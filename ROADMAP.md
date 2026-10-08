@@ -22,6 +22,7 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 2. **Mayhem-App: echter Spieler und Rang** (malte: „mache alles“, 08.10.2026)
    Ziel: Home und Rang in `mayhem.exe` zeigen den angemeldeten Spieler und die Rangliste von mayhemstats.lol statt Beispieldaten.
    Fertig, wenn: Mit laufendem Client stehen eigener Rang und Rangliste da, ohne Client oder ohne Eintrag ein klarer Hinweis („nicht in der Datenbank“), der Mock-Hinweis ist weg. Nur die eigene Spieler-Kennung geht hinaus, nur lesend.
+   Stand 08.10.2026: gebaut (PR `claude/mayhem-echter-rang`, Rust `mayhem_ranks`, `src/mayhem/me.ts`), Mock nur noch in der Browser-Vorschau. Offen: Prüfung mit echtem Client auf malte's PC (VALIDATION).
 
 ## Als Nächstes
 

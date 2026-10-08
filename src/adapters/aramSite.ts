@@ -26,3 +26,11 @@ export function onUploadStatus(
 /** One listed player's profile as JSON text, or null (upload not allowed, no profile). */
 export const readSiteProfile = (puuid: string): Promise<string | null> =>
   isTauri() ? invoke<string | null>('aram_site_profile', { puuid }) : Promise.resolve(null);
+
+/** The Mayhem app's own rank (aram_website.rs, mayhem_ranks; read-only, only the own PUUID goes
+ * out): the signed-in Riot ID with the website's answers as JSON text, or null while the League
+ * client is closed or nobody is signed in. */
+export type OwnRanks = { name: string; board: string | null; me: string | null };
+
+export const readOwnRanks = (): Promise<OwnRanks | null> =>
+  isTauri() ? invoke<OwnRanks | null>('mayhem_ranks') : Promise.resolve(null);

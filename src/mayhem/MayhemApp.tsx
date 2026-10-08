@@ -11,6 +11,7 @@ import {
 import { champView, SAMPLE_CHAMP, type ChampView } from '../features/aram/champCard';
 import { MayhemCard } from './MayhemCard';
 import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
+import { loadMe, type MeState } from './me';
 import { loadTiers } from './tiers';
 
 export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'rank';
@@ -38,6 +39,9 @@ function requestTiers(set: (tiers: TierState) => void) {
   );
 }
 
+/** Home and Rang ask mayhemstats.lol again when opened after this long (ranks change per game). */
+const ME_FRESH_MS = 2 * 60_000;
+
 /** Swaps and rerolls come in quick turns: the card waits for the pick to settle this long. */
 const SETTLE_MS = 600;
 
@@ -59,11 +63,24 @@ export function MayhemApp() {
   const asked = useRef(0);
   const [page, setPage] = useState<Page>('home');
   const [tiers, setTiers] = useState<TierState | null>(null);
+  const [me, setMe] = useState<MeState>({ state: 'loading' });
+  const meAsked = useRef({ ask: 0, at: 0 });
 
   const fetchTiers = () => requestTiers(setTiers);
+  /** The player from mayhemstats.lol; a shown player stays while it is asked again. */
+  const fetchMe = () => {
+    const ask = ++meAsked.current.ask;
+    meAsked.current.at = Date.now();
+    setMe((old) => (old.state === 'ready' ? old : { state: 'loading' }));
+    void loadMe().then((next) => ask === meAsked.current.ask && setMe(next));
+  };
+  const fetchMeRef = useRef(fetchMe);
+  fetchMeRef.current = fetchMe;
   const open = (next: Page) => {
     setPage(next);
     if (next !== 'champ' && next !== 'rank' && (!tiers || tiers.state === 'failed')) fetchTiers();
+    const stale = me.state !== 'ready' || Date.now() - meAsked.current.at > ME_FRESH_MS;
+    if ((next === 'home' || next === 'rank') && stale) fetchMe();
   };
 
   const show = (champ: HeldChamp, sample: boolean) => {
@@ -83,6 +100,11 @@ export function MayhemApp() {
 
   // Home shows the top augments: the list is asked for once at the start.
   useEffect(() => requestTiers(setTiers), []);
+
+  // The player is asked for when the client opens or closes (also at the start).
+  useEffect(() => {
+    if (client !== null) fetchMeRef.current();
+  }, [client]);
 
   useEffect(() => {
     void leagueClientOpen().then(setClient);
@@ -140,13 +162,18 @@ export function MayhemApp() {
       <main className="mayhem-main" key={page}>
         <div className="mayhem-wrap">
           {page === 'home' ? (
-            <HomePage tiers={tiers ?? { state: 'loading' }} onOpen={open} />
+            <HomePage
+              tiers={tiers ?? { state: 'loading' }}
+              me={me}
+              onOpen={open}
+              onRetry={fetchMe}
+            />
           ) : page === 'augments' ? (
             <AugmentsPage tiers={tiers ?? { state: 'loading' }} onRetry={fetchTiers} />
           ) : page === 'champions' ? (
             <ChampionsPage tiers={tiers ?? { state: 'loading' }} onRetry={fetchTiers} />
           ) : page === 'rank' ? (
-            <RankPage />
+            <RankPage me={me} onRetry={fetchMe} />
           ) : shown.state === 'ready' ? (
             <MayhemCard
               key={`${shown.view.championId}-${shown.sample}`}

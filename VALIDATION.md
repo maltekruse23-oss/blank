@@ -6,6 +6,12 @@
 - Neue Tests: `settingsFile.test.ts` (Export → Import, Ablehnung fremder/neuerer/leerer Dateien, Musik, Twitch, Programme, Rückfall auf Standardwerte), `mayhemCard.test.ts` (Spielezahl, Item-Bild), Rust `mayhem::tests` (Kennung, Fenster-Label und -Titel, Capability, Befehl und Ereignis im Adapter).
 - Geprüft auf Windows: `pnpm format:check` (geänderte Dateien), Lint, Tests, Build, `extension:build`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 
+## Nachtrag 08.10.2026: Mayhem-App mit echtem Spieler und Rang
+
+- Home und Rang in `mayhem.exe` lesen den im League-Client angemeldeten Spieler (`/lol-summoner/v1/current-summoner`) und fragen mayhemstats.lol nach seinem Profil und der Rangliste (Rust `mayhem_ranks` in `aram_website.rs`, nur lesend, nur die eigene PUUID geht hinaus, Antworten prüft `aramSite.ts` streng). Zustände: Client zu/niemand angemeldet („Starte League“), lädt, keine Verbindung (mit „Nochmal“), nicht in der Datenbank (Rangliste trotzdem), Spieler mit Rang bzw. Einstufung x/5. Fehlende Werte „–“. Mock nur noch in der Browser-Vorschau (`src/mayhem/mock.ts`, Abzeichen „Mock“).
+- Geprüft: Rust-Test `only_a_signed_in_player_with_a_plain_puuid_is_asked_for`, `mayhem::tests` (Capability mit `allow-mayhem-ranks`), Vitest `src/mayhem/me.test.ts` (Profil und Rangliste in der Form der Website → Rang, meistgespielter Champion, Rekorde, letzte Spiele, Platz, Top 10 plus eigener Platz, „–“ statt 0, ungültige Antworten → Fehler, MP-Kurve, „vor … h“), build/lint/test/`mayhem:web`/fmt/clippy/`cargo test --lib`, Browser-Vorschau von Home und Rang mit den Mock-Werten.
+- Nicht geprüft (braucht malte's PC mit Client): `pnpm mayhem:dev`/`mayhem.exe` mit angemeldetem Client (eigener Rang, eigene Zeile in der Rangliste hervorgehoben), mit geschlossenem Client („Starte League“), mit einem Konto ohne Eintrag („Nicht in der Datenbank“), ohne Internet („Keine Verbindung“, „Nochmal“). Größe und Ladezeit der Rangliste (bis 16 MB erlaubt) beim Öffnen von Home.
+
 ## Nachtrag 08.10.2026: Augments im Spiel (Etappe 2b)
 
 - Settings → Popouts → Meldungen: „Augments im Spiel“ (Standard aus). Geprüft: Rust-Tests `cards_are_read_in_columns_left_to_right` (Spalten, umbrochene Namen, ein falscher Buchstabe von acht), `no_text_no_offer`, Vitest `Angebot im Spiel`, build/lint/test/clippy.

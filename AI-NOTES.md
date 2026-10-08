@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: echter Spieler und Rang — 08.10.2026
+
+- ROADMAP „Jetzt 2“ (malte: „mache alles“). Rust `mayhem_ranks` (`aram_website.rs`, in `mayhem.rs`, `build.rs`, `capabilities/mayhem.json`): Spieler aus dem Client, dann `/api/players/<puuid>` und `/api/leaderboard` über dieselben Helfer wie blank. (`read_json`, `site_client`, `plain_id`), aber ohne die Upload-Freigabe (`enabled`), weil die Mayhem-App keine Einstellungen hat und nichts hochlädt. Antwort als JSON-Text, geprüft mit `parseBoard`/`parseProfile` aus `aramSite.ts`.
+- Frontend: `src/mayhem/me.ts` (Zustände `loading`/`closed`/`failed`/`ready`, `me: null` = nicht in der Datenbank; `meView`, `ladderOf`, `curvePath`, `ago`), Adapter `readOwnRanks` in `src/adapters/aramSite.ts`. Geladen beim Öffnen/Schließen des Clients und beim Öffnen von Home/Rang, wenn älter als 2 min. Home: Hero = meistgespielter Champion (Ø Note aus den Perzentilen), letzte Spiele, Rang-Kachel mit echter MP-Kurve (Leiterstand nach den letzten 20 Spielen), Spiele, Ø Note, Rekorde (höchster Schaden, meiste Kills). Das erfundene „Ziel heute“ ist weg; stattdessen nur ohne Rang eine Einstufungs-Kachel. Rang: Rangkarte, Top 10 der Rangliste plus eigene Zeile, Matchverlauf (6 Spiele).
+- Entscheidungen ohne Rückfrage: Server-Kürzel in der Rangliste weggelassen (`parseBoard` liest es nicht), statt Champion-Bild das Wappen; Zeitraum der Zahlen = alle Spiele, die das Profil liefert (Standard-Saison der Website), daher „meistgespielter Champion“ statt „diese Saison“.
+- Branch auf `claude/roadmap-stand` (#66) aufgesetzt, weil „Jetzt 2“ erst dort steht. Offen: Test auf malte's PC (VALIDATION).
+
 ## Etappe 2b: Augments im Spiel — 08.10.2026
 
 - Benutzerwahl (Empfehlung „Etappe 2b“; „noch keine Tests, erstmal weiter“). `src-tauri/src/aram/offers.rs`: Start bei Spielbeginn (`game_started` → `offers::follow`), Stufe aus Live Client Data, nach jedem Aufstieg Ausschnitt + Windows-OCR alle 250 ms, Spalten → Namen (Hamming ≤ 1/8, `ponytail:`-Grenze), Ereignis `aram-offers` mit Champ und gewählter Richtung (`aram_champ_build`, vorher `aram_item_set`, merkt die Wahl). Frontend: `useChampCard` zeigt die Champ-Karte mit `offer` (`offerRows`), Reroll per `updatePopout`.

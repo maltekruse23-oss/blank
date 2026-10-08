@@ -1321,8 +1321,17 @@ li[data-win='false'] .mayhem-game-main b {
 }
 
 .mayhem-place {
-  width: 16px;
+  min-width: 16px;
   font: 800 14px var(--font-title);
+}
+
+/* The player's own row (also below the top ten) and lost points (me.ts). */
+.mayhem-ladder li[data-me='true'] {
+  border-color: var(--accent);
+}
+
+.mayhem-mp[data-down='true'] {
+  color: var(--down);
 }
 
 li[data-place='1'] .mayhem-place {

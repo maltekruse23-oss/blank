@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mayhem-ranks"
+description = "Enables the mayhem_ranks command without any pre-configured scope."
+commands.allow = ["mayhem_ranks"]
+
+[[permission]]
+identifier = "deny-mayhem-ranks"
+description = "Denies the mayhem_ranks command without any pre-configured scope."
+commands.deny = ["mayhem_ranks"]
