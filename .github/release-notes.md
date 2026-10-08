@@ -8,14 +8,14 @@
 
 ## New in the Mayhem app
 
-- **Update button:** Bottom left in the sidebar. It shows what a new version brings and installs it with one click.
-- **Champion select:** Hold a champion in ARAM Mayhem and the app shows its best builds and every augment in tiers S to D.
-- **Tier lists:** Augments, champions, items and patch changes from arammeta.com.
-- **Combos and offmeta builds:** Augments and items that work well together, for every champion.
-- **Your rank:** Your rank and the leaderboard from mayhemstats.lol.
-- **Records:** Who holds the records on mayhemstats.lol, all time or this season, with your own place.
-- **Find my Mayhem rank:** One click puts your Mayhem games on mayhemstats.lol and shows your rank; after that every new game uploads by itself while the app runs. Remove yourself anytime at mayhemstats.lol/privacy/remove.
-- **After every game:** A card with your result, damage, records you set and how your rank changed.
+- **New look:** No Windows title bar any more, slim own buttons top right. The app has its own gold "m" icon.
+- **Grades as letters:** Every grade is a bold colored letter now (F to MAYHEM) instead of a picture.
+- **Rank page:** The leaderboard comes first, with profile icons, rank emblems and your own row highlighted.
+- **Match history:** A new tab with all your rated games. Click one to open it on mayhemstats.lol.
+- **Records:** Categories where you have a place come first.
+- **Custom games:** ARAM Mayhem custom games are recognised too (champion select and the card after the game; they don't count for the rank).
+- **Faster:** Pages load faster because connections are reused.
+- **Tidier sidebar:** Items and Patch are gone; Home, the arammeta pages and your own pages are split by thin lines.
 
 ## Download
 
