@@ -100,6 +100,27 @@ Rekord-Arten bekommen auf der Rekorde-Seite keine eigene Farbe mehr.
 - Symbole: Rang-Wappen nur für Ränge, Noten-Symbole nur für Noten, Tierliste mit Buchstaben S bis D.
   Die Noten-Symbole haben einen schwarzen Hintergrund: `mix-blend-mode: screen`.
 
+## Übersicht vor Vollständigkeit (Regel für App und Website)
+
+Benutzerregel 08.10.2026: „die Seite mit Stats wirkt überladen und erschlagend … alles übersichtlich
+und easy zu checken, mache dafür eine Regel für die App und Website.“ Gilt für jede Seite, Karte und
+jedes Popout der Mayhem-App und für mayhemstats.lol; bei neuen Seiten vorher prüfen.
+
+- **Eine Frage pro Seite:** Jede Seite beantwortet zuerst eine Frage („Was spiele ich auf Yasuo?“).
+  Die Antwort steht oben und ist in drei Sekunden zu sehen; alles andere kommt darunter.
+- **Eine Hauptzahl pro Zeile:** Zeilen zeigen eine große Zahl (meist die Siegquote) und höchstens
+  eine kleine Zusatzangabe (Spiele). Weitere Werte (Lift, Pickrate, „erwartet“, Slots) nur im Tooltip
+  oder nach Aufklappen, nie alle sichtbar nebeneinander.
+- **Wenig auf einmal:** höchstens drei Abschnitte sichtbar ohne Scrollen, Listen zeigen zuerst 5
+  Einträge, der Rest hinter „Mehr“. Reiter statt langer Seiten.
+- **Klartext statt Fachwort:** keine Abkürzungen wie „Pp“, „Lift“, „Pick“ ohne Erklärung; lieber
+  Worte wie „stark“, „selten gewählt“. Rohwerte wie „1,85“ nicht zeigen, wenn ein Balken oder ein
+  Wort reicht.
+- **Hervorheben statt aufzählen:** das Beste einer Liste sichtbar markieren (Gold, „Top“), damit man
+  nicht selbst vergleichen muss.
+- **Ehrlich bleibt Pflicht:** Weniger zeigen heißt nie verfälschen. Spielzahl bei jeder Quote bleibt
+  erreichbar (klein oder im Tooltip), „–“ für fehlende Werte, Quellen weiter benannt.
+
 ## Texte
 
 Kein Gedankenstrich als Stilmittel (auch kein „–“ mitten im Satz), höchstens ein „·“ pro Zeile,
