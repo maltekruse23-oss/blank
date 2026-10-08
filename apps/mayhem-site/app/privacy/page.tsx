@@ -1,5 +1,1 @@
-import View from '../views/privacy';
-
-export default function Page() {
-  return <View lang="en" />;
-}
+export { default } from '../views/privacy';

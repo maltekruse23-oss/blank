@@ -6,9 +6,9 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { MIN_SECONDS, performanceOf } from '../../src/features/aram/aramPerformance';
 import { seatEntry, type GamePlayer, type GameView } from '../../src/game';
-import { axesIn, axesOf, mvpOf } from '../../src/insights';
+import { AXES, axesOf, mvpOf } from '../../src/insights';
 import { Augment, GradeChip, GradeIcon, Img, Problem, Tabs } from '../ui/bits';
-import { locale, useLang } from '../ui/i18n';
+import { LOCALE, num } from '../ui/format';
 import {
   championImage,
   duration,
@@ -23,17 +23,16 @@ import {
 
 type Dragon = ReturnType<typeof useDragon>;
 type Measure = 'damage' | 'tank' | 'care' | 'gold';
-type T = (en: string, de: string) => string;
 
-const MEASURES: { id: Measure; label: [en: string, de: string]; of: (p: GamePlayer) => number }[] = [
-  { id: 'damage', label: ['Damage', 'Schaden'], of: (p) => p.damage },
-  { id: 'tank', label: ['Damage taken', 'Eingesteckt'], of: (p) => p.taken + p.mitigated },
-  { id: 'care', label: ['Healing & shields', 'Heilen & Schilde'], of: (p) => p.healed + p.shielded },
-  { id: 'gold', label: ['Gold', 'Gold'], of: (p) => p.gold },
+const MEASURES: { id: Measure; label: string; of: (p: GamePlayer) => number }[] = [
+  { id: 'damage', label: 'Damage', of: (p) => p.damage },
+  { id: 'tank', label: 'Damage taken', of: (p) => p.taken + p.mitigated },
+  { id: 'care', label: 'Healing & shields', of: (p) => p.healed + p.shielded },
+  { id: 'gold', label: 'Gold', of: (p) => p.gold },
 ];
 
-const sideName = (team: number, t: T) =>
-  team === 100 ? t('Blue side', 'Blaue Seite') : team === 200 ? t('Red side', 'Rote Seite') : `Team ${team}`;
+const sideName = (team: number) =>
+  team === 100 ? 'Blue side' : team === 200 ? 'Red side' : `Team ${team}`;
 
 export default function GamePage() {
   const params = useParams<{ id: string }>();
@@ -42,13 +41,12 @@ export default function GamePage() {
   const dragon = useDragon();
   const [picked, setPicked] = useState<number | null>(null);
   const [measure, setMeasure] = useState<Measure>('damage');
-  const { lang, t, href } = useLang();
 
   const marks = useMemo(() => (data ? data.players.map((_, i) => performanceOf(seatEntry(data, i))) : []), [data]);
 
-  if (!/^\d{1,13}$/.test(params.id)) return <Problem message={t('Game not found', 'Spiel nicht gefunden')} missing />;
+  if (!/^\d{1,13}$/.test(params.id)) return <Problem message="Game not found" missing />;
   if (error) return <Problem message={error} missing={missing} />;
-  if (!data) return <p className="empty">{t('Loading game …', 'Spiel wird geladen …')}</p>;
+  if (!data) return <p className="empty">Loading game …</p>;
 
   const mvp = mvpOf(marks);
   const focused = focus ? data.players.findIndex((p) => p.puuid === focus) : -1;
@@ -70,8 +68,8 @@ export default function GamePage() {
 
   return (
     <>
-      <Link className="back" href={href(focus ? '/players/' + encodeURIComponent(focus) : '/')}>
-        ← {focus ? t('Profile', 'Profil') : t('Leaderboard', 'Rangliste')}
+      <Link className="back" href={focus ? '/players/' + encodeURIComponent(focus) : '/'}>
+        ← {focus ? 'Profile' : 'Leaderboard'}
       </Link>
 
       <section
@@ -86,15 +84,15 @@ export default function GamePage() {
                 <span key={team} className="side-score" data-side={team}>
                   {i > 0 && <span className="faint vs">:</span>}
                   {data.players.filter((p) => p.team === team).reduce((n, p) => n + p.kills, 0)}
-                  <small className={won ? 'up' : 'down'}>{won ? t('Win', 'Sieg') : t('Loss', 'Niederlage')}</small>
+                  <small className={won ? 'up' : 'down'}>{won ? 'Win' : 'Loss'}</small>
                 </span>
               );
             })}
           </h1>
           <div className="facts num">
             <span>
-              {when.toLocaleDateString(locale(lang), { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })},{' '}
-              {when.toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit' })}
+              {when.toLocaleDateString(LOCALE, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })},{' '}
+              {when.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}
             </span>
             <span>{duration(data.seconds)} min</span>
             {data.patch && <span>Patch {data.patch}</span>}
@@ -104,18 +102,12 @@ export default function GamePage() {
 
       {data.disputed && (
         <div className="notice" role="note">
-          {t(
-            "The uploads of this game contradict each other, so it doesn't count for the rating.",
-            'Die Uploads zu diesem Spiel widersprechen sich. Es zählt deshalb nicht für die Wertung.',
-          )}
+          {"The uploads of this game contradict each other, so it doesn't count for the rating."}
         </div>
       )}
       {data.source === 'uploads' && (
         <div className="notice" role="note">
-          {t(
-            "This game isn't in the raw data archive yet. Names only come from players who upload themselves and from their friends in the game.",
-            'Dieses Spiel liegt noch nicht im Rohdatenarchiv. Namen gibt es deshalb nur von Spielern, die selbst hochladen, und von ihren Freunden im Spiel.',
-          )}
+          {"This game isn't in the raw data archive yet. Names only come from players who upload themselves and from their friends in the game."}
         </div>
       )}
 
@@ -136,19 +128,19 @@ export default function GamePage() {
         ))}
       </div>
       <p className="fine game-hide">
-        {t("You're in this game and don't want to be named?", 'Du stehst hier und möchtest nicht genannt werden?')}{' '}
-        <Link href={href(`/privacy/remove?game=${data.gameId}`)}>{t('Hide name', 'Namen ausblenden')}</Link>
+        {"You're in this game and don't want to be named?"}{' '}
+        <Link href={`/privacy/remove?game=${data.gameId}`}>Hide name</Link>
       </p>
 
       <div className="grid cols-main">
         <div className="card">
           <div className="card-head">
-            <h2>{t('Comparison', 'Vergleich')}</h2>
+            <h2>Comparison</h2>
             <Tabs<Measure>
-              label={t('Stat', 'Wert')}
+              label="Stat"
               value={measure}
               onChange={setMeasure}
-              options={MEASURES.map((m) => ({ id: m.id, label: t(...m.label) }))}
+              options={MEASURES.map((m) => ({ id: m.id, label: m.label }))}
             />
           </div>
           <Compare view={data} measure={measure} nameOf={nameOf} dragon={dragon} />
@@ -174,23 +166,22 @@ function Team(props: {
 }) {
   const { team, view, marks, mvp, shown, onPick, nameOf, linkOf, dragon } = props;
   const augments = useAugments();
-  const { t, num, href } = useLang();
   const rows = view.players.map((p, i) => ({ p, i })).filter(({ p }) => p.team === team);
   const won = rows.some(({ p }) => p.win);
   return (
-    <section className="card team-card" data-side={team} aria-label={sideName(team, t)}>
+    <section className="card team-card" data-side={team} aria-label={sideName(team)}>
       <h2>
-        {sideName(team, t)} ·{' '}
-        <span className={won ? 'up' : 'down'}>{won ? t('Win', 'Sieg') : t('Loss', 'Niederlage')}</span>
+        {sideName(team)} ·{' '}
+        <span className={won ? 'up' : 'down'}>{won ? 'Win' : 'Loss'}</span>
       </h2>
       <div className="table-wrap flat">
         <table className="table">
           <thead>
             <tr>
-              <th>{t('Player', 'Spieler')}</th>
-              <th>{t('Grade', 'Note')}</th>
+              <th>Player</th>
+              <th>Grade</th>
               <th className="right">K / D / A</th>
-              <th className="right hide-sm">{t('Damage', 'Schaden')}</th>
+              <th className="right hide-sm">Damage</th>
               <th className="right hide-sm">Gold</th>
               <th className="hide-sm">Items &amp; Augments</th>
             </tr>
@@ -210,14 +201,14 @@ function Team(props: {
                       <span style={{ minWidth: 0 }}>
                         {name ? (
                           link ? (
-                            <Link href={href(profileHref({ puuid: link, name }))} title={name}>
+                            <Link href={profileHref({ puuid: link, name })} title={name}>
                               <b>{riot}</b>
                             </Link>
                           ) : (
                             <b title={name}>{riot}</b>
                           )
                         ) : (
-                          <b className="faint">{t('No name', 'Ohne Namen')}</b>
+                          <b className="faint">No name</b>
                         )}
                         <small>
                           {champ?.name ?? p.champion ?? 'Champion'}
@@ -225,7 +216,7 @@ function Team(props: {
                           {p.level !== null && (
                             <span className="hide-sm">
                               {' '}
-                              · {t('Level', 'Stufe')} {p.level}
+                              · Level {p.level}
                             </span>
                           )}
                         </small>
@@ -236,7 +227,7 @@ function Team(props: {
                     <button
                       className="grade-pick"
                       aria-pressed={i === shown}
-                      title={t('Explain grade', 'Note erklären')}
+                      title="Explain grade"
                       onClick={() => onPick(i)}
                     >
                       {mark ? <GradeChip grade={mark.grade} /> : <span className="faint">–</span>}
@@ -280,7 +271,6 @@ function Team(props: {
 
 function Compare(props: { view: GameView; measure: Measure; nameOf: (p: GamePlayer) => string | null; dragon: Dragon }) {
   const { view, measure, nameOf, dragon } = props;
-  const { num } = useLang();
   const of =MEASURES.find((m) => m.id === measure)!.of;
   const max = Math.max(1, ...view.players.map(of));
   const rows = view.players.map((p, i) => ({ p, i, value: of(p) })).sort((a, b) => b.value - a.value || a.i - b.i);
@@ -317,10 +307,9 @@ function Explain(props: {
   const p = view.players[index];
   const champ = dragon?.champions.get(p.championId);
   const axes = axesOf(seatEntry(view, index));
-  const { lang, t } = useLang();
   return (
     <aside className="card explain" aria-live="polite">
-      <h2>{t('Why this grade', 'Warum diese Note')}</h2>
+      <h2>Why this grade</h2>
       <div className="who">
         {mark ? <GradeIcon grade={mark.grade} size={56} /> : <Img className="champ lg" src={championImage(dragon, champ?.id)} size={44} />}
         <span style={{ minWidth: 0 }}>
@@ -328,35 +317,32 @@ function Explain(props: {
           <small>
             {champ?.name ?? p.champion ?? 'Champion'}
             {mark &&
-              t(
-                ` · better than ${Math.round(mark.pct * 100)}% of all games`,
-                ` · besser als ${Math.round(mark.pct * 100)} % aller Spiele`,
-              )}
+              ` · better than ${Math.round(mark.pct * 100)}% of all games`}
           </small>
         </span>
       </div>
       {!mark || !axes ? (
         <p className="fine" style={{ marginTop: 12 }}>
           {view.seconds < MIN_SECONDS
-            ? t('Games under 8 minutes (remakes) get no grade.', 'Spiele unter 8 Minuten (Remakes) bekommen keine Note.')
-            : t('This game lacks stats the grade needs.', 'Für dieses Spiel fehlen Werte, die die Note braucht.')}
+            ? 'Games under 8 minutes (remakes) get no grade.'
+            : 'This game lacks stats the grade needs.'}
         </p>
       ) : (
         <>
           {mark.afk && (
             <p className="fine" style={{ marginTop: 12 }}>
-              {t('Barely earned any gold: rated as AFK, grade F.', 'Kaum Gold verdient: als abwesend gewertet, Note F.')}
+              Barely earned any gold: rated as AFK, grade F.
             </p>
           )}
           <ul className="axes">
             {axes.map((value, i) => {
-              const label = Object.values(axesIn(lang))[i];
+              const label = Object.values(AXES)[i];
               const word =
                 value > 0.25
-                  ? t('above average', 'über dem Schnitt')
+                  ? 'above average'
                   : value < -0.25
-                    ? t('below average', 'unter dem Schnitt')
-                    : t('as usual', 'wie üblich');
+                    ? 'below average'
+                    : 'as usual';
               return (
                 <li key={label} title={`${label}: ${word}`}>
                   <span className="label">{label}</span>
@@ -375,10 +361,7 @@ function Explain(props: {
             })}
           </ul>
           <p className="fine">
-            {t(
-              `Each axis is the share of the lobby, compared with what ${champ?.name ?? 'this champion'} usually reaches. Win or loss doesn't count. Another grade: tap a player's grade.`,
-              `Jede Achse ist der Anteil an der Lobby, verglichen mit dem, was ${champ?.name ?? 'dieser Champion'} üblicherweise schafft. Sieg oder Niederlage zählt nicht. Andere Note: auf die Note eines Spielers tippen.`,
-            )}
+            {`Each axis is the share of the lobby, compared with what ${champ?.name ?? 'this champion'} usually reaches. Win or loss doesn't count. Another grade: tap a player's grade.`}
           </p>
         </>
       )}

@@ -6,14 +6,12 @@ import type { ReactNode } from 'react';
 import type { Grade } from '../../src/features/aram/aramPerformance';
 import { rankName, TIERS, type Rank } from '../../src/features/aram/aramRating';
 import type { AugmentInfo } from '../../src/augments';
-import { axesIn } from '../../src/insights';
+import { AXES } from '../../src/insights';
 import { augmentImage, knownApiError } from './data';
-import { useLang } from './i18n';
 
 // ---- Grades and ranks ---------------------------------------------------------------------
 
 export function GradeIcon({ grade, size = 46 }: { grade: Grade; size?: number }) {
-  const { t } = useLang();
   return (
     // eslint-disable-next-line @next/next/no-img-element -- static artwork, fixed size
     <img
@@ -21,14 +19,13 @@ export function GradeIcon({ grade, size = 46 }: { grade: Grade; size?: number })
       src={`/grades/${grade.toLowerCase()}.png`}
       width={size}
       height={size}
-      alt={t(`Grade ${grade}`, `Note ${grade}`)}
+      alt={`Grade ${grade}`}
     />
   );
 }
 
 export function GradeChip({ grade, gain, small }: { grade: Grade; gain?: number | null; small?: boolean }) {
-  const { t } = useLang();
-  const label = t(`Grade ${grade}`, `Note ${grade}`);
+  const label = `Grade ${grade}`;
   const title = gain === undefined || gain === null ? label : `${label}, ${gain > 0 ? '+' : ''}${gain} MP`;
   return (
     <span className={'grade' + (gain !== undefined ? ' gain' : '') + (small ? ' sm' : '')} data-g={grade} title={title}>
@@ -72,7 +69,6 @@ export function TierMark({ rank, size }: { rank: Rank | null; size?: number }) {
 export const fillOf = (rank: Rank) => (rank.division === null ? 100 : rank.points);
 
 export function RankLine({ rank, placed }: { rank: Rank | null; placed: number }) {
-  const { t } = useLang();
   return (
     <div className="rank-cell" data-tier={rank?.tier.id}>
       <TierMark rank={rank} />
@@ -87,7 +83,7 @@ export function RankLine({ rank, placed }: { rank: Rank | null; placed: number }
           </>
         ) : (
           <>
-            <b className="muted">{t('Placement', 'Einstufung')}</b> <span className="faint num">{placed}/5</span>
+            <b className="muted">Placement</b> <span className="faint num">{placed}/5</span>
             <div className="mp-bar" aria-hidden>
               <span style={{ width: `${placed * 20}%`, background: 'var(--faint)' }} />
             </div>
@@ -102,24 +98,19 @@ export function RankLine({ rank, placed }: { rank: Rank | null; placed: number }
 
 /** What went wrong, in plain words: something that does not exist (a player, game or
  * champion) with ways on, or a failed load with a way to try again. A known German message of the
- * API is shown in the page's language (useLive already translates its own errors). */
+ * API is shown in English (useLive already translates its own errors). */
 export function Problem({ message: raw, missing = false }: { message: string; missing?: boolean }) {
-  const { t, href } = useLang();
-  const english = knownApiError(raw);
-  const message = english ? t(english, raw) : raw;
+  const message = knownApiError(raw) ?? raw;
   if (missing)
     return (
       <section className="card problem" role="alert">
         <h1>{message}</h1>
         <p className="muted">
-          {t(
-            'The link may be wrong or outdated, or the data was deleted or hidden.',
-            'Der Link ist vielleicht falsch oder veraltet, oder die Daten wurden gelöscht oder ausgeblendet.',
-          )}
+          The link may be wrong or outdated, or the data was deleted or hidden.
         </p>
         <p className="problem-links">
-          <Link href={href('/')}>{t('To the start page', 'Zur Startseite')}</Link>
-          <Link href={href('/leaderboard')}>{t('To the leaderboard', 'Zur Rangliste')}</Link>
+          <Link href="/">To the start page</Link>
+          <Link href="/leaderboard">To the leaderboard</Link>
         </p>
       </section>
     );
@@ -127,7 +118,7 @@ export function Problem({ message: raw, missing = false }: { message: string; mi
     <div className="error" role="alert">
       {message}{' '}
       <button type="button" className="link-button" onClick={() => window.location.reload()}>
-        {t('Reload', 'Neu laden')}
+        Reload
       </button>
     </div>
   );
@@ -222,10 +213,9 @@ export function Histogram({ rows }: { rows: { tier: (typeof TIERS)[number]; play
 
 /** The way through the season: the ladder after each game, tier lines, rise and fall marked. */
 export function LadderChart({ points }: { points: { ladder: number; change: string | null }[] }) {
-  const { t } = useLang();
   const W = 640;
   const H = 200;
-  if (points.length < 2) return <p className="empty">{t('The chart appears after two rated games.', 'Der Verlauf erscheint ab zwei gewerteten Spielen.')}</p>;
+  if (points.length < 2) return <p className="empty">The chart appears after two rated games.</p>;
   const values = points.map((p) => p.ladder);
   const low = Math.max(0, Math.floor((Math.min(...values) - 60) / 100) * 100);
   const high = Math.ceil((Math.max(...values) + 60) / 100) * 100;
@@ -234,7 +224,7 @@ export function LadderChart({ points }: { points: { ladder: number; change: stri
   const line = points.map((p, i) => `${x(i).toFixed(1)},${y(p.ladder).toFixed(1)}`).join(' ');
   const tierLines = TIERS.map((t, i) => ({ tier: t, at: i * 400 })).filter((t) => t.at > low && t.at < high);
   return (
-    <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('MP over the season', 'MP-Verlauf der Saison')}>
+    <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="MP over the season">
       {[0.25, 0.5, 0.75].map((f) => (
         <line key={f} className="grid-line" x1={30} x2={W - 10} y1={10 + f * (H - 30)} y2={10 + f * (H - 30)} />
       ))}
@@ -251,15 +241,15 @@ export function LadderChart({ points }: { points: { ladder: number; change: stri
       {points.map((p, i) =>
         p.change === 'promoted' || p.change === 'demoted' ? (
           <circle key={i} className={p.change === 'promoted' ? 'dot-up' : 'dot-down'} cx={x(i)} cy={y(p.ladder)} r={4.5}>
-            <title>{p.change === 'promoted' ? t('Promotion', 'Aufstieg') : t('Demotion', 'Abstieg')}</title>
+            <title>{p.change === 'promoted' ? 'Promotion' : 'Demotion'}</title>
           </circle>
         ) : null,
       )}
       <text x={30} y={H - 4}>
-        {t('Game 1', 'Spiel 1')}
+        Game 1
       </text>
       <text x={W - 10} y={H - 4} textAnchor="end">
-        {t(`Game ${points.length}`, `Spiel ${points.length}`)}
+        {`Game ${points.length}`}
       </text>
     </svg>
   );
@@ -267,14 +257,13 @@ export function LadderChart({ points }: { points: { ladder: number; change: stri
 
 /** A small line of values 0–1 (the form: percentiles of the last games). */
 export function Sparkline({ values, height = 46 }: { values: number[]; height?: number }) {
-  const { t } = useLang();
   const W = 300;
   if (values.length < 2) return null;
   const x = (i: number) => (i / (values.length - 1)) * W;
   const y = (v: number) => 4 + (1 - v) * (height - 8);
   const line = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
   return (
-    <svg className="chart" viewBox={`0 0 ${W} ${height}`} role="img" aria-label={t('Form over the last games', 'Form der letzten Spiele')}>
+    <svg className="chart" viewBox={`0 0 ${W} ${height}`} role="img" aria-label="Form over the last games">
       <line className="grid-line" x1={0} x2={W} y1={y(0.5)} y2={y(0.5)} />
       <polygon className="area" points={`0,${height} ${line} ${W},${height}`} />
       <polyline className="line" points={line} />
@@ -285,11 +274,10 @@ export function Sparkline({ values, height = 46 }: { values: number[]; height?: 
 /** The five axes of the grade: outside = better than the champion usually is. `compare` draws a
  * second player (the duel). */
 export function Radar({ values, compare }: { values: number[]; compare?: number[] | null }) {
-  const { lang } = useLang();
   const S = 320;
   const c = S / 2;
   const R = 92;
-  const labels = Object.values(axesIn(lang));
+  const labels = Object.values(AXES);
   const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / labels.length;
   // −2 … +2 spreads mapped to 0 … R (0 = the champion's usual game, the dashed ring).
   const r = (v: number) => (Math.max(-2, Math.min(2, v)) + 2) / 4 * R;

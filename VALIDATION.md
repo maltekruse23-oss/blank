@@ -1,5 +1,12 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Website nur Englisch
+
+- Benutzerentscheidung „Website auch Englisch only.“: keine deutschen Seiten und kein Umschalter mehr; alte Adressen (`/de/…` und die deutschen Namen an der Wurzel) leiten mit 308 auf die englische Seite weiter (`apps/mayhem-site/redirects.ts`). API unverändert (Felder und deutsche Fehlermeldungen).
+- Geprüft auf Windows: Website `npx tsc --noEmit`, `npm run lint` (nur die bekannte Warnung in `src/validation.ts`), `npm run build`; frische lokale D1 (Migrationen 0000–0006): `node tests/smoke.mjs` grün (alle Seiten englisch mit `lang="en"`, ohne Umschalter, 16 Weiterleitungen mit 308 und erhaltener Anfrage, 404 „Page not found“), `node tests/all-players.mjs` grün. Vitest `siteRedirects.test.ts` (alle deutschen Adressen, englische bleiben, jedes Ziel ist eine Seite, Formate), `siteExplain.test.ts` angepasst (englische Achse, Saisonstarts „January 8“ …). Repo: `pnpm test` (34 Dateien, 268 Tests), `pnpm lint`, Prettier auf den geänderten Dokumenten.
+- Ansicht: sechs erfundene Spieler in der lokalen D1, Seiten bei 1280 und 390 px (Start, Rangliste, Profil, Spiel, Wertung, Datenschutz, Ausblenden, Mitmachen, API-Anleitung, 404): englisch, kein Querscrollen; Textsuche nach deutschen Wörtern auf allen Seiten ohne Treffer. `/de/spiel/<id>?p=a2` landet im Browser auf `/game/<id>?p=a2`.
+- Nicht grün: `node tests/integration.mjs` bricht beim Live-Strom (SSE) mit „Network connection lost“ im lokalen workerd ab, genauso mit dem unveränderten Stand von `main` (gegengeprüft) – nicht durch diese Änderung; live nicht geprüft (Veröffentlichen über Codex, `apps/mayhem-site/DEPLOY.md`).
+
 ## Nachtrag 08.10.2026: Offmeta-System und Mayhem-Combos
 
 - Live-Prüfung statt ID-Prüfung (es gibt keine ID-Liste mehr): arammetas `tier-list.json` (211 Augments, 114 Items in `itemLut`) und alle 173 Champion-Dateien einmal geladen, Data Dragon 16.18.1 de_DE, und die echte Engine (`champView` → `combosFor`) darauf laufen lassen (Skript im Scratchpad, nicht im Repo). Ergebnis: jeder Champion hat Combos (4–16, Median 14), 324 Meta- und 2 038 Offmeta-Combos; jedes Thema kommt vor (heal 173, crit 125, giant 120, …, ad 5). Größte Popout-Nutzlast mit Combos: Miss Fortune 81,6 KB, Trundle 80,0 KB, Malphite 79,5 KB (Grenze 128 KB).

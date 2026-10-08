@@ -15,16 +15,6 @@ export { MIN_GAMES } from './meta';
 export const BEST_GAMES = 5;
 
 export const ROLES: Record<Role, string> = {
-  Assassin: 'Assassine',
-  Fighter: 'Kämpfer',
-  Mage: 'Magier',
-  Marksman: 'Schütze',
-  Support: 'Unterstützer',
-  Tank: 'Tank',
-};
-
-/** The role names in English (ROLES are the German ones). */
-export const ROLES_EN: Record<Role, string> = {
   Assassin: 'Assassin',
   Fighter: 'Fighter',
   Mage: 'Mage',
@@ -33,8 +23,8 @@ export const ROLES_EN: Record<Role, string> = {
   Tank: 'Tank',
 };
 
-/** The name of a role in a language of the site. */
-export const roleName = (role: Role, lang: 'en' | 'de') => (lang === 'de' ? ROLES : ROLES_EN)[role];
+/** The name of a role. */
+export const roleName = (role: Role) => ROLES[role];
 
 const TOP: readonly Grade[] = ['SSS', 'MAYHEM'];
 

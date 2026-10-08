@@ -2,7 +2,6 @@
 // The period (all time or this season), shared by the records and champions pages.
 import { useState } from 'react';
 import { Tabs } from './bits';
-import { useLang } from './i18n';
 
 export type Scope = 'all' | 'season';
 
@@ -13,15 +12,14 @@ export function useFilters() {
 }
 
 export function Filters({ scope, setScope }: Omit<ReturnType<typeof useFilters>, 'query'>) {
-  const { t } = useLang();
   return (
     <Tabs<Scope>
-      label={t('Period', 'Zeitraum')}
+      label="Period"
       value={scope}
       onChange={setScope}
       options={[
-        { id: 'all', label: t('All time', 'Alle Zeiten') },
-        { id: 'season', label: t('This season', 'Diese Saison') },
+        { id: 'all', label: 'All time' },
+        { id: 'season', label: 'This season' },
       ]}
     />
   );

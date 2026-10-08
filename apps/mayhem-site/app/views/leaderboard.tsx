@@ -10,8 +10,8 @@ import { serverParam, serversIn } from '../../src/servers';
 import ArchiveCounter from '../archive-counter';
 import { GradeChip, Histogram, Img, Problem, RankLine, Tabs, TierMark } from '../ui/bits';
 import { championImage, championKey, profileHref, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from '../ui/data';
-import { useLang } from '../ui/i18n';
 import { meText, useMe } from '../ui/me';
+import { num, season } from '../ui/format';
 
 type View = 'rank' | 'performance';
 
@@ -22,7 +22,6 @@ const PAGE = 50;
 const APEX_MP = { sss: 400, mayhem: 800 } as const;
 
 export default function Ranking() {
-  const { lang, t, href, num, season } = useLang();
   const [view, setView] = useState<View>('rank');
   const [limit, setLimit] = useState(PAGE);
   const { data, error, live } = useLive<Board>('/api/leaderboard');
@@ -37,7 +36,7 @@ export default function Ranking() {
   const players = server ? everyone.filter((p) => p.server === server) : everyone;
   const pickServer = (next: string) => {
     setLimit(PAGE);
-    router.replace(href(next ? `/leaderboard?server=${next.toLowerCase()}` : '/leaderboard'), { scroll: false });
+    router.replace(next ? `/leaderboard?server=${next.toLowerCase()}` : '/leaderboard', { scroll: false });
   };
   const ranks = players.map((p) => p.rank);
   const sorted =
@@ -45,7 +44,7 @@ export default function Ranking() {
       ? players
       : [...players]
           .filter((p) => p.average)
-          .sort((a, b) => b.average!.pct - a.average!.pct || a.name.localeCompare(b.name, lang));
+          .sort((a, b) => b.average!.pct - a.average!.pct || a.name.localeCompare(b.name, 'en'));
   const ranked = players.filter((p) => p.rank).length;
   const me = useMe();
   const myIndex = me ? sorted.findIndex((p) => p.puuid === me.id) : -1;
@@ -60,28 +59,25 @@ export default function Ranking() {
     <>
       <div className="page-head">
         <div>
-          <h1>{t('Leaderboard', 'Rangliste')}</h1>
+          <h1>Leaderboard</h1>
           <p className="page-sub num">
             {season(seasonOf(now))} ·{' '}
             {server && <>{server} · </>}
-            {t(
-              `${num(ranked)} ranked, ${num(players.length - ranked)} in placement, ${data ? num(data.trackedGames) : '–'} games`,
-              `${num(ranked)} eingestuft, ${num(players.length - ranked)} in der Einstufung, ${data ? num(data.trackedGames) : '–'} Spiele`,
-            )}
+            {`${num(ranked)} ranked, ${num(players.length - ranked)} in placement, ${data ? num(data.trackedGames) : '–'} games`}
           </p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
-            {live ? 'Live' : t('Updates every 5 s', 'Aktualisiert alle 5 s')}
+            {live ? 'Live' : 'Updates every 5 s'}
           </span>
         </div>
       </div>
 
       {error && <Problem message={error} />}
 
-      <section className="ladder-top" aria-label={t('Rank distribution', 'Verteilung der Ränge')}>
+      <section className="ladder-top" aria-label="Rank distribution">
         <div className="ladder-dist">
-          <h2>{t('Distribution', 'Verteilung')}</h2>
+          <h2>Distribution</h2>
           <Histogram rows={distributionOf(ranks)} />
         </div>
         <ul className="apex-lines">
@@ -91,15 +87,12 @@ export default function Ranking() {
               <span>
                 <b className="tier-text">{a.tier.name}</b>{' '}
                 <strong className="num">
-                  {t('from', 'ab')} {a.lowest === null ? APEX_MP[a.tier.id as keyof typeof APEX_MP] : a.lowest} MP
+                  from {a.lowest === null ? APEX_MP[a.tier.id as keyof typeof APEX_MP] : a.lowest} MP
                 </strong>
                 <small className="muted">
                   {a.players === 0
-                    ? t(
-                        `Nobody yet, as rare as ${a.tier.id === 'mayhem' ? 'Challenger' : 'Grandmaster'}`,
-                        `Noch niemand, so selten wie ${a.tier.id === 'mayhem' ? 'Challenger' : 'Grandmaster'}`,
-                      )
-                    : t(`${a.players} ${a.players === 1 ? 'player' : 'players'}`, `${a.players} Spieler`)}
+                    ? `Nobody yet, as rare as ${a.tier.id === 'mayhem' ? 'Challenger' : 'Grandmaster'}`
+                    : `${a.players} ${a.players === 1 ? 'player' : 'players'}`}
                 </small>
               </span>
             </li>
@@ -107,24 +100,24 @@ export default function Ranking() {
         </ul>
       </section>
 
-      <section aria-label={t('Table', 'Tabelle')}>
+      <section aria-label="Table">
         <div className="ladder-tools">
           <Tabs<View>
-            label={t('Sort', 'Sortierung')}
+            label="Sort"
             value={view}
             onChange={(v) => {
               setView(v);
               setLimit(PAGE);
             }}
             options={[
-              { id: 'rank', label: t('By rank', 'Nach Rang') },
-              { id: 'performance', label: t('By avg performance', 'Nach Leistung Ø') },
+              { id: 'rank', label: 'By rank' },
+              { id: 'performance', label: 'By avg performance' },
             ]}
           />
           <label className="server-filter">
             <span>Server</span>
             <select value={server ?? ''} onChange={(e) => pickServer(e.target.value)}>
-              <option value="">{t('All servers', 'Alle Server')}</option>
+              <option value="">All servers</option>
               {server && !servers.some((s) => s.server === server) && <option value={server}>{server}</option>}
               {servers.map((s) => (
                 <option key={s.server} value={s.server}>
@@ -135,7 +128,7 @@ export default function Ranking() {
           </label>
           {myIndex >= 0 && (
             <button type="button" className="button me-jump" onClick={jump}>
-              {meText(t).jump} · <span className="num">#{myIndex + 1}</span>
+              {meText.jump} · <span className="num">#{myIndex + 1}</span>
             </button>
           )}
         </div>
@@ -144,9 +137,9 @@ export default function Ranking() {
             <thead>
               <tr>
                 <th>#</th>
-                <th>{t('Player', 'Spieler')}</th>
-                <th>{view === 'rank' ? t('Rank', 'Rang') : t('Avg performance', 'Leistung Ø')}</th>
-                <th className="hide-sm">{view === 'rank' ? t('Avg performance', 'Leistung Ø') : t('Rank', 'Rang')}</th>
+                <th>Player</th>
+                <th>{view === 'rank' ? 'Rank' : 'Avg performance'}</th>
+                <th className="hide-sm">{view === 'rank' ? 'Avg performance' : 'Rank'}</th>
                 <th className="hide-sm">Champions</th>
                 <th className="hide-sm">Form</th>
               </tr>
@@ -159,20 +152,17 @@ export default function Ranking() {
           </table>
           {sorted.length > limit && (
             <button type="button" className="button more" onClick={() => setLimit((l) => l + PAGE)}>
-              {t(
-                `Show ${Math.min(PAGE, sorted.length - limit)} more of ${sorted.length - limit}`,
-                `Weitere ${Math.min(PAGE, sorted.length - limit)} von ${sorted.length - limit} anzeigen`,
-              )}
+              {`Show ${Math.min(PAGE, sorted.length - limit)} more of ${sorted.length - limit}`}
             </button>
           )}
-          {!data && !error && <p className="empty">{t('Loading leaderboard …', 'Rangliste wird geladen …')}</p>}
+          {!data && !error && <p className="empty">Loading leaderboard …</p>}
           {data && sorted.length === 0 && (
             <p className="empty">
               {server && everyone.length > 0
-                ? t(`No players from ${server} yet.`, `Noch keine Spieler von ${server}.`)
+                ? `No players from ${server} yet.`
                 : view === 'rank'
-                ? t('No games in this ranking yet.', 'Noch keine Spiele in dieser Wertung.')
-                : t('Nobody with rated games yet.', 'Noch niemand mit gewerteten Spielen.')}
+                ? 'No games in this ranking yet.'
+                : 'Nobody with rated games yet.'}
             </p>
           )}
         </div>
@@ -180,25 +170,16 @@ export default function Ranking() {
 
       <div className="ladder-notes">
         <section>
-          <h2>{t('How it counts', 'So zählt es')}</h2>
-          {lang === 'de' ? (
-            <p className="fine">
-              Jedes Spiel bekommt eine Note von <GradeChip grade="F" /> bis <GradeChip grade="MAYHEM" />, aus allen Werten im
-              Vergleich zu dem, was der Champion üblicherweise schafft. Sieg oder Niederlage zählen nicht. Nach 5 Spielen gibt
-              es einen Rang, danach bringt jede Note bis zu ±30 MP. Gewertet werden Spiele ab 8 Minuten mit den Werten aller
-              zehn Spieler. <a href={href('/scoring')}>Mehr dazu</a>
-            </p>
-          ) : (
-            <p className="fine">
-              Every game gets a grade from <GradeChip grade="F" /> to <GradeChip grade="MAYHEM" />, from all stats compared
-              to what the champion usually does. Win or loss doesn&apos;t count. After 5 games you get a rank, then every grade
-              is worth up to ±30 MP. Games of 8 minutes or more with the stats of all ten players are rated.{' '}
-              <a href={href('/scoring')}>Learn more</a>
-            </p>
-          )}
+          <h2>How it counts</h2>
+          <p className="fine">
+            Every game gets a grade from <GradeChip grade="F" /> to <GradeChip grade="MAYHEM" />, from all stats compared to
+            what the champion usually does. Win or loss doesn&apos;t count. After 5 games you get a rank, then every grade is
+            worth up to ±30 MP. Games of 8 minutes or more with the stats of all ten players are rated.{' '}
+            <a href="/scoring">Learn more</a>
+          </p>
         </section>
         <section>
-          <h2>{t('Join', 'Mitmachen')}</h2>
+          <h2>Join</h2>
           <ArchiveCounter />
         </section>
       </div>
@@ -221,9 +202,8 @@ function Row({
   top: number | null;
   mine: boolean;
 }) {
-  const { t, href: to } = useLang();
   const { name, tag } = splitName(p.name);
-  const href = to(profileHref(p));
+  const href = profileHref(p);
   const losses = p.games - p.wins;
   const average = p.average ? <GradeChip grade={p.average.grade} /> : <span className="faint">–</span>;
   const rank = <RankLine rank={p.rank} placed={p.placed} />;
@@ -237,13 +217,13 @@ function Row({
             <b>
               {name}
               {tag && <span className="faint">#{tag}</span>}
-              {mine && <span className="me-tag">{meText(t).you}</span>}
+              {mine && <span className="me-tag">{meText.you}</span>}
             </b>
             <small className="num">
               {p.server && <span className="server-tag">{p.server}</span>}
-              {t(`${p.wins}W ${losses}L · ${p.games} games`, `${p.wins}S ${losses}N · ${p.games} Spiele`)}
-              {top !== null ? t(` · Top ${Math.max(1, Math.round(top * 100))}%`, ` · Top ${Math.max(1, Math.round(top * 100))} %`) : ''}
-              {p.climbing ? t(' · climbing', ' · klettert') : ''}
+              {`${p.wins}W ${losses}L · ${p.games} games`}
+              {top !== null ? ` · Top ${Math.max(1, Math.round(top * 100))}%` : ''}
+              {p.climbing ? ' · climbing' : ''}
             </small>
           </span>
         </Link>
@@ -253,10 +233,7 @@ function Row({
       <td className="hide-sm">
         <div className="champs">
           {p.champions.map((c) => (
-            <Img key={c.championId} className="champ" src={championImage(dragon, championKey(dragon, c) || undefined)} alt={t(
-                `${dragon?.champions.get(c.championId)?.name ?? c.champion}, ${c.games} games`,
-                `${dragon?.champions.get(c.championId)?.name ?? c.champion}, ${c.games} Spiele`,
-              )} size={28} />
+            <Img key={c.championId} className="champ" src={championImage(dragon, championKey(dragon, c) || undefined)} alt={`${dragon?.champions.get(c.championId)?.name ?? c.champion}, ${c.games} games`} size={28} />
           ))}
         </div>
       </td>

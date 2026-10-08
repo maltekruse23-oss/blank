@@ -33,7 +33,7 @@ describe('website explanation', () => {
   it('weights the five axes as the grade does, taking part most', () => {
     const w = weights();
     expect(w.reduce((t, x) => t + x.weight, 0)).toBeCloseTo(1, 9);
-    expect([...w].sort((a, b) => b.weight - a.weight)[0].label).toBe('Kill-Beteiligung');
+    expect([...w].sort((a, b) => b.weight - a.weight)[0].label).toBe('Kill participation');
   });
 
   it('cuts the tiers like LoL: four divisions up to SS, SSS at 400 and MAYHEM at 800 MP', () => {
@@ -59,6 +59,6 @@ describe('website explanation', () => {
     });
     // S: usual ±20; a hidden rating well above the rank gives more and takes less.
     expect(climbing(4)).toEqual({ up: 27, down: -13 });
-    expect(seasonStarts(2026)).toEqual(['8. Januar', '29. April', '29. Juli']);
+    expect(seasonStarts(2026)).toEqual(['January 8', 'April 29', 'July 29']);
   });
 });
