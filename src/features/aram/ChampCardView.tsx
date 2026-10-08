@@ -20,6 +20,7 @@ import {
   type MetaItemPick,
   type Tier,
 } from './champCard';
+import { COMBO_HONESTY, comboNote, themeOf, type Combo } from './combos';
 import { percent } from './format';
 import { GradeBadge } from './GradeBadge';
 
@@ -100,13 +101,102 @@ function ItemGrid({ rows, weak = false }: { rows: MetaItemPick[]; weak?: boolean
   );
 }
 
-type Tab = 'augments' | 'items' | 'spells' | 'avoid';
+/**
+ * Mayhem-Combos (combos.ts): every combo of the champion as a chip, Meta and Offmeta apart, the
+ * chosen one with its augments and items and their numbers on the champion.
+ */
+function Combos({ combos, champion }: { combos: Combo[]; champion: string }) {
+  const [chosen, setChosen] = useState(0);
+  const combo = combos[chosen] ?? combos[0];
+  const theme = themeOf(combo.theme);
+  const note = comboNote(combo, champion);
+  const picks = (meta: boolean) =>
+    combos.map((c, i) =>
+      c.meta === meta ? (
+        <button
+          key={c.theme}
+          type="button"
+          className={c === combo ? 'active' : undefined}
+          aria-pressed={c === combo}
+          onClick={(event) => {
+            event.stopPropagation();
+            setChosen(i);
+          }}
+        >
+          {themeOf(c.theme)?.name ?? c.theme}
+        </button>
+      ) : null,
+    );
+  return (
+    <section className="champ-combos">
+      {[true, false].map(
+        (meta) =>
+          combos.some((c) => c.meta === meta) && (
+            <div
+              key={String(meta)}
+              className="champ-combo-picks"
+              role="group"
+              aria-label={meta ? 'Meta' : 'Offmeta'}
+            >
+              <span className="champ-combo-tag" data-meta={meta}>
+                {meta ? 'Meta' : 'Offmeta'}
+              </span>
+              {picks(meta)}
+            </div>
+          ),
+      )}
+      <h3>
+        {theme?.name ?? combo.theme} · {combo.meta ? 'Meta' : 'Offmeta'}
+      </h3>
+      {theme && <p className="champ-card-empty">{theme.line}</p>}
+      <ul className="champ-card-grid">
+        {combo.augments.map((a) => (
+          <li key={a.id} title={`${a.name}: ${games(a.games)} · ${percent(a.winRate)} Siege`}>
+            <span className={`champ-card-augment ${a.rarity}`}>
+              {a.image && <img src={a.image} alt={a.name} width={24} height={24} />}
+            </span>
+            <b>{percent(a.winRate)}</b>
+            <small>{a.games.toLocaleString('de-DE')}</small>
+          </li>
+        ))}
+      </ul>
+      <ul className="champ-card-grid">
+        {combo.items.map((i) => (
+          <li
+            key={i.id}
+            title={`${i.name}${i.mana ? ' (Mana, in ARAM schwach)' : ''}: ${
+              i.games === null || i.winRate === null
+                ? `keine Zahlen mit ${champion}`
+                : `${games(i.games)} · ${percent(i.winRate)} Siege`
+            }`}
+          >
+            <span className="champ-card-items">
+              <img
+                className={i.mana ? 'mana' : undefined}
+                src={itemImage(i.id)}
+                alt={i.name}
+                width={26}
+                height={26}
+              />
+            </span>
+            <b>{i.winRate === null ? '–' : percent(i.winRate)}</b>
+            <small>{i.games === null ? 'allg.' : i.games.toLocaleString('de-DE')}</small>
+          </li>
+        ))}
+      </ul>
+      {note && <p className="champ-card-empty">{note}</p>}
+      <p className="champ-card-empty">{COMBO_HONESTY}</p>
+    </section>
+  );
+}
+
+type Tab = 'augments' | 'combos' | 'items' | 'spells' | 'avoid';
 /** Weakest augments shown per rarity in the popout (the Mayhem app shows all the card has). */
 const AVOID_IN_POPOUT = 2;
 const PAIRS_IN_POPOUT = 4;
 
 /** arammeta's further numbers on the champion (08.10.2026): boots, items, spells, what to avoid. */
-function Extra({ extra, tab }: { extra: ChampExtra; tab: Exclude<Tab, 'augments'> }) {
+function Extra({ extra, tab }: { extra: ChampExtra; tab: Exclude<Tab, 'augments' | 'combos'> }) {
   if (tab === 'spells')
     return (
       <ul className="champ-card-list">
@@ -227,17 +317,20 @@ function TypeChips({ rows, weak = false }: { rows: AugTypePick[]; weak?: boolean
   );
 }
 
-/** Whether the extra data has anything for the tab. */
-const hasTab = (extra: ChampExtra | undefined, tab: Tab) =>
+/** Whether the card has anything for the tab. */
+const hasTab = ({ extra, combos }: ChampView, tab: Tab) =>
   tab === 'augments' ||
-  (!!extra &&
-    (tab === 'items'
-      ? extra.boots.length + extra.items.length + extra.pairs.length + extra.weak.length > 0
-      : tab === 'spells'
-        ? extra.spells.length > 0
-        : extra.avoid.length + extra.augTypes.length + extra.weakTypes.length > 0));
+  (tab === 'combos'
+    ? !!combos?.length
+    : !!extra &&
+      (tab === 'items'
+        ? extra.boots.length + extra.items.length + extra.pairs.length + extra.weak.length > 0
+        : tab === 'spells'
+          ? extra.spells.length > 0
+          : extra.avoid.length + extra.augTypes.length + extra.weakTypes.length > 0));
 const TAB_LABEL: Record<Tab, string> = {
   augments: 'Augments',
+  combos: 'Combos',
   items: 'Items',
   spells: 'Zauber',
   avoid: 'Meiden',
@@ -259,9 +352,11 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
   const note = plan ? planNote(view, plan) : null;
   const offer = view.offer;
   // Further numbers of arammeta in tabs (not in the game: there the offer counts).
-  const tabs = offer ? [] : (Object.keys(TAB_LABEL) as Tab[]).filter((t) => hasTab(view.extra, t));
+  const tabs = offer ? [] : (Object.keys(TAB_LABEL) as Tab[]).filter((t) => hasTab(view, t));
   const [tab, setTab] = useState<Tab>('augments');
-  const extraTab = tabs.length > 1 && view.extra && tab !== 'augments' ? tab : null;
+  const extraTab =
+    tabs.length > 1 && view.extra && tab !== 'augments' && tab !== 'combos' ? tab : null;
+  const comboTab = tabs.length > 1 && tab === 'combos' && view.combos?.length ? view.combos : null;
   const tabRow = tabs.length > 1 && (
     <div className="champ-card-directions" role="group" aria-label="Ansicht">
       {tabs.map((t) => (
@@ -353,7 +448,9 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
             </button>
           </section>
           {tabRow}
-          {extraTab && view.extra ? (
+          {comboTab ? (
+            <Combos combos={comboTab} champion={label} />
+          ) : extraTab && view.extra ? (
             <Extra extra={view.extra} tab={extraTab} />
           ) : (
             <section>

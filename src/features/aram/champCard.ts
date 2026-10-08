@@ -4,12 +4,34 @@
 // (mayhemstats.lol, /api/champions/<id>). The card names its source; numbers of the two are never
 // added together. Only a build direction arammeta has no item core for (e.g. AP-Alistar, user's
 // choice 07.10.2026) takes the website's direction instead, and the card names that source there.
+// Offmeta builds and Mayhem-Combos come from the Offmeta-System (combos.ts).
 // Always several choices with their numbers, never one prescription
 // (Riot: apps may highlight choices, not dictate them). Mana items count against a build (user's
 // rule: mana is useless in ARAM). Pure, tested in champCard.test.ts.
 import type { ChampInfo, ChampItem, MetaAugment } from '../../adapters/aramChamp';
 import { gradeOf, type Grade } from './aramPerformance';
+import {
+  combosFor,
+  CORE_SIZE,
+  MANA_PENALTY,
+  offmetaBuild,
+  pulled,
+  USELESS_ITEMS,
+  type Combo,
+  type ItemTexts,
+} from './combos';
 import { number, percent } from './format';
+
+// The engine behind offmeta builds and combos lives in combos.ts (Offmeta-System).
+export {
+  CORE_SIZE,
+  MANA_PENALTY,
+  META_PRIOR,
+  OFFMETA_MARGIN,
+  OFFMETA_MIN_GAMES,
+  offmetaBuild,
+  USELESS_ITEMS,
+} from './combos';
 
 /** Where the card's numbers come from, as the card names it. */
 export const sourceLabel = (view: { source: 'arammeta' | 'mayhemstats'; patch: string | null }) =>
@@ -29,30 +51,6 @@ export const MIN_GRADED = 5;
 export const MIN_BUILD_GAMES = 2;
 /** Few games pull a value towards the middle (0.5) as if this many average games were added. */
 export const PRIOR = 10;
-/** Each mana item lowers a build's score by this much (percentile, 0–1). */
-export const MANA_PENALTY = 0.08;
-/** Items in a build core. */
-export const CORE_SIZE = 3;
-
-/**
- * Items whose main effect does nothing in ARAM Mayhem (user's wish "Items, die komplett useless
- * sind, wie Umbral"): never part of a suggested build, whatever their numbers. By Data Dragon id;
- * the reason is for the next person who edits the list.
- */
-export const USELESS_ITEMS: Readonly<Record<number, string>> = {
-  3179: 'Umbral Glaive: der Effekt deckt Wards auf und zerstört sie, in ARAM gibt es keine',
-  1101: 'Jungle-Begleiter: nur für Monster im Dschungel, den es in ARAM nicht gibt',
-  1102: 'Jungle-Begleiter: nur für Monster im Dschungel, den es in ARAM nicht gibt',
-  1103: 'Jungle-Begleiter: nur für Monster im Dschungel, den es in ARAM nicht gibt',
-  3865: 'Support-Questitem: lebt von Gold aus Vasallen einer Lane mit Partner und von Wards',
-  3866: 'Support-Questitem: lebt von Gold aus Vasallen einer Lane mit Partner und von Wards',
-  3867: 'Support-Questitem: lebt von Gold aus Vasallen einer Lane mit Partner und von Wards',
-  3869: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
-  3870: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
-  3871: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
-  3876: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
-  3877: 'Support-Questitem (Ausbaustufe): Quest und Ward-Effekt greifen in ARAM nicht',
-};
 
 export type AugmentInfo = { name: string; rarity: string; icon: boolean };
 
@@ -104,6 +102,8 @@ export type ChampView = {
   /** In the game: the augments offered right now (read off the screen, offers.rs) and the build
    * chosen in the champion select; the card then shows them with their tier for that build. */
   offer?: Offer;
+  /** Mayhem-Combos (combos.ts): themes of augments and items, Meta and Offmeta; arammeta only. */
+  combos?: Combo[];
 };
 
 /** An item row of arammeta (boots, single items, pairs of two): its games and win rate. */
@@ -568,8 +568,6 @@ export function champView(
 
 /** arammeta's augments of a champion from fewer games than this are left out. */
 export const META_MIN_GAMES = 30;
-/** Win rates from few games are pulled towards 50 % as if this many average games were added. */
-export const META_PRIOR = 200;
 /**
  * arammeta does not split augments by build direction; an augment of the direction's category
  * (arammeta's "ap", "ad", "tank") counts this much win rate more, one of another direction this
@@ -621,11 +619,12 @@ export function parseMeta(text: string | null) {
   }
   if (!isObject(json) || !Array.isArray(json.poolAugments) || json.poolAugments.length > 400)
     return null;
-  const pool: MetaRow[] = [];
+  const pool: (MetaRow & { pick: number | null })[] = [];
   for (const a of json.poolAugments) {
     const row = metaRow(a);
     if (!row) return null;
-    pool.push(row);
+    // The share of the champion's games with it (Meta or Offmeta of a combo); odd: unknown.
+    pool.push({ ...row, pick: isObject(a) ? share(a.pick) : null });
   }
   const groups: MetaGroup[] = [];
   const clusters = isObject(json.itemClusters) ? json.itemClusters.groups : [];
@@ -735,7 +734,6 @@ export function parseExtra(json: Record<string, unknown>) {
   };
 }
 
-const pulled = (wr: number, g: number) => (wr * g + 0.5 * META_PRIOR) / (g + META_PRIOR);
 /** How an augment of these categories fits a direction: 1 its own, -1 another one, 0 neither. */
 export const fitOf = (cats: string[], d: Direction) =>
   cats.includes(d) ? 1 : DIRECTIONS.some((o) => o !== d && cats.includes(o)) ? -1 : 0;
@@ -748,6 +746,7 @@ export function metaView(
     games: number | null;
     champion: string | null;
     augments: Record<string, MetaAugment>;
+    items?: ItemTexts;
   },
   items: Record<string, ChampItem>,
 ): ChampView | null {
@@ -864,6 +863,15 @@ export function metaView(
     augments: best,
     builds: builds(groups),
     plans,
+    combos: combosFor({
+      pool: parsed.pool,
+      rows: [...parsed.extra.items, ...parsed.extra.weak],
+      items,
+      texts: meta.items ?? {},
+      augments: meta.augments,
+      info,
+      offmeta: plans.filter(isOffmeta).map((p) => p.direction),
+    }),
     // An augment the card ranks S or A for some direction is never also one to avoid.
     extra: metaExtra(
       parsed.extra,
@@ -895,52 +903,6 @@ export function itemTitle(b: BuildPick, n: number, i: { name: string; mana: bool
   const own = b.assembled?.[n];
   const facts = own ? ` · ${number(own.games)} Spiele · ${percent(own.winRate)} Siege` : '';
   return `${i.name}${i.mana ? ' (Mana, in ARAM schwach)' : ''}${facts}`;
-}
-
-/** Offmeta: an item of the direction needs this many games on the champion. */
-export const OFFMETA_MIN_GAMES = 40;
-/** It may win this much less often than the champion's usual builds and still count as playable. */
-export const OFFMETA_MARGIN = 0.015;
-
-/**
- * Offmeta (user's wish 08.10.2026, e.g. AP-Alistar): a direction arammeta has no item core for,
- * put together from the champion's single items of that direction (the items are the same as in
- * normal League; their Mayhem numbers on the champion are arammeta's, each measured on its own).
- * The best three by win rate, pulled towards 50 % when few, mana ones lower (user's rule), never
- * useless ones; the next three as later items. Null without three such items or when they play
- * clearly worse than the champion's usual builds (`mainRate`, null: unknown).
- */
-export function offmetaBuild(
-  d: Direction,
-  rows: { ids: number[]; g: number; wr: number }[],
-  items: Record<string, ChampItem>,
-  mainRate: number | null,
-): BuildPick | null {
-  const seen = new Set<number>();
-  const pool = rows
-    .filter((r) => r.ids.length === 1 && !seen.has(r.ids[0]) && !!seen.add(r.ids[0]))
-    .map((r) => ({ id: r.ids[0], g: r.g, wr: r.wr, item: items[String(r.ids[0])] }))
-    .filter(
-      (r) =>
-        r.item?.kind === d && r.item.done && !(r.id in USELESS_ITEMS) && r.g >= OFFMETA_MIN_GAMES,
-    )
-    .map((r) => ({ ...r, score: pulled(r.wr, r.g) - (r.item.mana ? MANA_PENALTY : 0) }))
-    .sort((a, b) => b.score - a.score || b.g - a.g || a.id - b.id);
-  const core = pool.slice(0, CORE_SIZE);
-  if (core.length < CORE_SIZE) return null;
-  const winRate = mean(core.map((r) => r.wr));
-  if (mainRate !== null && winRate < mainRate - OFFMETA_MARGIN) return null;
-  const shown = (r: (typeof pool)[number]) => ({ id: r.id, name: r.item.name, mana: r.item.mana });
-  return {
-    items: core.map(shown),
-    games: Math.min(...core.map((r) => r.g)),
-    winRate,
-    grade: null,
-    mana: core.filter((r) => r.item.mana).length,
-    label: 'Offmeta',
-    later: pool.slice(CORE_SIZE, CORE_SIZE * 2).map(shown),
-    assembled: core.map((r) => ({ games: r.g, winRate: r.wr })),
-  };
 }
 
 /** Rows shown per part of the extra data (the popout is small; the Mayhem app shows the same). */

@@ -18,6 +18,7 @@ import {
   type MetaItemPick,
   type TieredAugment,
 } from '../features/aram/champCard';
+import { COMBO_HONESTY, comboNote, themeOf, type Combo } from '../features/aram/combos';
 import { percent } from '../features/aram/format';
 
 export const itemImage = (id: number) =>
@@ -221,6 +222,101 @@ function ExtraAvoid({ extra }: { extra: ChampExtra }) {
   );
 }
 
+/**
+ * Mayhem-Combos (combos.ts): every combo of the champion as a chip, Meta and Offmeta apart, the
+ * chosen one with its augments and items and their numbers on the champion.
+ */
+export function ComboSection({ combos, champion }: { combos: Combo[]; champion: string }) {
+  const [chosen, setChosen] = useState(0);
+  const combo = combos[chosen] ?? combos[0];
+  if (!combo) return null;
+  const theme = themeOf(combo.theme);
+  const note = comboNote(combo, champion);
+  const tag = (meta: boolean) => (
+    <span className="mayhem-combo-tag" data-meta={meta}>
+      {meta ? 'Meta' : 'Offmeta'}
+    </span>
+  );
+  return (
+    <section className="mayhem-section">
+      <h2>Combos</h2>
+      {[true, false].map(
+        (meta) =>
+          combos.some((c) => c.meta === meta) && (
+            <div
+              key={String(meta)}
+              className="mayhem-chips mayhem-combo-picks"
+              role="group"
+              aria-label={meta ? 'Meta-Combos' : 'Offmeta-Combos'}
+            >
+              {tag(meta)}
+              {combos.map((c, i) =>
+                c.meta === meta ? (
+                  <button
+                    key={c.theme}
+                    type="button"
+                    aria-pressed={c === combo}
+                    onClick={() => setChosen(i)}
+                  >
+                    {themeOf(c.theme)?.name ?? c.theme}
+                  </button>
+                ) : null,
+              )}
+            </div>
+          ),
+      )}
+      <div className="mayhem-combo">
+        <h3>
+          {theme?.name ?? combo.theme} {tag(combo.meta)}
+        </h3>
+        {theme && <p className="mayhem-note">{theme.line}</p>}
+        <ul className="mayhem-best">
+          {combo.augments.map((a) => (
+            <li key={a.id}>
+              <AugmentIcon rarity={a.rarity} image={a.image} />
+              <span className="mayhem-aug-name">{a.name}</span>
+              <span className="mayhem-facts">
+                <b>{percent(a.winRate)} Siege</b>
+                <span>{games(a.games)}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <ul className="mayhem-grid">
+          {combo.items.map((i) => (
+            <li
+              key={i.id}
+              title={`${i.name}${i.mana ? ' (Mana, in ARAM schwach)' : ''}${i.games === null ? `: keine Zahlen mit ${champion}` : ''}`}
+            >
+              <span className="mayhem-items">
+                <img
+                  data-mana={i.mana || undefined}
+                  src={itemImage(i.id)}
+                  alt={i.name}
+                  width={30}
+                  height={30}
+                />
+              </span>
+              <span className="mayhem-facts">
+                {i.winRate === null || i.games === null ? (
+                  <span>allgemein</span>
+                ) : (
+                  <>
+                    <b>{percent(i.winRate)}</b>
+                    <span>{i.games.toLocaleString('de-DE')}</span>
+                  </>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {note && <p className="mayhem-note">{note}</p>}
+      </div>
+      <p className="mayhem-note">{COMBO_HONESTY}</p>
+    </section>
+  );
+}
+
 /** Every augment of the direction, grouped by tier S–D (the game offers three; look them up). */
 function TierList({ augments, label }: { augments: TieredAugment[]; label: string }) {
   let n = 4;
@@ -348,6 +444,7 @@ export function MayhemCard({
               Guides und Offmeta-Builds auf aramonly.com
             </button>
           </section>
+          {!!view.combos?.length && <ComboSection combos={view.combos} champion={label} />}
           {view.extra && <ExtraItems extra={view.extra} />}
           {/* Here, not under the long tier list, so it is seen. */}
           {view.extra && <ExtraAvoid extra={view.extra} />}
