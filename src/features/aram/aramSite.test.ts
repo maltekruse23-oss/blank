@@ -108,6 +108,7 @@ describe('ranks from the website', () => {
       ).toEqual(local.last.map(({ gameId, gain, grade, change }) => [gameId, gain, grade, change]));
       expect(p.history).toEqual([]);
       expect(p.source).toBe('site');
+      expect(p.icon).toBe(7);
     }
     expect(board.find((p) => p.puuid === 'strong')!.rank).not.toBeNull();
     expect(board.find((p) => p.puuid === 'new')!.rank).toBeNull();
@@ -152,6 +153,10 @@ describe('ranks from the website', () => {
       bad((p) => (p.rank = { tier: { id: 'sss' }, division: 2, points: 5, ladder: 5 })),
     ).toThrow();
     expect(bad((p) => (p.climbing = 'ja'))).toThrow();
+    expect(bad((p) => (p.icon = -1))).toThrow();
+    expect(bad((p) => (p.icon = '7'))).toThrow();
+    expect(bad((p) => (p.icon = null))).not.toThrow();
+    expect(bad((p) => delete p.icon)).not.toThrow();
     expect(bad((p) => (p.last6 = [{ gameId: 1, gain: 5, grade: 'Z', change: null }]))).toThrow();
     expect(() => parseBoard('<html>')).toThrow();
     expect(() =>

@@ -16,9 +16,9 @@ import { duration } from '../features/aram/format';
 import { rankRun } from '../features/aram/rankRun';
 import { cardLevel, chipText, recordChips, type CardRank } from './afterGame';
 import { number, percent } from './format';
-import { gradeImage, rankImage, step } from './pages';
+import { rankImage, step } from './pages';
 import type { RecordCard } from './records';
-import { Overlay } from './ui';
+import { GradeMark, Overlay } from './ui';
 
 /** "play": moves now; "wait": not seen yet (minimized), everything holds at its start; "off": no
  * motion, everything at its end. */
@@ -157,14 +157,7 @@ function Strip({ rank, run }: { rank: RankResult; run: Run }) {
           <Count value={rank.gain} format={signed} delay={T.rank} ms={RUN} run={run} /> MP
         </span>
       )}
-      <img
-        className="mayhem-result-grade"
-        src={gradeImage(rank.grade)}
-        alt={`Grade ${rank.grade}`}
-        title="Grade of this game"
-        width={46}
-        height={46}
-      />
+      <GradeMark grade={rank.grade} size={46} />
     </div>
   );
 }

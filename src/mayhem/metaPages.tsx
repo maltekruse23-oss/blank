@@ -1,28 +1,24 @@
 // The Mayhem app's pages with the rest of arammeta's list (user, 08.10.2026: "alle Daten von
 // arammeta in mein System und App gut einbauen, so viele Daten wie möglich"): champion detail
-// (best augments per rarity, teammates, team profile), augment detail (text, categories, lift,
-// pick rate, linked champions), the patch changes and the items. All numbers from the one list
+// (best augments per rarity, teammates, team profile) and augment detail (text, categories, lift,
+// pick rate, linked champions); the item and patch pages went again (user, 08.10.2026). All numbers from the one list
 // tiers.ts reads; every rate with its games beside it or in its tooltip, missing values as "–",
 // nothing estimated. English only; one question per page, the answer on top, one main number per
 // row, lists show five first (MAYHEM-DESIGN.md "Übersicht vor Vollständigkeit").
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { championSquare, itemIcon } from '../adapters/aram';
+import { championSquare } from '../adapters/aram';
 import { readChampInfo } from '../adapters/aramChamp';
 import { champView } from '../features/aram/champCard';
 import type { Combo } from '../features/aram/combos';
 import { ComboSection } from './MayhemCard';
 import { games, number, percent, winsIn } from './format';
-import { PageHead, RARITY_WORD, step, TierWait, type TierState } from './pages';
+import { RARITY_WORD, step } from './pages';
 import {
   categoryName,
   championsWithAugment,
-  filterItems,
-  itemRoles,
   signedPoints,
   teamProfile,
-  type Change,
-  type Changes,
   type CompKey,
   type Rarity,
   type TierAugment,
@@ -427,211 +423,6 @@ export function AugmentDetail({
           )}
         </section>
       </div>
-    </div>
-  );
-}
-
-type MoverKind = keyof Omit<Changes, 'current' | 'baseline' | 'currentGames' | 'baselineGames'>;
-const MOVER_KINDS: { id: MoverKind; label: string }[] = [
-  { id: 'champions', label: 'Champions' },
-  { id: 'augments', label: 'Augments' },
-  { id: 'items', label: 'Items' },
-  { id: 'championAugments', label: 'Champion + augment' },
-  { id: 'championItems', label: 'Champion + item' },
-];
-
-/** What changed this patch? Who got stronger and who weaker since the patch before, by kind. */
-export function PatchPage({
-  tiers,
-  onRetry,
-  onChampion,
-  onAugment,
-}: {
-  tiers: TierState;
-  onRetry: () => void;
-  onChampion: (id: number) => void;
-  onAugment: (id: number) => void;
-}) {
-  const [kind, setKind] = useState<MoverKind>('champions');
-  const lists = tiers.state === 'ready' ? tiers.lists : null;
-  const changes = lists?.changes ?? null;
-  const champions = useMemo(() => byId(lists?.champions ?? []), [lists]);
-  const augments = useMemo(() => byId(lists?.augments ?? []), [lists]);
-  const row = (c: Change, n: number, up: boolean) => {
-    const champ = champions.get(c.champion ?? c.id);
-    const augment = augments.get(c.id);
-    const isAugment = kind === 'augments' || kind === 'championAugments';
-    const isItem = kind === 'items' || kind === 'championItems';
-    const open =
-      isAugment && augment
-        ? () => onAugment(c.id)
-        : !isAugment && !isItem && champ
-          ? () => onChampion(c.id)
-          : null;
-    return (
-      <li
-        key={`${c.champion ?? ''}-${c.id}`}
-        data-top={up && n === 0}
-        title={[
-          `Win rate ${percent(c.baselineWr)} → ${percent(c.currentWr)} (${signedPoints(c.currentWr - c.baselineWr)} points)`,
-          `${games(c.currentGames)} on ${changes!.current}, ${games(c.baselineGames)} on ${changes!.baseline}`,
-          c.currentTier ? `arammeta tier ${c.baselineTier ?? '–'} → ${c.currentTier}` : null,
-        ]
-          .filter(Boolean)
-          .join('\n')}
-      >
-        {c.champion !== null && <ChampionIcon champion={champ} size={34} />}
-        {isAugment ? (
-          <AugmentIcon augment={augment} rarity={augment?.rarity ?? 'silver'} />
-        ) : isItem ? (
-          <img
-            className="mayhem-meta-face"
-            src={itemIcon(c.id, lists!.patch)}
-            alt=""
-            width={34}
-            height={34}
-            loading="lazy"
-          />
-        ) : (
-          <ChampionIcon champion={champ} size={34} />
-        )}
-        <span className="mayhem-meta-name">
-          {open ? (
-            <button type="button" className="mayhem-aug-name mayhem-plain" onClick={open}>
-              {c.name}
-            </button>
-          ) : (
-            <span className="mayhem-aug-name">{c.name}</span>
-          )}
-          {c.champion !== null && (
-            <small className="mayhem-note">on {champ?.name ?? `Champion ${c.champion}`}</small>
-          )}
-        </span>
-        {up && n === 0 && <Top />}
-        <span className="mayhem-facts">
-          <b data-down={c.currentWr < c.baselineWr}>{percent(c.currentWr)}</b>
-          <span>was {percent(c.baselineWr)}</span>
-        </span>
-      </li>
-    );
-  };
-  return (
-    <div className="mayhem-page">
-      <PageHead
-        title="Patch"
-        line={
-          changes
-            ? `What changed since Patch ${changes.baseline}? From arammeta.com${changes.currentGames === null ? '' : `, ${number(changes.currentGames)} games on ${changes.current} so far`}.`
-            : 'What changed since the last patch, from arammeta.com.'
-        }
-        badge={lists?.mock ? 'Mock' : undefined}
-      />
-      {!lists ? (
-        <TierWait tiers={tiers} onRetry={onRetry} />
-      ) : !changes ? (
-        <p className="mayhem-note">arammeta.com has no patch changes right now.</p>
-      ) : (
-        <>
-          <div className="mayhem-tools mayhem-in" style={step(1)}>
-            <Tabs tabs={MOVER_KINDS} value={kind} onChange={setKind} label="Kind" />
-          </div>
-          <div className="mayhem-meta-split" role="tabpanel" aria-label={kind}>
-            {(['risers', 'fallers'] as const).map((side, i) => (
-              <section key={side} className="mayhem-section mayhem-in" style={step(i + 2)}>
-                <h2>{side === 'risers' ? 'Stronger now' : 'Weaker now'}</h2>
-                {changes[kind][side].length ? (
-                  <More
-                    key={kind}
-                    list={changes[kind][side]}
-                    className="mayhem-best"
-                    render={(c, n) => row(c, n, side === 'risers')}
-                  />
-                ) : (
-                  <p className="mayhem-note">–</p>
-                )}
-              </section>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-/** What does each item do? Every item arammeta lists, dearest first, filtered by role. */
-export function ItemsPage({ tiers, onRetry }: { tiers: TierState; onRetry: () => void }) {
-  const [role, setRole] = useState('all');
-  const [query, setQuery] = useState('');
-  const lists = tiers.state === 'ready' ? tiers.lists : null;
-  const roles = useMemo(() => itemRoles(lists?.items ?? []), [lists]);
-  const shown = useMemo(() => filterItems(lists?.items ?? [], role, query), [lists, role, query]);
-  return (
-    <div className="mayhem-page">
-      <PageHead
-        title="Items"
-        line={
-          lists
-            ? `What does each item do? Every ARAM Mayhem item on arammeta.com, Patch ${lists.patch}.`
-            : 'Items from arammeta.com.'
-        }
-        badge={lists?.mock ? 'Mock' : undefined}
-      />
-      {!lists ? (
-        <TierWait tiers={tiers} onRetry={onRetry} />
-      ) : (
-        <>
-          <div className="mayhem-tools mayhem-in" style={step(1)}>
-            <input
-              type="search"
-              className="mayhem-search"
-              placeholder="Search by name or effect"
-              aria-label="Search items"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <div className="mayhem-chips" role="group" aria-label="Role">
-              {['all', ...roles, 'none'].map((r) => (
-                <button key={r} type="button" aria-pressed={role === r} onClick={() => setRole(r)}>
-                  {r === 'all' ? 'All roles' : r === 'none' ? 'Other' : r}
-                </button>
-              ))}
-            </div>
-          </div>
-          {shown.length ? (
-            <More
-              key={`${role}-${query}`}
-              list={shown}
-              first={12}
-              className="mayhem-item-grid"
-              render={(item, i) => (
-                <li
-                  key={item.id}
-                  className="mayhem-item mayhem-in"
-                  style={step(i + 2)}
-                  title={item.role ?? 'Other'}
-                >
-                  <img
-                    src={itemIcon(item.id, lists.patch)}
-                    alt=""
-                    width={44}
-                    height={44}
-                    loading="lazy"
-                  />
-                  <div>
-                    <h3>{item.name}</h3>
-                    <span className="mayhem-note">
-                      {item.price === null ? '–' : `${number(item.price)} gold`}
-                    </span>
-                  </div>
-                  <p title={item.text || undefined}>{item.text || '–'}</p>
-                </li>
-              )}
-            />
-          ) : (
-            <p className="mayhem-note">Nothing found.</p>
-          )}
-        </>
-      )}
     </div>
   );
 }

@@ -44,6 +44,8 @@ export type Ranked = {
   source: 'site' | 'local';
   /** The website's public id of the player (it never gives out PUUIDs); only from the website. */
   siteId?: string;
+  /** The profile icon (Data Dragon id) from the website's leaderboard; null when it has none. */
+  icon?: number | null;
 };
 
 /** What the website answered: the global leaderboard and the user's own profile. */
@@ -158,12 +160,16 @@ function standing(v: unknown): Omit<Ranked, 'last' | 'history'> {
   };
 }
 
+/** A profile icon id; missing (older website versions) or null stays null. */
+const icon = (v: unknown) => (v === undefined || v === null ? null : int(v, 'Symbol', 0, 100_000));
+
 /** GET /api/leaderboard: everyone the website rates, in its order. */
 export function parseBoard(text: string): Ranked[] {
   const board = obj(JSON.parse(text), 'Rangliste');
   return list(board.players, 'Rangliste').map((v) => ({
     ...standing(v),
     siteId: str(obj(v, 'Spieler').puuid, 'PUUID', 100),
+    icon: icon(obj(v, 'Spieler').icon),
     last: list(obj(v, 'Spieler').last6, 'Form')
       .slice(-LAST)
       .map((x) => {

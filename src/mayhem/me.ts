@@ -41,13 +41,20 @@ export type MeView = {
   best: { damage: number | null; kills: number | null };
   /** The ladder after each of the last games, oldest first (the MP curve). */
   curve: number[];
-  /** The last games, newest first. */
+  /** Every rated game, newest first (Match history; Home and Rank show the first few). */
   recent: MeGame[];
   /** Every counted game on the ladder, oldest first (the card after a game finds its step). */
   history: Step[];
 };
 
-export type LadderRow = { place: number; name: string; rank: Rank | null; me: boolean };
+export type LadderRow = {
+  place: number;
+  name: string;
+  rank: Rank | null;
+  me: boolean;
+  /** The profile icon (Data Dragon id); null when the website has none. */
+  icon: number | null;
+};
 
 export type MeState =
   | { state: 'loading' }
@@ -65,9 +72,9 @@ export type MeState =
       mock: boolean;
     };
 
-const RECENT = 6;
 const CURVE = 20;
-const LADDER = 10;
+/** Rows of the leaderboard the Rank page gets (it shows 25 first, the rest behind "Show more"). */
+const LADDER = 100;
 const ALIAS = /^[A-Za-z0-9]{1,40}$/;
 
 const max = (values: unknown[]) => {
@@ -122,18 +129,15 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
       kills: max(history.map((s) => s.entry.kills)),
     },
     curve: history.slice(-CURVE).flatMap((s) => (s.after ? [s.after.ladder] : [])),
-    recent: history
-      .slice(-RECENT)
-      .reverse()
-      .map((s) => ({
-        ...champ(s.entry),
-        gameId: s.entry.gameId,
-        win: s.entry.win,
-        kda: `${s.entry.kills}/${s.entry.deaths}/${s.entry.assists}`,
-        at: s.entry.at,
-        grade: s.mark.grade,
-        gain: s.gain,
-      })),
+    recent: [...history].reverse().map((s) => ({
+      ...champ(s.entry),
+      gameId: s.entry.gameId,
+      win: s.entry.win,
+      kda: `${s.entry.kills}/${s.entry.deaths}/${s.entry.assists}`,
+      at: s.entry.at,
+      grade: s.mark.grade,
+      gain: s.gain,
+    })),
     history,
   };
 }
@@ -161,6 +165,7 @@ export function ladderOf(board: Ranked[], siteId: string | undefined): LadderRow
     name: p.name,
     rank: p.rank,
     me: siteId !== undefined && p.siteId === siteId,
+    icon: p.icon ?? null,
   }));
   const own = rows.find((r) => r.me && r.place > LADDER);
   return [...rows.slice(0, LADDER), ...(own ? [own] : [])];

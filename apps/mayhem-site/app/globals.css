@@ -347,15 +347,10 @@ button {
 }
 
 .brand-mark {
-  display: grid;
-  place-items: center;
+  display: block;
+  flex: none;
   width: 34px;
   height: 34px;
-  border: 1px solid rgba(242, 193, 78, 0.35);
-  border-radius: 11px;
-  background: var(--panel-2);
-  color: var(--accent);
-  font-size: 16px;
 }
 
 .brand b {
@@ -1171,10 +1166,31 @@ span.item {
   font-weight: 700;
 }
 
-/* The grade icons have a black background. */
-.grade-icon {
+/* A grade as a bold letter in its color (GradeMark): one box per size, longer grades smaller. */
+.grade-mark {
+  display: inline-grid;
   flex: none;
-  mix-blend-mode: screen;
+  place-items: center;
+  min-width: var(--size, 46px);
+  height: var(--size, 46px);
+  color: var(--g, var(--muted));
+  font: 800 calc(var(--size, 46px) * 0.62) / 1 var(--font-title);
+  letter-spacing: -0.03em;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 calc(var(--size, 46px) * 0.3) color-mix(in srgb, var(--g, transparent) 45%, transparent);
+}
+
+.grade-mark[data-len='2'] {
+  font-size: calc(var(--size, 46px) * 0.46);
+}
+
+.grade-mark[data-len='3'] {
+  font-size: calc(var(--size, 46px) * 0.34);
+}
+
+.grade-mark[data-len='4'] {
+  font-size: calc(var(--size, 46px) * 0.22);
 }
 
 .tier-mark {
@@ -1555,7 +1571,11 @@ a.row:hover,
 }
 
 .podium .tile .who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   align-self: end;
+  min-width: 0;
 }
 
 .podium .tile .who b {
@@ -1623,7 +1643,13 @@ a.row:hover,
   }
 
   .podium .tile .who {
+    justify-content: center;
     width: 100%;
+  }
+
+  /* Too narrow for the profile icon beside the name; the rows below keep theirs. */
+  .podium .tile .who .avatar {
+    display: none;
   }
 
   .podium .tile .who b {
@@ -2829,7 +2855,7 @@ button.row {
   background: var(--panel);
 }
 
-.tier-grid a {
+.tier-grid li > * {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2844,7 +2870,7 @@ button.row {
   color: var(--text);
 }
 
-.tier-grid a > span {
+.tier-grid li > * > span {
   display: grid;
   min-width: 0;
 }

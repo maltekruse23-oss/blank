@@ -2,6 +2,7 @@
 // show their first entries and the rest behind "Show more", pages use tabs instead of length.
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import type { Grade } from '../features/aram/aramPerformance';
 
 /** Rows shown before "Show more". */
 export const FIRST = 5;
@@ -78,6 +79,24 @@ export function Tabs<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+/** A grade as a bold letter in its color (user, 08.10.2026: no grade icons, "nur dicke
+ * Buchstaben"); longer grades get a smaller letter so SSS and MAYHEM fit the same box. */
+export function GradeMark({ grade, size = 40 }: { grade: Grade; size?: number }) {
+  return (
+    <span
+      className="mayhem-grade mayhem-grade-mark"
+      data-grade={grade.toLowerCase()}
+      data-len={Math.min(grade.length, 4)}
+      style={{ ['--size' as string]: `${size}px` }}
+      role="img"
+      aria-label={`Grade ${grade}`}
+      title={`Grade ${grade}`}
+    >
+      {grade}
+    </span>
   );
 }
 

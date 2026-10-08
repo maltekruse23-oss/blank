@@ -20,6 +20,77 @@ const rank = (tier: number, division: number | null, points: number): Rank => ({
 const HOUR = 3_600_000;
 const at = (hours: number) => Date.now() - hours * HOUR;
 
+/** Older invented games of the player (Match history shows ten, the rest behind "Show more"). */
+const OLDER = (
+  [
+    [99, 'Lux', true, '9/5/22', 'A', 14],
+    [12, 'Alistar', false, '2/9/30', 'C', -12],
+    [22, 'Ashe', true, '14/6/19', 'S', 21],
+    [86, 'Garen', false, '7/11/9', 'D', -19],
+    [37, 'Sona', true, '3/6/41', 'SS', 18],
+    [1, 'Annie', true, '18/4/16', 'MAYHEM', 30],
+    [412, 'Thresh', false, '1/8/27', 'B', -6],
+    [105, 'Fizz', true, '16/9/12', 'A', 11],
+    [63, 'Brand', false, '12/10/15', 'E', -24],
+  ] as const
+).map(([championId, name, win, kda, grade, gain], i) => ({
+  gameId: 100 - i,
+  championId,
+  alias: name,
+  name,
+  win,
+  kda,
+  at: at(30 + i * 9),
+  grade,
+  gain,
+}));
+
+const NAMES = [
+  'Poro Prophet#EUW',
+  'Snowball King#NA1',
+  'Bridge Troll#EUNE',
+  'Second Pick#NA1',
+  'Third Wheel#KR1',
+  'Howling Abyss#EUW',
+  'Mayhem Mage#OCE',
+  'Kite Runner#EUW',
+  'Tower Hugger#BR1',
+  'Mark Dash#NA1',
+  'Quiet Support#EUW',
+  'Lane Gremlin#KR1',
+  'Late Blink#EUNE',
+  'Heal Bot#NA1',
+  'Gold Fever#EUW',
+  'Last Hit#LAN',
+  'Big Shield#EUW',
+  'Ult Saver#NA1',
+  'One Trick#EUW',
+  'Stack Lord#KR1',
+  'Long Range#EUNE',
+  'Flash Forward#NA1',
+  'Dive Day#EUW',
+  'Poke Tax#TR1',
+  'Frost Bite#EUW',
+  'Tank Shell#NA1',
+  'Sudden Death#EUW',
+  'Augment Fan#JP1',
+  'Bot Diff#EUW',
+  'Ranged Hug#NA1',
+  'Penta Hope#EUNE',
+];
+
+/** An invented leaderboard: 32 players, the player seventh (the Rank page shows 25 first). */
+const LADDER = NAMES.map((name, i) => {
+  const r =
+    i < 2
+      ? rank(7, null, 640 - i * 90)
+      : i < 6
+        ? rank(6, null, 420 - i * 40)
+        : rank(5 - Math.floor((i - 6) / 8), 1 + Math.floor(((i - 6) % 8) / 2), 80 - (i % 2) * 35);
+  return { name, rank: r, icon: 500 + i * 37 };
+});
+LADDER.splice(6, 0, { name: 'Example#EUW', rank: rank(5, 1, 88), icon: 29 });
+
 export const MOCK_STATE: MeState = {
   state: 'ready',
   name: 'Example#EUW',
@@ -31,7 +102,7 @@ export const MOCK_STATE: MeState = {
     games: 63,
     wins: 41,
     average: 'S',
-    place: 1,
+    place: 7,
     top: null,
     main: { championId: 12, alias: 'Alistar', name: 'Alistar', games: 28, wins: 19, grade: 'SS' },
     best: { damage: 112_000, kills: 31 },
@@ -70,15 +141,11 @@ export const MOCK_STATE: MeState = {
         grade: 'S',
         gain: 6,
       },
+      ...OLDER,
     ],
     history: [],
   },
-  ladder: [
-    { place: 1, name: 'Example#EUW', rank: rank(5, 1, 88), me: true },
-    { place: 2, name: 'Second Pick#NA1', rank: rank(5, 2, 41), me: false },
-    { place: 3, name: 'Third Wheel#KR1', rank: rank(4, 1, 97), me: false },
-    { place: 4, name: 'Bridge Troll#EUNE', rank: rank(4, 2, 30), me: false },
-  ],
+  ladder: LADDER.map((p, i) => ({ place: i + 1, ...p, me: p.name === 'Example#EUW' })),
 };
 
 const CHAMPS: [number, string, string, number, number][] = [
@@ -123,25 +190,6 @@ const AUGS: [number, string, string, string, string[], number, number][] = [
 
 /** An invented rate around `base`, different per index. */
 const vary = (base: number, i: number) => Math.round((base + ((i * 7) % 9) / 300) * 1000) / 1000;
-
-const moved = (
-  id: number,
-  name: string,
-  champion: number | null,
-  [currentWr, baselineWr]: [number, number],
-  [currentGames, baselineGames]: [number, number],
-  [currentTier, baselineTier]: [string | null, string | null] = [null, null],
-) => ({
-  id,
-  name,
-  champion,
-  currentWr,
-  baselineWr,
-  currentGames,
-  baselineGames,
-  currentTier,
-  baselineTier,
-});
 
 /** arammeta's list as Rust's `mayhem_tiers` sends it (tiers.ts reads it like the real one). */
 export const MOCK_TIERS = {
@@ -203,43 +251,6 @@ export const MOCK_TIERS = {
     { id: 'cd', label: 'Cooldown' },
     { id: 'gold', label: 'Economy' },
   ],
-  items: [
-    { id: 3089, name: "Rabadon's Deathcap", price: 3600, role: 'Mage', text: '130 Ability Power' },
-    { id: 3075, name: 'Thornmail', price: 2450, role: 'Tank', text: '150 Health\n75 Armor' },
-    { id: 3031, name: 'Infinity Edge', price: 3450, role: 'Marksman', text: '65 Attack Damage' },
-    { id: 3071, name: 'Black Cleaver', price: 3000, role: 'Fighter', text: '40 Attack Damage' },
-    { id: 3504, name: 'Ardent Censer', price: 2200, role: 'Support', text: '45 Ability Power' },
-    { id: 3047, name: 'Plated Steelcaps', price: 1200, role: null, text: '25 Armor' },
-  ],
-  changes: {
-    current: '16.20',
-    baseline: '16.19',
-    currentGames: 21259,
-    baselineGames: 869021,
-    champions: {
-      risers: [
-        moved(412, 'Thresh', null, [0.462, 0.439], [1466, 64104], ['T4', 'T5']),
-        moved(105, 'Fizz', null, [0.494, 0.479], [1210, 50211], ['T3', 'T4']),
-      ],
-      fallers: [moved(37, 'Sona', null, [0.527, 0.541], [1228, 48159], ['T1', 'T1'])],
-    },
-    items: {
-      risers: [moved(3031, 'Infinity Edge', null, [0.49, 0.476], [5730, 227525])],
-      fallers: [moved(3504, 'Ardent Censer', null, [0.489, 0.529], [3009, 129595])],
-    },
-    augments: {
-      risers: [moved(1004, 'Dive Bomber', null, [0.479, 0.443], [663, 28079])],
-      fallers: [moved(1006, 'Donation', null, [0.378, 0.523], [590, 44424])],
-    },
-    championItems: {
-      risers: [moved(3071, 'Black Cleaver', 86, [0.625, 0.489], [130, 7841])],
-      fallers: [],
-    },
-    championAugments: {
-      risers: [moved(1005, 'Bread And Butter', 105, [0.604, 0.49], [144, 6027])],
-      fallers: [moved(1002, 'Archmage', 99, [0.418, 0.571], [82, 3349])],
-    },
-  },
 };
 
 /** The card after a game in the browser preview: "Preview card" on the Rank page, or the address

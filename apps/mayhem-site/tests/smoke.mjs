@@ -6,7 +6,7 @@ const base = 'http://127.0.0.1:5173';
 const get = async (path, status = 200) => { const r = await fetch(base + path, { headers: { 'cf-connecting-ip': 'smoke' } }); assert.equal(r.status, status, `${path}: ${r.status}`); return r; };
 const data = async (path, status = 200) => (await get(path, status)).json();
 // English only (user decision 08.10.2026); old German addresses move (redirects.ts).
-const pages = ['/', '/leaderboard', '/records', '/champions', '/augments', '/items', '/tier-list', '/join', '/scoring', '/privacy', '/privacy/remove', '/api-guide'];
+const pages = ['/', '/leaderboard', '/records', '/champions', '/augments', '/tier-list', '/join', '/scoring', '/privacy', '/privacy/remove', '/api-guide'];
 const page = async (path, status = 200) => {
     const html = await (await get(path, status)).text();
     assert.match(html, /<main id="content"/, path);
@@ -29,7 +29,9 @@ for (const [from, to] of [
     ['/de/spiel/5?p=a1', '/game/5?p=a1'],
     ['/de/players/Name-EUW', '/players/Name-EUW'],
     ['/de/champions/Ashe', '/champions/Ashe'],
-    ['/de/items/3006', '/items/3006'],
+    ['/de/items/3006', '/tier-list'],
+    ['/items', '/tier-list'],
+    ['/items/3006', '/tier-list'],
     ['/de/api-guide', '/api-guide'],
     ['/rangliste', '/leaderboard'],
     ['/spiel/5?p=a1', '/game/5?p=a1'],
@@ -101,7 +103,7 @@ assert.equal(game.players.length, 10);
 assert.deepEqual(game.players.filter(s => s.puuid).map(s => s.puuid), [publicOf(players[0].name)], 'only the uploader is linked, under the public id');
 for (const p of players) assert.ok(!JSON.stringify(game).includes(p.puuid), 'no PUUID in the game');
 assert.equal((await data('/api/players/' + players[0].puuid)).games, 6);
-for (const p of [...pages, '/game/8100000000', '/champions/Ashe', '/augments/1', '/items/3006', '/players/' + publicOf(players[1].name)]) await page(p);
+for (const p of [...pages, '/game/8100000000', '/champions/Ashe', '/augments/1', '/players/' + publicOf(players[1].name)]) await page(p);
 
 // 3. Gone again everywhere, also from the stored pages.
 for (const p of players) assert.equal((await send('/api/players/' + p.puuid, undefined, p.token, 'DELETE')).status, 200);

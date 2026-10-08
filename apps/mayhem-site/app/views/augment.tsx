@@ -26,7 +26,7 @@ export default function AugmentPage() {
       paired={{
         title: 'Best items with it',
         noun: 'Item',
-        href: (n) => `/items/${n}`,
+        href: null,
         label: (n) => itemLabel(items, n),
         picture: (n) => itemPicture(dragon, n),
       }}

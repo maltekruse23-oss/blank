@@ -15,10 +15,21 @@ export const step = (i: number) => ({ '--i': i }) as CSSProperties;
 
 // ---- Grades and ranks ---------------------------------------------------------------------
 
-export function GradeIcon({ grade, size = 46 }: { grade: Grade; size?: number }) {
+/** A grade as a bold letter in its color (user, 08.10.2026: no grade icons, "nur dicke Buchstaben");
+ * longer grades get a smaller letter so SSS and MAYHEM fit the same box. */
+export function GradeMark({ grade, size = 46 }: { grade: Grade; size?: number }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- static artwork, fixed size
-    <img className="grade-icon" src={`/grades/${grade.toLowerCase()}.png`} width={size} height={size} alt={`Grade ${grade}`} />
+    <span
+      className="grade-mark"
+      data-g={grade}
+      data-len={Math.min(grade.length, 4)}
+      style={{ '--size': `${size}px` } as CSSProperties}
+      role="img"
+      aria-label={`Grade ${grade}`}
+      title={`Grade ${grade}`}
+    >
+      {grade}
+    </span>
   );
 }
 
@@ -246,7 +257,9 @@ export type PodiumEntry = {
   key: string;
   href: string;
   name: ReactNode;
-  /** The emblem or grade icon on the right. */
+  /** The player's profile icon before the name (leaderboard). */
+  avatar?: ReactNode;
+  /** The emblem or grade on the right. */
   mark: ReactNode;
   /** The main value (rank name, grade …) and one small line. */
   main: ReactNode;
@@ -268,6 +281,7 @@ export function Podium({ entries, label }: { entries: PodiumEntry[]; label: stri
           <Link className="tile in" href={e.href} data-tone={TONES[i]} data-place={i + 1} data-me={e.mine || undefined} id={e.mine ? 'me-row' : undefined} style={step(i)} title={e.title}>
             <span className="place">#{i + 1}</span>
             <span className="who">
+              {e.avatar}
               <b>{e.name}</b>
             </span>
             <span className="mark">{e.mark}</span>
