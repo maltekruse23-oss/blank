@@ -1290,12 +1290,28 @@ async fn fetch(http: &reqwest::Client, url: &str) -> Result<Option<Vec<u8>>, Str
     Ok(Some(bytes.to_vec()))
 }
 
+/// Data Dragon's language for item names: German for blank. (also when the flag is missing),
+/// English only when asked (the Mayhem app is English only).
+fn item_locale(english: Option<bool>) -> &'static str {
+    if english == Some(true) {
+        "en_US"
+    } else {
+        "de_DE"
+    }
+}
+
 /// The champion's stats from the website and the items from Data Dragon (`version`: the app's).
+/// Item names in German for blank., in English with `english` (the Mayhem app is English only).
 #[tauri::command]
-pub async fn aram_champ_info(champion_id: u32, version: String) -> Result<ChampInfo, String> {
+pub async fn aram_champ_info(
+    champion_id: u32,
+    version: String,
+    english: Option<bool>,
+) -> Result<ChampInfo, String> {
     if !(1..100_000).contains(&champion_id) || !valid_version(&version) {
         return Err("Ungültige Anfrage.".into());
     }
+    let locale = item_locale(english);
     let http = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(5))
@@ -1306,7 +1322,7 @@ pub async fn aram_champ_info(champion_id: u32, version: String) -> Result<ChampI
     let text = |bytes: Option<Vec<u8>>| bytes.and_then(|b| String::from_utf8(b).ok());
     let champion_url = format!("{SITE}/api/champions/{champion_id}");
     let augments_url = format!("{SITE}/api/augments");
-    let items_url = format!("{DDRAGON}/{version}/data/de_DE/item.json");
+    let items_url = format!("{DDRAGON}/{version}/data/{locale}/item.json");
     let (champion, augments, items, meta) = tokio::join!(
         fetch(&http, &champion_url),
         fetch(&http, &augments_url),
@@ -1686,5 +1702,13 @@ mod tests {
         assert!(!valid_version("15.20"));
         assert!(!valid_version("../x.1.1"));
         assert!(!valid_version("15.20.1/../../"));
+    }
+
+    /// blank. keeps German item names; only the Mayhem app asks for English ones.
+    #[test]
+    fn item_names_are_english_only_when_asked() {
+        assert_eq!(item_locale(None), "de_DE");
+        assert_eq!(item_locale(Some(false)), "de_DE");
+        assert_eq!(item_locale(Some(true)), "en_US");
     }
 }

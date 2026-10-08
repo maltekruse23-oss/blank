@@ -11,6 +11,7 @@
 // combos.test.ts.
 import type { ChampItem, MetaAugment } from '../../adapters/aramChamp';
 import type { BuildPick, Direction } from './champCard';
+import type { Lang } from './format';
 
 /**
  * Items whose main effect does nothing in ARAM Mayhem (user's wish "Items, die komplett useless
@@ -288,6 +289,42 @@ export const THEMES: readonly Theme[] = [
 ];
 
 export const themeOf = (id: string) => THEMES.find((t) => t.id === id);
+
+/** The themes in English for the Mayhem app (English only); blank. keeps the German ones. */
+export const THEME_EN: Readonly<Record<string, { name: string; line: string }>> = {
+  heal: { name: 'Maximum Heal', line: 'Omnivamp, life steal and healing: every wound closes.' },
+  crit: { name: 'Full Crit', line: 'Only crit items, plus the crit augments.' },
+  giant: { name: 'Giant Tank', line: 'Grow huge: health, size, Heartsteel stacks.' },
+  onhit: { name: 'On-Hit', line: 'Every hit triggers effects, as fast as possible.' },
+  burn: { name: 'Firestarter', line: 'Burns and damage over time that stack up.' },
+  shield: { name: 'Unbreakable', line: 'Shields, stasis and invulnerability instead of dying.' },
+  haste: { name: 'Ability Spam', line: 'So much ability haste that everything is always ready.' },
+  ult: { name: 'Ult Spam', line: 'Your ultimate as often as possible.' },
+  speed: { name: 'Speed Demon', line: 'Faster than everyone, and speed turns into damage.' },
+  armor: { name: 'Thorn Fortress', line: 'Stack armor and resists. Whoever hits you pays.' },
+  glass: { name: 'Glass Cannon', line: 'Penetration and bonus damage: one combo, one kill.' },
+  execute: { name: 'Executioner', line: 'Finish off wounded enemies at once.' },
+  cc: { name: 'Control Freak', line: 'Stun, slow, root and get rewarded for it.' },
+  hybrid: { name: 'Hybrid', line: 'Ability power and attack damage at once.' },
+  hydra: { name: 'Hydra Spin', line: 'Sweeping hits that strike everything around you.' },
+  snowball: { name: 'Snowball Cannon', line: 'Mark, fly in, knock everything over.' },
+  kamikaze: { name: 'Kamikaze', line: 'Dying is part of the plan: explosions and coming back.' },
+  mana: { name: 'Mana Monster', line: 'Overflow and more: mana turns into health and damage.' },
+  support: {
+    name: 'Healing Angel',
+    line: 'Heal and shield allies with full heal and shield power.',
+  },
+  souls: { name: 'Dragon Souls', line: 'Collect the souls of every dragon without a dragon.' },
+  summon: { name: 'Summoner', line: 'Companions and minions become an army.' },
+  gamble: { name: 'Gambler', line: 'Random augments and anvils: all in on one roll.' },
+  ap: { name: 'AP', line: 'Everything on ability power instead of the usual way.' },
+  ad: { name: 'AD', line: 'Everything on attack damage instead of the usual way.' },
+  tank: { name: 'Tank', line: 'Everything on health and resists instead of the usual way.' },
+};
+
+/** A theme's name and line in the language asked for (unknown English: the German one). */
+export const themeText = (theme: Theme, lang: Lang = 'de') =>
+  (lang === 'en' && THEME_EN[theme.id]) || { name: theme.name, line: theme.line };
 /** Every item of the champion (its own damage, `combosFor`). */
 const OWN: Theme = { id: 'own', name: '', line: '', item: 'own', augment: () => false };
 type Damage = 'ap' | 'ad' | null;
@@ -520,9 +557,13 @@ export function combosFor(input: {
 }
 
 /** The line under a combo's items: whether they have numbers on the champion. */
-export function comboNote(combo: Combo, champion: string) {
+export function comboNote(combo: Combo, champion: string, lang: Lang = 'de') {
   const without = combo.items.filter((i) => i.games === null).length;
   if (!without) return null;
+  if (lang === 'en')
+    return without === combo.items.length
+      ? `None of these items has numbers on ${champion}: picked by theme, dearest first.`
+      : `${without} ${without === 1 ? 'item has' : 'items have'} no numbers on ${champion}: picked by theme.`;
   return without === combo.items.length
     ? `Keins der Items hat Zahlen mit ${champion}: nach Thema gewählt, teuerste zuerst.`
     : `${without} ${without === 1 ? 'Item ohne' : 'Items ohne'} Zahlen mit ${champion}: nach Thema gewählt.`;
@@ -531,3 +572,5 @@ export function comboNote(combo: Combo, champion: string) {
 /** Said once over the combos: what the numbers are (user's rule: honest about assembled builds). */
 export const COMBO_HONESTY =
   'Zusammengesetzt: jedes Augment und Item ist einzeln auf dem Champion gemessen, die Combo als Ganzes nie.';
+export const COMBO_HONESTY_EN =
+  'Put together: each augment and item is measured on the champion on its own, never the combo as a whole.';

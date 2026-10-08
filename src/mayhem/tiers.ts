@@ -392,32 +392,19 @@ export function filterItems(items: TierItem[], role: string, query: string): Tie
     .sort((a, b) => (b.price ?? -1) - (a.price ?? -1) || a.name.localeCompare(b.name));
 }
 
-/** arammeta's augment categories in German; unknown ones keep arammeta's English label. */
-const CATEGORY: Record<string, string> = {
-  ad: 'AD',
-  ap: 'AP',
-  crit: 'Krit',
-  amp: 'Mehr Schaden',
-  tank: 'Verteidigung',
-  support: 'Support',
-  cd: 'Abklingzeit',
-  gold: 'Gold',
-  mechanic: 'Spezial',
-  other: 'Ohne Kategorie',
-  new: 'Neu im Patch',
-};
+/** arammeta's own (English) label of an augment category; the id when it has none. */
 export const categoryName = (lists: Pick<TierLists, 'categories'>, id: string) =>
-  CATEGORY[id] ?? lists.categories.find((c) => c.id === id)?.label ?? id;
+  lists.categories.find((c) => c.id === id)?.label ?? id;
 
 /** The categories some augment has, in arammeta's order. */
 export const usedCategories = (lists: Pick<TierLists, 'categories' | 'augments'>) =>
   lists.categories.filter((c) => lists.augments.some((a) => a.cats.includes(c.id)));
 
-/** A share difference in percentage points with one decimal, like "+2,3" or "−1,4". */
+/** A share difference in percentage points with one decimal, like "+2.3" or "−1.4". */
 export const signedPoints = (difference: number) => {
   const points = Math.round(difference * 1000) / 10;
   const sign = points > 0 ? '+' : points < 0 ? '−' : '±';
-  return `${sign}${Math.abs(points).toLocaleString('de-DE', { minimumFractionDigits: 1 })}`;
+  return `${sign}${Math.abs(points).toLocaleString('en-US', { minimumFractionDigits: 1 })}`;
 };
 
 /** Win rate change since the patch before in percentage points. */
@@ -442,6 +429,6 @@ export function championsWithAugment(champions: TierChampion[], augmentId: numbe
 export async function loadTiers(): Promise<TierLists> {
   if (!isTauri()) return { ...readTiers(MOCK_TIERS)!, mock: true };
   const lists = readTiers(await invoke<unknown>('mayhem_tiers'));
-  if (!lists) throw new Error('Die Liste kam unvollständig an.');
+  if (!lists) throw new Error('The list arrived incomplete.');
   return lists;
 }

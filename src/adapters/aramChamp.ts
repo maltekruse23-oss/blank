@@ -79,8 +79,9 @@ export function onChamp(handler: (champ: HeldChamp) => void) {
   return () => void stop.then((unlisten) => unlisten());
 }
 
-export const readChampInfo = (championId: number): Promise<ChampInfo> =>
-  invoke<ChampInfo>('aram_champ_info', { championId, version: DDRAGON_VERSION });
+/** `english`: item names in English (the Mayhem app); blank. keeps German. */
+export const readChampInfo = (championId: number, english = false): Promise<ChampInfo> =>
+  invoke<ChampInfo>('aram_champ_info', { championId, version: DDRAGON_VERSION, english });
 
 /** Mayhem app only (src-tauri/src/mayhem.rs): whether the League client runs. */
 export const leagueClientOpen = () =>

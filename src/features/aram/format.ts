@@ -1,6 +1,9 @@
-// Numbers and times of the ARAM page, German style.
-export const number = (value: number) => Math.round(value).toLocaleString('de-DE');
-export const percent = (share: number) => `${Math.round(share * 100)} %`;
+// Numbers and times of the ARAM page, German style; 'en' for the Mayhem app (English only).
+export type Lang = 'de' | 'en';
+export const number = (value: number, lang: Lang = 'de') =>
+  Math.round(value).toLocaleString(lang === 'en' ? 'en-US' : 'de-DE');
+export const percent = (share: number, lang: Lang = 'de') =>
+  `${Math.round(share * 100)}${lang === 'en' ? '' : ' '}%`;
 export const decimal = (value: number) =>
   value.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 export const duration = (seconds: number) =>

@@ -17,7 +17,7 @@ const at = (hours: number) => Date.now() - hours * HOUR;
 
 export const MOCK_STATE: MeState = {
   state: 'ready',
-  name: 'Beispiel#EUW',
+  name: 'Example#EUW',
   mock: true,
   me: {
     rank: rank(5, 1, 88),
@@ -64,7 +64,7 @@ export const MOCK_STATE: MeState = {
     ],
   },
   ladder: [
-    { place: 1, name: 'Beispiel#EUW', rank: rank(5, 1, 88), me: true },
+    { place: 1, name: 'Example#EUW', rank: rank(5, 1, 88), me: true },
     { place: 2, name: 'Second Pick#NA1', rank: rank(5, 2, 41), me: false },
     { place: 3, name: 'Third Wheel#KR1', rank: rank(4, 1, 97), me: false },
     { place: 4, name: 'Bridge Troll#EUNE', rank: rank(4, 2, 30), me: false },

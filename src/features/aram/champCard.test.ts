@@ -27,6 +27,8 @@ import {
   slotsText,
   shrunk,
   sourceLabel,
+  spellName,
+  SPELLS,
   USELESS_ITEMS,
 } from './champCard';
 
@@ -444,6 +446,14 @@ describe('Champ-Karte mit arammeta', () => {
     expect(planNote(view, ad)).toBe(
       'arammeta.com hat kaum AD-Spiele mit Ahri. Die Stufen beruhen auf allen Spielen, passende Augments stehen höher.',
     );
+    // The Mayhem app is English only; blank. keeps the German line above.
+    expect(planNote(view, ap, 'en')).toBe(
+      'arammeta.com has few AP games. Core and augments come from mayhemstats.lol (6 games).',
+    );
+    expect(planNote(view, tankPlan, 'en')).toBeNull();
+    expect(planNote(view, ad, 'en')).toBe(
+      'arammeta.com has few AD games on Ahri. The tiers rest on all games, AD augments rank higher.',
+    );
     // The tab order stays arammeta's.
     expect(view.plans.map((p) => p.direction)).toEqual(['tank', 'ap', 'ad']);
   });
@@ -573,6 +583,18 @@ describe('Champ-Karte mit arammeta', () => {
     expect(slotsText(extra.avoid[0].slots)).toBe(
       'Wahl 1: 36 Spiele, 37 % Siege\nWahl 2: 29 Spiele, 36 % Siege',
     );
+    expect(slotsText(extra.avoid[0].slots, 'en')).toBe(
+      'Pick 1: 37% wins in 36 games\nPick 2: 36% wins in 29 games',
+    );
+    // Spells keep their German name for blank., the Mayhem app asks for the English one.
+    expect(extra.spells[0].spells.map((s) => [s.name, spellName(s.id, 'en')])).toEqual(
+      extra.spells[0].spells.map((s) => [spellName(s.id), SPELLS[s.id][2]]),
+    );
+    expect([spellName(32), spellName(32, 'en'), spellName(999, 'en')]).toEqual([
+      'Markieren',
+      'Mark',
+      null,
+    ]);
     expect(extra.augTypes).toEqual([{ name: 'Health', games: 1071, winRate: 0.5453, pick: 0.66 }]);
     expect(extra.weakTypes.map((t) => t.name)).toEqual(['General A']);
     // The core group's name and its later items (Umbral never).
@@ -758,6 +780,11 @@ describe('Offmeta-Build', () => {
     expect(assembledFacts(b)).toBe('Ø 54 % Siege · 64–144 Spiele je Item');
     // Few games are pulled towards 50 %: Riftmaker (64 games) after Shadowflame (144).
     expect(itemTitle(b, 2, b.items[2])).toBe('Riftmaker · 64 Spiele · 55 % Siege');
+    expect(assembledFacts(b, 'en')).toBe('avg 54% wins · 64–144 games per item');
+    expect(itemTitle(b, 2, b.items[2], 'en')).toBe('Riftmaker: 55% wins in 64 games');
+    expect(itemTitle(b, 0, { name: 'Luden', mana: true }, 'en')).toBe(
+      'Luden (mana, weak in ARAM): 54% wins in 136 games',
+    );
   });
 
   it('braucht drei Items mit genug Spielen, die nicht klar schlechter sind', () => {

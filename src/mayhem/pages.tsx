@@ -2,14 +2,14 @@
 // grows page by page): augment tier list as cards (after Blitz's augment page), champion tier
 // list as tier blocks with icon grids, and the rank page (the player's rank and the leaderboard
 // from mayhemstats.lol, me.ts). Numbers of the tier lists from arammeta.com (tiers.ts). Design
-// "Arena" (mayhem.css).
+// "Arena" (mayhem.css). English only; each page answers one question on top, one main number per
+// row, lists show their first entries (MAYHEM-DESIGN.md "Übersicht vor Vollständigkeit").
 import { useMemo, useState, type CSSProperties } from 'react';
 import { championSplash, championSquare } from '../adapters/aram';
 import type { Grade } from '../features/aram/aramPerformance';
-import { PLACEMENT, rankName, seasonName, seasonOf, type Rank } from '../features/aram/aramRating';
+import { PLACEMENT, rankName, seasonOf, type Rank } from '../features/aram/aramRating';
 import { TIERS, type Tier } from '../features/aram/champCard';
-import { number, percent } from '../features/aram/format';
-import { games } from './MayhemCard';
+import { games, number, percent, winsIn } from './format';
 import { ago, CURVE_SIZE, curvePath, type MeState, type MeView } from './me';
 import type { Page } from './MayhemApp';
 import {
@@ -19,6 +19,7 @@ import {
   type TierChampion,
   type TierLists,
 } from './tiers';
+import { More, Tabs, Top } from './ui';
 
 export const step = (i: number) => ({ ['--i' as string]: Math.min(i, 16) }) as CSSProperties;
 
@@ -43,37 +44,38 @@ export type TierState =
 
 export function TierWait({ tiers, onRetry }: { tiers: TierState; onRetry: () => void }) {
   if (tiers.state === 'loading')
-    return <p className="mayhem-note mayhem-in">Lade die Liste von arammeta.com …</p>;
+    return <p className="mayhem-note mayhem-in">Loading the list from arammeta.com …</p>;
   if (tiers.state === 'failed')
     return (
       <div className="mayhem-glow mayhem-in mayhem-narrow">
         <p>{tiers.message}</p>
         <button type="button" className="mayhem-button" onClick={onRetry}>
-          Nochmal
+          Try again
         </button>
       </div>
     );
   return null;
 }
 
-const source = (tiers: TierState, what: string) =>
+const source = (tiers: TierState) =>
   tiers.state === 'ready'
-    ? `${what} aus allen ARAM-Mayhem-Spielen bei arammeta.com, Patch ${tiers.lists.patch}. Stufen nach Siegquote.`
-    : `${what} von arammeta.com`;
+    ? `Every ARAM Mayhem game on arammeta.com, Patch ${tiers.lists.patch}.`
+    : 'From arammeta.com.';
 
-const RARITIES: { id: TierAugment['rarity']; label: string; line: string }[] = [
-  { id: 'prismatic', label: 'Prisma-Augments', line: 'Die stärkste Seltenheit.' },
-  { id: 'gold', label: 'Gold-Augments', line: 'Für die meisten Builds.' },
-  { id: 'silver', label: 'Silber-Augments', line: 'Kleine Schritte, oft unterschätzt.' },
-];
-
-const RARITY_CHIP: Record<TierAugment['rarity'] | 'all', string> = {
-  all: 'Alle',
-  prismatic: 'Prisma',
+export const RARITY_WORD: Record<TierAugment['rarity'], string> = {
+  prismatic: 'Prismatic',
   gold: 'Gold',
-  silver: 'Silber',
+  silver: 'Silver',
 };
+const RARITY_TABS = (['prismatic', 'gold', 'silver'] as const).map((id) => ({
+  id,
+  label: RARITY_WORD[id],
+}));
 
+/** Cards shown before "Show more" on the tier pages (two rows on most windows). */
+const FIRST_CARDS = 12;
+
+/** Which augments win most? One rarity at a time, best first. */
 export function AugmentsPage({
   tiers,
   onRetry,
@@ -83,7 +85,7 @@ export function AugmentsPage({
   onRetry: () => void;
   onSelect: (id: number) => void;
 }) {
-  const [rarity, setRarity] = useState<TierAugment['rarity'] | 'all'>('all');
+  const [rarity, setRarity] = useState<TierAugment['rarity']>('prismatic');
   const [tier, setTier] = useState<Tier | 'all'>('all');
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
@@ -94,7 +96,7 @@ export function AugmentsPage({
     const q = query.trim().toLowerCase();
     return list.filter(
       (a) =>
-        (rarity === 'all' || a.rarity === rarity) &&
+        a.rarity === rarity &&
         (tier === 'all' || a.tier === tier) &&
         (category === 'all' || a.cats.includes(category)) &&
         (!q || a.name.toLowerCase().includes(q) || a.text.toLowerCase().includes(q)),
@@ -103,94 +105,94 @@ export function AugmentsPage({
   return (
     <div className="mayhem-page">
       <PageHead
-        title="ARAM Mayhem Augments"
-        line={source(tiers, 'Jedes Augment')}
+        title="Augments"
+        line={`Which augments win most? ${source(tiers)}`}
         badge={lists?.mock ? 'Mock' : undefined}
       />
-      {tiers.state !== 'ready' ? (
+      {!lists ? (
         <TierWait tiers={tiers} onRetry={onRetry} />
       ) : (
         <>
           <div className="mayhem-tools mayhem-in" style={step(1)}>
+            <Tabs tabs={RARITY_TABS} value={rarity} onChange={setRarity} label="Rarity" />
             <input
               type="search"
               className="mayhem-search"
-              placeholder="Augments nach Name oder Effekt suchen"
-              aria-label="Augments suchen"
+              placeholder="Search by name or effect"
+              aria-label="Search augments"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <div className="mayhem-chips" role="group" aria-label="Seltenheit">
-              {(['all', 'prismatic', 'gold', 'silver'] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  data-rarity={r}
-                  aria-pressed={rarity === r}
-                  onClick={() => setRarity(r)}
-                >
-                  {RARITY_CHIP[r]}
-                </button>
-              ))}
-            </div>
-            <div className="mayhem-chips" role="group" aria-label="Stufe">
+            <div className="mayhem-chips" role="group" aria-label="Tier">
               {(['all', ...TIERS] as const).map((t) => (
                 <button key={t} type="button" aria-pressed={tier === t} onClick={() => setTier(t)}>
-                  {t === 'all' ? 'Alle Stufen' : t}
+                  {t === 'all' ? 'All tiers' : t}
                 </button>
               ))}
             </div>
-            {lists && categories.length > 0 && (
-              <div className="mayhem-chips" role="group" aria-label="Kategorie">
-                {[{ id: 'all', label: '' }, ...categories].map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    aria-pressed={category === c.id}
-                    onClick={() => setCategory(c.id)}
-                  >
-                    {c.id === 'all' ? 'Alle Kategorien' : categoryName(lists, c.id)}
-                  </button>
+            {categories.length > 0 && (
+              <select
+                className="mayhem-select"
+                aria-label="Category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="all">All categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {categoryName(lists, c.id)}
+                  </option>
                 ))}
-              </div>
+              </select>
             )}
           </div>
-          {RARITIES.map((r) => {
-            const inRarity = shown.filter((a) => a.rarity === r.id);
-            if (!inRarity.length) return null;
-            return (
-              <section key={r.id} className="mayhem-group" data-rarity={r.id}>
-                <div className="mayhem-in">
-                  <h2>{r.label}</h2>
-                  <p className="mayhem-note">{r.line}</p>
-                </div>
-                <div className="mayhem-aug-grid">
-                  {inRarity.map((a, i) => (
-                    <AugmentCard key={a.id} augment={a} index={i + 2} onSelect={onSelect} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-          {!shown.length && <p className="mayhem-note">Nichts gefunden.</p>}
+          {shown.length ? (
+            <section className="mayhem-group" data-rarity={rarity}>
+              <More
+                key={`${rarity}-${tier}-${category}-${query}`}
+                list={shown}
+                first={FIRST_CARDS}
+                className="mayhem-aug-grid"
+                render={(a, i) => (
+                  <AugmentCard
+                    key={a.id}
+                    augment={a}
+                    index={i + 2}
+                    top={i === 0}
+                    onSelect={onSelect}
+                  />
+                )}
+              />
+            </section>
+          ) : (
+            <p className="mayhem-note">Nothing found.</p>
+          )}
         </>
       )}
     </div>
   );
 }
 
-/** One augment as a card (after Blitz): picture in the middle, tier top right, win rate top left. */
+/** One augment as a card (after Blitz): win rate top left, tier top right, games at the bottom. */
 function AugmentCard({
   augment: a,
   index,
+  top,
   onSelect,
 }: {
   augment: TierAugment;
   index: number;
+  top: boolean;
   onSelect: (id: number) => void;
 }) {
   return (
-    <article className="mayhem-aug-card mayhem-in" data-rarity={a.rarity} style={step(index)}>
+    <li
+      className="mayhem-aug-card mayhem-in"
+      data-rarity={a.rarity}
+      data-top={top}
+      style={step(index)}
+      title={`${winsIn(a.winRate, a.games)}${a.pick === null ? '' : `\nPicked in ${percent(a.pick)} of games`}`}
+    >
       <span className="mayhem-aug-card-tier" data-tier={a.tier}>
         {a.tier}
       </span>
@@ -206,30 +208,24 @@ function AugmentCard({
       </h3>
       <p>{a.text}</p>
       <span className="mayhem-aug-card-games">
-        {games(a.games)} · Pick {a.pick === null ? '–' : percent(a.pick)}
+        {top && <Top />} {games(a.games)}
       </span>
-    </article>
+    </li>
   );
 }
 
-/** Data Dragon's classes in German (the tier list filters by the first one). */
-export const ROLES: Record<string, string> = {
-  Tank: 'Tank',
-  Fighter: 'Kämpfer',
-  Mage: 'Magier',
-  Marksman: 'Schütze',
-  Assassin: 'Assassine',
-  Support: 'Support',
-};
+/** Data Dragon's classes (the tier list filters by the first one). */
+export const ROLES = ['Tank', 'Fighter', 'Mage', 'Marksman', 'Assassin', 'Support'];
 
 const TIER_LINE: Record<Tier, string> = {
-  S: 'Beste 10 %',
-  A: 'Nächste 20 %',
-  B: 'Mitte 40 %',
-  C: 'Nächste 20 %',
-  D: 'Letzte 10 %',
+  S: 'Top 10%',
+  A: 'Next 20%',
+  B: 'Middle 40%',
+  C: 'Next 20%',
+  D: 'Bottom 10%',
 };
 
+/** Which champions win most? Tiers S and A first, the rest behind "Show all tiers". */
 export function ChampionsPage({
   tiers,
   onRetry,
@@ -241,6 +237,7 @@ export function ChampionsPage({
 }) {
   const [role, setRole] = useState<string>('all');
   const [query, setQuery] = useState('');
+  const [all, setAll] = useState(false);
   const shown = useMemo(() => {
     const list = tiers.state === 'ready' ? tiers.lists.champions : [];
     const q = query.trim().toLowerCase();
@@ -248,11 +245,14 @@ export function ChampionsPage({
       (c) => (role === 'all' || c.tags[0] === role) && (!q || c.name.toLowerCase().includes(q)),
     );
   }, [tiers, role, query]);
+  // Searching or a class shows every tier: the champion asked for must be there.
+  const open = all || role !== 'all' || !!query.trim();
+  const folded = open ? 0 : shown.filter((c) => c.tier !== 'S' && c.tier !== 'A').length;
   return (
     <div className="mayhem-page">
       <PageHead
-        title="ARAM Mayhem Tier-Liste"
-        line={source(tiers, 'Jeder Champion')}
+        title="Champions"
+        line={`Which champions win most? ${source(tiers)}`}
         badge={tiers.state === 'ready' && tiers.lists.mock ? 'Mock' : undefined}
       />
       {tiers.state !== 'ready' ? (
@@ -263,22 +263,22 @@ export function ChampionsPage({
             <input
               type="search"
               className="mayhem-search"
-              placeholder="Champion suchen"
-              aria-label="Champions suchen"
+              placeholder="Search a champion"
+              aria-label="Search champions"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <div className="mayhem-chips" role="group" aria-label="Klasse">
-              {['all', ...Object.keys(ROLES)].map((r) => (
+            <div className="mayhem-chips" role="group" aria-label="Class">
+              {['all', ...ROLES].map((r) => (
                 <button key={r} type="button" aria-pressed={role === r} onClick={() => setRole(r)}>
-                  {r === 'all' ? 'Alle Klassen' : ROLES[r]}
+                  {r === 'all' ? 'All classes' : r}
                 </button>
               ))}
             </div>
           </div>
           {TIERS.map((tier, t) => {
             const inTier = shown.filter((c) => c.tier === tier);
-            if (!inTier.length) return null;
+            if (!inTier.length || (!open && tier !== 'S' && tier !== 'A')) return null;
             return (
               <ChampionTier
                 key={tier}
@@ -289,7 +289,17 @@ export function ChampionsPage({
               />
             );
           })}
-          {!shown.length && <p className="mayhem-note">Nichts gefunden.</p>}
+          {(folded > 0 || (all && role === 'all' && !query.trim())) && (
+            <button
+              type="button"
+              className="mayhem-more"
+              aria-expanded={all}
+              onClick={() => setAll(!all)}
+            >
+              {all ? 'Show tiers S and A only' : `Show all tiers (${folded} more)`}
+            </button>
+          )}
+          {!shown.length && <p className="mayhem-note">Nothing found.</p>}
         </>
       )}
     </div>
@@ -320,7 +330,7 @@ function ChampionTier({
             key={c.id}
             type="button"
             className="mayhem-champ"
-            title={`${c.name}: ${games(c.games)}`}
+            title={`${c.name}: ${winsIn(c.winRate, c.games)}`}
             onClick={() => onSelect(c.id)}
           >
             <img
@@ -354,24 +364,30 @@ const rankImage = (rank: Rank) =>
 const gradeImage = (grade: Grade) =>
   GRADE_IMAGE[`../../apps/mayhem-site/public/grades/${grade.toLowerCase()}.png`];
 
-const winLoss = (me: MeView) => `${me.wins}S ${me.games - me.wins}N`;
+const winLoss = (me: MeView) => `${me.wins}W ${me.games - me.wins}L`;
 const mpLine = (me: MeView, rank: Rank) =>
-  [`${rank.points} MP`, me.top !== null ? `Top ${me.top} %` : me.place ? `Platz ${me.place}` : null]
+  [`${rank.points} MP`, me.top !== null ? `Top ${me.top}%` : me.place ? `#${me.place}` : null]
     .filter(Boolean)
     .join(' · ');
 const gainText = (gain: number | null) =>
   gain === null ? '–' : `${gain > 0 ? '+' : gain < 0 ? '−' : ''}${Math.abs(gain)} MP`;
+/** "Season 3 · 2026" (aramRating's `seasonName` is German and shared word for word with the
+ * website, so the English one lives here). */
+const season = () => {
+  const s = seasonOf(Date.now());
+  return `Season ${s.number} · ${s.year}`;
+};
 
 /** Why there is no player to show: client closed, loading, failed or not in the database. */
 function MeNotice({ me, onRetry }: { me: MeState; onRetry: () => void }) {
   const [title, line] =
     me.state === 'loading'
-      ? ['Lade deinen Spieler …', 'Von mayhemstats.lol.']
+      ? ['Loading your player …', 'From mayhemstats.lol.']
       : me.state === 'closed'
-        ? ['Starte League', 'Dein Rang erscheint, sobald du im League-Client angemeldet bist.']
+        ? ['Start League', 'Your rank shows up once you are signed in to the League client.']
         : me.state === 'failed'
-          ? ['Keine Verbindung', me.message]
-          : ['Nicht in der Datenbank', `${me.name} hat noch keine Spiele bei mayhemstats.lol.`];
+          ? ['No connection', me.message]
+          : ['No games yet', `${me.name} has no games on mayhemstats.lol yet.`];
   return (
     <>
       <h1>{title}</h1>
@@ -379,7 +395,7 @@ function MeNotice({ me, onRetry }: { me: MeState; onRetry: () => void }) {
       {me.state === 'failed' && (
         <div className="mayhem-hero-actions">
           <button type="button" className="mayhem-button" onClick={onRetry}>
-            Nochmal
+            Try again
           </button>
         </div>
       )}
@@ -389,7 +405,7 @@ function MeNotice({ me, onRetry }: { me: MeState; onRetry: () => void }) {
 
 const ready = (me: MeState) => (me.state === 'ready' ? me : null);
 
-/** The player's rank, the leaderboard and the match history from mayhemstats.lol (me.ts). */
+/** What is my rank? The rank card on top, then the leaderboard and the match history. */
 export function RankPage({ me, onRetry }: { me: MeState; onRetry: () => void }) {
   const got = ready(me);
   const own = got?.me ?? null;
@@ -397,8 +413,8 @@ export function RankPage({ me, onRetry }: { me: MeState; onRetry: () => void }) 
   return (
     <div className="mayhem-page">
       <PageHead
-        title="Rang"
-        line={`Dein Rang und die Rangliste von mayhemstats.lol, ${seasonName(seasonOf(Date.now()))}.`}
+        title="Rank"
+        line={`Your rank on mayhemstats.lol, ${season()}.`}
         badge={got?.mock ? 'Mock' : undefined}
       />
       <div className="mayhem-columns">
@@ -411,7 +427,7 @@ export function RankPage({ me, onRetry }: { me: MeState; onRetry: () => void }) 
                   <div className="mayhem-note">{got!.name}</div>
                   <div className="mayhem-rank-name">{rank ? rankName(rank) : '–'}</div>
                   <div className="mayhem-note">
-                    {rank ? mpLine(own, rank) : `Einstufung ${own.placed}/${PLACEMENT}`}
+                    {rank ? mpLine(own, rank) : `Placement ${own.placed}/${PLACEMENT}`}
                   </div>
                   <div className="mayhem-bar">
                     <span
@@ -430,37 +446,47 @@ export function RankPage({ me, onRetry }: { me: MeState; onRetry: () => void }) 
           {got && got.ladder.length > 0 && (
             <section className="mayhem-section">
               <h2 className="mayhem-in" style={step(2)}>
-                Rangliste
+                Leaderboard
               </h2>
-              <ul className="mayhem-ladder">
-                {got.ladder.map((p, i) => (
+              <More
+                list={got.ladder}
+                className="mayhem-ladder"
+                keep={(p) => p.me}
+                render={(p, i) => (
                   <li
                     key={p.place}
                     className="mayhem-in"
                     data-place={p.place}
                     data-me={p.me}
                     style={step(i + 3)}
+                    title={p.rank ? `${p.rank.points} MP` : undefined}
                   >
                     <b className="mayhem-place">{p.place}</b>
                     {p.rank && <img src={rankImage(p.rank)} alt="" width={34} height={34} />}
                     <span className="mayhem-aug-name">{p.name}</span>
-                    <span className="mayhem-ladder-rank">
-                      {p.rank ? `${rankName(p.rank)} · ${p.rank.points} MP` : '–'}
-                    </span>
+                    <span className="mayhem-ladder-rank">{p.rank ? rankName(p.rank) : '–'}</span>
                   </li>
-                ))}
-              </ul>
+                )}
+              />
             </section>
           )}
         </div>
         <section className="mayhem-section mayhem-column-main">
           <h2 className="mayhem-in" style={step(2)}>
-            Matchverlauf
+            Match history
           </h2>
           {own?.recent.length ? (
-            <ul className="mayhem-games">
-              {own.recent.map((g, i) => (
-                <li key={g.gameId} className="mayhem-in" data-win={g.win} style={step(i + 3)}>
+            <More
+              list={own.recent}
+              className="mayhem-games"
+              render={(g, i) => (
+                <li
+                  key={g.gameId}
+                  className="mayhem-in"
+                  data-win={g.win}
+                  style={step(i + 3)}
+                  title={ago(g.at, Date.now())}
+                >
                   <img
                     src={(g.alias && championSquare(g.alias)) || undefined}
                     alt=""
@@ -468,23 +494,28 @@ export function RankPage({ me, onRetry }: { me: MeState; onRetry: () => void }) 
                     height={52}
                   />
                   <span className="mayhem-game-main">
-                    <b>{g.win ? 'Sieg' : 'Niederlage'}</b>
+                    <b>{g.win ? 'Win' : 'Loss'}</b>
                     <span>
-                      {g.name} · {g.kda} · {ago(g.at, Date.now())}
+                      {g.name} · {g.kda}
                     </span>
                   </span>
                   <span className="mayhem-game-grade">
-                    <img src={gradeImage(g.grade)} alt={`Note ${g.grade}`} width={52} height={52} />
+                    <img
+                      src={gradeImage(g.grade)}
+                      alt={`Grade ${g.grade}`}
+                      width={52}
+                      height={52}
+                    />
                     <span className="mayhem-mp" data-down={(g.gain ?? 0) < 0}>
                       {gainText(g.gain)}
                     </span>
                   </span>
                 </li>
-              ))}
-            </ul>
+              )}
+            />
           ) : (
             <p className="mayhem-note mayhem-in">
-              {own ? 'Noch keine gewerteten Spiele.' : 'Erscheint mit deinem Spieler.'}
+              {own ? 'No rated games yet.' : 'Shows up with your player.'}
             </p>
           )}
         </section>
@@ -493,17 +524,14 @@ export function RankPage({ me, onRetry }: { me: MeState; onRetry: () => void }) 
   );
 }
 
-const RARITY_WORD: Record<TierAugment['rarity'], string> = {
-  prismatic: 'Prisma',
-  gold: 'Gold',
-  silver: 'Silber',
-};
+/** Top augments on Home: as many as fit one row (mayhem.css hides the rest). */
+const HOME_AUGMENTS = 8;
 
 /**
- * Home (user, 08.10.2026: the dashboard of the canvas "App · Home"): a hero with the most played
- * champion, tabs into the other pages, the week's top augments (arammeta.com) and the last games,
- * with the rank, numbers and records in a bento column. The player comes from mayhemstats.lol
- * (me.ts); without one the hero says why.
+ * Home (user, 08.10.2026: the dashboard of the canvas "App · Home"). Its question: how am I doing,
+ * and what is strong right now? The most played champion, the top augments (arammeta.com) and the
+ * last games, with the rank, numbers and records in a bento column. The player comes from
+ * mayhemstats.lol (me.ts); without one a small notice says why.
  */
 export function HomePage({
   tiers,
@@ -518,7 +546,7 @@ export function HomePage({
   onAugment: (id: number) => void;
   onRetry: () => void;
 }) {
-  const top = tiers.state === 'ready' ? tiers.lists.augments.slice(0, 4) : [];
+  const top = tiers.state === 'ready' ? tiers.lists.augments.slice(0, HOME_AUGMENTS) : [];
   const got = ready(me);
   const own = got?.me ?? null;
   const main = own?.main ?? null;
@@ -527,74 +555,54 @@ export function HomePage({
   return (
     <div className="mayhem-home">
       <div className="mayhem-home-main">
-        <section
-          className="mayhem-hero-big mayhem-in"
-          style={splash ? { ['--splash' as string]: `url("${splash}")` } : undefined}
-        >
-          {got?.mock && <span className="mayhem-pill mock">Mock</span>}
-          <div className="mayhem-hero-text">
-            {main ? (
+        {main ? (
+          <section
+            className="mayhem-hero-big mayhem-in"
+            style={splash ? { ['--splash' as string]: `url("${splash}")` } : undefined}
+          >
+            {got?.mock && <span className="mayhem-pill mock">Mock</span>}
+            <div className="mayhem-hero-text">
+              <span className="mayhem-kicker">Your most played champion</span>
+              <h1>{main.name}</h1>
+              <p>
+                {percent(main.wins / main.games)} wins · {games(main.games)}
+              </p>
+              <div className="mayhem-hero-actions">
+                <button
+                  type="button"
+                  className="mayhem-button primary"
+                  onClick={() => onOpen('champions')}
+                >
+                  Tier list
+                </button>
+                <button type="button" className="mayhem-button" onClick={() => onOpen('rank')}>
+                  Match history
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="mayhem-glass mayhem-notice mayhem-in">
+            {got?.mock && <span className="mayhem-pill mock">Mock</span>}
+            {own ? (
               <>
-                <span className="mayhem-kicker">Dein meistgespielter Champion</span>
-                <h1>{main.name}</h1>
-                <p>
-                  {games(main.games)} · Ø Note {main.grade} · {percent(main.wins / main.games)}{' '}
-                  Siege
-                </p>
-                <div className="mayhem-hero-actions">
-                  <button
-                    type="button"
-                    className="mayhem-button primary"
-                    onClick={() => onOpen('champions')}
-                  >
-                    Tier-Liste
-                  </button>
-                  <button type="button" className="mayhem-button" onClick={() => onOpen('rank')}>
-                    Alle Spiele
-                  </button>
-                </div>
-              </>
-            ) : own ? (
-              <>
-                <span className="mayhem-kicker">{got!.name}</span>
-                <h1>Noch keine Spiele</h1>
-                <p>Deine gewerteten Spiele bei mayhemstats.lol erscheinen hier.</p>
+                <h1>No games yet</h1>
+                <p>Your rated games on mayhemstats.lol show up here.</p>
               </>
             ) : (
               <MeNotice me={me} onRetry={onRetry} />
             )}
-          </div>
-        </section>
-
-        <div className="mayhem-tabs mayhem-in" style={step(1)} role="group" aria-label="Schnell zu">
-          <button type="button" aria-pressed="true">
-            Übersicht
-          </button>
-          <button type="button" onClick={() => onOpen('augments')}>
-            Augments
-          </button>
-          <button type="button" onClick={() => onOpen('champions')}>
-            Champions
-          </button>
-          <button type="button" onClick={() => onOpen('rank')}>
-            Rang
-          </button>
-          <button type="button" onClick={() => onOpen('patch')}>
-            Patch
-          </button>
-          <button type="button" onClick={() => onOpen('items')}>
-            Items
-          </button>
-        </div>
+          </section>
+        )}
 
         <section className="mayhem-row">
           <div className="mayhem-row-head mayhem-in" style={step(2)}>
-            <h2>Top Augments</h2>
+            <h2>Top augments</h2>
             {tiers.state === 'ready' && tiers.lists.mock && (
               <span className="mayhem-pill mock">Mock</span>
             )}
             <button type="button" className="mayhem-link" onClick={() => onOpen('augments')}>
-              Alle ansehen
+              See all
             </button>
           </div>
           {top.length ? (
@@ -607,7 +615,7 @@ export function HomePage({
                   data-rarity={a.rarity}
                   style={step(i + 3)}
                   onClick={() => onAugment(a.id)}
-                  title={a.text}
+                  title={`${winsIn(a.winRate, a.games)}\n${a.text}`}
                 >
                   <span className="mayhem-aug-card-tier" data-tier={a.tier}>
                     {a.tier}
@@ -616,52 +624,54 @@ export function HomePage({
                     {a.image && <img src={a.image} alt="" width={40} height={40} />}
                   </span>
                   <b>{a.name}</b>
-                  <small>
-                    {percent(a.winRate)} · {RARITY_WORD[a.rarity]}
-                  </small>
+                  <small>{percent(a.winRate)} wins</small>
                 </button>
               ))}
             </div>
           ) : (
             <p className="mayhem-note">
-              {tiers.state === 'failed' ? tiers.message : 'Lade die Liste von arammeta.com …'}
+              {tiers.state === 'failed' ? tiers.message : 'Loading the list from arammeta.com …'}
             </p>
           )}
         </section>
 
         <section className="mayhem-row">
           <div className="mayhem-row-head mayhem-in" style={step(7)}>
-            <h2>Letzte Spiele</h2>
+            <h2>Last games</h2>
           </div>
           {own?.recent.length ? (
             <div className="mayhem-game-cards">
-              {own.recent.slice(0, 3).map((g, i) => {
+              {own.recent.map((g, i) => {
                 const art = g.alias ? championSplash(g.alias) : null;
                 return (
                   <article
                     key={g.gameId}
                     className="mayhem-game-card mayhem-in"
                     data-win={g.win}
+                    title={`${g.name} · ${g.kda}`}
                     style={{
                       ...step(i + 8),
                       ...(art ? { ['--splash' as string]: `url("${art}")` } : {}),
                     }}
                   >
                     <div>
-                      <b>{g.win ? 'Sieg' : 'Niederlage'}</b>
-                      <small>
-                        {g.kda} · {ago(g.at, Date.now())}
-                      </small>
+                      <b>{g.win ? 'Win' : 'Loss'}</b>
+                      <small>{ago(g.at, Date.now())}</small>
                     </div>
                     <strong>{gainText(g.gain)}</strong>
-                    <img src={gradeImage(g.grade)} alt={`Note ${g.grade}`} width={44} height={44} />
+                    <img
+                      src={gradeImage(g.grade)}
+                      alt={`Grade ${g.grade}`}
+                      width={44}
+                      height={44}
+                    />
                   </article>
                 );
               })}
             </div>
           ) : (
             <p className="mayhem-note">
-              {own ? 'Noch keine gewerteten Spiele.' : 'Erscheint mit deinem Spieler.'}
+              {own ? 'No rated games yet.' : 'Shows up with your player.'}
             </p>
           )}
         </section>
@@ -671,13 +681,13 @@ export function HomePage({
         <section className="mayhem-glass mayhem-bento-rank mayhem-in" style={step(1)}>
           <div className="mayhem-bento-rank-head">
             <div>
-              <span className="mayhem-note">Dein Rang · {seasonName(seasonOf(Date.now()))}</span>
+              <span className="mayhem-note">{season()}</span>
               <div className="mayhem-rank-name">{own?.rank ? rankName(own.rank) : '–'}</div>
               <span className="mayhem-note">
                 {own?.rank
                   ? mpLine(own, own.rank)
                   : own
-                    ? `Einstufung ${own.placed}/${PLACEMENT}`
+                    ? `Placement ${own.placed}/${PLACEMENT}`
                     : '–'}
               </span>
             </div>
@@ -688,33 +698,39 @@ export function HomePage({
               <svg
                 viewBox={`0 0 ${CURVE_SIZE.width} ${CURVE_SIZE.height}`}
                 className="mayhem-curve"
-                aria-label="MP-Verlauf der letzten Spiele"
+                role="img"
+                aria-label="Rank over the last games"
               >
                 <defs>
                   <linearGradient id="mayhem-mp" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0" stopColor="#f2c14e" stopOpacity="0.35" />
-                    <stop offset="1" stopColor="#f2c14e" stopOpacity="0" />
+                    <stop offset="0" style={{ stopColor: 'var(--accent)', stopOpacity: 0.35 }} />
+                    <stop offset="1" style={{ stopColor: 'var(--accent)', stopOpacity: 0 }} />
                   </linearGradient>
                 </defs>
                 <path d={curve.area} fill="url(#mayhem-mp)" />
                 <path className="mayhem-curve-line" d={curve.line} />
-                <circle cx={curve.end[0]} cy={curve.end[1]} r="4" fill="#fff3d6" />
+                <circle
+                  cx={curve.end[0]}
+                  cy={curve.end[1]}
+                  r="4"
+                  style={{ fill: 'var(--accent-soft)' }}
+                />
               </svg>
               <div className="mayhem-curve-scale">
-                <span>vor {own!.curve.length} Spielen</span>
-                <span>jetzt</span>
+                <span>{own!.curve.length} games ago</span>
+                <span>now</span>
               </div>
             </>
           )}
         </section>
         <div className="mayhem-bento-pair">
           <section className="mayhem-tile mayhem-in" style={step(2)}>
-            <span className="mayhem-note">Spiele</span>
-            <strong>{own ? own.games : '–'}</strong>
+            <span className="mayhem-note">Games</span>
+            <strong>{own ? number(own.games) : '–'}</strong>
             {own && <small>{winLoss(own)}</small>}
           </section>
           <section className="mayhem-tile mayhem-in" style={step(3)}>
-            <span className="mayhem-note">Ø Note</span>
+            <span className="mayhem-note">Avg grade</span>
             <span className="mayhem-tile-grade">
               {own?.average && <img src={gradeImage(own.average)} alt="" width={34} height={34} />}
               <strong>{own?.average ?? '–'}</strong>
@@ -722,23 +738,23 @@ export function HomePage({
           </section>
         </div>
         <section className="mayhem-tile mayhem-in" style={step(4)}>
-          <span className="mayhem-note">Rekorde</span>
+          <span className="mayhem-note">Records</span>
           <div className="mayhem-records">
             <span data-best="true">
               <strong>{own?.best.damage != null ? number(own.best.damage) : '–'}</strong>
-              <small>Höchster Schaden</small>
+              <small>Most damage</small>
             </span>
             <span data-best="false">
               <strong>{own?.best.kills != null ? own.best.kills : '–'}</strong>
-              <small>Meiste Kills</small>
+              <small>Most kills</small>
             </span>
           </div>
         </section>
         {own && !own.rank && (
           <section className="mayhem-goal mayhem-in" style={step(5)}>
-            <span className="mayhem-kicker">Einstufung</span>
-            <strong>Noch {games(PLACEMENT - Math.min(own.placed, PLACEMENT))} bis zum Rang</strong>
-            <small>Der Rang erscheint nach {PLACEMENT} gewerteten Spielen.</small>
+            <span className="mayhem-kicker">Placement</span>
+            <strong>{games(PLACEMENT - Math.min(own.placed, PLACEMENT))} to your rank</strong>
+            <small>Your rank shows after {PLACEMENT} rated games.</small>
             <div className="mayhem-bar">
               <span style={{ width: `${(Math.min(own.placed, PLACEMENT) / PLACEMENT) * 100}%` }} />
             </div>

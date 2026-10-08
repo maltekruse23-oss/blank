@@ -1,5 +1,6 @@
 // The Mayhem app's window (src-tauri/src/mayhem.rs, mayhem.html, vite.mayhem.config.ts): only the
-// dashboard in the look "Arena" (MAYHEM-DESIGN.md): Home, Champ-Karte, tier lists, rank; nothing of blank.
+// dashboard in the look "Arena" (MAYHEM-DESIGN.md): Home, Champ-Karte, tier lists, rank; nothing of
+// blank. English only (user's choice 08.10.2026), blank. stays German.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Guard } from '../components/Guard';
@@ -14,9 +15,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       name="Mayhem"
       fallback={(retry) => (
         <div className="mayhem-wait">
-          <p>Da ist etwas schiefgegangen.</p>
+          <p>Something went wrong.</p>
           <button type="button" className="mayhem-button" onClick={retry}>
-            Neu laden
+            Reload
           </button>
         </div>
       )}
