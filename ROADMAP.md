@@ -26,6 +26,10 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 
 ## Als Nächstes
 
+0. **Karte nach dem Spiel in der Mayhem-App** (malte 08.10.2026: „eine After-Game-Card auch mit einbauen wie bei blank“; startet, sobald „Find my Mayhem rank“ gemergt ist, weil beide dieselbe Spielende-Erkennung nutzen)
+   Ziel: Direkt nach jedem ARAM-Mayhem-Spiel zeigt die Mayhem-App eine Karte wie blank.s `AramResult` (in der App, kein Popout): Ergebnis, Skin-Splash, Schaden zählt hoch, K/D/A, Schaden/Min, Team-Anteil, Augments, Freunde im Spiel; neue Rekorde gegen die Rekorde der Website; Rang-Band mit MP von der Website, wenn man eingetragen ist.
+   Fertig, wenn: Nach einem echten Spiel erscheint die Karte einmal, Zahlen stimmen mit der Website überein, ohne Animationen steht sofort der Endstand da.
+
 1. **Englische Version der Website mit Server-Kürzel und Server-Filter**
    Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.
    Fertig, wenn: Alle Seiten und Meldungen sind nur auf Englisch (Benutzerentscheidung 08.10.2026 „Website auch Englisch only.“: kein Deutsch, kein Umschalter), alte deutsche Adressen (`/de/…`) leiten dauerhaft auf die englische Seite weiter, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft. (Server-Kürzel und -Filter gemergt in #58–#60, nur Englisch im PR `claude/website-englisch`; wartet auf Codex, Benutzer: Website erstmal hinten an.)
