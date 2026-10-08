@@ -87,6 +87,9 @@ pub(super) struct Game {
     pub(super) game_duration: u64,
     #[serde(default)]
     pub(super) queue_id: i64,
+    /// "KIWI" for ARAM Mayhem, also in a custom game (queue 0).
+    #[serde(default)]
+    pub(super) game_mode: String,
     #[serde(default)]
     pub(super) game_version: String,
     #[serde(default)]
