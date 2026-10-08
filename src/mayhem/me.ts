@@ -1,0 +1,188 @@
+// The Mayhem app's player (ROADMAP "Jetzt 2"): the player signed in to the League client, their
+// rank, games and the leaderboard from mayhemstats.lol (aram_website.rs, mayhem_ranks). The
+// website's answers are checked strictly by aramSite.ts; what the pages need is taken from there.
+// Values the website does not give stay null and show as "–", never 0.
+import { isTauri } from '@tauri-apps/api/core';
+import { readOwnRanks, type OwnRanks } from '../adapters/aramSite';
+import { gradeOf, type Grade } from '../features/aram/aramPerformance';
+import type { Rank } from '../features/aram/aramRating';
+import { day } from '../features/aram/format';
+import { parseBoard, parseProfile, type Ranked } from '../features/aram/aramSite';
+import { ladderPlace } from '../features/aram/RankHistory';
+import { MOCK_STATE } from './mock';
+
+export type MeGame = {
+  gameId: number;
+  /** Data Dragon alias for the picture; null when the website gave none. */
+  alias: string | null;
+  name: string;
+  win: boolean;
+  kda: string;
+  at: number;
+  grade: Grade;
+  gain: number | null;
+};
+
+export type MeView = {
+  rank: Rank | null;
+  /** Games towards the placement (the rank comes after five). */
+  placed: number;
+  games: number;
+  wins: number;
+  average: Grade | null;
+  place: number | null;
+  top: number | null;
+  /** The most played champion. */
+  main: { alias: string | null; name: string; games: number; wins: number; grade: Grade } | null;
+  best: { damage: number | null; kills: number | null };
+  /** The ladder after each of the last games, oldest first (the MP curve). */
+  curve: number[];
+  /** The last games, newest first. */
+  recent: MeGame[];
+};
+
+export type LadderRow = { place: number; name: string; rank: Rank | null; me: boolean };
+
+export type MeState =
+  | { state: 'loading' }
+  /** The League client is closed or nobody is signed in. */
+  | { state: 'closed' }
+  | { state: 'failed'; message: string }
+  /** `me` null: mayhemstats.lol has no profile of the player ("nicht in der Datenbank"). */
+  | { state: 'ready'; name: string; me: MeView | null; ladder: LadderRow[]; mock: boolean };
+
+const RECENT = 6;
+const CURVE = 20;
+const LADDER = 10;
+const ALIAS = /^[A-Za-z0-9]{1,40}$/;
+
+const max = (values: unknown[]) => {
+  const ok = values.filter((v): v is number => Number.isSafeInteger(v) && (v as number) >= 0);
+  return ok.length ? Math.max(...ok) : null;
+};
+
+/** The player's numbers from their profile; `board` gives the place among everyone. */
+export function meView(profile: Ranked, board: Ranked[]): MeView {
+  const history = profile.history;
+  const alias = (v: unknown) => (typeof v === 'string' && ALIAS.test(v) ? v : null);
+  const byChamp = new Map<string, typeof history>();
+  for (const s of history) {
+    const games = byChamp.get(s.entry.championName) ?? [];
+    byChamp.set(s.entry.championName, [...games, s]);
+  }
+  // Most games; a tie goes to the champion played last (later in the history).
+  let main: MeView['main'] = null;
+  for (const [name, games] of byChamp) {
+    if (main && games.length < main.games) continue;
+    const pct = games.reduce((t, s) => t + s.mark.pct, 0) / games.length;
+    main = {
+      alias: alias(games[games.length - 1]!.entry.champion),
+      name,
+      games: games.length,
+      wins: games.filter((s) => s.entry.win).length,
+      grade: gradeOf(pct),
+    };
+  }
+  const place = profile.siteId
+    ? ladderPlace(
+        board.map((p) => ({ puuid: p.siteId ?? '', rank: p.rank })),
+        profile.siteId,
+      )
+    : null;
+  return {
+    rank: profile.rank,
+    placed: profile.placed,
+    games: profile.games,
+    wins: profile.wins,
+    average: profile.average?.grade ?? null,
+    place: profile.rank ? (place?.place ?? null) : null,
+    top: profile.rank ? (place?.top ?? null) : null,
+    main,
+    best: {
+      damage: max(history.map((s) => s.entry.damage)),
+      kills: max(history.map((s) => s.entry.kills)),
+    },
+    curve: history.slice(-CURVE).flatMap((s) => (s.after ? [s.after.ladder] : [])),
+    recent: history
+      .slice(-RECENT)
+      .reverse()
+      .map((s) => ({
+        gameId: s.entry.gameId,
+        alias: alias(s.entry.champion),
+        name: s.entry.championName,
+        win: s.entry.win,
+        kda: `${s.entry.kills}/${s.entry.deaths}/${s.entry.assists}`,
+        at: s.entry.at,
+        grade: s.mark.grade,
+        gain: s.gain,
+      })),
+  };
+}
+
+/** The top of the leaderboard in the website's order, and the player below it when further down. */
+export function ladderOf(board: Ranked[], siteId: string | undefined): LadderRow[] {
+  const rows = board.map((p, i) => ({
+    place: i + 1,
+    name: p.name,
+    rank: p.rank,
+    me: siteId !== undefined && p.siteId === siteId,
+  }));
+  const own = rows.find((r) => r.me && r.place > LADDER);
+  return [...rows.slice(0, LADDER), ...(own ? [own] : [])];
+}
+
+/** The MP curve's box (an SVG viewBox). */
+export const CURVE_SIZE = { width: 300, height: 70 };
+
+/** The ladder values as a line and the area below it; null below two games. */
+export function curvePath(values: number[]) {
+  if (values.length < 2) return null;
+  const { width, height } = CURVE_SIZE;
+  const low = Math.min(...values);
+  const span = Math.max(...values) - low || 1;
+  const points = values.map(
+    (v, i) =>
+      [
+        Math.round((i / (values.length - 1)) * width * 10) / 10,
+        Math.round((height - 6 - ((v - low) / span) * (height - 12)) * 10) / 10,
+      ] as const,
+  );
+  const line = points.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ');
+  return { line, area: `${line} L${width} ${height} L0 ${height} Z`, end: points.at(-1)! };
+}
+
+/** "vor 5 min", "vor 2 h", "gestern", else the date. */
+export function ago(at: number, now: number) {
+  const minutes = Math.max(0, Math.floor((now - at) / 60_000));
+  if (minutes < 60) return `vor ${minutes} min`;
+  if (minutes < 24 * 60) return `vor ${Math.floor(minutes / 60)} h`;
+  if (minutes < 48 * 60) return 'gestern';
+  return day(at);
+}
+
+/** The answer of mayhem_ranks as the pages show it. */
+export function ownState(answer: OwnRanks | null): MeState {
+  if (!answer) return { state: 'closed' };
+  try {
+    const board = answer.board ? parseBoard(answer.board) : [];
+    const profile = answer.me ? parseProfile(answer.me) : null;
+    return {
+      state: 'ready',
+      name: answer.name || profile?.name || '–',
+      me: profile && meView(profile, board),
+      ladder: ladderOf(board, profile?.siteId),
+      mock: false,
+    };
+  } catch {
+    return { state: 'failed', message: 'Die Antwort von mayhemstats.lol passt nicht.' };
+  }
+}
+
+/** The player's rank; the browser preview shows invented values (and says "Mock"). */
+export const loadMe = (): Promise<MeState> =>
+  isTauri()
+    ? readOwnRanks().then(ownState, (e: unknown) => ({
+        state: 'failed' as const,
+        message: typeof e === 'string' && e ? e : 'mayhemstats.lol antwortet nicht.',
+      }))
+    : Promise.resolve(MOCK_STATE);

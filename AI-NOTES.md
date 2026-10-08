@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: echter Spieler und Rang — 08.10.2026
+
+- ROADMAP „Jetzt 2“ (malte: „mache alles“). Rust `mayhem_ranks` (`aram_website.rs`, in `mayhem.rs`, `build.rs`, `capabilities/mayhem.json`): Spieler aus dem Client, dann `/api/players/<puuid>` und `/api/leaderboard` über dieselben Helfer wie blank. (`read_json`, `site_client`, `plain_id`), aber ohne die Upload-Freigabe (`enabled`), weil die Mayhem-App keine Einstellungen hat und nichts hochlädt. Antwort als JSON-Text, geprüft mit `parseBoard`/`parseProfile` aus `aramSite.ts`.
+- Frontend: `src/mayhem/me.ts` (Zustände `loading`/`closed`/`failed`/`ready`, `me: null` = nicht in der Datenbank; `meView`, `ladderOf`, `curvePath`, `ago`), Adapter `readOwnRanks` in `src/adapters/aramSite.ts`. Geladen beim Öffnen/Schließen des Clients und beim Öffnen von Home/Rang, wenn älter als 2 min. Home: Hero = meistgespielter Champion (Ø Note aus den Perzentilen), letzte Spiele, Rang-Kachel mit echter MP-Kurve (Leiterstand nach den letzten 20 Spielen), Spiele, Ø Note, Rekorde (höchster Schaden, meiste Kills). Das erfundene „Ziel heute“ ist weg; stattdessen nur ohne Rang eine Einstufungs-Kachel. Rang: Rangkarte, Top 10 der Rangliste plus eigene Zeile, Matchverlauf (6 Spiele).
+- Entscheidungen ohne Rückfrage: Server-Kürzel in der Rangliste weggelassen (`parseBoard` liest es nicht), statt Champion-Bild das Wappen; Zeitraum der Zahlen = alle Spiele, die das Profil liefert (Standard-Saison der Website), daher „meistgespielter Champion“ statt „diese Saison“.
+- Branch auf `claude/roadmap-stand` (#66) aufgesetzt, weil „Jetzt 2“ erst dort steht. Offen: Test auf malte's PC (VALIDATION).
+
 ## Etappe 3a: genommenes Augment — 08.10.2026
 
 - Benutzerauftrag („mache alles“). Nur Anzeige, keine Änderung an Empfehlungen (das ist 3b, braucht mehr Daten). `offers.rs`: je Spiel `taken` (zurückgesetzt in `follow`), automatisch wenn die letzte Lesung nur noch eine Karte zeigt, die vorher mit anderen da war (`taken_of`), sonst unbekannt; Ersatz per Klick (`aram_offer_taken`, Umschalten, nur Karten der aktuellen/letzten Runde; ein Klick in der Runde hat Vorrang vor der Automatik). `taken` im Ereignis `aram-offers`; Karte zeigt „Bisher: …“ und „genommen“, auch nach dem Schließen des Angebots.

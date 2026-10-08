@@ -1,50 +1,71 @@
-// Invented values for the one part of the Mayhem app without real data yet: the rank page
-// (planned: the user's own rank and the leaderboard from mayhemstats.lol, the player known from
-// the League client). The page says "Mock" in its header; nothing here is sent anywhere.
+// Invented values for the browser preview only (no League client, no Tauri there): the player and
+// the leaderboard that the app reads from mayhemstats.lol (me.ts). The pages say "Mock" with them;
+// nothing here is sent anywhere.
+import { TIERS, type Rank } from '../features/aram/aramRating';
+import type { MeState } from './me';
 
-export type MockPlayer = {
-  place: number;
-  name: string;
-  server: string;
-  rank: string;
-  mp: number;
-  alias: string;
-};
+const rank = (tier: number, division: number | null, points: number): Rank => ({
+  tier: TIERS[tier]!,
+  division,
+  points,
+  ladder: tier * 400 + (division === null ? 0 : (4 - division) * 100) + points,
+});
 
-export const MOCK_LADDER: MockPlayer[] = [
-  { place: 1, name: 'Player One', server: 'EUW', rank: 'SS I', mp: 88, alias: 'Alistar' },
-  { place: 2, name: 'Second Pick', server: 'NA', rank: 'SS II', mp: 41, alias: 'Brand' },
-  { place: 3, name: 'Third Wheel', server: 'KR', rank: 'S I', mp: 97, alias: 'Jinx' },
-  { place: 4, name: 'Bridge Troll', server: 'EUNE', rank: 'S II', mp: 30, alias: 'Soraka' },
-];
+const HOUR = 3_600_000;
+const at = (hours: number) => Date.now() - hours * HOUR;
 
-export type MockGame = {
-  alias: string;
-  win: boolean;
-  kda: string;
-  grade: 'sss' | 'ss' | 's';
-  mp: number;
-  ago: string;
-};
-
-export const MOCK_ME = {
-  /** The most played champion this season (home's hero). */
-  main: { alias: 'Alistar', name: 'Alistar', games: 28, grade: 'SS', winRate: '68 %' },
-  played: 63,
-  average: 's' as const,
-  records: [
-    { value: '112k', label: 'Eingesteckt', best: true },
-    { value: '31', label: 'Kill-Beteiligung', best: false },
+export const MOCK_STATE: MeState = {
+  state: 'ready',
+  name: 'Beispiel#EUW',
+  mock: true,
+  me: {
+    rank: rank(5, 1, 88),
+    placed: 5,
+    games: 63,
+    wins: 41,
+    average: 'S',
+    place: 1,
+    top: null,
+    main: { alias: 'Alistar', name: 'Alistar', games: 28, wins: 19, grade: 'SS' },
+    best: { damage: 112_000, kills: 31 },
+    curve: [2010, 2032, 2025, 2051, 2070, 2064, 2091, 2110, 2132, 2160, 2188],
+    recent: [
+      {
+        gameId: 3,
+        alias: 'Alistar',
+        name: 'Alistar',
+        win: true,
+        kda: '8/2/31',
+        at: at(2),
+        grade: 'SSS',
+        gain: 28,
+      },
+      {
+        gameId: 2,
+        alias: 'Soraka',
+        name: 'Soraka',
+        win: true,
+        kda: '2/4/38',
+        at: at(20),
+        grade: 'SS',
+        gain: 19,
+      },
+      {
+        gameId: 1,
+        alias: 'Brand',
+        name: 'Brand',
+        win: false,
+        kda: '11/7/14',
+        at: at(26),
+        grade: 'S',
+        gain: 6,
+      },
+    ],
+  },
+  ladder: [
+    { place: 1, name: 'Beispiel#EUW', rank: rank(5, 1, 88), me: true },
+    { place: 2, name: 'Second Pick#NA1', rank: rank(5, 2, 41), me: false },
+    { place: 3, name: 'Third Wheel#KR1', rank: rank(4, 1, 97), me: false },
+    { place: 4, name: 'Bridge Troll#EUNE', rank: rank(4, 2, 30), me: false },
   ],
-  goal: { title: 'Hol dir eine SSS-Note', line: 'Noch 2 S-Noten bis zum Aufstieg.', done: 0.66 },
-  rank: 'SS I',
-  mp: 88,
-  wins: 41,
-  losses: 22,
-  top: 'Top 1 %',
-  games: [
-    { alias: 'Alistar', win: true, kda: '8/2/31', grade: 'sss', mp: 28, ago: 'vor 2 h' },
-    { alias: 'Soraka', win: true, kda: '2/4/38', grade: 'ss', mp: 19, ago: 'gestern' },
-    { alias: 'Brand', win: false, kda: '11/7/14', grade: 's', mp: 6, ago: 'gestern' },
-  ] as MockGame[],
 };
