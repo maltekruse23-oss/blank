@@ -420,6 +420,22 @@ export function planNote(view: Pick<ChampView, 'source' | 'name' | 'alias'>, pla
   return null;
 }
 
+/**
+ * The item set written into the client for a direction (MAYHEM-BERATER.md 6a): the core of its
+ * best build, then the further items of its other builds; mana items only when the core has them.
+ * Useless items never come here (`bestBuilds` leaves them out). Null without a build.
+ */
+export function itemSetOf(plan: BuildPlan): { core: number[]; more: number[] } | null {
+  const [best, ...rest] = plan.builds;
+  if (!best) return null;
+  const core = best.items.map((i) => i.id);
+  const manaOk = best.mana > 0;
+  const more = [
+    ...new Set(rest.flatMap((b) => b.items.filter((i) => manaOk || !i.mana).map((i) => i.id))),
+  ].filter((id) => !core.includes(id));
+  return { core, more };
+}
+
 /** The card for a champion; null when the website's answer does not fit. A champion without
  * games on the website gets a card with empty lists (the card says so). */
 export function champView(

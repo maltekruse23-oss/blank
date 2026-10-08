@@ -36,9 +36,24 @@ export type MetaInfo = {
   augments: Record<string, MetaAugment>;
 };
 
-/** Follow the champion select while the client runs (on), or stop (off). */
-export const watchChamp = (on: boolean) =>
-  isTauri() ? invoke<void>('aram_champ_watch', { on }).catch(() => undefined) : Promise.resolve();
+/** Follow the champion select while the client runs (on), or stop (off). With `itemSet` and
+ * `spells` (blank.'s switches, MAYHEM-BERATER.md 6a) Rust also writes the item set and sets the
+ * summoner spells; without them it only reads. */
+export const watchChamp = (on: boolean, writes: { itemSet?: boolean; spells?: boolean } = {}) =>
+  isTauri()
+    ? invoke<void>('aram_champ_watch', { on, ...writes }).catch(() => undefined)
+    : Promise.resolve();
+
+/** The item set "blank. <direction>" for the champion held in the champion select; Rust does
+ * nothing with the switch off or for any other champion. Failures are in the error log. */
+export const writeItemSet = (
+  championId: number,
+  direction: string,
+  set: { core: number[]; more: number[] } | null,
+) =>
+  isTauri() && set
+    ? invoke<void>('aram_item_set', { championId, direction, ...set }).catch(() => undefined)
+    : Promise.resolve();
 
 /** The champion held in the champion select, with Data Dragon key and name from the client. */
 export type HeldChamp = { championId: number; alias: string; name: string };

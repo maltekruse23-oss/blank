@@ -10,6 +10,12 @@
 //! arammeta.com (user's choice 06.10.2026: open JSON files of an MIT-licensed project, ARAM Mayhem
 //! only, many more games) and from our website, and the item list from Data Dragon (name, finished
 //! or not, mana), reduced here. Nothing personal is sent, only the champion's number.
+//!
+//! Writing into the client (user's decision 06.10.2026, MAYHEM-BERATER.md 6a), each with its own
+//! switch, off by default, only for the champion held in an ARAM Mayhem champion select: the item
+//! set "blank. <direction>" of the chosen build (`aram_item_set`; the user's own sets are written
+//! back unchanged) and the own summoner spells (`spells_for`: Snowball plus Flash, exceptions with a
+//! reason in `SPELL_EXCEPTIONS`; once the user changes them, nothing more in that select).
 use super::{champion_names, lockfile, parse_lockfile, Lcu, MAYHEM_QUEUE, SESSION};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -55,6 +61,25 @@ static WANTED: AtomicBool = AtomicBool::new(false);
 static LISTENING: AtomicBool = AtomicBool::new(false);
 /// The last champion told to the app (0: none), so the same pick is told once.
 static TOLD: AtomicI64 = AtomicI64::new(0);
+/// The switches "Item-Set schreiben" and "Beschwörerzauber setzen" (`champItemSet`, `champSpells`).
+static ITEM_SET_WANTED: AtomicBool = AtomicBool::new(false);
+static SPELLS_WANTED: AtomicBool = AtomicBool::new(false);
+
+const MY_SELECTION: &str = "/lol-champ-select/v1/session/my-selection";
+const FLASH: i64 = 4;
+const GHOST: i64 = 6;
+/// ARAM's Mark/Dash.
+const SNOWBALL: i64 = 32;
+/// Champions that take another spell instead of Flash (user's rule: Snowball almost always, Flash
+/// beside it; never Exhaust or Barrier). Champion id, spell, reason.
+const SPELL_EXCEPTIONS: &[(i64, i64, &str)] = &[(
+    27,
+    GHOST,
+    "Singed: läuft mit seinem Gift durch die Gegner, Geist hält ihn im Kampf, Blitz bringt ihm wenig",
+)];
+/// Howling Abyss, where ARAM Mayhem is played.
+const ARAM_MAP: i64 = 12;
+const ITEM_SET_TITLE: &str = "blank. ";
 
 /// What the app hears: the champion the user holds in an ARAM Mayhem champion select (0 when the
 /// select ended), with its Data Dragon key and name from the client's champion list.
@@ -78,17 +103,77 @@ struct SelectSession {
 struct Cell {
     cell_id: i64,
     champion_id: i64,
+    spell1_id: i64,
+    spell2_id: i64,
+}
+
+fn my_cell(data: &Value) -> Option<Cell> {
+    let session = SelectSession::deserialize(data).ok()?;
+    session
+        .my_team
+        .into_iter()
+        .find(|cell| cell.cell_id == session.local_player_cell_id)
 }
 
 /// The user's champion in a champion select event (`data` of the event), if one is held.
 fn my_champion(data: &Value) -> Option<i64> {
-    let session = SelectSession::deserialize(data).ok()?;
-    session
-        .my_team
-        .iter()
-        .find(|cell| cell.cell_id == session.local_player_cell_id)
+    my_cell(data)
         .map(|cell| cell.champion_id)
         .filter(|id| (1..100_000).contains(id))
+}
+
+/// The spells blank. sets for a champion, from the user's (D, F): Snowball and Flash (or the
+/// champion's exception); Flash, or else the spell that is not Snowball, keeps its key.
+fn spells_for(champion: i64, (d, f): (i64, i64)) -> (i64, i64) {
+    let main = SPELL_EXCEPTIONS
+        .iter()
+        .find(|(id, ..)| *id == champion)
+        .map_or(FLASH, |(_, spell, _)| *spell);
+    if f == FLASH || (d != FLASH && d == SNOWBALL) {
+        (SNOWBALL, main)
+    } else {
+        (main, SNOWBALL)
+    }
+}
+
+/// What blank. did with the spells in this champion select.
+#[derive(Default)]
+struct Spells {
+    /// The user's spells before, and what blank. set.
+    set: Option<((i64, i64), (i64, i64))>,
+    /// The user changed them after blank.: nothing more in this select.
+    done: bool,
+}
+
+async fn set_spells(champion: i64, data: &Value, state: &mut Spells) {
+    let Some(cell) = my_cell(data) else {
+        return;
+    };
+    let now = (cell.spell1_id, cell.spell2_id);
+    if state.done || now.0 <= 0 || now.1 <= 0 {
+        return;
+    }
+    if let Some((before, set)) = state.set {
+        if now != set && now != before {
+            state.done = true;
+            return;
+        }
+    }
+    let want = spells_for(champion, now);
+    if want == now {
+        return;
+    }
+    let Ok(Some(lcu)) = Lcu::connect() else {
+        return;
+    };
+    let body = serde_json::json!({ "spell1Id": want.0, "spell2Id": want.1 });
+    match lcu.send(reqwest::Method::PATCH, MY_SELECTION, &body).await {
+        Ok(()) => state.set = Some((state.set.map_or(now, |(before, _)| before), want)),
+        Err(error) => {
+            state.done = true;
+            crate::errors::record("Beschwörerzauber", &error);
+        }
+    }
 }
 
 /// One message of the client's stream: `[8, "<event>", {"eventType", "data", …}]` for the
@@ -178,6 +263,7 @@ async fn stream(app: &AppHandle) -> Result<(), String> {
     let mut mayhem: Option<bool> = None;
     // Keys and names of the champions, read once when needed.
     let mut names = HashMap::new();
+    let mut spells = Spells::default();
     while let Some(message) = socket.next().await {
         if !WANTED.load(Ordering::Relaxed) {
             break;
@@ -192,6 +278,7 @@ async fn stream(app: &AppHandle) -> Result<(), String> {
         };
         if kind == "Delete" {
             mayhem = None;
+            spells = Spells::default();
             tell(app, 0, &names);
             continue;
         }
@@ -206,6 +293,9 @@ async fn stream(app: &AppHandle) -> Result<(), String> {
                     }
                 }
                 tell(app, champion, &names);
+                if SPELLS_WANTED.load(Ordering::Relaxed) {
+                    set_spells(champion, &data, &mut spells).await;
+                }
             }
         }
     }
@@ -237,13 +327,119 @@ async fn is_mayhem() -> bool {
         .is_ok_and(|s| s.game_data.queue.id == MAYHEM_QUEUE)
 }
 
-/// The app window switches the card on or off (setting `popoutChamp`).
+/// The app window switches the card on or off (setting `popoutChamp`), and the writes into the
+/// client (`champItemSet`, `champSpells`; the Mayhem app leaves them out: off).
 #[tauri::command]
-pub fn aram_champ_watch(app: AppHandle, on: bool) {
+pub fn aram_champ_watch(app: AppHandle, on: bool, item_set: Option<bool>, spells: Option<bool>) {
+    ITEM_SET_WANTED.store(on && item_set == Some(true), Ordering::Relaxed);
+    SPELLS_WANTED.store(on && spells == Some(true), Ordering::Relaxed);
     WANTED.store(on, Ordering::Relaxed);
     if on {
         listen(&app);
     }
+}
+
+/// The item set of a build: its core, then the further items of the direction.
+fn item_set(
+    champion: i64,
+    direction: &str,
+    core: &[u32],
+    more: &[u32],
+    stamp: u128,
+) -> Option<Value> {
+    let label = match direction {
+        "ap" => "AP",
+        "ad" => "AD",
+        "tank" => "Tank",
+        _ => return None,
+    };
+    let item = |id: &u32| (1..1_000_000).contains(id);
+    if core.is_empty() || core.len() > 6 || more.len() > 12 || !core.iter().chain(more).all(item) {
+        return None;
+    }
+    let block = |kind: String, ids: &[u32]| {
+        let items: Vec<Value> = ids
+            .iter()
+            .map(|id| serde_json::json!({ "id": id.to_string(), "count": 1 }))
+            .collect();
+        serde_json::json!({ "type": kind, "items": items })
+    };
+    let mut blocks = vec![block(format!("Kern {label}"), core)];
+    if !more.is_empty() {
+        blocks.push(block("Danach".into(), more));
+    }
+    Some(serde_json::json!({
+        "title": format!("{ITEM_SET_TITLE}{label}"),
+        "type": "custom",
+        "map": "any",
+        "mode": "any",
+        "associatedChampions": [champion],
+        "associatedMaps": [ARAM_MAP],
+        "blocks": blocks,
+        "preferredItemSlots": [],
+        "sortrank": 0,
+        "startedFrom": "blank",
+        "uid": format!("{:08x}-0000-4000-8000-{:012x}", champion, stamp & 0xffff_ffff_ffff),
+    }))
+}
+
+/// The list as the client gave it, with blank.'s earlier sets for this champion replaced by `set`;
+/// every other set stays exactly as it was.
+fn with_item_set(mut sets: Value, champion: i64, set: Value) -> Option<Value> {
+    let list = sets.get_mut("itemSets")?.as_array_mut()?;
+    list.retain(|s| {
+        let ours = s
+            .get("title")
+            .and_then(Value::as_str)
+            .is_some_and(|t| t.starts_with(ITEM_SET_TITLE));
+        let this = s
+            .get("associatedChampions")
+            .and_then(Value::as_array)
+            .is_some_and(|c| c.iter().any(|id| id.as_i64() == Some(champion)));
+        !(ours && this)
+    });
+    list.push(set);
+    Some(sets)
+}
+
+/// Writes the item set of the chosen build for the champion held in the ARAM Mayhem champion
+/// select (only then, and only with the switch on; otherwise nothing happens).
+#[tauri::command]
+pub async fn aram_item_set(
+    champion_id: i64,
+    direction: String,
+    core: Vec<u32>,
+    more: Vec<u32>,
+) -> Result<(), String> {
+    if !ITEM_SET_WANTED.load(Ordering::Relaxed)
+        || champion_id <= 0
+        || TOLD.load(Ordering::Relaxed) != champion_id
+    {
+        return Ok(());
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    let set =
+        item_set(champion_id, &direction, &core, &more, stamp).ok_or("Ungültiges Item-Set")?;
+    let result = async {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Me {
+            summoner_id: u64,
+        }
+        let lcu = Lcu::connect()?.ok_or(super::NOT_OPEN)?;
+        let me: Me = lcu.get(super::SUMMONER).await?;
+        let path = format!("/lol-item-sets/v1/item-sets/{}/sets", me.summoner_id);
+        let sets: Value = lcu.get(&path).await?;
+        let sets = with_item_set(sets, champion_id, set).ok_or("Unerwartete Item-Sets")?;
+        lcu.send(reqwest::Method::PUT, &path, &sets).await
+    }
+    .await;
+    if let Err(error) = &result {
+        crate::errors::record("Item-Set", error);
+    }
+    result
 }
 
 // --- What the card shows ---
@@ -331,7 +527,9 @@ async fn meta_list(http: &reqwest::Client) -> Option<Arc<MetaList>> {
             return Some(list);
         }
     }
-    let bytes = fetch(http, &format!("{META}/api/tier-list.json")).await.ok()??;
+    let bytes = fetch(http, &format!("{META}/api/tier-list.json"))
+        .await
+        .ok()??;
     let list = Arc::new(serde_json::from_slice::<MetaList>(&bytes).ok()?);
     if let Ok(mut kept) = META_LIST.lock() {
         *kept = Some((Instant::now(), list.clone()));
@@ -600,6 +798,49 @@ pub async fn aram_champ_info(champion_id: u32, version: String) -> Result<ChampI
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn spells_keep_flash_on_its_key() {
+        // Flash on D or F stays there, Snowball takes the other key.
+        assert_eq!(spells_for(12, (FLASH, 7)), (FLASH, SNOWBALL));
+        assert_eq!(spells_for(12, (14, FLASH)), (SNOWBALL, FLASH));
+        assert_eq!(spells_for(12, (FLASH, SNOWBALL)), (FLASH, SNOWBALL));
+        assert_eq!(spells_for(12, (SNOWBALL, FLASH)), (SNOWBALL, FLASH));
+        // Without Flash: Snowball keeps its key, else Flash goes on D.
+        assert_eq!(spells_for(12, (SNOWBALL, 3)), (SNOWBALL, FLASH));
+        assert_eq!(spells_for(12, (3, 21)), (FLASH, SNOWBALL));
+        // Singed takes Ghost where Flash was; never Exhaust (3) or Barrier (21).
+        assert_eq!(spells_for(27, (14, FLASH)), (SNOWBALL, GHOST));
+        for (_, spell, reason) in SPELL_EXCEPTIONS {
+            assert!(![3, 21].contains(spell) && !reason.is_empty());
+        }
+    }
+
+    #[test]
+    fn item_sets_replace_only_blanks_own_for_the_champion() {
+        let set = item_set(12, "ap", &[3089, 6655], &[3157], 7).unwrap();
+        assert_eq!(set["title"], "blank. AP");
+        assert_eq!(set["blocks"][0]["items"][1]["id"], "6655");
+        assert_eq!(set["blocks"][1]["type"], "Danach");
+        assert!(item_set(12, "mana", &[3089], &[], 7).is_none());
+        assert!(item_set(12, "ap", &[], &[], 7).is_none());
+        assert!(item_set(12, "ap", &[0], &[], 7).is_none());
+        let sets = serde_json::json!({ "accountId": 1, "itemSets": [
+            { "title": "Mein Alistar", "associatedChampions": [12], "uid": "a" },
+            { "title": "blank. Tank", "associatedChampions": [12], "uid": "b" },
+            { "title": "blank. AD", "associatedChampions": [27], "uid": "c" },
+        ], "timestamp": 5 });
+        let out = with_item_set(sets, 12, set).unwrap();
+        let titles: Vec<&str> = out["itemSets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["title"].as_str().unwrap())
+            .collect();
+        assert_eq!(titles, ["Mein Alistar", "blank. AD", "blank. AP"]);
+        assert_eq!(out["accountId"], 1);
+        assert!(with_item_set(serde_json::json!({}), 12, Value::Null).is_none());
+    }
 
     #[test]
     fn finds_the_users_champion_in_the_select() {

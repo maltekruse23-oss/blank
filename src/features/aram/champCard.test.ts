@@ -3,6 +3,7 @@ import type { AramEntry, AramSeat } from '../../adapters/aram';
 import type { ChampItem } from '../../adapters/aramChamp';
 import { championView } from '../../../apps/mayhem-site/src/champions';
 import {
+  itemSetOf,
   AUGMENTS_SHOWN,
   MANA_PENALTY,
   bestAugments,
@@ -454,5 +455,39 @@ describe('Champ-Karte mit arammeta', () => {
       meta: broken,
     })!;
     expect(view.source).toBe('mayhemstats');
+  });
+});
+
+describe('Item-Set der Champ-Karte', () => {
+  const build = (ids: number[], mana: number[] = []) => ({
+    items: ids.map((id) => ({ id, name: `${id}`, mana: mana.includes(id) })),
+    games: 10,
+    winRate: 0.5,
+    grade: null,
+    mana: mana.length,
+  });
+  const plan = (builds: ReturnType<typeof build>[]) => ({
+    direction: 'ap' as const,
+    games: 20,
+    share: 1,
+    source: 'arammeta' as const,
+    builds,
+    augments: [],
+  });
+
+  it('nimmt den Kern und danach die übrigen Items ohne Doppel', () => {
+    expect(itemSetOf(plan([build([1, 2, 3]), build([2, 4, 5]), build([5, 6, 1])]))).toEqual({
+      core: [1, 2, 3],
+      more: [4, 5, 6],
+    });
+  });
+
+  it('nimmt Mana-Items nur, wenn der Kern sie hat', () => {
+    expect(itemSetOf(plan([build([1, 2, 3]), build([4, 5], [5])]))?.more).toEqual([4]);
+    expect(itemSetOf(plan([build([1, 2, 3], [3]), build([4, 5], [5])]))?.more).toEqual([4, 5]);
+  });
+
+  it('schreibt ohne Build nichts', () => {
+    expect(itemSetOf(plan([]))).toBeNull();
   });
 });

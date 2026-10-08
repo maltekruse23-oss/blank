@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Etappe 2c: Item-Set und Beschwörerzauber — 08.10.2026
+
+- Benutzerwahl („2.“ aus den offenen Punkten). Gebaut nur in blank.: Schalter `champItemSet`, `champSpells` (preferences, Standard aus) unter der Champ-Karte. Item-Set: beim Einrasten des Champs die vorgewählte Richtung, Klick auf eine andere Richtung in der Karte ersetzt es (`itemSetOf` in champCard.ts, Rust `aram_item_set`: GET Liste, nur „blank. …“-Sets dieses Champs ersetzen, PUT). Zauber: Rust im Ereignis-Strom (`spells_for`, `SPELL_EXCEPTIONS`), hört nach eigener Änderung des Benutzers auf.
+- Annahmen, auf Windows zu prüfen (VALIDATION): Schneeball = 32 auch in Mayhem, `summonerId` aus current-summoner für den Item-Set-Pfad, Client nimmt das Set mit selbst erzeugter `uid`.
+- Mayhem-App bleibt nur lesend (keine Einstellungen dort); auf Wunsch nachziehen.
+
 ## Mayhem-App als Desktop-Dashboard — 08.10.2026
 
 - Benutzer: „es soll eine Desktop-PC-App werden, wie Blitz“, dann Vorlagen (Streaming-Dashboard, Bento-Stats) → Canvas „mayhemstats Design 2“, Seite „App UI“; „App · Home (Dashboard) ist gut“. Umgesetzt in `src/mayhem`: Seitenleiste (Home, Champ, Augments, Champions, Rang, „Bald“, Client-Status), Fenster 1280 × 820 (`tauri.mayhem.conf.json`).
