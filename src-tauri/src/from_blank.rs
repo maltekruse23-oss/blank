@@ -1,13 +1,16 @@
 //! blank. becomes the Mayhem app (user's decision 08.10.2026, ROADMAP "Jetzt 1"): from the release
 //! after 0.9.2 the asset `blank.exe` is the Mayhem build, so blank.'s own updater puts the Mayhem
-//! app in place of blank.exe and starts it with `--after-update`. Only that start cleans up after
-//! blank. (file blank.exe and started by an update; never a normal start, never mayhem.exe), in
-//! this order: blank.'s gaming tweaks set back exactly from their backup (tweaks.rs), its
-//! autostart entry, its Twitch sign-in in the Windows Credential Manager, then its two folders
-//! (settings, games, error log; WebView2's data) – only folders named after blank.'s identifier.
-//! The first error stops it, so a tweak that cannot be set back keeps its backup and everything
-//! else; the next update of the Mayhem app (still blank.exe) tries again. A run that finds nothing
-//! says nothing; what was removed is shown once, in English.
+//! app in place of blank.'s file (whatever its name) and starts it. Only a start whose replaced
+//! file (`<exe>.old`, which the update leaves until this start's setup removes it) is a blank.
+//! build cleans up – decided by that file's version resource, not by this file's name or
+//! arguments: so a renamed blank. ("blank (1).exe") is cleaned up too, and an update of the
+//! Mayhem app itself (its `.old` is "Mayhem") never. Order: blank.'s gaming tweaks set back
+//! exactly from their backup (tweaks.rs), its autostart entry, its Twitch sign-in in the Windows
+//! Credential Manager, then its two folders (settings, games, error log; WebView2's data) – only
+//! folders named after blank.'s identifier. The first error stops it, so a tweak that cannot be set
+//! back keeps its backup and everything else; a mark in the Mayhem app's own folder stays until a
+//! cleanup worked, so every later start tries again (silently; only the first tells of an error).
+//! A run that finds nothing says nothing; what was removed is shown once, in English.
 
 use std::{
     ffi::OsStr,
@@ -21,11 +24,15 @@ use tauri::{AppHandle, Manager};
 
 /// blank.'s identifier (tauri.conf.json); its folders are named after it.
 const BLANK_IDENTIFIER: &str = "com.blank.desktop";
+/// blank.'s product name, in the version resource of every blank. build (0.1.0 to 0.9.2).
+const BLANK_PRODUCT: &str = "blank.";
+/// In the Mayhem app's own folder while a cleanup is due.
+const MARK: &str = "from-blank";
 /// WebView2 of the old blank. can hold a file for a moment after blank. ended.
 const TRIES: u32 = 10;
 const WAIT: Duration = Duration::from_millis(500);
 const STOPPED: &str = "Cleaning up after blank. stopped with an error, so some of it is still \
-                       there. Mayhem tries again after its next update.";
+                       there. Mayhem tries again at its next start.";
 
 /// Where blank. kept its things; the tests point it at throw-away places.
 struct Places {
@@ -33,6 +40,8 @@ struct Places {
     config: PathBuf,
     /// WebView2's data: `%LOCALAPPDATA%\com.blank.desktop`.
     local: PathBuf,
+    /// The mark in the Mayhem app's own folder (`%APPDATA%\lol.mayhemstats.desktop`).
+    mark: PathBuf,
     run: &'static str,
     approved: &'static str,
     twitch: &'static str,
@@ -41,40 +50,66 @@ struct Places {
 /// The cleanup of this start, until the window asks for its result.
 static RUNNING: Mutex<Option<JoinHandle<Option<String>>>> = Mutex::new(None);
 
-/// This start replaced blank.: blank.'s updater started the new file as blank.exe.
-fn wanted(args: &[String], exe: &Path) -> bool {
-    args.get(1).map(String::as_str) == Some(crate::update::AFTER_UPDATE_ARG)
-        && exe
-            .file_name()
-            .is_some_and(|name| name.eq_ignore_ascii_case("blank.exe"))
+/// blank.'s update replaced blank. by this file: the file it replaced is a blank. build. Also
+/// found by a later start if the first one ended at once (another Mayhem window was open).
+fn replaced_blank(exe: &Path) -> bool {
+    crate::pc::file_description(&crate::update::sibling(exe, ".old")).as_deref()
+        == Some(BLANK_PRODUCT)
 }
 
-/// At the start of the Mayhem app: cleans up after blank. in the background if this start
-/// replaced it.
+/// Whether to clean up now. A start that replaced blank. sets the mark; it stays until a cleanup
+/// worked, so each later start tries again.
+fn due(replaced: bool, mark: &Path) -> bool {
+    if replaced {
+        if let Some(dir) = mark.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        let _ = std::fs::write(mark, b"");
+    }
+    replaced || mark.exists()
+}
+
+/// At the start of the Mayhem app, before update.rs removes the replaced file: cleans up after
+/// blank. in the background if this start replaced it or an earlier cleanup did not finish.
 pub fn start(app: &AppHandle) {
-    let args: Vec<String> = std::env::args().collect();
     let Ok(exe) = std::env::current_exe() else {
         return;
     };
-    if !wanted(&args, &exe) {
-        return;
-    }
     // The same folders Tauri gave blank. (app_config_dir, and WebView2's in app_local_data_dir).
     let path = app.path();
-    let (Ok(config), Ok(local)) = (path.config_dir(), path.local_data_dir()) else {
+    let (Ok(config), Ok(local), Ok(own)) = (
+        path.config_dir(),
+        path.local_data_dir(),
+        path.app_config_dir(),
+    ) else {
         return;
     };
     let places = Places {
         config: config.join(BLANK_IDENTIFIER),
         local: local.join(BLANK_IDENTIFIER),
+        mark: own.join(MARK),
         run: crate::autostart::RUN,
         approved: crate::autostart::APPROVED,
         twitch: crate::twitch::auth::CREDENTIAL_SERVICE,
     };
-    let job = thread::spawn(move || notice(clean(&places)));
+    let replaced = replaced_blank(&exe);
+    if !due(replaced, &places.mark) {
+        return;
+    }
+    let job = thread::spawn(move || run(&places, replaced));
     if let Ok(mut running) = RUNNING.lock() {
         *running = Some(job);
     }
+}
+
+/// One cleanup; the mark goes once it worked. Only the start that replaced blank. tells of an
+/// error (later tries only log it, so a lasting error does not show at every start).
+fn run(places: &Places, replaced: bool) -> Option<String> {
+    let result = clean(places);
+    if result.is_ok() {
+        let _ = std::fs::remove_file(&places.mark);
+    }
+    notice(result, replaced)
 }
 
 /// Once, after the cleanup has finished: what to tell the user (`None`: nothing).
@@ -145,13 +180,13 @@ fn remove_folder(dir: &Path) -> Result<bool, String> {
     Ok(true)
 }
 
-fn notice(result: Result<Vec<&str>, String>) -> Option<String> {
+fn notice(result: Result<Vec<&str>, String>, replaced: bool) -> Option<String> {
     match result {
         Ok(done) if done.is_empty() => None,
         Ok(done) => Some(format!("Cleaned up after blank.: {}.", done.join(", "))),
         Err(error) => {
             crate::errors::record("blank. cleanup", &error);
-            Some(STOPPED.into())
+            replaced.then(|| STOPPED.into())
         }
     }
 }
@@ -164,6 +199,10 @@ mod tests {
         Places {
             config: root.join("Roaming").join(BLANK_IDENTIFIER),
             local: root.join("Local").join(BLANK_IDENTIFIER),
+            mark: root
+                .join("Roaming")
+                .join(crate::mayhem::IDENTIFIER)
+                .join(MARK),
             // Throw-away test keys (HKCU\Software\blank-test), never the real Run key; nothing is
             // written there (autostart.rs tests the removal itself).
             run: r"Software\blank-test\from-blank\Run",
@@ -177,21 +216,47 @@ mod tests {
         std::fs::write(path, text).unwrap();
     }
 
+    /// Decided by the replaced file's version resource, which Tauri fills with the productName:
+    /// "blank." in blank.'s config, "Mayhem" in the Mayhem app's.
     #[test]
-    fn runs_only_when_blanks_update_started_it() {
-        let after = |pid: &str| ["blank.exe", "--after-update", pid].map(String::from);
-        assert!(wanted(&after("42"), Path::new(r"C:\Apps\blank.exe")));
-        assert!(wanted(&after("42"), Path::new(r"C:\Apps\BLANK.EXE")));
-        // The Mayhem app's own update, a normal start, a restart: never.
-        assert!(!wanted(&after("42"), Path::new(r"C:\Apps\mayhem.exe")));
-        assert!(!wanted(
-            &["blank.exe".into()],
-            Path::new(r"C:\Apps\blank.exe")
-        ));
-        assert!(!wanted(
-            &["blank.exe", "--restart", "42"].map(String::from),
-            Path::new(r"C:\Apps\blank.exe")
-        ));
+    fn runs_only_when_it_replaced_blank() {
+        let read = |name: &str| -> serde_json::Value {
+            serde_json::from_str(
+                &std::fs::read_to_string(format!("{}/{name}", env!("CARGO_MANIFEST_DIR"))).unwrap(),
+            )
+            .unwrap()
+        };
+        assert_eq!(read("tauri.conf.json")["productName"], BLANK_PRODUCT);
+        assert_ne!(read("tauri.mayhem.conf.json")["productName"], BLANK_PRODUCT);
+        let dir = std::env::temp_dir().join(format!("blank-from-old-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let exe = dir.join("blank.exe");
+        // No replaced file (a normal start): never.
+        assert!(!replaced_blank(&exe));
+        // Another program (stands in for the Mayhem build: its own update) or no resource: never.
+        let other = Path::new(&std::env::var("SystemRoot").unwrap()).join(r"System32\cmd.exe");
+        assert!(crate::pc::file_description(&other).is_some_and(|d| !d.is_empty()));
+        std::fs::copy(&other, crate::update::sibling(&exe, ".old")).unwrap();
+        assert!(!replaced_blank(&exe));
+        std::fs::write(crate::update::sibling(&exe, ".old"), b"MZ old").unwrap();
+        assert!(!replaced_blank(&exe));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// With a real blank. build, under any name: `BLANK_EXE=<path to blank.exe> cargo test --lib
+    /// -- --ignored replaced_a_real_blank` (copies it, runs nothing).
+    #[test]
+    #[ignore]
+    fn replaced_a_real_blank() {
+        let blank = std::env::var("BLANK_EXE").expect("BLANK_EXE");
+        let dir = std::env::temp_dir().join(format!("blank-from-real-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        for name in ["blank.exe", "blank (1).exe"] {
+            let exe = dir.join(name);
+            std::fs::copy(&blank, crate::update::sibling(&exe, ".old")).unwrap();
+            assert!(replaced_blank(&exe), "{name}");
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
@@ -220,22 +285,28 @@ mod tests {
             keyring::Entry::new(places.twitch, crate::twitch::auth::CREDENTIAL_USER).unwrap();
         let signed_in = entry.set_password("test").is_ok();
 
-        let done = clean(&places).unwrap();
-        assert!(done.contains(&"settings and saved games deleted"));
-        assert_eq!(done.contains(&"Twitch sign-in removed"), signed_in);
+        // The start that replaced blank.
+        assert!(due(true, &places.mark));
+        assert!(places.mark.exists());
+        let said = run(&places, true).unwrap();
+        assert!(said.starts_with("Cleaned up after blank.: "), "{said}");
+        assert!(said.contains("settings and saved games deleted"));
+        assert_eq!(said.contains("Twitch sign-in removed"), signed_in);
         // An empty backup and empty test keys: nothing to report.
-        assert!(!done.contains(&"gaming tweaks set back"));
-        assert!(!done.contains(&"start with Windows off"));
+        assert!(!said.contains("gaming tweaks set back"));
+        assert!(!said.contains("start with Windows off"));
         assert!(!places.config.exists());
         assert!(!places.local.exists());
         assert!(mayhem.exists());
-        assert_eq!(
-            notice(Ok(done.clone())),
-            Some(format!("Cleaned up after blank.: {}.", done.join(", ")))
-        );
-        // Again (the Mayhem app's next update as blank.exe): nothing left, nothing to say.
-        assert_eq!(clean(&places), Ok(Vec::new()));
-        assert_eq!(notice(Ok(Vec::new())), None);
+        assert!(!places.mark.exists());
+        // Later the Mayhem app updates itself (no blank. replaced, no mark): nothing runs, even
+        // when blank.'s folder is back (a blank. built by hand on this PC).
+        file(&places.config.join("settings.json"), "{}");
+        assert!(!due(false, &places.mark));
+        assert!(places.config.join("settings.json").exists());
+        // A run that finds nothing says nothing.
+        std::fs::remove_dir_all(&places.config).unwrap();
+        assert_eq!(run(&places, true), None);
         std::fs::remove_dir_all(&root).unwrap();
     }
 
@@ -251,11 +322,14 @@ mod tests {
             r#"{"changes":{"from-another-version":{"changedAt":1,"before":[{"kind":"absent"}]}}}"#;
         for text in [unknown, "{ kaputt"] {
             file(&backup, text);
-            assert!(clean(&places).is_err());
+            assert!(due(true, &places.mark));
+            assert_eq!(run(&places, true).as_deref(), Some(STOPPED));
+            // The mark stays: every later start tries again, without saying it again.
+            assert!(due(false, &places.mark));
+            assert_eq!(run(&places, false), None);
             assert_eq!(std::fs::read_to_string(&backup).unwrap(), text);
             assert!(settings.exists());
         }
-        assert_eq!(notice(Err("test".into())).as_deref(), Some(STOPPED));
         std::fs::remove_dir_all(&root).unwrap();
     }
 

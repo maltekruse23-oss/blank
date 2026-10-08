@@ -7,7 +7,7 @@ Stats and builds for League of Legends' ARAM Mayhem.
 
 ## Download
 
-### ➜ [Download mayhem.exe](https://github.com/maltekruse23-oss/blank/releases/latest/download/mayhem.exe) (available from the next version)
+### ➜ [Download mayhem.exe](https://github.com/maltekruse23-oss/blank/releases/latest/download/mayhem.exe)
 
 1. Double-click `mayhem.exe`. No installation needed.
 2. If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. The app is not signed; this only comes up the first time.

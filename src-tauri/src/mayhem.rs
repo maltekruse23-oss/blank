@@ -39,9 +39,10 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
         .setup(|app| {
             crate::errors::init(app.handle());
             app.manage(crate::update::UpdateState::default());
-            crate::update::clean_up();
-            // Only when this start replaced blank. (blank. becomes the Mayhem app).
+            // Only when this start replaced blank. (blank. becomes the Mayhem app); reads the
+            // replaced `.old` before clean_up removes it.
             crate::from_blank::start(app.handle());
+            crate::update::clean_up();
             look_for_client(app.handle().clone());
             Ok(())
         })

@@ -296,7 +296,7 @@ fn verify(bytes: &[u8], asset: &Asset) -> bool {
         && sha256(bytes) == Some(asset.sha256)
 }
 
-fn sibling(exe: &Path, suffix: &str) -> PathBuf {
+pub(crate) fn sibling(exe: &Path, suffix: &str) -> PathBuf {
     let mut name = exe.file_name().unwrap_or_default().to_os_string();
     name.push(suffix);
     exe.with_file_name(name)
@@ -305,16 +305,18 @@ fn sibling(exe: &Path, suffix: &str) -> PathBuf {
 /// Puts the new EXE in place of the running one; the running one keeps working as `.old`.
 fn replace(which: Exe, exe: &Path, bytes: &[u8]) -> Result<(), String> {
     let (new, old) = (sibling(exe, ".new"), sibling(exe, ".old"));
+    // The Mayhem app also runs as blank.exe (from_blank.rs), so it names its real file.
+    let name = exe.file_name().unwrap_or_default().to_string_lossy();
     let stuck = || {
         which.say(
             "blank.exe ließ sich nicht ersetzen.",
-            "mayhem.exe could not be replaced.",
+            &format!("{name} could not be replaced."),
         )
     };
     std::fs::write(&new, bytes).map_err(|_| {
         which.say(
             "Kein Schreibzugriff im Ordner von blank.exe – bitte die neue Version von Hand laden.",
-            "No write access in the folder of mayhem.exe. Download the new version by hand.",
+            &format!("No write access in the folder of {name}. Download the new version by hand."),
         )
     })?;
     let _ = std::fs::remove_file(&old);

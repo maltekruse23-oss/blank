@@ -25,14 +25,14 @@ export function UpdateButton() {
   const button = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    void updateNews?.().then(
-      (updated) => updated && setNews(true),
-      () => undefined,
-    );
-    // Waits for the cleanup in Rust; a second call (dev double effect) gets null.
-    void mayhemMoved?.().then(
-      (line) => line && setMoved(line),
-      () => undefined,
+    // Both answers before the dialog: the cleanup in Rust can take seconds, and its line must not
+    // come after "Got it". It can also come without an update (a later try). A second call (dev
+    // double effect) gets false and null.
+    void Promise.all([updateNews?.().catch(() => false), mayhemMoved?.().catch(() => null)]).then(
+      ([updated, line]) => {
+        if (line) setMoved(line);
+        if (updated || line) setNews(true);
+      },
     );
   }, []);
 
