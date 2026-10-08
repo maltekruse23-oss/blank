@@ -14,6 +14,8 @@
 - **Combos and offmeta builds:** Augments and items that work well together, for every champion.
 - **Your rank:** Your rank and the leaderboard from mayhemstats.lol.
 - **Records:** Who holds the records on mayhemstats.lol, all time or this season, with your own place.
+- **Find my Mayhem rank:** One click puts your Mayhem games on mayhemstats.lol and shows your rank; after that every new game uploads by itself while the app runs. Remove yourself anytime at mayhemstats.lol/privacy/remove.
+- **After every game:** A card with your result, damage, records you set and how your rank changed.
 
 ## Download
 
