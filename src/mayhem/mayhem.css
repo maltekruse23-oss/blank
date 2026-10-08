@@ -283,11 +283,6 @@ button {
   min-width: 0;
 }
 
-.mayhem-card-side {
-  position: sticky;
-  top: 0;
-}
-
 /* The champion: splash art behind, liquid glass for the name. */
 .mayhem-hero {
   position: relative;
@@ -605,6 +600,67 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 700;
+}
+
+/* arammeta's further numbers (boots, items, pairs, spells, what to avoid): compact tiles with the
+   win rate in green and the games below; weak ones faded. */
+.mayhem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-grid li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-row);
+  background: var(--panel);
+}
+
+.mayhem-grid.weak li,
+.mayhem-chips.weak li {
+  opacity: 0.6;
+}
+
+.mayhem-grid.weak .mayhem-facts b,
+.mayhem-facts b.down {
+  color: var(--down);
+}
+
+.mayhem-items img.later {
+  align-self: center;
+  opacity: 0.55;
+}
+
+.mayhem-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-chips li {
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.mayhem-chips b {
+  font: 500 12px var(--font-mono);
+  color: var(--up);
+}
+
+.mayhem-chips.weak b {
+  color: var(--muted);
 }
 
 /* Tier list S–D: the letter as a small tile lit from below in its color. */

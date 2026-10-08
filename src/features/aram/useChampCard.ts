@@ -89,7 +89,7 @@ export function useChampCard(preferences: Preferences) {
           if (!view || ask !== asked) return;
           held = view;
           const plan = view.plans[0];
-          if (plan) void chooseBuild(view.championId, plan.direction, itemSetOf(plan));
+          if (plan) void chooseBuild(view.championId, plan.direction, itemSetOf(plan, view.extra));
           if (popout) await showView(view, p).catch(() => false);
         })();
       }, SETTLE_MS);

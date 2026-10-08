@@ -1,5 +1,13 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Alle Champion-Daten von arammeta auf der Champ-Karte
+
+- Formen geprüft an echten Dateien (`/api/champions/<id>.json`, über 150 Champions am 08.10.2026): `boots`/`singleItems`/`items`/`spells` haben `top` (höchstens 4/24/8/5 Zeilen, nach arammetas Wertung sortiert), `singleItems.popularBad` (≤ 6), `bot` je Seltenheit ≤ 12 Augments mit `slots` (4 Einträge, `null` bei keinen Spielen), `augTypes.top/bot` je 4. Die `bot`-Listen von Items, Stiefeln und Paaren überschneiden sich stark mit `top` (gleiche Zeilen) und werden nur bei Einzel-Items gelesen (ohne Doppel). `sets` war bei allen Champions leer und wird nicht gelesen. `itemClusters.groups[].tail` = weitere Items der Gruppe ohne eigene Zahlen.
+- Nutzlast des Popouts mit allen Augments in drei Richtungen gemessen: bis ~70 KB (Miss Fortune), vorher schon bis ~61 KB; Grenze in `flyout.rs` deshalb 128 KB, Stufen-Werte gerundet.
+- Geprüft: Vitest `champCard.test.ts` (echte Form von Alistar: Stiefel, Einzel-Items ohne Umbral, Mana zuletzt, „beliebt, aber schwach“ ohne Doppel zu den besten, Paare, Zauber ohne Barriere und unbekannte, schwächste Augments je Seltenheit ohne S/A der Karte, Augment-Arten, Gruppenname und spätere Items; kaputter Teil bleibt leer, der Rest der Karte bleibt; Item-Set mit Stiefel-Block und Einzel-Items der Richtung, höchstens 12), Rust `item_sets_replace_only_blanks_own_for_the_champion` (Block „Stiefel“, Grenzen), `spells_keep_flash_on_its_key`, `spells_from_arammeta_only_with_snowball_and_enough_games` (Singed Geist+Markieren → Geist, Flash+Geist/Erschöpfung/Barriere/zu wenig Spiele → feste Regel). build/lint/test/`mayhem:web`/prettier/fmt/clippy/`cargo test --lib`.
+- Browser-Vorschau mit echten arammeta-Daten von Alistar (Tauri-Aufruf im Browser nachgestellt): Mayhem-App-Karte (Stiefel, Einzel-Items, Paare, Beliebt aber schwach, Zauber, Augment-Arten, schwächste Augments links; Stufenliste rechts) und blank.-Popout-Karte (Reiter Augments/Items/Zauber/Meiden).
+- Nicht geprüft: echtes Popout-Fenster und Champ-Auswahl in Windows, Item-Set mit Stiefel-Block im echten Client, Zauber aus arammeta im echten Client (erste Abfrage verzögert das Setzen bis zu 5 s).
+
 ## Nachtrag 07.10.2026: Aufräumen, neue Tests
 
 - `tsconfig.tsbuildinfo` nicht mehr in Git (kein Skript braucht sie, `tsc --noEmit` ohne `incremental`), `*.tsbuildinfo` in `.gitignore`.

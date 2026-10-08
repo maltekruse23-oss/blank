@@ -14,8 +14,10 @@
 //! Writing into the client (user's decision 06.10.2026, MAYHEM-BERATER.md 6a), each with its own
 //! switch, off by default, only for the champion held in an ARAM Mayhem champion select: the item
 //! set "blank. <direction>" of the chosen build (`aram_item_set`; the user's own sets are written
-//! back unchanged) and the own summoner spells (`spells_for`: Snowball plus Flash, exceptions with a
-//! reason in `SPELL_EXCEPTIONS`; once the user changes them, nothing more in that select).
+//! back unchanged) and the own summoner spells (`spells_for`: Snowball plus the spell beside it in
+//! arammeta's best pair for the champion when that pair has Snowball and enough games, else Flash
+//! or the exception with a reason in `SPELL_EXCEPTIONS`; once the user changes them, nothing more
+//! in that select).
 use super::{champion_names, lockfile, parse_lockfile, Lcu, MAYHEM_QUEUE, SESSION};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -125,18 +127,93 @@ fn my_champion(data: &Value) -> Option<i64> {
         .filter(|id| (1..100_000).contains(id))
 }
 
-/// The spells blank. sets for a champion, from the user's (D, F): Snowball and Flash (or the
-/// champion's exception); Flash, or else the spell that is not Snowball, keeps its key.
-fn spells_for(champion: i64, (d, f): (i64, i64)) -> (i64, i64) {
-    let main = SPELL_EXCEPTIONS
-        .iter()
-        .find(|(id, ..)| *id == champion)
-        .map_or(FLASH, |(_, spell, _)| *spell);
+/// The spells blank. sets for a champion, from the user's (D, F): Snowball and the spell beside
+/// it in arammeta's best pair for the champion (`meta`, see `meta_spell`), else Flash or the
+/// champion's exception; Flash, or else the spell that is not Snowball, keeps its key.
+fn spells_for(champion: i64, (d, f): (i64, i64), meta: Option<i64>) -> (i64, i64) {
+    let main = meta.unwrap_or_else(|| {
+        SPELL_EXCEPTIONS
+            .iter()
+            .find(|(id, ..)| *id == champion)
+            .map_or(FLASH, |(_, spell, _)| *spell)
+    });
     if f == FLASH || (d != FLASH && d == SNOWBALL) {
         (SNOWBALL, main)
     } else {
         (main, SNOWBALL)
     }
+}
+
+/// arammeta's best spell pair counts only from this many games of the champion.
+const META_SPELL_GAMES: u32 = 100;
+/// Never set (user's rule): Exhaust and Barrier.
+const NEVER_SPELLS: [i64; 2] = [3, 21];
+/// Per champion the spell beside Snowball from arammeta (None: the fixed rule), read once a run.
+static META_SPELLS: Mutex<Vec<(i64, Option<i64>)>> = Mutex::new(Vec::new());
+
+/// The spell beside Snowball in arammeta's best pair (`spells.top[0]` of the champion file;
+/// MAYHEM-BERATER.md 6a "später aus den Spielen ableiten"): only with enough games, only a pair
+/// with Snowball (user's rule: Snowball almost always), never Exhaust or Barrier.
+fn meta_spell(file: &[u8]) -> Option<i64> {
+    #[derive(Deserialize)]
+    struct File {
+        spells: Pairs,
+    }
+    #[derive(Deserialize)]
+    struct Pairs {
+        top: Vec<Pair>,
+    }
+    #[derive(Deserialize)]
+    struct Pair {
+        g: u32,
+        items: Vec<Spell>,
+    }
+    #[derive(Deserialize)]
+    struct Spell {
+        id: i64,
+    }
+    let file: File = serde_json::from_slice(file).ok()?;
+    let best = file.spells.top.first()?;
+    let [a, b] = best.items.as_slice() else {
+        return None;
+    };
+    let other = match (a.id, b.id) {
+        (SNOWBALL, other) | (other, SNOWBALL) => other,
+        _ => return None,
+    };
+    (best.g >= META_SPELL_GAMES
+        && other != SNOWBALL
+        && !NEVER_SPELLS.contains(&other)
+        && (1..100).contains(&other))
+    .then_some(other)
+}
+
+/// `meta_spell` for a champion, fetched once a run (also a failure: then the fixed rule).
+async fn meta_spell_of(champion: i64) -> Option<i64> {
+    let known = |list: &[(i64, Option<i64>)]| list.iter().find(|(id, _)| *id == champion).copied();
+    if let Some((_, main)) = known(&META_SPELLS.lock().unwrap_or_else(|p| p.into_inner())) {
+        return main;
+    }
+    let http = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(Duration::from_secs(3))
+        .timeout(Duration::from_secs(5))
+        .user_agent(concat!("blank/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .ok();
+    let main = match http {
+        Some(http) => fetch(&http, &format!("{META}/api/champions/{champion}.json"))
+            .await
+            .ok()
+            .flatten()
+            .and_then(|bytes| meta_spell(&bytes)),
+        None => None,
+    };
+    META_SPELLS
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .push((champion, main));
+    main
 }
 
 /// What blank. did with the spells in this champion select.
@@ -162,7 +239,7 @@ async fn set_spells(champion: i64, data: &Value, state: &mut Spells) {
             return;
         }
     }
-    let want = spells_for(champion, now);
+    let want = spells_for(champion, now, meta_spell_of(champion).await);
     if want == now {
         return;
     }
@@ -353,11 +430,13 @@ pub fn aram_champ_watch(
     }
 }
 
-/// The item set of a build: its core, then the further items of the direction.
+/// The item set of a build: its core, arammeta's best boots, then the further items of the
+/// direction.
 fn item_set(
     champion: i64,
     direction: &str,
     core: &[u32],
+    boots: &[u32],
     more: &[u32],
     stamp: u128,
 ) -> Option<Value> {
@@ -368,7 +447,12 @@ fn item_set(
         _ => return None,
     };
     let item = |id: &u32| (1..1_000_000).contains(id);
-    if core.is_empty() || core.len() > 6 || more.len() > 12 || !core.iter().chain(more).all(item) {
+    if core.is_empty()
+        || core.len() > 6
+        || boots.len() > 4
+        || more.len() > 12
+        || !core.iter().chain(boots).chain(more).all(item)
+    {
         return None;
     }
     let block = |kind: String, ids: &[u32]| {
@@ -379,6 +463,9 @@ fn item_set(
         serde_json::json!({ "type": kind, "items": items })
     };
     let mut blocks = vec![block(format!("Kern {label}"), core)];
+    if !boots.is_empty() {
+        blocks.push(block("Stiefel".into(), boots));
+    }
     if !more.is_empty() {
         blocks.push(block("Danach".into(), more));
     }
@@ -428,6 +515,7 @@ pub async fn aram_champ_build(
     champion_id: i64,
     direction: String,
     core: Vec<u32>,
+    boots: Vec<u32>,
     more: Vec<u32>,
 ) -> Result<(), String> {
     if champion_id <= 0 || TOLD.load(Ordering::Relaxed) != champion_id {
@@ -445,8 +533,8 @@ pub async fn aram_champ_build(
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_nanos());
-    let set =
-        item_set(champion_id, &direction, &core, &more, stamp).ok_or("Ungültiges Item-Set")?;
+    let set = item_set(champion_id, &direction, &core, &boots, &more, stamp)
+        .ok_or("Ungültiges Item-Set")?;
     let result = async {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
@@ -1188,29 +1276,64 @@ mod tests {
     #[test]
     fn spells_keep_flash_on_its_key() {
         // Flash on D or F stays there, Snowball takes the other key.
-        assert_eq!(spells_for(12, (FLASH, 7)), (FLASH, SNOWBALL));
-        assert_eq!(spells_for(12, (14, FLASH)), (SNOWBALL, FLASH));
-        assert_eq!(spells_for(12, (FLASH, SNOWBALL)), (FLASH, SNOWBALL));
-        assert_eq!(spells_for(12, (SNOWBALL, FLASH)), (SNOWBALL, FLASH));
+        assert_eq!(spells_for(12, (FLASH, 7), None), (FLASH, SNOWBALL));
+        assert_eq!(spells_for(12, (14, FLASH), None), (SNOWBALL, FLASH));
+        assert_eq!(spells_for(12, (FLASH, SNOWBALL), None), (FLASH, SNOWBALL));
+        assert_eq!(spells_for(12, (SNOWBALL, FLASH), None), (SNOWBALL, FLASH));
         // Without Flash: Snowball keeps its key, else Flash goes on D.
-        assert_eq!(spells_for(12, (SNOWBALL, 3)), (SNOWBALL, FLASH));
-        assert_eq!(spells_for(12, (3, 21)), (FLASH, SNOWBALL));
+        assert_eq!(spells_for(12, (SNOWBALL, 3), None), (SNOWBALL, FLASH));
+        assert_eq!(spells_for(12, (3, 21), None), (FLASH, SNOWBALL));
         // Singed takes Ghost where Flash was; never Exhaust (3) or Barrier (21).
-        assert_eq!(spells_for(27, (14, FLASH)), (SNOWBALL, GHOST));
+        assert_eq!(spells_for(27, (14, FLASH), None), (SNOWBALL, GHOST));
         for (_, spell, reason) in SPELL_EXCEPTIONS {
-            assert!(![3, 21].contains(spell) && !reason.is_empty());
+            assert!(!NEVER_SPELLS.contains(spell) && !reason.is_empty());
         }
+        // arammeta's pair goes first, also before an exception.
+        assert_eq!(spells_for(12, (14, FLASH), Some(GHOST)), (SNOWBALL, GHOST));
+        assert_eq!(spells_for(27, (FLASH, 7), Some(FLASH)), (FLASH, SNOWBALL));
+    }
+
+    #[test]
+    fn spells_from_arammeta_only_with_snowball_and_enough_games() {
+        // The shape of arammeta's champion file (only what is read; Singed, 08.10.2026).
+        let file = |slug: &str, g: u32| {
+            let items: Vec<Value> = slug
+                .split('+')
+                .map(|id| json!({ "id": id.parse::<i64>().unwrap(), "name_en": "x" }))
+                .collect();
+            let top = json!({ "name_en": "x", "slug": slug, "g": g, "wr": 0.57, "items": items });
+            serde_json::to_vec(&json!({ "poolAugments": [], "spells": { "top": [top] } })).unwrap()
+        };
+        assert_eq!(meta_spell(&file("6+32", 167)), Some(GHOST));
+        assert_eq!(meta_spell(&file("32+4", 1502)), Some(FLASH));
+        // Without Snowball (Flash + Ghost), too few games, Exhaust or Barrier: the fixed rule.
+        assert_eq!(meta_spell(&file("4+6", 1568)), None);
+        assert_eq!(meta_spell(&file("6+32", 99)), None);
+        assert_eq!(meta_spell(&file("3+32", 500)), None);
+        assert_eq!(meta_spell(&file("32+21", 500)), None);
+        assert_eq!(meta_spell(&file("32+32", 500)), None);
+        assert_eq!(meta_spell(&file("4", 500)), None);
+        assert_eq!(meta_spell(b"{}"), None);
+        assert_eq!(meta_spell(br#"{"spells":{"top":[]}}"#), None);
     }
 
     #[test]
     fn item_sets_replace_only_blanks_own_for_the_champion() {
-        let set = item_set(12, "ap", &[3089, 6655], &[3157], 7).unwrap();
+        let set = item_set(12, "ap", &[3089, 6655], &[3020, 3111], &[3157], 7).unwrap();
         assert_eq!(set["title"], "blank. AP");
         assert_eq!(set["blocks"][0]["items"][1]["id"], "6655");
+        assert_eq!(set["blocks"][1]["type"], "Stiefel");
+        assert_eq!(set["blocks"][1]["items"][1]["id"], "3111");
+        assert_eq!(set["blocks"][2]["type"], "Danach");
+        // Without boots no empty block.
+        let set = item_set(12, "ap", &[3089], &[], &[3157], 7).unwrap();
         assert_eq!(set["blocks"][1]["type"], "Danach");
-        assert!(item_set(12, "mana", &[3089], &[], 7).is_none());
-        assert!(item_set(12, "ap", &[], &[], 7).is_none());
-        assert!(item_set(12, "ap", &[0], &[], 7).is_none());
+        assert!(item_set(12, "mana", &[3089], &[], &[], 7).is_none());
+        assert!(item_set(12, "ap", &[], &[], &[], 7).is_none());
+        assert!(item_set(12, "ap", &[0], &[], &[], 7).is_none());
+        assert!(item_set(12, "ap", &[3089], &[0], &[], 7).is_none());
+        assert!(item_set(12, "ap", &[3089], &[1, 2, 3, 4, 5], &[], 7).is_none());
+        let set = item_set(12, "ap", &[3089, 6655], &[3020], &[3157], 7).unwrap();
         let sets = serde_json::json!({ "accountId": 1, "itemSets": [
             { "title": "Mein Alistar", "associatedChampions": [12], "uid": "a" },
             { "title": "blank. Tank", "associatedChampions": [12], "uid": "b" },

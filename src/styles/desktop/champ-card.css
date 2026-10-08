@@ -165,3 +165,47 @@
 .champ-tier.tier-D {
   --tier: var(--danger-text);
 }
+/* arammeta's further numbers (Items, Zauber, Meiden): small pictures with win rate and games. */
+.champ-card-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.champ-card-grid li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.champ-card-grid b {
+  font-weight: 700;
+}
+.champ-card-grid small,
+.champ-card-chips b {
+  color: var(--muted);
+  font-size: 10px;
+}
+/* Weak ones: faded, still with their numbers. */
+.champ-card-grid.weak img,
+.champ-card-chips.weak li {
+  opacity: 0.6;
+}
+.champ-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.champ-card-chips li {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  font-size: 12px;
+}

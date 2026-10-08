@@ -8,9 +8,13 @@ import {
   offerRows,
   planNote,
   PLAN_AUGMENTS_SHOWN,
+  slotsText,
   sourceLabel,
+  type AugTypePick,
   type BuildPick,
+  type ChampExtra,
   type ChampView,
+  type MetaItemPick,
   type Tier,
 } from './champCard';
 import { percent } from './format';
@@ -58,6 +62,184 @@ function Builds({ builds }: { builds: BuildPick[] }) {
   );
 }
 
+const spellImage = (key: string) =>
+  `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/spell/${key}.png`;
+
+const facts = (p: { games: number; winRate: number; pick?: number | null }) =>
+  `${games(p.games)} · ${percent(p.winRate)} Siege${p.pick != null ? ` · ${percent(p.pick)} gewählt` : ''}`;
+
+/** Items as small pictures with their win rate and games below (several choices with numbers). */
+function ItemGrid({ rows, weak = false }: { rows: MetaItemPick[]; weak?: boolean }) {
+  return (
+    <ul className={`champ-card-grid${weak ? ' weak' : ''}`}>
+      {rows.map((r) => {
+        const i = r.items[0];
+        return (
+          <li
+            key={i.id}
+            title={`${i.name}${i.mana ? ' (Mana, in ARAM schwach)' : ''}: ${facts(r)}`}
+          >
+            <span className="champ-card-items">
+              <img
+                className={i.mana ? 'mana' : undefined}
+                src={itemImage(i.id)}
+                alt={i.name}
+                width={26}
+                height={26}
+              />
+            </span>
+            <b>{percent(r.winRate)}</b>
+            <small>{r.games.toLocaleString('de-DE')}</small>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+type Tab = 'augments' | 'items' | 'spells' | 'avoid';
+/** Weakest augments shown per rarity in the popout (the Mayhem app shows all the card has). */
+const AVOID_IN_POPOUT = 2;
+const PAIRS_IN_POPOUT = 4;
+
+/** arammeta's further numbers on the champion (08.10.2026): boots, items, spells, what to avoid. */
+function Extra({ extra, tab }: { extra: ChampExtra; tab: Exclude<Tab, 'augments'> }) {
+  if (tab === 'spells')
+    return (
+      <ul className="champ-card-list">
+        {extra.spells.map((s) => (
+          <li key={s.spells.map((x) => x.id).join('+')} title={facts(s)}>
+            <span className="champ-card-items">
+              {s.spells.map((x) => (
+                <img key={x.id} src={spellImage(x.key)} alt="" width={24} height={24} />
+              ))}
+            </span>
+            <span className="champ-card-name">{s.spells.map((x) => x.name).join(' + ')}</span>
+            <small>
+              {games(s.games)} · {percent(s.winRate)}
+            </small>
+          </li>
+        ))}
+      </ul>
+    );
+  if (tab === 'avoid') {
+    const shown = extra.avoid.filter(
+      (a, i, all) => all.slice(0, i).filter((b) => b.rarity === a.rarity).length < AVOID_IN_POPOUT,
+    );
+    return (
+      <>
+        {extra.augTypes.length > 0 && (
+          <section>
+            <h3>Passende Augment-Arten</h3>
+            <TypeChips rows={extra.augTypes} />
+          </section>
+        )}
+        {extra.weakTypes.length > 0 && (
+          <section>
+            <h3>Schwächere Arten</h3>
+            <TypeChips rows={extra.weakTypes} weak />
+          </section>
+        )}
+        {shown.length > 0 && (
+          <section>
+            <h3>Schwächste Augments</h3>
+            <ul className="champ-card-list">
+              {shown.map((a) => (
+                <li key={a.id} title={slotsText(a.slots)}>
+                  <span className={`champ-card-augment ${a.rarity}`}>
+                    {a.image && <img src={a.image} alt="" width={24} height={24} />}
+                  </span>
+                  <span className="champ-card-name">{a.name}</span>
+                  <small>
+                    {games(a.games)} · {percent(a.winRate)}
+                  </small>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </>
+    );
+  }
+  return (
+    <>
+      {extra.boots.length > 0 && (
+        <section>
+          <h3>Stiefel</h3>
+          <ItemGrid rows={extra.boots} />
+        </section>
+      )}
+      {extra.items.length > 0 && (
+        <section>
+          <h3>Einzelne Items</h3>
+          <ItemGrid rows={extra.items} />
+        </section>
+      )}
+      {extra.pairs.length > 0 && (
+        <section>
+          <h3>Starke Paare</h3>
+          <ul className="champ-card-list">
+            {extra.pairs.slice(0, PAIRS_IN_POPOUT).map((p) => (
+              <li key={p.items.map((i) => i.id).join('+')} title={facts(p)}>
+                <span className="champ-card-items">
+                  {p.items.map((i) => (
+                    <img
+                      key={i.id}
+                      className={i.mana ? 'mana' : undefined}
+                      src={itemImage(i.id)}
+                      alt={i.name}
+                      title={i.mana ? `${i.name} (Mana, in ARAM schwach)` : i.name}
+                      width={26}
+                      height={26}
+                    />
+                  ))}
+                </span>
+                <small>
+                  {games(p.games)} · {percent(p.winRate)} Siege
+                </small>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {extra.weak.length > 0 && (
+        <section>
+          <h3>Beliebt, aber schwach</h3>
+          <ItemGrid rows={extra.weak} weak />
+        </section>
+      )}
+    </>
+  );
+}
+
+function TypeChips({ rows, weak = false }: { rows: AugTypePick[]; weak?: boolean }) {
+  return (
+    <ul className={`champ-card-chips${weak ? ' weak' : ''}`}>
+      {rows.map((t) => (
+        <li key={t.name} title={facts(t)}>
+          {t.name} <b>{percent(t.winRate)}</b>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Whether the extra data has anything for the tab. */
+const hasTab = (extra: ChampExtra | undefined, tab: Tab) =>
+  tab === 'augments' ||
+  (!!extra &&
+    (tab === 'items'
+      ? extra.boots.length + extra.items.length + extra.pairs.length + extra.weak.length > 0
+      : tab === 'spells'
+        ? extra.spells.length > 0
+        : extra.avoid.length + extra.augTypes.length + extra.weakTypes.length > 0));
+const TAB_LABEL: Record<Tab, string> = {
+  augments: 'Augments',
+  items: 'Items',
+  spells: 'Zauber',
+  avoid: 'Meiden',
+};
+
 /**
  * Champ-Karte (popout in an ARAM Mayhem champion select, useChampCard.ts): the build directions of
  * the held champion from arammeta.com or mayhemstats.lol (the user picks one before the game, the most played is
@@ -73,6 +255,28 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
   const plan = plans.find((p) => p.direction === chosen) ?? plans[0];
   const note = plan ? planNote(view, plan) : null;
   const offer = view.offer;
+  // Further numbers of arammeta in tabs (not in the game: there the offer counts).
+  const tabs = offer ? [] : (Object.keys(TAB_LABEL) as Tab[]).filter((t) => hasTab(view.extra, t));
+  const [tab, setTab] = useState<Tab>('augments');
+  const extraTab = tabs.length > 1 && view.extra && tab !== 'augments' ? tab : null;
+  const tabRow = tabs.length > 1 && (
+    <div className="champ-card-directions" role="group" aria-label="Ansicht">
+      {tabs.map((t) => (
+        <button
+          key={t}
+          type="button"
+          className={t === tab ? 'active' : undefined}
+          aria-pressed={t === tab}
+          onClick={(event) => {
+            event.stopPropagation();
+            setTab(t);
+          }}
+        >
+          {TAB_LABEL[t]}
+        </button>
+      ))}
+    </div>
+  );
   const taken = (id: number) => !!offer?.taken.some((t) => t.id === id);
   // In the game an offered row is a button: a click marks it taken (or undoes it), offers.rs.
   const name = (a: { id: number; name: string }) =>
@@ -120,7 +324,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
                   onClick={(event) => {
                     event.stopPropagation();
                     setChosen(p.direction);
-                    void chooseBuild(view.championId, p.direction, itemSetOf(p));
+                    void chooseBuild(view.championId, p.direction, itemSetOf(p, view.extra));
                   }}
                 >
                   {DIRECTION_LABEL[p.direction]}
@@ -135,49 +339,54 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
               <p className="champ-card-empty">Noch zu wenig Spiele für einen Kern.</p>
             )}
           </section>
-          <section>
-            <h3>
-              {view.offer ? 'Angebot' : 'Augments'} für {DIRECTION_LABEL[plan.direction]}
-            </h3>
-            {offer && offer.taken.length > 0 && (
-              <p className="champ-card-empty">
-                Bisher: {offer.taken.map((t) => t.name).join(', ')}
-              </p>
-            )}
-            <ul className="champ-card-list">
-              {(view.offer
-                ? offerRows(plan, view.offer)
-                : plan.augments.slice(0, PLAN_AUGMENTS_SHOWN)
-              ).map((a) =>
-                'missing' in a ? (
-                  <li key={a.id}>
-                    {name(a)}
-                    <small>{taken(a.id) && 'genommen · '}keine Spiele</small>
-                  </li>
-                ) : (
-                  <li key={a.id}>
-                    <TierLetter
-                      tier={a.tier}
-                      title={
-                        a.general
-                          ? `Stufe ${a.tier} (allgemein, zu wenig ${DIRECTION_LABEL[plan.direction]}-Spiele)`
-                          : `Stufe ${a.tier} für ${DIRECTION_LABEL[plan.direction]}`
-                      }
-                    />
-                    <span className={`champ-card-augment ${a.rarity}`}>
-                      {a.image && <img src={a.image} alt="" width={24} height={24} />}
-                    </span>
-                    {name(a)}
-                    <small>
-                      {taken(a.id) && 'genommen · '}
-                      {a.turns && `Umwandler → ${DIRECTION_LABEL[a.turns]} · `}
-                      {a.general ? 'allgemein' : games(a.games)}
-                    </small>
-                  </li>
-                ),
+          {tabRow}
+          {extraTab && view.extra ? (
+            <Extra extra={view.extra} tab={extraTab} />
+          ) : (
+            <section>
+              <h3>
+                {view.offer ? 'Angebot' : 'Augments'} für {DIRECTION_LABEL[plan.direction]}
+              </h3>
+              {offer && offer.taken.length > 0 && (
+                <p className="champ-card-empty">
+                  Bisher: {offer.taken.map((t) => t.name).join(', ')}
+                </p>
               )}
-            </ul>
-          </section>
+              <ul className="champ-card-list">
+                {(view.offer
+                  ? offerRows(plan, view.offer)
+                  : plan.augments.slice(0, PLAN_AUGMENTS_SHOWN)
+                ).map((a) =>
+                  'missing' in a ? (
+                    <li key={a.id}>
+                      {name(a)}
+                      <small>{taken(a.id) && 'genommen · '}keine Spiele</small>
+                    </li>
+                  ) : (
+                    <li key={a.id}>
+                      <TierLetter
+                        tier={a.tier}
+                        title={
+                          a.general
+                            ? `Stufe ${a.tier} (allgemein, zu wenig ${DIRECTION_LABEL[plan.direction]}-Spiele)`
+                            : `Stufe ${a.tier} für ${DIRECTION_LABEL[plan.direction]}`
+                        }
+                      />
+                      <span className={`champ-card-augment ${a.rarity}`}>
+                        {a.image && <img src={a.image} alt="" width={24} height={24} />}
+                      </span>
+                      {name(a)}
+                      <small>
+                        {taken(a.id) && 'genommen · '}
+                        {a.turns && `Umwandler → ${DIRECTION_LABEL[a.turns]} · `}
+                        {a.general ? 'allgemein' : games(a.games)}
+                      </small>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </section>
+          )}
         </>
       ) : empty ? (
         <p className="champ-card-empty">Noch zu wenig Spiele für Augments und Builds.</p>

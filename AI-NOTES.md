@@ -3,6 +3,16 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Champ-Karte: alle Champion-Daten von arammeta — 08.10.2026
+
+- Benutzerauftrag „alle Daten von arammeta in mein System und App gut einbauen, so viele Daten wie möglich“; dieser Teil: alles je Champion. Ein anderer Agent macht die Tier-Listen-/Detailseiten der Mayhem-App (`pages.tsx`, `mayhem_tiers`).
+- `champCard.ts`: `parseExtra` liest `boots`, `singleItems` (top, popularBad, bot), `items` (Paare), `spells`, `bot` (schwächste Augments je Seltenheit mit `slots` = Zahlen je Wahl 1–4), `augTypes`; jeder Teil für sich streng geprüft, ein kaputter Teil bleibt leer. `metaExtra` → `ChampView.extra` (nur bei arammeta als Quelle): nutzlose Items nie als Vorschlag, Mana-Items zuletzt und markiert, „beliebt, aber schwach“ ohne die besten, Zauber nur bekannte und nie Erschöpfung/Barriere, schwächste Augments ohne die, die die Karte irgendwo S/A einstuft. Kern-Gruppen tragen Name (`label`) und spätere Items (`later`, aus `tail`). `sets` war überall leer, nicht gelesen.
+- Anzeige: blank.-Popout mit Reitern Augments/Items/Zauber/Meiden unter „Dein Build“ (nicht im Spiel, dort zählt das Angebot); Mayhem-App links unter dem Kern (Stiefel, Einzel-Items, Paare, Beliebt aber schwach, Zauber, Augment-Arten, schwächste Augments), rechts die Stufenliste wie bisher; `sticky` der linken Spalte entfernt (zu lang).
+- Item-Set: Kern, Block „Stiefel“ (arammetas beste, bis 3), danach die übrigen Kerne, spätere Items und Einzel-Items der Richtung (bis 12). Rust `item_set`/`aram_champ_build` nehmen `boots`.
+- Zauber: Rust liest arammetas beste Paarung je Champion einmal pro Lauf (`meta_spell_of`, auch Fehler gemerkt); nur mit Schneeball, ≥ 100 Spielen, nie Erschöpfung/Barriere, sonst die feste Regel (`SPELL_EXCEPTIONS`). Blitz-Taste und „aufhören nach eigener Änderung“ wie bisher.
+- `flyout.rs` `MAX_ITEM_BYTES` 64 → 128 KB: die Karte war schon bis ~61 KB groß, mit den neuen Daten bis ~70 KB (gemessen).
+- Offen: Datenlizenz arammeta (ROADMAP), Test auf Windows mit echtem Client (VALIDATION).
+
 ## Mayhem-App: arammetas ganze Liste — 08.10.2026
 
 - Benutzerauftrag „alle Daten von arammeta … so viele Daten wie möglich“, Teil Tier-Liste (ein anderer Agent macht parallel die Champ-Karte; `champCard.ts`, `ChampCardView.tsx`, `MayhemCard.tsx` hier nicht angefasst). Rust: `MetaList`/`MetaChamp`/`MetaAugment` in `aram_live.rs` lesen zusätzlich `top`, `pairs`, `comp`, Lift, Pickrate, `augCategories`, `itemLut`, `patchChanges`, `searchIndex.related.augments`; alle neuen Felder über `lenient` (falsche Form → Standardwert statt kaputter Liste, sonst fiele auch blank.'s `meta_info` aus). `mayhem_tiers` gibt das begrenzt und geprüft weiter (kein neuer Befehl, Capability-Beschreibung angepasst). Tests: `the_mayhem_pages_get_every_part_of_the_list`, `a_changed_extra_field_keeps_the_champ_cards_list`, ignoriert `the_real_list_has_every_part` (echter Abruf, lief grün).

@@ -245,9 +245,10 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
   (`/lol-item-sets/v1/item-sets/<summonerId>/sets`). Der Client nimmt immer die ganze Liste, also:
   erst lesen, dann nur Sets ersetzen, deren Titel mit „blank. “ beginnt, alle anderen Sets
   unverändert zurückschreiben. Eigene Sets des Benutzers werden nie überschrieben oder gelöscht.
-  Inhalt: Kern der gewählten Richtung, dahinter die nächsten Items der Richtung; keine
-  `USELESS_ITEMS`, Mana-Items nur, wenn der Kern sie hat. Wechselt die Richtung, wird das Set
-  ersetzt.
+  Inhalt: Kern der gewählten Richtung, dann ein Block „Stiefel“ mit arammetas besten Stiefeln
+  des Champs (seit 08.10.2026), dahinter die nächsten Items der Richtung (übrige Kerne, spätere
+  Items der Kern-Gruppe, arammetas beste Einzel-Items dieser Richtung); keine `USELESS_ITEMS`,
+  Mana-Items nur, wenn der Kern sie hat. Wechselt die Richtung, wird das Set ersetzt.
 - **Beschwörerzauber:** blank. setzt sie über die eigene Auswahl
   (`PATCH /lol-champ-select/v1/session/my-selection`, nur `spell1Id`/`spell2Id`), solange die
   Auswahl offen ist. Regel des Benutzers: Schneeball in etwa 90 % der Fälle, dazu Blitz.
@@ -255,8 +256,10 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
   statt Blitz. Erschöpfung, Barriere und ähnliche sind in Mayhem schlecht und werden nie
   gesetzt. Die Tasten-Seite bleibt, wie der Benutzer sie hatte: Blitz bleibt auf D oder F.
   Ändert der Benutzer danach selbst etwas, setzt blank. für diese Auswahl nichts mehr.
-- Später, wenn Zauber in den Spieldaten stehen: die Ausnahmen aus den Spielen ableiten statt
-  aus der Liste.
+- Aus den Spielen abgeleitet (08.10.2026): arammetas beste Zauber-Paarung des Champs
+  (`spells.top[0]`) gilt, wenn sie Schneeball enthält, mindestens 100 Spiele hat und weder
+  Erschöpfung noch Barriere (z. B. Singed, Hecarim: Geist + Schneeball). Sonst die feste Regel
+  mit `SPELL_EXCEPTIONS`. Gelesen einmal pro Lauf und Champ (`meta_spell_of`).
 - Abstimmung: Der Thread „Konkurrenz-Analyse“ plant den Lobby-Check; beide nutzen dieselbe
   Verbindung zur Champ-Auswahl (`aram_live.rs`).
 

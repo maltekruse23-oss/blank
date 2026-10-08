@@ -75,6 +75,10 @@ export type BuildPick = {
   grade: Grade | null;
   /** Mana items in it (they lower its place). */
   mana: number;
+  /** arammeta only: the name of its core group ("Tank / Heartsteel") and the items its games
+   * built later, without numbers of their own (useless ones left out). */
+  label?: string;
+  later?: { id: number; name: string; mana: boolean }[];
 };
 
 export type ChampView = {
@@ -90,9 +94,52 @@ export type ChampView = {
   builds: BuildPick[];
   /** Build directions with enough games, most played first: the user picks one before the game. */
   plans: BuildPlan[];
+  /** Everything else arammeta has per champion (boots, single items, pairs, spells, augments and
+   * augment kinds to avoid); only with arammeta as source. */
+  extra?: ChampExtra;
   /** In the game: the augments offered right now (read off the screen, offers.rs) and the build
    * chosen in the champion select; the card then shows them with their tier for that build. */
   offer?: Offer;
+};
+
+/** An item row of arammeta (boots, single items, pairs of two): its games and win rate. */
+export type MetaItemPick = {
+  items: { id: number; name: string; mana: boolean; kind: ChampItem['kind'] }[];
+  games: number;
+  winRate: number;
+  /** Share of the champion's games with it. */
+  pick: number | null;
+};
+export type SpellPick = {
+  spells: { id: number; name: string; key: string }[];
+  games: number;
+  winRate: number;
+  pick: number | null;
+};
+/** An augment arammeta ranks among the champion's weakest, with its numbers per pick (1st–4th). */
+export type AvoidAugment = {
+  id: number;
+  name: string;
+  rarity: string;
+  image: string | null;
+  games: number;
+  winRate: number;
+  slots: ({ games: number; winRate: number } | null)[];
+};
+/** A kind of augment (arammeta's "Health", "Size Up", …) with the champion's numbers. */
+export type AugTypePick = { name: string; games: number; winRate: number; pick: number | null };
+export type ChampExtra = {
+  boots: MetaItemPick[];
+  /** Single items that work best on the champion (mana ones last, never useless ones). */
+  items: MetaItemPick[];
+  /** Often bought, but weak on the champion ("beliebt, aber schwach"). */
+  weak: MetaItemPick[];
+  /** Two items that work well together. */
+  pairs: MetaItemPick[];
+  spells: SpellPick[];
+  avoid: AvoidAugment[];
+  augTypes: AugTypePick[];
+  weakTypes: AugTypePick[];
 };
 
 export type Offer = {
@@ -432,19 +479,39 @@ export function planNote(view: Pick<ChampView, 'source' | 'name' | 'alias'>, pla
 
 /**
  * The item set written into the client for a direction (MAYHEM-BERATER.md 6a): the core of its
- * best build, then the further items of its other builds; mana items only when the core has them.
- * Useless items never come here (`bestBuilds` leaves them out). Null without a build.
+ * best build, arammeta's top boots as their own block, then the further items of its other builds
+ * and arammeta's best single items of that direction; mana items only when the core has them.
+ * Useless items never come here (`bestBuilds` and `metaExtra` leave them out). Null without a build.
  */
-export function itemSetOf(plan: BuildPlan): { core: number[]; more: number[] } | null {
+export function itemSetOf(
+  plan: BuildPlan,
+  extra?: Pick<ChampExtra, 'boots' | 'items'>,
+): ItemSet | null {
   const [best, ...rest] = plan.builds;
   if (!best) return null;
   const core = best.items.map((i) => i.id);
   const manaOk = best.mana > 0;
+  // After the other cores: arammeta's best single items of the direction's kind.
+  const singles = (extra?.items ?? []).flatMap((p) =>
+    p.items.filter((i) => i.kind === plan.direction),
+  );
   const more = [
-    ...new Set(rest.flatMap((b) => b.items.filter((i) => manaOk || !i.mana).map((i) => i.id))),
-  ].filter((id) => !core.includes(id));
-  return { core, more };
+    ...new Set(
+      [...rest.flatMap((b) => b.items), ...singles]
+        .filter((i) => manaOk || !i.mana)
+        .map((i) => i.id),
+    ),
+  ]
+    .filter((id) => !core.includes(id))
+    .slice(0, SET_MORE);
+  const boots = (extra?.boots ?? []).slice(0, SET_BOOTS).map((b) => b.items[0].id);
+  return { core, boots, more };
 }
+
+export type ItemSet = { core: number[]; boots: number[]; more: number[] };
+/** Items after the core, and boots, in the item set (Rust `item_set` takes at most 12 and 4). */
+export const SET_MORE = 12;
+export const SET_BOOTS = 3;
 
 /**
  * The offered augments with their tier in the build (null: the champion's games have none with
@@ -506,7 +573,14 @@ export const CATEGORY_BONUS = 0.06;
 const META_OPTIONS = 4;
 
 type MetaRow = { id: number; g: number; wr: number };
-type MetaGroup = { core: number[]; g: number; wr: number; options: MetaRow[] };
+type MetaGroup = {
+  core: number[];
+  g: number;
+  wr: number;
+  options: MetaRow[];
+  label: string;
+  tail: number[];
+};
 
 const RARITY: Record<string, string> = {
   kSilver: 'silver',
@@ -560,9 +634,97 @@ export function parseMeta(text: string | null) {
       if (!row) return null;
       options.push(row);
     }
-    groups.push({ core: core as number[], g, wr, options });
+    // Name and later items are extras: missing or odd, the group stays without them.
+    const label = typeof c.name_en === 'string' ? c.name_en.slice(0, 60) : '';
+    const tail = Array.isArray(c.tail) ? c.tail.slice(0, 6).map(idOf) : [];
+    groups.push({
+      core: core as number[],
+      g,
+      wr,
+      options,
+      label,
+      tail: tail.every((id) => id !== null) ? (tail as number[]) : [],
+    });
   }
-  return { pool, groups };
+  return { pool, groups, extra: parseExtra(json) };
+}
+
+const idOf = (v: unknown) => (isObject(v) ? count(v.id) : null);
+const pickOf = (v: unknown) => (v === undefined ? null : share(v));
+/** A list of at most `max` rows, each read by `read`; empty when the list or any row does not fit. */
+function rowsOf<T>(v: unknown, max: number, read: (row: Record<string, unknown>) => T | null): T[] {
+  if (!Array.isArray(v) || v.length > max) return [];
+  const out: T[] = [];
+  for (const row of v) {
+    const r = isObject(row) ? read(row) : null;
+    if (r === null) return [];
+    out.push(r);
+  }
+  return out;
+}
+type ExtraRow = { ids: number[]; g: number; wr: number; pick: number | null };
+const extraRow = (size: number) => (r: Record<string, unknown>) => {
+  const g = count(r.g);
+  const wr = share(r.wr);
+  const pick = pickOf(r.pick);
+  const list = Array.isArray(r.items) && r.items.length === size ? r.items.map(idOf) : null;
+  if (g === null || wr === null || (r.pick !== undefined && pick === null) || !list) return null;
+  return list.every((id) => id !== null) ? { ids: list as number[], g, wr, pick } : null;
+};
+type TypeRow = { name: string; g: number; wr: number; pick: number | null };
+const typeRow = (r: Record<string, unknown>): TypeRow | null => {
+  const g = count(r.g);
+  const wr = share(r.wr);
+  const pick = pickOf(r.pick);
+  if (typeof r.name_en !== 'string' || !r.name_en || g === null || wr === null) return null;
+  return r.pick !== undefined && pick === null
+    ? null
+    : { name: r.name_en.slice(0, 60), g, wr, pick };
+};
+type BotRow = MetaRow & { slots: ({ g: number; wr: number } | null)[] };
+const botRow = (r: Record<string, unknown>): BotRow | null => {
+  const row = metaRow(r);
+  if (!row || (r.slots !== undefined && (!Array.isArray(r.slots) || r.slots.length > 4)))
+    return null;
+  const slots = ((r.slots as unknown[] | undefined) ?? []).map((s) => {
+    if (s === null) return null;
+    const g = isObject(s) ? count(s.g) : null;
+    const wr = isObject(s) ? share(s.wr) : null;
+    return g === null || wr === null ? undefined : { g, wr };
+  });
+  return slots.includes(undefined)
+    ? null
+    : { ...row, slots: slots as ({ g: number; wr: number } | null)[] };
+};
+
+/**
+ * Everything else in arammeta's champion file (08.10.2026, user: "alle Daten von arammeta"): its
+ * best and weakest boots, single items and pairs of items, summoner spells, the weakest augments
+ * per rarity and the augment kinds that work or not. Each part on its own: a part that does not fit
+ * is left empty, the card keeps the rest. `sets` (augment set bonuses) has always been empty so far
+ * and is not read.
+ */
+export function parseExtra(json: Record<string, unknown>) {
+  const part = (key: string) => {
+    const v = json[key];
+    return isObject(v) ? v : {};
+  };
+  const bot = part('bot');
+  return {
+    boots: rowsOf(part('boots').top, 50, extraRow(1)),
+    items: rowsOf(part('singleItems').top, 50, extraRow(1)),
+    weak: [
+      ...rowsOf(part('singleItems').popularBad, 50, extraRow(1)),
+      ...rowsOf(part('singleItems').bot, 50, extraRow(1)),
+    ],
+    pairs: rowsOf(part('items').top, 50, extraRow(2)),
+    spells: rowsOf(part('spells').top, 50, extraRow(2)),
+    avoid: ['kPrismatic', 'kGold', 'kSilver'].flatMap((rarity) =>
+      rowsOf(bot[rarity], 50, botRow).map((r) => ({ ...r, rarity: RARITY[rarity] })),
+    ),
+    augTypes: rowsOf(part('augTypes').top, 50, typeRow),
+    weakTypes: rowsOf(part('augTypes').bot, 50, typeRow),
+  };
 }
 
 const pulled = (wr: number, g: number) => (wr * g + 0.5 * META_PRIOR) / (g + META_PRIOR);
@@ -618,7 +780,15 @@ export function metaView(
             const mana = ids.filter((id) => items[String(id)]?.mana).length;
             return {
               score: pulled(o.wr, o.g) - MANA_PENALTY * mana,
-              pick: { items: ids.map(item), games: o.g, winRate: o.wr, grade: null, mana },
+              pick: {
+                items: ids.map(item),
+                games: o.g,
+                winRate: o.wr,
+                grade: null,
+                mana,
+                label: g.label,
+                later: g.tail.filter((id) => usable(id) && !ids.includes(id)).map(item),
+              },
             };
           }),
       )
@@ -653,7 +823,8 @@ export function metaView(
         share: total ? games / total : 0,
         source: 'arammeta' as const,
         builds: builds(own),
-        augments: tiered(rows),
+        // Rounded once ranked: the card goes to the popout whole (flyout.rs takes ≤ 64 KB).
+        augments: tiered(rows).map((r) => ({ ...r, score: Math.round(r.score * 1e4) / 1e4 })),
       };
     })
     .sort((a, b) => b.games - a.games);
@@ -680,5 +851,137 @@ export function metaView(
     augments: best,
     builds: builds(groups),
     plans,
+    // An augment the card ranks S or A for some direction is never also one to avoid.
+    extra: metaExtra(
+      parsed.extra,
+      items,
+      info,
+      new Set([
+        ...best.map((a) => a.id),
+        ...plans.flatMap((p) =>
+          p.augments.filter((a) => a.tier === 'S' || a.tier === 'A').map((a) => a.id),
+        ),
+      ]),
+    ),
+  };
+}
+
+/** Rows shown per part of the extra data (the popout is small; the Mayhem app shows the same). */
+export const EXTRA_SHOWN = {
+  boots: 4,
+  items: 12,
+  weak: 6,
+  pairs: 6,
+  spells: 4,
+  avoid: 4,
+  types: 4,
+};
+/** Summoner spells the card names, by id: German name and Data Dragon key for the picture. */
+export const SPELLS: Readonly<Record<number, readonly [string, string]>> = {
+  1: ['Läuterung', 'SummonerBoost'],
+  3: ['Erschöpfung', 'SummonerExhaust'],
+  4: ['Blitz', 'SummonerFlash'],
+  6: ['Geist', 'SummonerHaste'],
+  7: ['Heilen', 'SummonerHeal'],
+  13: ['Klarheit', 'SummonerMana'],
+  14: ['Entzünden', 'SummonerDot'],
+  21: ['Barriere', 'SummonerBarrier'],
+  32: ['Markieren', 'SummonerSnowball'],
+};
+/** The numbers of a weak augment per pick (1st to 4th augment of the game), for its tooltip. */
+export const slotsText = (slots: AvoidAugment['slots']) =>
+  slots
+    .map((s, i) =>
+      s ? `Wahl ${i + 1}: ${s.games} Spiele, ${Math.round(s.winRate * 100)} % Siege` : null,
+    )
+    .filter(Boolean)
+    .join('\n');
+/** Never suggested (user's rule for ARAM Mayhem): Exhaust and Barrier. */
+export const NEVER_SPELLS: readonly number[] = [3, 21];
+
+/**
+ * The card's extra data from arammeta (`parseExtra`), in arammeta's order: useless items never as
+ * a suggestion and mana items last (they count against a build, marked), weak items only when not
+ * among the best, spell pairs only of known spells and never with Exhaust or Barrier, the weakest
+ * augments per rarity unless among the best (`best`: shown as best or ranked S/A on the card).
+ * Always several rows with games and win rate.
+ */
+export function metaExtra(
+  extra: ReturnType<typeof parseExtra>,
+  items: Record<string, ChampItem>,
+  info: (id: number) => { name: string; rarity: string; image: string | null },
+  best: Set<number>,
+): ChampExtra {
+  const pick = (r: ExtraRow): MetaItemPick => ({
+    items: r.ids.map((id) => ({
+      id,
+      name: items[String(id)]?.name ?? `Item ${id}`,
+      mana: !!items[String(id)]?.mana,
+      kind: items[String(id)]?.kind ?? 'other',
+    })),
+    games: r.g,
+    winRate: r.wr,
+    pick: r.pick,
+  });
+  const usable = (r: ExtraRow) => r.ids.every((id) => !(id in USELESS_ITEMS));
+  const mana = (p: MetaItemPick) => p.items.filter((i) => i.mana).length;
+  const suggest = (rows: ExtraRow[], n: number) =>
+    rows
+      .filter(usable)
+      .map(pick)
+      // Stable: arammeta's order, mana ones after.
+      .sort((a, b) => mana(a) - mana(b))
+      .slice(0, n);
+  const top = new Set(extra.items.map((r) => r.ids[0]));
+  const seen = new Set<number>();
+  const weak = extra.weak
+    .filter((r) => !top.has(r.ids[0]) && !seen.has(r.ids[0]) && !!seen.add(r.ids[0]))
+    .slice(0, EXTRA_SHOWN.weak)
+    .map(pick);
+  const spells = extra.spells
+    .filter((r) => r.ids.every((id) => id in SPELLS && !NEVER_SPELLS.includes(id)))
+    .slice(0, EXTRA_SHOWN.spells)
+    .map((r) => ({
+      spells: r.ids.map((id) => ({ id, name: SPELLS[id][0], key: SPELLS[id][1] })),
+      games: r.g,
+      winRate: r.wr,
+      pick: r.pick,
+    }));
+  const perRarity = new Map<string, number>();
+  const avoid = extra.avoid
+    .filter((a) => !best.has(a.id))
+    .filter((a) => {
+      const n = perRarity.get(a.rarity) ?? 0;
+      perRarity.set(a.rarity, n + 1);
+      return n < EXTRA_SHOWN.avoid;
+    })
+    .map((a) => ({
+      id: a.id,
+      name: info(a.id).name,
+      image: info(a.id).image,
+      rarity: a.rarity,
+      games: a.g,
+      winRate: a.wr,
+      slots: a.slots.map((s) => s && { games: s.g, winRate: s.wr }),
+    }));
+  const type = (r: TypeRow): AugTypePick => ({
+    name: r.name,
+    games: r.g,
+    winRate: r.wr,
+    pick: r.pick,
+  });
+  const goodTypes = new Set(extra.augTypes.map((t) => t.name));
+  return {
+    boots: suggest(extra.boots, EXTRA_SHOWN.boots),
+    items: suggest(extra.items, EXTRA_SHOWN.items),
+    weak,
+    pairs: suggest(extra.pairs, EXTRA_SHOWN.pairs),
+    spells,
+    avoid,
+    augTypes: extra.augTypes.slice(0, EXTRA_SHOWN.types).map(type),
+    weakTypes: extra.weakTypes
+      .filter((t) => !goodTypes.has(t.name))
+      .slice(0, EXTRA_SHOWN.types)
+      .map(type),
   };
 }
