@@ -1,11 +1,11 @@
 'use client';
 // Who holds the records? One tile per category, lit in the color of its kind: the holder and the
 // value (the one number), the champion and day below. Places 2 to 10 open on click. Records from the
-// last seven days are marked "New" and listed once above.
+// last seven days are marked "New"; the three newest are listed once above, the newest in gold.
 import Link from 'next/link';
 import { useState } from 'react';
 import { recordText, type RecordPlace, type RecordView } from '../../src/records';
-import { Img, Problem, step } from '../ui/bits';
+import { Img, More, Problem, step } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, profileHref, profileImage, splitName, useDragon, useLive } from '../ui/data';
 import { meText, useMe } from '../ui/me';
@@ -33,7 +33,8 @@ export default function RecordsPage() {
   const dragon = useDragon();
 
   const shown = data?.categories.filter((c) => c.places.length) ?? [];
-  const fresh = shown.filter((c) => c.places[0].fresh);
+  const fresh = shown.filter((c) => c.places[0].fresh).sort((a, b) => b.places[0].game.at - a.places[0].game.at);
+  const linked = fresh.slice(0, 3);
 
   return (
     <>
@@ -71,20 +72,28 @@ export default function RecordsPage() {
       {fresh.length > 0 && (
         <nav className="pills in" aria-label="New this week" style={step(1)}>
           <span className="kicker">New this week:</span>
-          {fresh.map((c) => (
-            <a key={c.id} className="pill gold" href={'#' + c.id}>
+          {linked.map((c, i) => (
+            <a key={c.id} className={i === 0 ? 'pill gold' : 'pill'} href={'#' + c.id}>
               {recordText(c).title}
             </a>
           ))}
+          {fresh.length > linked.length && (
+            <span className="pill" title={fresh.slice(linked.length).map((c) => recordText(c).title).join(', ')}>
+              +{fresh.length - linked.length}
+            </span>
+          )}
         </nav>
       )}
 
       {shown.length > 0 && (
-        <ul className="records" aria-label="Records">
-          {shown.map((c, i) => (
-            <RecordCard key={c.id} category={c} dragon={dragon} index={i} />
-          ))}
-        </ul>
+        <More
+          list={shown}
+          className="records"
+          first={12}
+          keep={(c) => linked.includes(c)}
+          label="Records"
+          render={(c, i) => <RecordCard key={c.id} category={c} dragon={dragon} index={i} />}
+        />
       )}
 
       {data && shown.length > 0 && (
@@ -115,7 +124,7 @@ function RecordCard({ category, dragon, index }: { category: RecordView; dragon:
           </div>
           <span className="pills">
             {category.places[1]?.place === 1 && <span className="pill">Tie</span>}
-            {top.fresh && <span className="pill gold">New</span>}
+            {top.fresh && <span className="pill">New</span>}
           </span>
         </div>
         <div className="record-holder" data-me={top.puuid === me?.id || undefined}>

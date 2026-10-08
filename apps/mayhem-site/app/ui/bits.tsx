@@ -223,19 +223,16 @@ export function More<T>({
   const rows = list.flatMap((entry, i) => (i < limit || keep?.(entry) ? [render(entry, i)] : []));
   const hidden = list.length - rows.length;
   const next = add ? Math.min(add, hidden) : hidden;
+  const less = hidden === 0 && list.length > first && shown > first;
   return (
     <>
       <ul className={className} aria-label={label}>
         {rows}
       </ul>
-      {!all && hidden > 0 && (
-        <button type="button" className="more" onClick={() => setShown((s) => (add ? s + add : list.length))}>
-          {next === hidden ? `Show ${hidden} more` : `Show ${next} more of ${hidden}`}
-        </button>
-      )}
-      {!all && !add && hidden === 0 && list.length > first && shown > first && (
-        <button type="button" className="more" onClick={() => setShown(first)}>
-          Show less
+      {/* One button that changes its words, so the keyboard focus stays on it. */}
+      {!all && (hidden > 0 || less) && (
+        <button type="button" className="more" aria-expanded={less} onClick={() => setShown((s) => (less ? first : add ? s + add : list.length))}>
+          {less ? 'Show less' : next === hidden ? `Show ${hidden} more` : `Show ${next} more of ${hidden}`}
         </button>
       )}
     </>

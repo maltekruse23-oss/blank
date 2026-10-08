@@ -32,6 +32,7 @@ export default function GamePage() {
   const { data, error, missing } = useLive<GameView>(/^\d{1,13}$/.test(params.id) ? '/api/spiel/' + params.id : null);
   const dragon = useDragon();
   const [picked, setPicked] = useState<number | null>(null);
+  const [open, setOpen] = useState<number | null>(null);
   const [part, setPart] = useState<Part>('why');
   const [measure, setMeasure] = useState<Measure>('damage');
 
@@ -44,6 +45,11 @@ export default function GamePage() {
   const mvp = mvpOf(marks);
   const focused = focus ? data.players.findIndex((p) => p.puuid === focus) : -1;
   const shown = picked ?? (focused >= 0 ? focused : Math.max(0, mvp));
+  // A click picks the player for "Why this grade" and opens or closes their details.
+  const pick = (i: number) => {
+    setPicked(i);
+    setOpen((o) => (o === i ? null : i));
+  };
   const keyOf = (p: GamePlayer) => p.champion ?? dragon?.champions.get(p.championId)?.id;
   const nameOf = (p: GamePlayer) => p.name ?? data.named.find((n) => n.champion === keyOf(p))?.name ?? null;
   const linkOf = (p: GamePlayer) => p.puuid ?? data.named.find((n) => n.champion === keyOf(p))?.puuid ?? null;
@@ -94,7 +100,7 @@ export default function GamePage() {
               <GradeIcon grade={marks[mvp]!.grade} size={56} />
               <span>
                 <small>Best grade</small>
-                <b className="plain">{starName}</b>
+                <b>{starName}</b>
               </span>
             </span>
           )}
@@ -114,7 +120,7 @@ export default function GamePage() {
 
       <div className="teams">
         {teams.map((team, t) => (
-          <Team key={team} team={team} index={t} view={data} marks={marks} mvp={mvp} shown={shown} onPick={setPicked} nameOf={nameOf} linkOf={linkOf} dragon={dragon} />
+          <Team key={team} team={team} index={t} view={data} marks={marks} mvp={mvp} shown={shown} open={open} onPick={pick} nameOf={nameOf} linkOf={linkOf} dragon={dragon} />
         ))}
       </div>
 
@@ -163,12 +169,13 @@ function Team(props: {
   marks: Mark[];
   mvp: number;
   shown: number;
+  open: number | null;
   onPick: (i: number) => void;
   nameOf: (p: GamePlayer) => string | null;
   linkOf: (p: GamePlayer) => string | null;
   dragon: Dragon;
 }) {
-  const { team, index, view, marks, mvp, shown, onPick, nameOf, linkOf, dragon } = props;
+  const { team, index, view, marks, mvp, shown, open, onPick, nameOf, linkOf, dragon } = props;
   const rows = view.players.map((p, i) => ({ p, i })).filter(({ p }) => p.team === team);
   const won = rows.some(({ p }) => p.win);
   return (
@@ -178,7 +185,7 @@ function Team(props: {
       </h2>
       <ul className="rows">
         {rows.map(({ p, i }) => (
-          <Seat key={i} player={p} index={i} mark={marks[i]} mvp={i === mvp} picked={i === shown} onPick={onPick} name={nameOf(p)} link={linkOf(p)} dragon={dragon} />
+          <Seat key={i} player={p} index={i} mark={marks[i]} mvp={i === mvp} picked={i === shown} open={i === open} onPick={onPick} name={nameOf(p)} link={linkOf(p)} dragon={dragon} />
         ))}
       </ul>
     </section>
@@ -191,6 +198,7 @@ function Seat({
   mark,
   mvp,
   picked,
+  open,
   onPick,
   name,
   link,
@@ -201,6 +209,7 @@ function Seat({
   mark: Mark;
   mvp: boolean;
   picked: boolean;
+  open: boolean;
   onPick: (i: number) => void;
   name: string | null;
   link: string | null;
@@ -212,7 +221,7 @@ function Seat({
   const riot = name ? splitName(name).name : null;
   const id = `seat-${index}`;
   return (
-    <li className="seat-row" data-picked={picked}>
+    <li className="seat-row" data-picked={picked} data-open={open}>
       <div className="row" data-top={mvp || undefined}>
         <Img className="champ" src={championImage(dragon, champ?.id ?? p.champion ?? undefined)} alt="" size={40} />
         <span className="who">
@@ -235,14 +244,14 @@ function Seat({
             {p.kills} / {p.deaths} / {p.assists}
           </small>
         </span>
-        <button type="button" className="grade-pick" aria-expanded={picked} aria-controls={id} title="Why this grade, build and values" onClick={() => onPick(index)}>
+        <button type="button" className="grade-pick" aria-expanded={open} aria-controls={id} title="Why this grade, build and values" onClick={() => onPick(index)}>
           {mark ? <GradeChip grade={mark.grade} /> : <span className="faint">–</span>}
           <svg className="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
             <path d="m6 9 6 6 6-6" />
           </svg>
         </button>
       </div>
-      {picked && (
+      {open && (
         <div className="seat-more" id={id}>
           <dl className="match-facts">
             <div>

@@ -231,7 +231,7 @@ function Row({
       <span className="who">
         <Link className="stretch name" href={profileHref(p)} title={title}>
           <span>{name}</span>
-          {tag && <span className="tag hide-sm">#{tag}</span>}
+          {tag && <span className="tag">#{tag}</span>}
           {p.server && <span className="server">{p.server}</span>}
           {mine && <span className="you">{meText.you}</span>}
         </Link>

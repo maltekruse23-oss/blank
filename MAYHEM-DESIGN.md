@@ -52,10 +52,16 @@ als Geschichte).
   `zoom` 1,1, ab 2300 px 1,25 (wie die App). Auf dem Handy ist die Kopfzeile nicht klebend (zwei Zeilen
   Navigation plus Suche), das Podest steht als drei kleine Kacheln nebeneinander.
 - **Bausteine (`app/ui/bits.tsx`, `app/ui/meta.tsx`):** `More` (zuerst 5 Zeilen bzw. 12 Karten, Rest hinter
-  „Show n more“, lange Listen in Schritten), `Top` (goldene Marke am Besten), `Podium` (Platz 1–3 als
+  „Show n more“, lange Listen in Schritten; ein einziger Knopf, der zu „Show less“ wird, damit der
+  Tastaturfokus bleibt), `Top` (goldene Marke am Besten), `Podium` (Platz 1–3 als
   Glow-Kacheln Gold/Silber/Bronze), `RankCell` (Wappen, Rang, Punktebalken, „72 points“), `MetaRow`/
   `WinValue` (Siegquote groß, Spiele klein, Rest im Tooltip), `Answer` (die Antwort im Kopf: Siegquote
   und Spiele), `SectionTabs` (Reiter statt langer Seite, Anker wie `/scoring#rank` öffnen den Reiter).
+  Siegquoten stehen neutral in `--text`; Grün `--up` heißt nur „Sieg“, hervorgehoben wird das Beste
+  über `Top`/Gold.
+- **Ausnahmen von „zuerst 5“:** Rangliste und Startseite zeigen nach dem Podest die Plätze 4 bis 10
+  (zusammen die Top 10), der Reiter „Matches“ im Profil zuerst 10 Spiele (die Übersicht daneben zeigt
+  schon die letzten 5).
   Zeilen: `.row` mit Schein links (`--row`), Matchverlauf mit 4-px-Rand in Sieg/Niederlage und Tönung;
   Köpfe über Splash-Arts als dunkleres Glas (`.hero-glass`), damit Text auf hellen Bildern lesbar bleibt.
 - **Wörter:** „points“ statt „MP“ auf allen Seiten (die API behält ihre Felder).

@@ -24,7 +24,7 @@ export type MetaList = {
   rows: Row[];
 };
 
-/** Cards (augments) or rows (items) shown before "Show more". */
+/** Cards (augments) shown before "Show more"; rows (items) show the usual 5. */
 const FIRST_CARDS = 12;
 
 export function MetaListPage<F extends string>({
@@ -39,6 +39,7 @@ export function MetaListPage<F extends string>({
   filters: choices,
   initialFilter,
   note,
+  ranked,
 }: {
   kind: 'augments' | 'items';
   title: string;
@@ -54,6 +55,8 @@ export function MetaListPage<F extends string>({
   filters: { id: F; label: string }[];
   initialFilter: F;
   note: string;
+  /** What the tiers rank among (items: finished and boots, as on the tier list); default everything. */
+  ranked?: (id: number) => boolean;
 }) {
   const filters = useFilters();
   const { data, error, live } = useLive<MetaList>(`/api/stats/${kind}?` + filters.query);
@@ -68,8 +71,8 @@ export function MetaListPage<F extends string>({
     sort,
     (r) => label(r.id),
   );
-  // Tiers S–D among everything of this kind (as on the tier list), not only the filtered ones.
-  const tiers = new Map<number, Tier>(tiersOf(all).map((t) => [t.row.id, t.tier]));
+  // Tiers S–D among the same rows as on the tier list, not only the filtered ones.
+  const tiers = new Map<number, Tier>(tiersOf(ranked ? all.filter((r) => ranked(r.id)) : all).map((t) => [t.row.id, t.tier]));
   const best = strongest(shown, (r) => label(r.id))[0]?.id;
   const topOf = (r: Row) => r.id === best && r.winRate !== null && shown.length > 1;
 
@@ -157,7 +160,6 @@ export function MetaListPage<F extends string>({
               key={`${only}-${sort}`}
               list={shown}
               className="rows grid"
-              first={FIRST_CARDS}
               all={!!q}
               label={title}
               render={(r, i) => (
@@ -169,7 +171,7 @@ export function MetaListPage<F extends string>({
                   name={label(r.id)}
                   stat={r}
                   top={topOf(r)}
-                  sub={tiers.get(r.id) ? `Tier ${tiers.get(r.id)}` : 'few games'}
+                  sub={tiers.get(r.id) ? `Tier ${tiers.get(r.id)}` : (ranked?.(r.id) ?? true) ? 'few games' : undefined}
                 />
               )}
             />

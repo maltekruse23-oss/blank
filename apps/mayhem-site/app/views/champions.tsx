@@ -111,7 +111,6 @@ export default function ChampionsPage() {
             key={`${role}-${sort}`}
             list={shown}
             className="rows grid"
-            first={12}
             all={!!q}
             label="Champions"
             render={(c, i) => (

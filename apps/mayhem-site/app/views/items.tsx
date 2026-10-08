@@ -26,6 +26,8 @@ export default function ItemsPage() {
         { id: 'other', label: 'Parts and other' },
         { id: 'all', label: 'All' },
       ]}
+      // Tiers as on the tier list: finished items and boots; before Data Dragon answers, all.
+      ranked={(id) => !known.size || (known.get(id)?.kind ?? 'other') !== 'other'}
       initialFilter="done"
       note="What counts is the inventory when the game ended."
     />

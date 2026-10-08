@@ -30,6 +30,8 @@ import {
 import { num, date, season as seasonText, ago } from '../ui/format';
 import { meText, setMe, useMe } from '../ui/me';
 import { MIN_GAMES, preferencesOf, rankedTags, statsOf } from '../../src/tags';
+import { MIN_GAMES as RATE_GAMES } from '../../src/meta';
+import { gamesText } from '../ui/meta';
 
 type Tab = 'overview' | 'matches' | 'champions' | 'style' | 'seasons';
 type Dragon = ReturnType<typeof useDragon>;
@@ -105,9 +107,9 @@ export default function PlayerPage() {
                 </span>
               )}
               <span title={`${data.wins} wins, ${losses} losses`}>
-                <b>{data.games ? Math.round((data.wins / data.games) * 100) : 0}%</b> wins
+                <b>{data.games ? `${Math.round((data.wins / data.games) * 100)}%` : '–'}</b> wins
               </span>
-              <span>{`${history.length} rated games`}</span>
+              <span>{gamesText(data.games)}</span>
               {data.average && (
                 <span>
                   average <GradeChip grade={data.average.grade} small />
@@ -396,6 +398,8 @@ function Lobby({ entry, dragon, name }: { entry: AramEntry; dragon: Dragon; name
 function Champions({ steps, dragon }: { steps: ProfileStep[]; dragon: Dragon }) {
   const rows = championsOf(steps);
   if (!rows.length) return <p className="empty">No rated games yet.</p>;
+  // The best average grade, from as many games as a win rate needs (the list is sorted by games).
+  const best = rows.filter((r) => r.games >= RATE_GAMES).reduce<(typeof rows)[number] | null>((a, r) => (!a || r.pct > a.pct ? r : a), null);
   return (
     <More
       list={rows}
@@ -405,7 +409,7 @@ function Champions({ steps, dragon }: { steps: ProfileStep[]; dragon: Dragon }) 
         <li
           key={r.championId}
           className="row in"
-          data-top={(i === 0 && rows.length > 1) || undefined}
+          data-top={(rows.length > 1 && r === best) || undefined}
           style={step(i)}
           title={`${num(r.kills, 1)} / ${num(r.deaths, 1)} / ${num(r.assists, 1)} on average · ${num(r.damagePerMinute)} damage per minute · best grade ${r.best.grade}`}
         >
@@ -489,9 +493,7 @@ function Style({ steps, recent, radar, tags, census, dragon }: { steps: ProfileS
             </ul>
           )}
           {prefs.damage && (
-            <p className="fine mono">
-              AP {pct(prefs.damage.ap)} · AD {pct(prefs.damage.ad)} · True {pct(prefs.damage.true)}
-            </p>
+            <p className="fine">{`Damage: ${pct(prefs.damage.ap)} magic, ${pct(prefs.damage.ad)} physical, ${pct(prefs.damage.true)} true`}</p>
           )}
         </section>
       )}
@@ -513,13 +515,14 @@ function Seasons({ profile, now: at }: { profile: Profile; now: number }) {
     { name: seasonText(now) + ' (now)', rank: profile.rank },
     ...profile.seasons.map((s) => ({ name: seasonText(s.season), rank: s.rank })),
   ];
+  const best = rows.reduce<number | null>((b, r) => (r.rank && (b === null || r.rank.ladder > b) ? r.rank.ladder : b), null);
   return (
     <ul className="rows grid" aria-label="Seasons">
       {rows.map((r, i) => (
-        <li key={r.name} className="row in" data-tier={r.rank?.tier.id} data-top={i === 0 || undefined} style={step(i)}>
+        <li key={r.name} className="row in" data-tier={r.rank?.tier.id} data-top={(rows.length > 1 && r.rank?.ladder === best) || undefined} style={step(i)}>
           <TierMark rank={r.rank} size={44} />
           <span className="who">
-            <b className="tier-text">{r.rank ? rankName(r.rank) : 'Unranked'}</b>
+            <b className="tier-text">{r.rank ? rankName(r.rank) : 'Placement'}</b>
             <small>{r.name}</small>
           </span>
           {r.rank && <span className="value"><small>{points(r.rank.points)}</small></span>}

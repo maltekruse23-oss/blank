@@ -122,12 +122,15 @@ body {
 @media (min-width: 1800px) {
   body {
     zoom: 1.1;
+    /* zoom scales 100vh too: without this short pages scroll. */
+    min-height: calc(100vh / 1.1);
   }
 }
 
 @media (min-width: 2300px) {
   body {
     zoom: 1.25;
+    min-height: calc(100vh / 1.25);
   }
 }
 
@@ -320,7 +323,6 @@ button {
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(11, 12, 16, 0.62);
   backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.03);
 }
 
@@ -705,7 +707,6 @@ main#content > * {
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     inset 0 -30px 50px -36px rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
 /* A dark tile lit from below in one color (data-tone). */
@@ -1466,7 +1467,8 @@ a.row:hover,
 }
 
 .who .name > span:first-child,
-.who > b > span:first-child {
+.who > b > span:first-child,
+.who > b > a:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2314,10 +2316,6 @@ button.row {
 
 .answer b {
   font: 500 34px/1 var(--font-mono);
-  color: var(--up);
-}
-
-.answer b.plain {
   color: var(--text);
 }
 
@@ -2372,6 +2370,9 @@ button.row {
 
 .seat-row[data-picked='true'] > .row {
   border-color: rgba(242, 193, 78, 0.5);
+}
+
+.seat-row[data-open='true'] > .row {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -2665,7 +2666,7 @@ button.row {
   position: absolute;
   top: 10px;
   left: 12px;
-  color: var(--up);
+  color: var(--text);
   font: 500 15px var(--font-mono);
 }
 
@@ -2856,7 +2857,7 @@ button.row {
 }
 
 .tier-grid small {
-  color: var(--up);
+  color: var(--muted);
   font: 400 12px var(--font-mono);
 }
 
@@ -3216,10 +3217,6 @@ details.fold > :not(summary) {
   main#content {
     gap: 22px;
     padding-top: 22px;
-  }
-
-  .hide-sm {
-    display: none !important;
   }
 
   .row {

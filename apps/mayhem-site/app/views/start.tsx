@@ -90,6 +90,7 @@ export default function StartPage() {
             {data.top.length > 3 ? (
               <More
                 list={data.top.slice(3)}
+                first={7}
                 label="Places 4 to 10"
                 render={(p, i) => <PlayerRow key={p.puuid} player={p} place={i + 4} dragon={dragon} index={i} />}
               />
@@ -182,7 +183,7 @@ function PlayerRow({ player: p, place, dragon, index }: { player: PlayerSummary;
       <span className="who">
         <Link className="stretch name" href={profileHref(p)} title={`${p.games} games${p.average ? ` · average grade ${p.average.grade}` : ''}`}>
           <span>{name}</span>
-          {tag && <span className="tag hide-sm">#{tag}</span>}
+          {tag && <span className="tag">#{tag}</span>}
           {mine && <span className="you">{meText.you}</span>}
         </Link>
       </span>

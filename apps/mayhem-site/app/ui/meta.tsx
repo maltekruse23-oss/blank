@@ -65,7 +65,7 @@ export function statTitle(stat: MetaStat, pickLabel = 'Picked in') {
 export function WinValue({ stat }: { stat: Rated }) {
   return (
     <span className="value" title={stat.winRate === null ? `Win rate from ${MIN_GAMES} games on` : undefined}>
-      <b className={stat.winRate === null ? undefined : 'up'}>{wholePercent(stat.winRate)}</b>
+      <b>{wholePercent(stat.winRate)}</b>
       <small>{gamesText(stat.games)}</small>
     </span>
   );
@@ -120,7 +120,7 @@ export const itemPicture = (dragon: ReturnType<typeof useDragon>, id: number, si
 export function Answer({ stat, pickLabel }: { stat: MetaStat; pickLabel?: string }) {
   return (
     <span className="answer" title={statTitle(stat, pickLabel)}>
-      <b className={stat.winRate === null ? 'plain' : undefined}>{wholePercent(stat.winRate)}</b>
+      <b>{wholePercent(stat.winRate)}</b>
       <small>{stat.winRate === null ? `wins from ${MIN_GAMES} games on · ${gamesText(stat.games)}` : `wins · ${gamesText(stat.games)}`}</small>
     </span>
   );
