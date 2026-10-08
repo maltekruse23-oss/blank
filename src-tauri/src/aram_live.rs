@@ -686,13 +686,12 @@ struct MetaList {
     patch_prefix: String,
     champs: HashMap<String, MetaChamp>,
     augs: HashMap<String, MetaAugment>,
+    /// arammeta's Mayhem items (English text and price) for the combos' themes.
+    #[serde(rename = "itemLut", deserialize_with = "lenient")]
+    items: HashMap<String, MetaItem>,
     // The rest only for the Mayhem app's pages (`mayhem_tiers`).
     #[serde(rename = "augCategories", deserialize_with = "lenient")]
     categories: MetaCategories,
-    #[serde(rename = "itemLut", deserialize_with = "lenient")]
-    items: HashMap<String, MetaItem>,
-    #[serde(rename = "patchChanges", deserialize_with = "lenient")]
-    changes: Option<MetaChanges>,
     #[serde(rename = "searchIndex", deserialize_with = "lenient")]
     search: MetaSearch,
 }
@@ -756,7 +755,6 @@ struct MetaItem {
     e: String,
     p: Option<u32>,
     de: String,
-    r: Option<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -770,50 +768,6 @@ struct MetaSearch {
 #[serde(default)]
 struct MetaRelated {
     augments: HashMap<String, Vec<u32>>,
-}
-
-#[derive(Deserialize, Default)]
-#[serde(default, rename_all = "camelCase")]
-struct MetaChanges {
-    current_patch: String,
-    baseline_patch: String,
-    current_games: Option<u32>,
-    baseline_games: Option<u32>,
-    hero_risers: Vec<MetaChange>,
-    hero_fallers: Vec<MetaChange>,
-    item_risers: Vec<MetaChange>,
-    item_fallers: Vec<MetaChange>,
-    augment_risers: Vec<MetaChange>,
-    augment_fallers: Vec<MetaChange>,
-    champ_item_risers: Vec<MetaChange>,
-    champ_item_fallers: Vec<MetaChange>,
-    champ_aug_risers: Vec<MetaChange>,
-    champ_aug_fallers: Vec<MetaChange>,
-}
-
-/// One riser or faller: a champion, item or augment (`id`, `name_en`) or a champion with an
-/// item or augment (`champ` plus `item`/`augment`).
-#[derive(Deserialize, Default)]
-#[serde(default)]
-struct MetaChange {
-    id: Option<u32>,
-    name_en: String,
-    champ: Option<MetaRef>,
-    item: Option<MetaRef>,
-    augment: Option<MetaRef>,
-    current_wr: f64,
-    baseline_wr: f64,
-    current_games: u32,
-    baseline_games: u32,
-    current_tier: Option<String>,
-    baseline_tier: Option<String>,
-}
-
-#[derive(Deserialize, Default)]
-#[serde(default)]
-struct MetaRef {
-    id: u32,
-    name_en: String,
 }
 
 /// arammeta's augment list, from memory while fresh.
@@ -933,59 +887,11 @@ pub struct Category {
 }
 
 #[derive(Serialize)]
-pub struct TierItem {
-    id: u32,
-    name: String,
-    price: Option<u32>,
-    role: Option<String>,
-    text: String,
-}
-
-/// The current patch against the one before (arammeta's patchChanges).
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Changes {
-    current: String,
-    baseline: String,
-    current_games: Option<u32>,
-    baseline_games: Option<u32>,
-    champions: Movers,
-    items: Movers,
-    augments: Movers,
-    champion_items: Movers,
-    champion_augments: Movers,
-}
-
-#[derive(Serialize)]
-pub struct Movers {
-    risers: Vec<Change>,
-    fallers: Vec<Change>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Change {
-    /// The champion, item or augment that moved.
-    id: u32,
-    name: String,
-    /// With an item or augment: the champion it moved for.
-    champion: Option<u32>,
-    current_wr: f64,
-    baseline_wr: f64,
-    current_games: u32,
-    baseline_games: u32,
-    current_tier: Option<String>,
-    baseline_tier: Option<String>,
-}
-
-#[derive(Serialize)]
 pub struct Tiers {
     patch: String,
     champions: Vec<TierChampion>,
     augments: Vec<TierAugment>,
     categories: Vec<Category>,
-    items: Vec<TierItem>,
-    changes: Option<Changes>,
 }
 
 /// The keys of a champion's team profile the app shows.
@@ -995,8 +901,8 @@ const COMP: [&str; 10] = [
 const RARITIES: [&str; 3] = ["kPrismatic", "kGold", "kSilver"];
 
 /// Every champion and augment with arammeta's win rate and games (Mayhem app, tier lists), plus
-/// per champion its best augments, teammates and team profile, the augment categories, the item
-/// list and the patch changes (user, 08.10.2026: "alle Daten von arammeta"). The app ranks them
+/// per champion its best augments, teammates and team profile and the augment categories (user,
+/// 08.10.2026: "alle Daten von arammeta"; the item and patch pages went again). The app ranks them
 /// itself; this only reads the list the champ card already keeps. Left out on purpose: the
 /// trained team model (`team_score`, `draftModel`, `recommendation_composition`, for the later
 /// Lobby-Check) and fields without a clear meaning (`skillScaling`, `prevMix`, `slots`).
@@ -1136,72 +1042,11 @@ fn tiers_of(list: &MetaList) -> Tiers {
             })
         })
         .collect();
-    let items = list
-        .items
-        .iter()
-        .take(400)
-        .filter_map(|(id, i)| {
-            let id = id.parse().ok()?;
-            (!i.e.is_empty()).then(|| TierItem {
-                id,
-                name: short(&i.e, 60),
-                price: i.p.filter(|p| *p < 100_000),
-                role: i.r.as_deref().map(|r| short(r, 30)),
-                text: short(&i.de, 800),
-            })
-        })
-        .collect();
     Tiers {
         patch: short(&list.patch_prefix, 12),
         champions,
         augments,
         categories,
-        items,
-        changes: list.changes.as_ref().map(changes_of),
-    }
-}
-
-fn changes_of(c: &MetaChanges) -> Changes {
-    // A champion pair names the item or augment as the subject and the champion beside it.
-    let one = |m: &MetaChange| {
-        let (id, name, champion) = match (&m.champ, m.item.as_ref().or(m.augment.as_ref())) {
-            (Some(champ), Some(thing)) => (thing.id, thing.name_en.as_str(), Some(champ.id)),
-            _ => (m.id?, m.name_en.as_str(), None),
-        };
-        let ok = !name.is_empty()
-            && (0.0..=1.0).contains(&m.current_wr)
-            && (0.0..=1.0).contains(&m.baseline_wr);
-        let tier = |t: &Option<String>| {
-            t.as_deref()
-                .filter(|t| t.len() <= 4 && t.chars().all(|c| c.is_ascii_alphanumeric()))
-                .map(str::to_string)
-        };
-        ok.then(|| Change {
-            id,
-            name: short(name, 60),
-            champion,
-            current_wr: m.current_wr,
-            baseline_wr: m.baseline_wr,
-            current_games: m.current_games,
-            baseline_games: m.baseline_games,
-            current_tier: tier(&m.current_tier),
-            baseline_tier: tier(&m.baseline_tier),
-        })
-    };
-    let movers = |risers: &[MetaChange], fallers: &[MetaChange]| Movers {
-        risers: risers.iter().take(20).filter_map(one).collect(),
-        fallers: fallers.iter().take(20).filter_map(one).collect(),
-    };
-    Changes {
-        current: short(&c.current_patch, 12),
-        baseline: short(&c.baseline_patch, 12),
-        current_games: c.current_games,
-        baseline_games: c.baseline_games,
-        champions: movers(&c.hero_risers, &c.hero_fallers),
-        items: movers(&c.item_risers, &c.item_fallers),
-        augments: movers(&c.augment_risers, &c.augment_fallers),
-        champion_items: movers(&c.champ_item_risers, &c.champ_item_fallers),
-        champion_augments: movers(&c.champ_aug_risers, &c.champ_aug_fallers),
     }
 }
 
@@ -1650,20 +1495,6 @@ mod tests {
             tiers["categories"],
             json!([{"id": "tank", "label": "Defense"}])
         );
-        let mut items = tiers["items"].as_array().unwrap().clone();
-        items.sort_by_key(|i| i["id"].as_u64());
-        assert_eq!(items.len(), 2);
-        assert_eq!(items[0]["role"], Value::Null);
-        assert_eq!(items[1]["price"], 3600);
-        let changes = &tiers["changes"];
-        assert_eq!(changes["baselineGames"], 869021);
-        assert_eq!(changes["champions"]["risers"][0]["currentTier"], "T4");
-        assert_eq!(changes["items"]["fallers"][0]["name"], "Ardent Censer");
-        let pair = &changes["championAugments"]["risers"][0];
-        assert_eq!(
-            (&pair["id"], &pair["champion"]),
-            (&json!(1151), &json!(105))
-        );
     }
 
     /// The real list from arammeta.com: every part the pages show arrives. `cargo test -- --ignored`.
@@ -1689,9 +1520,7 @@ mod tests {
                 .count()
                 > 100
         );
-        assert!(tiers.items.len() > 50 && tiers.categories.len() > 5);
-        let changes = tiers.changes.unwrap();
-        assert!(!changes.champions.risers.is_empty() && !changes.champion_items.risers.is_empty());
+        assert!(tiers.categories.len() > 5);
     }
 
     #[test]
@@ -1707,7 +1536,7 @@ mod tests {
         assert_eq!(list.champs["1"].g, 5);
         assert!(list.champs["1"].top.is_empty() && list.champs["1"].pairs.is_empty());
         assert_eq!(list.augs["1"].pick, None);
-        assert!(list.items.is_empty() && list.changes.is_none());
+        assert!(list.items.is_empty());
     }
 
     #[test]

@@ -3,7 +3,30 @@
 Für Codex beim Veröffentlichen der Website `apps/mayhem-site/` aus `main`. Claude veröffentlicht
 nicht selbst.
 
-## Aktueller Auftrag: Download der Mayhem-App (08.10.2026)
+## Aktueller Auftrag: Noten als Buchstaben, ohne Items, neues Logo (08.10.2026)
+
+Stand `main` nach dem PR „Mayhem-App und Website schlanker“ (`claude/mayhem-ui-schlank`). Ablauf wie
+unten, dieselbe Site und Projekt-ID, **keine neue Migration** (`drizzle/` unverändert seit 0006),
+`public/downloads/` wie immer übernehmen. API und Antworten sind gleich; geändert sind nur Seiten,
+CSS, Weiterleitungen und Favicon. Der Ordner `public/grades/` ist gelöscht. Ist der Auftrag „Download
+der Mayhem-App“ (unten) noch nicht veröffentlicht, geht er mit diesem zusammen live: dann auch dessen
+Prüfungen.
+
+Zusätzlich live prüfen (Rechner und um 390 px):
+
+1. Noten sind überall dicke farbige Buchstaben statt Bilder: `/leaderboard` → „By average grade“
+   (Podest), eine Spielerseite (Matchzeilen), eine Spielseite (beste Note oben, Note je Zeile), `/scoring`
+   (Noten-Liste) und die Startseite (Spiele des Tages). SSS und MAYHEM passen in ihr Feld.
+2. In der Kopfzeile gibt es keinen Eintrag „Items“ mehr; Champion-, Augment- und Tierlisten-Seite
+   zeigen Items weiter, aber ohne Link.
+3. `curl.exe -sI https://mayhemstats.lol/items` und `…/items/3006` antworten `308` mit `location:
+   /tier-list`.
+4. `/leaderboard`: jede Zeile mit Profilsymbol, das Podest (am Rechner) auch; die eigene Zeile nach
+   „That's me“ hervorgehoben.
+5. Favicon und das Zeichen links neben „mayhemstats“ sind das goldene „m“ auf dunkler Kachel (gleich
+   dem App-Icon der Mayhem-App).
+
+## Vorheriger Auftrag: Download der Mayhem-App (08.10.2026)
 
 Stand `main` nach dem PR „Website: Download der Mayhem-App“ (`claude/website-download`). Ablauf wie
 unten, dieselbe Site und Projekt-ID, **keine neue Migration**, `public/downloads/` wie immer

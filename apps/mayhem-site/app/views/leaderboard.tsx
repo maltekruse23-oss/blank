@@ -1,6 +1,6 @@
 'use client';
 // The leaderboard: who is the best? The top three as a podium, then one row per player with the
-// rank as its one value (emblem, name, points bar) and the points below; wins, games, Top %,
+// rank as its one value (profile icon, name, emblem, points bar) and the points below; wins, games, Top %,
 // average grade and champions stay in the row's tooltip and on the profile. Tabs: by rank, by
 // average grade, and the spread of the ranks. ?server=euw shows one server's players.
 import Link from 'next/link';
@@ -11,7 +11,7 @@ import { apexLines, distributionOf, topShare } from '../../src/insights';
 import { serverParam, serversIn } from '../../src/servers';
 import ArchiveCounter from '../archive-counter';
 import GetApp from '../ui/get-app';
-import { GradeChip, GradeIcon, Histogram, Img, More, Podium, Problem, RankCell, Tabs, TierMark, points, step } from '../ui/bits';
+import { GradeChip, GradeMark, Histogram, Img, More, Podium, Problem, RankCell, Tabs, TierMark, points, step } from '../ui/bits';
 import { championLabel, profileHref, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from '../ui/data';
 import { meText, useMe } from '../ui/me';
 import { num, season } from '../ui/format';
@@ -69,10 +69,11 @@ export default function Ranking() {
     key: p.puuid,
     href: profileHref(p),
     name: splitName(p.name).name,
+    avatar: <Img className="avatar" src={profileImage(dragon, p.icon)} size={32} />,
     title: details(p, topShare(p.rank, ranks), dragon),
     mine: p.puuid === me?.id,
     ...(view === 'performance' && p.average
-      ? { mark: <GradeIcon grade={p.average.grade} size={64} />, main: <b>{`Grade ${p.average.grade}`}</b>, small: `${p.games} games` }
+      ? { mark: <GradeMark grade={p.average.grade} size={64} />, main: <b>{`Grade ${p.average.grade}`}</b>, small: `${p.games} games` }
       : {
           mark: <TierMark rank={p.rank} size={70} />,
           main: p.rank ? (

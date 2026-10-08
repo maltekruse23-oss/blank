@@ -1,6 +1,7 @@
 // Old German addresses move permanently (308, query kept) to the English pages. The site is English
 // only since 08.10.2026 (user decision); before, German was under /de (07.10.2026) and, before that,
-// at the root with these page names. Checked by src/features/aram/siteRedirects.test.ts and
+// at the root with these page names. The item pages (/items, /items/<id>) went on 08.10.2026 and
+// lead to the tier list. Checked by src/features/aram/siteRedirects.test.ts and
 // tests/smoke.mjs.
 
 /** German page names → English ones (the other pages had the same name in both languages). */
@@ -15,6 +16,11 @@ export const GERMAN_PAGES: Record<string, string> = {
 };
 
 const MOVES: { source: string; destination: string }[] = [
+  // The item pages went (user, 08.10.2026: "Item-Tab entfernen"); items stay on the tier list.
+  ...['/items', '/de/items'].flatMap((from) => [
+    { source: from, destination: '/tier-list' },
+    { source: `${from}/:rest*`, destination: '/tier-list' },
+  ]),
   { source: '/de', destination: '/' },
   // The one German subpage, before its page.
   { source: '/de/datenschutz/entfernen', destination: '/privacy/remove' },

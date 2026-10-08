@@ -21,9 +21,13 @@ als Geschichte).
   auslaufend, Bild links, Werte in der Mitte, Note bzw. Stufe rechts); Tags als Pillen (gold für den
   seltensten); Reiter mit Goldstrich; Rang-Karte mit Wappen und MP-Balken; Augment-Karten mit rundem
   Symbol, Stufen-Schild oben rechts und farbig hervorgehobenen Stichwörtern; Server-Kürzel als kleines
-  Kästchen; Wappen und Noten-Symbole groß.
-- **Bilder:** Champion-Icons, Splash-Arts und Items von Data Dragon, Wappen und Noten-Symbole aus
-  `public/ranks` und `public/grades`.
+  Kästchen; Wappen groß; Noten als dicke Buchstaben in ihrer Farbe (`--grade-*`, Unbounded 800; SSS
+  und MAYHEM kleiner, damit sie in dasselbe Feld passen – Benutzerwunsch 08.10.2026, keine
+  Noten-Bilder mehr), in App (`GradeMark` in `src/mayhem/ui.tsx`) und Website (`GradeMark` in
+  `app/ui/bits.tsx`).
+- **Bilder:** Champion-Icons, Splash-Arts, Items und Profilsymbole von Data Dragon, Wappen aus
+  `public/ranks`. Logo der Mayhem-App und der Website: das goldene „m“ auf dunkler Kachel
+  (`src-tauri/icons/mayhem.svg`, eigene Zeichnung; App-Icon `mayhem.ico`, Website `public/favicon.svg`).
 
 - **Glow** (Benutzerwahl nach Pinterest-Vorlagen): dunkle Kacheln, Licht scheint verschwommen von
   unten herein (`::before` mit `radial-gradient` und `blur`), je Kachel nur eine Farbfamilie: Prisma

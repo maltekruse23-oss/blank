@@ -3,10 +3,10 @@
 // `mayhem_tiers`, read from the list the champ card already keeps). Checked strictly here, ranked
 // by win rate pulled towards 50 % when there are few games, then cut into S–D like the website's
 // tier list: best 10 % S, then 20 % A, 40 % B, 20 % C, last 10 % D. arammeta's own tiers (OP,
-// T1–T5) come only with the patch changes, so the lists keep this tiering.
+// T1–T5) are not read, so the lists keep this tiering.
 // Since 08.10.2026 (user: "alle Daten von arammeta … so viele wie möglich") also each champion's
 // best augments, teammates and team profile, augment lift, pick rate and linked champions, the
-// augment categories, the item list and the patch changes; all from the same one list.
+// augment categories; all from the same one list (the item and patch pages went again).
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type { Tier } from '../features/aram/champCard';
 import { MOCK_TIERS } from './mock';
@@ -70,47 +70,11 @@ export type TierChampion = {
 
 export type Category = { id: string; label: string };
 
-export type TierItem = {
-  id: number;
-  name: string;
-  price: number | null;
-  /** arammeta's role (Mage, Tank, …), null for boots and the like. */
-  role: string | null;
-  text: string;
-};
-
-/** A champion, item or augment that moved since the patch before (`champion` for pairs). */
-export type Change = {
-  id: number;
-  name: string;
-  champion: number | null;
-  currentWr: number;
-  baselineWr: number;
-  currentGames: number;
-  baselineGames: number;
-  currentTier: string | null;
-  baselineTier: string | null;
-};
-export type Movers = { risers: Change[]; fallers: Change[] };
-export type Changes = {
-  current: string;
-  baseline: string;
-  currentGames: number | null;
-  baselineGames: number | null;
-  champions: Movers;
-  items: Movers;
-  augments: Movers;
-  championItems: Movers;
-  championAugments: Movers;
-};
-
 export type TierLists = {
   patch: string;
   augments: TierAugment[];
   champions: TierChampion[];
   categories: Category[];
-  items: TierItem[];
-  changes: Changes | null;
   /** Invented values of the browser preview (mock.ts). */
   mock?: boolean;
 };
@@ -239,8 +203,6 @@ export function readTiers(raw: unknown): TierLists | null {
       const label = text(c?.label, 30);
       return id && label ? { id, label } : null;
     }),
-    items: list(root.items, 400, readItem),
-    changes: readChanges(root.changes),
   };
 }
 
@@ -287,69 +249,6 @@ function readComp(value: unknown): Partial<Record<CompKey, number>> {
   return comp;
 }
 
-function readItem(value: unknown): TierItem | null {
-  const i = record(value);
-  const id = count(i?.id);
-  const name = text(i?.name, 60);
-  if (!i || id === null || !name) return null;
-  return {
-    id,
-    name,
-    price: count(i.price),
-    role: text(i.role, 30) || null,
-    text: text(i.text, 800) ?? '',
-  };
-}
-
-function readChange(value: unknown): Change | null {
-  const c = record(value);
-  const id = count(c?.id);
-  const name = text(c?.name, 60);
-  const currentWr = rate(c?.currentWr);
-  const baselineWr = rate(c?.baselineWr);
-  const currentGames = count(c?.currentGames);
-  const baselineGames = count(c?.baselineGames);
-  if (!c || id === null || !name || currentWr === null || baselineWr === null) return null;
-  if (currentGames === null || baselineGames === null) return null;
-  const tier = (v: unknown) => {
-    const t = text(v, 4);
-    return t && /^[A-Za-z0-9]+$/.test(t) ? t : null;
-  };
-  return {
-    id,
-    name,
-    champion: count(c.champion),
-    currentWr,
-    baselineWr,
-    currentGames,
-    baselineGames,
-    currentTier: tier(c.currentTier),
-    baselineTier: tier(c.baselineTier),
-  };
-}
-
-function readChanges(value: unknown): Changes | null {
-  const c = record(value);
-  const current = text(c?.current, 12);
-  const baseline = text(c?.baseline, 12);
-  if (!c || !current || !baseline) return null;
-  const movers = (v: unknown): Movers => {
-    const m = record(v);
-    return { risers: list(m?.risers, 20, readChange), fallers: list(m?.fallers, 20, readChange) };
-  };
-  return {
-    current,
-    baseline,
-    currentGames: count(c.currentGames),
-    baselineGames: count(c.baselineGames),
-    champions: movers(c.champions),
-    items: movers(c.items),
-    augments: movers(c.augments),
-    championItems: movers(c.championItems),
-    championAugments: movers(c.championAugments),
-  };
-}
-
 /** One bar of the team profile: the value and its share of the most any champion has. */
 export type ProfileBar = { key: CompKey; value: number; share: number };
 
@@ -376,22 +275,6 @@ export function teamProfile(
   return { damage, scores };
 }
 
-/** The item roles that occur, by name; items without a role are a filter of their own. */
-export const itemRoles = (items: TierItem[]) =>
-  [...new Set(items.flatMap((i) => (i.role ? [i.role] : [])))].sort();
-
-/** Items of a role ('all', 'none' or a role) matching the search, dearest first. */
-export function filterItems(items: TierItem[], role: string, query: string): TierItem[] {
-  const q = query.trim().toLowerCase();
-  return items
-    .filter(
-      (i) =>
-        (role === 'all' || (role === 'none' ? i.role === null : i.role === role)) &&
-        (!q || i.name.toLowerCase().includes(q) || i.text.toLowerCase().includes(q)),
-    )
-    .sort((a, b) => (b.price ?? -1) - (a.price ?? -1) || a.name.localeCompare(b.name));
-}
-
 /** arammeta's own (English) label of an augment category; the id when it has none. */
 export const categoryName = (lists: Pick<TierLists, 'categories'>, id: string) =>
   lists.categories.find((c) => c.id === id)?.label ?? id;
@@ -406,10 +289,6 @@ export const signedPoints = (difference: number) => {
   const sign = points > 0 ? '+' : points < 0 ? '−' : '±';
   return `${sign}${Math.abs(points).toLocaleString('en-US', { minimumFractionDigits: 1 })}`;
 };
-
-/** Win rate change since the patch before in percentage points. */
-export const pointsChange = (change: Pick<Change, 'currentWr' | 'baselineWr'>) =>
-  signedPoints(change.currentWr - change.baselineWr);
 
 /** The champions that have the augment among their best, surest high win rate first. */
 export function championsWithAugment(champions: TierChampion[], augmentId: number) {

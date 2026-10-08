@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import { MIN_SECONDS, performanceOf } from '../../src/features/aram/aramPerformance';
 import { seatEntry, type GamePlayer, type GameView } from '../../src/game';
 import { AXES, axesOf, mvpOf } from '../../src/insights';
-import { Augment, GradeChip, GradeIcon, Img, Problem, Tabs, step } from '../ui/bits';
+import { Augment, GradeChip, GradeMark, Img, Problem, Tabs, step } from '../ui/bits';
 import { LOCALE, num } from '../ui/format';
 import { championImage, duration, itemImage, profileHref, splashImage, splitName, useAugments, useDragon, useLive } from '../ui/data';
 
@@ -97,7 +97,7 @@ export default function GamePage() {
           </div>
           {mvp >= 0 && marks[mvp] && (
             <span className="answer best" title="The best grade of the game, win or lose">
-              <GradeIcon grade={marks[mvp]!.grade} size={56} />
+              <GradeMark grade={marks[mvp]!.grade} size={56} />
               <span>
                 <small>Best grade</small>
                 <b>{starName}</b>
@@ -326,7 +326,7 @@ function Explain(props: { view: GameView; index: number; mark: Mark; name: strin
   return (
     <div className="section" aria-live="polite">
       <div className="record-holder">
-        {mark ? <GradeIcon grade={mark.grade} size={56} /> : <Img className="champ" src={championImage(dragon, champ?.id)} size={44} />}
+        {mark ? <GradeMark grade={mark.grade} size={56} /> : <Img className="champ" src={championImage(dragon, champ?.id)} size={44} />}
         <span className="who">
           <b>
             <span>{name ? splitName(name).name : (champ?.name ?? p.champion ?? '–')}</span>

@@ -179,6 +179,10 @@ mod tests {
         assert_eq!(windows[0]["label"], WINDOW);
         // only_one() finds the running window by this title.
         assert_eq!(windows[0]["title"], TITLE);
+        // Frameless with Windows 11's shadow and round corners; its own bar (WindowBar.tsx) drags,
+        // maximizes and closes it.
+        assert_eq!(windows[0]["decorations"], false);
+        assert_eq!(windows[0]["shadow"], true);
     }
 
     #[test]
@@ -191,6 +195,23 @@ mod tests {
         assert!(permissions.contains(&Value::from("allow-mayhem-find-rank")));
         assert!(permissions.contains(&Value::from("allow-mayhem-open-game")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
+        // Exactly what the own window bar needs, nothing broader.
+        let window: Vec<_> = permissions
+            .iter()
+            .filter_map(Value::as_str)
+            .filter(|p| p.starts_with("core:window:"))
+            .collect();
+        assert_eq!(
+            window,
+            [
+                "core:window:allow-start-dragging",
+                "core:window:allow-internal-toggle-maximize",
+                "core:window:allow-toggle-maximize",
+                "core:window:allow-is-maximized",
+                "core:window:allow-minimize",
+                "core:window:allow-close",
+            ]
+        );
         for update in [
             "allow-update-check",
             "allow-update-install",

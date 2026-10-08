@@ -1,5 +1,13 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Mayhem-App und Website schlanker
+
+- Noten als Buchstaben (App und Website), Items/Patch aus der App entfernt, Website ohne Item-Seiten (`/items…` → 308 `/tier-list`), Rang-Seite mit Rangliste zuerst und Profilsymbolen, Seite Matches, rahmenloses Fenster mit eigener Leiste, eigenes Icon `mayhem.svg`/`mayhem.ico` (auch Logo der App und Favicon der Website), Seitenleiste in drei Gruppen mit Strich.
+- Geprüft auf Windows: `pnpm test` (38 Dateien, 303 Tests), `pnpm lint`, `pnpm build`, `pnpm mayhem:web`, `prettier --check` der geänderten Dateien außerhalb `apps/`; `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` (prüft auch die Capability-Namen), `cargo test --lib`. Website: `npx tsc --noEmit`, `npm run lint` (nur die bekannte Warnung in `src/validation.ts`), `npm run build`, frische lokale D1 (0000–0006) + `node tests/smoke.mjs` grün (inkl. `/items`, `/items/3006`, `/de/items/3006` → 308 `/tier-list`).
+- `pnpm mayhem:build`: `mayhem.exe` trägt das neue Icon (mit `[System.Drawing.Icon]::ExtractAssociatedIcon` gelesen: Mitte Gold `#f2c14e`, Rand `#13151c`). `mayhem.ico` aus `mayhem.svg` mit `pnpm tauri icon src-tauri/icons/mayhem.svg -o <temp>` (enthält 16/24/32/48/64/256, kein 128). Danach `pnpm desktop:build`: `blank.exe` trägt weiter das schwarz-weiße `icon.ico` (gleich gelesen: grau/weiß).
+- Ansicht im Browser-Pane (Mock, 1280 × 820): Home (Noten als Buchstaben, „See all“ zu Matches), Rang (Rangliste mit Symbolen und eigener Zeile 7, rechts Rang-Karte und 5 Spiele), Matches (10, dann „Show 2 more“), Karte nach dem Spiel (`?card=legend`, Note SSS als Buchstabe). Bei 1024 × 660 passt die Seitenleiste mit beiden Strichen ohne Scrollen. Website lokal mit fünf erfundenen Spielern (danach D1 verworfen): `/leaderboard` bei 1280 und 390 px (Podest mit Symbol, am Handy ohne), Spielerseite, Spielseite; Kopfzeile ohne „Items“, neues Logo.
+- Nicht geprüft: das echte rahmenlose Fenster (Ziehen, Doppelklick, Rand-Größenänderung, Schatten/Ecken von Windows 11, Schließen beendet) – braucht einen sichtbaren Start von `mayhem.exe`; die Champ-Karte (braucht den League-Client, in der Vorschau nicht darstellbar); Klick auf ein Spiel in Matches mit echtem Profil; Taskleisten-Icon zur Laufzeit.
+
 ## Nachtrag 08.10.2026: Mayhem-Custom-Spiele
 
 - Geprüft: Rust-Test `a_mayhem_custom_game_counts_as_mayhem` (Queue 2400, Custom mit Modus „KIWI“ in Queue oder Map, nie ARAM), clippy, cargo test.

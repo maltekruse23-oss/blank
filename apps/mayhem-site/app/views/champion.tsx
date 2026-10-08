@@ -9,7 +9,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { MIN_GAMES, roleName, type ChampionDetail, type ChampionGame } from '../../src/champions';
 import { combosOf, MIN_COMBO_GAMES, type Combo } from '../../src/builds';
-import { Augment, GradeChip, GradeIcon, Img, More, Problem, Tabs, Top, step } from '../ui/bits';
+import { Augment, GradeChip, GradeMark, Img, More, Problem, Tabs, Top, step } from '../ui/bits';
 import { Answer, augmentLabel, augmentPicture, gamesText, isTop, itemLabel, itemPicture, MetaRow, percent, strongest, WinValue } from '../ui/meta';
 import { num, ago } from '../ui/format';
 import { Filters, useFilters, type Scope } from '../ui/filters';
@@ -157,7 +157,7 @@ function Build({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
             list={done}
             label="Best items"
             render={(it, i) => (
-              <MetaRow key={it.id} index={i} href={`/items/${it.id}`} picture={itemPicture(dragon, it.id)} name={itemLabel(items, it.id)} stat={it} top={isTop(done, i)} pickLabel="Built in" />
+              <MetaRow key={it.id} index={i} href={null} picture={itemPicture(dragon, it.id)} name={itemLabel(items, it.id)} stat={it} top={isTop(done, i)} pickLabel="Built in" />
             )}
           />
         ) : (
@@ -193,9 +193,9 @@ function Combos({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) 
           title="Item cores"
           rows={cores}
           cell={(id) => (
-            <Link key={id} href={`/items/${id}`} title={itemLabel(items, id)}>
+            <span key={id} title={itemLabel(items, id)}>
               {itemPicture(dragon, id, 32)}
-            </Link>
+            </span>
           )}
           label={(ids) => ids.map((id) => itemLabel(items, id)).join(' + ')}
         />
@@ -279,7 +279,7 @@ function BestGames({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon 
         const { name } = splitName(g.name);
         return (
           <li key={`${g.gameId}:${g.puuid}`} className="row in" data-top={i === 0 || undefined} style={step(i)}>
-            <GradeIcon grade={g.grade} size={44} />
+            <GradeMark grade={g.grade} size={44} />
             <span className="who">
               <Link className="stretch name" href={gameLink(g)} title={`${num(g.damage)} damage · view game`}>
                 <span>{name}</span>

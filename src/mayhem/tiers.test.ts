@@ -3,10 +3,7 @@ import { MOCK_TIERS } from './mock';
 import {
   categoryName,
   championsWithAugment,
-  filterItems,
-  itemRoles,
   loadTiers,
-  pointsChange,
   pulled,
   readTiers,
   signedPoints,
@@ -105,7 +102,7 @@ describe('Mayhem tier lists', () => {
   });
 });
 
-// The rest of arammeta's list (08.10.2026): champion detail, augment detail, items, patch.
+// The rest of arammeta's list (08.10.2026): champion detail, augment detail.
 describe('arammeta pages', () => {
   const lists = readTiers(MOCK_TIERS)!;
 
@@ -117,8 +114,6 @@ describe('arammeta pages', () => {
     const goliath = lists.augments.find((a) => a.name === 'Goliath')!;
     expect(goliath.champions.length).toBe(5);
     expect(goliath.pick).toBeCloseTo(0.05);
-    expect(lists.items.find((i) => i.id === 3047)?.role).toBeNull();
-    expect(lists.changes?.championAugments.risers[0]).toMatchObject({ id: 1005, champion: 105 });
     expect(lists.categories[0]).toEqual({ id: 'ad', label: 'AD' });
   });
 
@@ -142,11 +137,6 @@ describe('arammeta pages', () => {
           comp: { phys: -1, magic: 40, cc: 'x' },
         },
       ],
-      items: [
-        { id: 1, name: '' },
-        { id: 2, name: 'Boots', price: null, role: '', text: 'Go' },
-      ],
-      changes: { current: '16.20', baseline: '', champions: {} },
     })!;
     const annie = odd.champions[0];
     expect(annie.top).toEqual([
@@ -154,8 +144,6 @@ describe('arammeta pages', () => {
     ]);
     expect(annie.pairs).toEqual([]);
     expect(annie.comp).toEqual({ magic: 40 });
-    expect(odd.items).toEqual([{ id: 2, name: 'Boots', price: null, role: null, text: 'Go' }]);
-    expect(odd.changes).toBeNull();
     expect(odd.categories).toEqual([]);
   });
 
@@ -169,16 +157,9 @@ describe('arammeta pages', () => {
     expect(teamProfile({ ...lux, comp: {} }, lists.champions)).toEqual({ damage: [], scores: [] });
   });
 
-  it('filters items by role and search, dearest first', () => {
-    expect(itemRoles(lists.items)).toEqual(['Fighter', 'Mage', 'Marksman', 'Support', 'Tank']);
-    expect(filterItems(lists.items, 'all', '').map((i) => i.id)[0]).toBe(3089);
-    expect(filterItems(lists.items, 'none', '').map((i) => i.name)).toEqual(['Plated Steelcaps']);
-    expect(filterItems(lists.items, 'Tank', 'armor').map((i) => i.id)).toEqual([3075]);
-  });
-
-  it('writes changes in percentage points with one decimal', () => {
-    expect(pointsChange({ currentWr: 0.4623, baselineWr: 0.4394 })).toBe('+2.3');
-    expect(pointsChange({ currentWr: 0.378, baselineWr: 0.5231 })).toBe('−14.5');
+  it('writes differences in percentage points with one decimal', () => {
+    expect(signedPoints(0.0229)).toBe('+2.3');
+    expect(signedPoints(-0.1451)).toBe('−14.5');
     expect(signedPoints(0)).toBe('±0.0');
   });
 

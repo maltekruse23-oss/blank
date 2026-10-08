@@ -97,10 +97,10 @@ describe('Mayhem app player', () => {
     expect([me.games, me.wins]).toEqual([8, local.wins]);
     expect(me.main).toMatchObject({ name: 'Ahri', alias: 'Ahri', games: 5 });
     expect(me.best).toEqual({ damage: 37_000, kills: 8 });
-    expect(me.recent.map((g) => g.gameId)).toEqual([107, 106, 105, 104, 103, 102]);
+    expect(me.recent.map((g) => g.gameId)).toEqual([107, 106, 105, 104, 103, 102, 101, 100]);
     expect(me.recent[0]).toMatchObject({ name: 'Brand', kda: '8/6/20' });
     expect(me.curve.length).toBeGreaterThan(0);
-    expect(state.ladder.find((r) => r.me)?.name).toBe('me#EUW');
+    expect(state.ladder.find((r) => r.me)).toMatchObject({ name: 'me#EUW', icon: 7 });
   });
 
   it('names the champions of archive games by id', () => {
@@ -143,8 +143,8 @@ describe('Mayhem app player', () => {
     expect(ownState({ name: 'x', board, me: JSON.stringify(text) }).state).toBe('failed');
   });
 
-  it('lists the top ten and the player below them', () => {
-    const many = Array.from({ length: 14 }, (_, i) => ({
+  it('lists the top hundred and the player below them', () => {
+    const many = Array.from({ length: 140 }, (_, i) => ({
       ...parseBoard(board)[0]!,
       siteId: `a${i + 1}`,
       name: `P${i + 1}`,
@@ -152,9 +152,12 @@ describe('Mayhem app player', () => {
       history: [],
       source: 'site' as const,
     }));
-    const rows = ladderOf(many, 'a13');
-    expect(rows.map((r) => r.place)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13]);
-    expect(rows.at(-1)).toMatchObject({ name: 'P13', me: true });
+    const rows = ladderOf(many, 'a130');
+    expect(rows.map((r) => r.place)).toEqual([
+      ...Array.from({ length: 100 }, (_, i) => i + 1),
+      130,
+    ]);
+    expect(rows.at(-1)).toMatchObject({ name: 'P130', me: true });
     expect(ladderOf(many, 'a2').filter((r) => r.me)).toHaveLength(1);
   });
 

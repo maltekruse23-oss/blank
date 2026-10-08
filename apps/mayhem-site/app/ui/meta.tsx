@@ -71,7 +71,8 @@ export function WinValue({ stat }: { stat: Rated }) {
   );
 }
 
-/** A row of a meta list: picture and name (the link), the win rate on the right. */
+/** A row of a meta list: picture and name (the link; items have no page of their own, so no
+ * link), the win rate on the right. */
 export function MetaRow({
   href,
   picture,
@@ -83,7 +84,7 @@ export function MetaRow({
   pickLabel,
   title,
 }: {
-  href: string;
+  href: string | null;
   picture: ReactNode;
   name: ReactNode;
   sub?: ReactNode;
@@ -98,10 +99,17 @@ export function MetaRow({
     <li className="row in" data-top={top || undefined} style={step(index)}>
       {picture}
       <span className="who">
-        <Link className="stretch name" href={href} title={title ?? statTitle(stat, pickLabel)}>
-          <span>{name}</span>
-          {top && <Top />}
-        </Link>
+        {href ? (
+          <Link className="stretch name" href={href} title={title ?? statTitle(stat, pickLabel)}>
+            <span>{name}</span>
+            {top && <Top />}
+          </Link>
+        ) : (
+          <span className="name" title={title ?? statTitle(stat, pickLabel)}>
+            <span>{name}</span>
+            {top && <Top />}
+          </span>
+        )}
         {sub && <small>{sub}</small>}
       </span>
       <WinValue stat={stat} />
