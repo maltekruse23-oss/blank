@@ -1,8 +1,10 @@
 //! The Mayhem app (user's wish 06.10.2026: "eine eigene Mayhem-App neben blank.", first version
 //! "ganz schlicht", the card "direkt in der App, kein Popup"): a second EXE from the same code,
-//! built with its own config (`tauri.mayhem.conf.json`, `pnpm mayhem:build`). One window, the
-//! Champ-Karte of the ARAM Mayhem champion select (aram_live.rs) and nothing else of blank.: no
-//! tray, popouts, settings or stored data.
+//! built with its own config (`tauri.mayhem.conf.json`, `pnpm mayhem:build`). One window, a
+//! desktop dashboard in the look "Arena" (user's wish 07.10.2026, MAYHEM-DESIGN.md): Home, the
+//! Champ-Karte of the ARAM Mayhem champion select (aram_live.rs), augment and champion tier lists
+//! (arammeta.com, `mayhem_tiers`) and the rank; nothing else of blank.: no tray, popouts, settings
+//! or stored data, and it never writes into the client.
 //!
 //! The client is looked for every few seconds (the lockfile next to `LeagueClientUx.exe`, as blank.
 //! does via pc.rs); while it runs, the card follows its champion select. Read-only, as in blank.
