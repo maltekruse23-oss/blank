@@ -53,7 +53,7 @@ export const watchChamp = (
 export const chooseBuild = (
   championId: number,
   direction: string,
-  set: { core: number[]; more: number[] } | null,
+  set: { core: number[]; boots: number[]; more: number[] } | null,
 ) =>
   isTauri() && set
     ? invoke<void>('aram_champ_build', { championId, direction, ...set }).catch(() => undefined)

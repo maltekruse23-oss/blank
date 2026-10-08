@@ -4,10 +4,14 @@ import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
   DIRECTION_LABEL,
   planNote,
+  slotsText,
   sourceLabel,
   TIERS,
+  type AugTypePick,
   type BuildPick,
+  type ChampExtra,
   type ChampView,
+  type MetaItemPick,
   type TieredAugment,
 } from '../features/aram/champCard';
 import { percent } from '../features/aram/format';
@@ -45,6 +49,17 @@ function Builds({ builds }: { builds: BuildPick[] }) {
                 height={34}
               />
             ))}
+            {b.later?.map((i) => (
+              <img
+                key={i.id}
+                className="later"
+                src={itemImage(i.id)}
+                alt={i.name}
+                title={`Später oft: ${i.name}${i.mana ? ' (Mana)' : ''}`}
+                width={24}
+                height={24}
+              />
+            ))}
           </span>
           <span className="mayhem-facts">
             <b>{percent(b.winRate)} Siege</b>
@@ -52,6 +67,7 @@ function Builds({ builds }: { builds: BuildPick[] }) {
               {games(b.games)}
               {b.mana > 0 && ' · Mana'}
             </span>
+            {b.label && <span>{b.label}</span>}
           </span>
           {b.grade && (
             <span className="mayhem-grade" data-grade={b.grade.toLowerCase()} title="Note Ø">
@@ -61,6 +77,139 @@ function Builds({ builds }: { builds: BuildPick[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+const spellImage = (key: string) =>
+  `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/spell/${key}.png`;
+const facts = (p: { games: number; winRate: number; pick: number | null }) =>
+  `${games(p.games)} · ${percent(p.winRate)} Siege${p.pick !== null ? ` · ${percent(p.pick)} gewählt` : ''}`;
+
+/** Items (one or two per row) with win rate, games and pick rate. */
+function ItemRows({ rows, weak = false }: { rows: MetaItemPick[]; weak?: boolean }) {
+  return (
+    <ul className={`mayhem-grid${weak ? ' weak' : ''}`}>
+      {rows.map((r) => (
+        <li key={r.items.map((i) => i.id).join('+')} title={facts(r)}>
+          <span className="mayhem-items">
+            {r.items.map((i) => (
+              <img
+                key={i.id}
+                data-mana={i.mana || undefined}
+                src={itemImage(i.id)}
+                alt={i.name}
+                title={i.mana ? `${i.name} (Mana, in ARAM schwach)` : i.name}
+                width={30}
+                height={30}
+              />
+            ))}
+          </span>
+          <span className="mayhem-facts">
+            <b>{percent(r.winRate)}</b>
+            <span>{r.games.toLocaleString('de-DE')}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TypeChips({ rows, weak = false }: { rows: AugTypePick[]; weak?: boolean }) {
+  return (
+    <ul className={`mayhem-chips${weak ? ' weak' : ''}`}>
+      {rows.map((t) => (
+        <li key={t.name} title={facts(t)}>
+          {t.name} <b>{percent(t.winRate)}</b>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** arammeta's further numbers on the left: boots, single items, pairs, weak items, spells. */
+function ExtraItems({ extra }: { extra: ChampExtra }) {
+  return (
+    <>
+      {extra.boots.length > 0 && (
+        <section className="mayhem-section">
+          <h2>Stiefel</h2>
+          <ItemRows rows={extra.boots} />
+        </section>
+      )}
+      {extra.items.length > 0 && (
+        <section className="mayhem-section">
+          <h2>Einzelne Items</h2>
+          <ItemRows rows={extra.items} />
+        </section>
+      )}
+      {extra.pairs.length > 0 && (
+        <section className="mayhem-section">
+          <h2>Starke Paare</h2>
+          <ItemRows rows={extra.pairs} />
+        </section>
+      )}
+      {extra.weak.length > 0 && (
+        <section className="mayhem-section">
+          <h2>Beliebt, aber schwach</h2>
+          <ItemRows rows={extra.weak} weak />
+        </section>
+      )}
+      {extra.spells.length > 0 && (
+        <section className="mayhem-section">
+          <h2>Beschwörerzauber</h2>
+          <ul className="mayhem-builds">
+            {extra.spells.map((s) => (
+              <li key={s.spells.map((x) => x.id).join('+')} title={facts(s)}>
+                <span className="mayhem-items">
+                  {s.spells.map((x) => (
+                    <img key={x.id} src={spellImage(x.key)} alt="" width={30} height={30} />
+                  ))}
+                </span>
+                <span className="mayhem-aug-name">{s.spells.map((x) => x.name).join(' + ')}</span>
+                <span className="mayhem-facts">
+                  <b>{percent(s.winRate)} Siege</b>
+                  <span>{games(s.games)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  );
+}
+
+/** Augment kinds that work or not, and the weakest augments of the champion. */
+function ExtraAvoid({ extra }: { extra: ChampExtra }) {
+  if (!extra.augTypes.length && !extra.weakTypes.length && !extra.avoid.length) return null;
+  return (
+    <section className="mayhem-section">
+      <h2>Augment-Arten</h2>
+      {extra.augTypes.length > 0 && <TypeChips rows={extra.augTypes} />}
+      {extra.weakTypes.length > 0 && (
+        <>
+          <p className="mayhem-note">Schwächer:</p>
+          <TypeChips rows={extra.weakTypes} weak />
+        </>
+      )}
+      {extra.avoid.length > 0 && (
+        <>
+          <h2>Schwächste Augments</h2>
+          <ul className="mayhem-best">
+            {extra.avoid.map((a) => (
+              <li key={a.id} title={slotsText(a.slots)}>
+                <AugmentIcon rarity={a.rarity} image={a.image} />
+                <span className="mayhem-aug-name">{a.name}</span>
+                <span className="mayhem-facts">
+                  <b className="down">{percent(a.winRate)} Siege</b>
+                  <span>{games(a.games)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -184,6 +333,9 @@ export function MayhemCard({
               <p className="mayhem-note">Noch zu wenig Spiele für einen Kern.</p>
             )}
           </section>
+          {view.extra && <ExtraItems extra={view.extra} />}
+          {/* Here, not under the long tier list, so it is seen. */}
+          {view.extra && <ExtraAvoid extra={view.extra} />}
         </div>
         <section className="mayhem-section mayhem-card-main">
           <h2>Augments für {DIRECTION_LABEL[plan.direction]}</h2>

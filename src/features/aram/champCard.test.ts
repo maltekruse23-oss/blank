@@ -16,8 +16,10 @@ import {
   metaImage,
   parseAugments,
   parseChampion,
+  parseExtra,
   parseMeta,
   planNote,
+  slotsText,
   shrunk,
   sourceLabel,
   USELESS_ITEMS,
@@ -441,12 +443,168 @@ describe('Champ-Karte mit arammeta', () => {
     expect(view.plans.map((p) => p.direction)).toEqual(['tank', 'ap', 'ad']);
   });
 
+  // The rest of arammeta's champion file, in its real shape (Alistar, 08.10.2026, trimmed).
+  const row = (slug: string, g: number, wr: number, pick = 0.1) => ({
+    name_zh: '…',
+    name_en: slug,
+    slug,
+    g,
+    wr,
+    lift: 0.01,
+    avg: 0.01,
+    res: 0,
+    score: 0.04,
+    badScore: 0.01,
+    pick,
+    globalPick: 0.02,
+    pickLift: 1.2,
+    pickCredit: 0.04,
+    items: slug.split('+').map((id) => ({ id: Number(id), ic: 1 })),
+  });
+  const slots = [
+    { g: 36, wr: 0.3657, rawWr: 0.3333 },
+    { g: 29, wr: 0.3632, rawWr: 0.3103 },
+    null,
+    null,
+  ];
+  const bad = (id: number) => ({ id, g: 65, wr: 0.4439, lift: -0.09, score: -0.05, lcb: -0.05, pick: 0.02, peerPick: 0.02, pickLift: 0.18, slots }); // prettier-ignore
+  const type = (name: string, g: number, wr: number) => ({
+    name_zh: '…',
+    name_en: name,
+    slug: 'p54',
+    g,
+    wr,
+    pick: 0.66,
+    peerGroup: 'Tank|magic',
+    peerScope: 'role_damage',
+  });
+  const full = {
+    ...file,
+    itemClusters: {
+      groups: [
+        {
+          ...file.itemClusters.groups[0],
+          name_en: 'Tank / Heartsteel',
+          tail: [
+            { id: 3065, ic: 1 },
+            { id: 3179, ic: 1 },
+          ],
+        },
+      ],
+    },
+    bot: { kPrismatic: [bad(5), bad(1)], kGold: [bad(6)], kSilver: [] },
+    sets: { top: [], bot: [] },
+    items: { top: [row('2502+3084', 174, 0.5581), row('3040+3084', 90, 0.56)], bot: [] },
+    singleItems: {
+      top: [row('3040', 400, 0.56), row('3179', 300, 0.6), row('3084', 1309, 0.5356)],
+      bot: [row('3075', 531, 0.5046)],
+      popularBad: [row('3084', 1309, 0.5356), row('3143', 220, 0.5044)],
+    },
+    boots: { top: [row('3111', 834, 0.5329, 0.52)], bot: [row('3111', 834, 0.5329)] },
+    spells: {
+      top: [row('4+32', 1502, 0.5364, 0.93), row('4+21', 56, 0.55), row('4+99', 50, 0.6)],
+    },
+    augTypes: {
+      top: [type('Health', 1071, 0.5453)],
+      bot: [type('General A', 608, 0.5106), type('Health', 1, 0.5)],
+    },
+  };
+  const fullMeta = {
+    ...meta,
+    champion: JSON.stringify(full),
+    augments: {
+      ...meta.augments,
+      '5': { name: 'Glass Cannon', rarity: 'kPrismatic', cats: [], icon: 'assets/icons/g.png' },
+    },
+  };
+
+  it('liest alle übrigen Zahlen von arammeta: Stiefel, Items, Paare, Zauber, Meiden', () => {
+    const view = champView(champ, {
+      champion: null,
+      augments: null,
+      items: { ...MetaItems, '3111': tank('Merkurs'), '3143': tank('Randuin') },
+      meta: fullMeta,
+    })!;
+    const extra = view.extra!;
+    expect(extra.boots).toEqual([
+      {
+        items: [{ id: 3111, name: 'Merkurs', mana: false, kind: 'tank' }],
+        games: 834,
+        winRate: 0.5329,
+        pick: 0.52,
+      },
+    ]);
+    // Umbral never, the mana item after the others (marked), arammeta's order otherwise.
+    expect(extra.items.map((p) => p.items[0].id)).toEqual([3084, 3040]);
+    expect(extra.items[1].items[0].mana).toBe(true);
+    // Weak: popular-but-weak first, never one of the best.
+    expect(extra.weak.map((p) => p.items[0].id)).toEqual([3143, 3075]);
+    expect(extra.pairs.map((p) => p.items.map((i) => i.id))).toEqual([
+      [2502, 3084],
+      [3040, 3084],
+    ]);
+    // Barrier never, unknown spells not.
+    expect(extra.spells).toEqual([
+      {
+        spells: [
+          { id: 4, name: 'Blitz', key: 'SummonerFlash' },
+          { id: 32, name: 'Markieren', key: 'SummonerSnowball' },
+        ],
+        games: 1502,
+        winRate: 0.5364,
+        pick: 0.93,
+      },
+    ]);
+    // Weakest augments by rarity, never one of the best ones shown.
+    expect(extra.avoid.map((a) => [a.id, a.rarity])).toEqual([
+      [5, 'prismatic'],
+      [6, 'gold'],
+    ]);
+    expect(extra.avoid[0]).toMatchObject({
+      name: 'Glass Cannon',
+      image: 'https://arammeta.com/assets/icons/g.png',
+      slots: [{ games: 36, winRate: 0.3657 }, { games: 29, winRate: 0.3632 }, null, null],
+    });
+    expect(slotsText(extra.avoid[0].slots)).toBe(
+      'Wahl 1: 36 Spiele, 37 % Siege\nWahl 2: 29 Spiele, 36 % Siege',
+    );
+    expect(extra.augTypes).toEqual([{ name: 'Health', games: 1071, winRate: 0.5453, pick: 0.66 }]);
+    expect(extra.weakTypes.map((t) => t.name)).toEqual(['General A']);
+    // The core group's name and its later items (Umbral never).
+    const best = view.plans[0].builds[0];
+    expect(best.label).toBe('Tank / Heartsteel');
+    expect(best.later?.map((i) => i.id)).toEqual([3065]);
+  });
+
+  it('ein kaputter Teil der übrigen Zahlen bleibt leer, der Rest der Karte bleibt', () => {
+    const broken = {
+      ...full,
+      boots: { top: [{ ...row('3111', 834, 0.5), wr: 2 }] },
+      spells: { top: [{ ...row('4+32', 10, 0.5), items: [{ id: 4 }] }] },
+      bot: { kPrismatic: [{ ...bad(5), slots: [{ g: -1, wr: 0.5 }] }], kGold: 'x' },
+      augTypes: { top: [{ name_en: 5, g: 1, wr: 0.5 }], bot: Array(51).fill(type('A', 1, 0.5)) },
+    };
+    const parsed = parseMeta(JSON.stringify(broken))!;
+    expect(parsed.extra.boots).toEqual([]);
+    expect(parsed.extra.spells).toEqual([]);
+    expect(parsed.extra.avoid).toEqual([]);
+    expect(parsed.extra.augTypes).toEqual([]);
+    expect(parsed.extra.weakTypes).toEqual([]);
+    expect(parsed.extra.items).toHaveLength(3);
+    expect(parsed.pool).toHaveLength(4);
+    expect(parseExtra({})).toMatchObject({ boots: [], pairs: [], weak: [] });
+  });
+
   it('prüft arammetas Datei streng', () => {
     expect(parseMeta(null)).toBeNull();
     expect(parseMeta('{')).toBeNull();
     expect(parseMeta(JSON.stringify({ poolAugments: [{ id: 1, g: -1, wr: 0.5 }] }))).toBeNull();
     expect(parseMeta(JSON.stringify({ poolAugments: [{ id: 1, g: 5, wr: 1.5 }] }))).toBeNull();
-    expect(parseMeta(JSON.stringify({ poolAugments: [] }))).toEqual({ pool: [], groups: [] });
+    expect(parseMeta(JSON.stringify({ poolAugments: [] }))).toMatchObject({
+      pool: [],
+      groups: [],
+      extra: { boots: [], items: [], spells: [], avoid: [] },
+    });
     // Unreadable file: back to the website.
     const broken = { ...meta, champion: '[]' };
     const view = champView(champ, {
@@ -479,8 +637,30 @@ describe('Item-Set der Champ-Karte', () => {
   it('nimmt den Kern und danach die übrigen Items ohne Doppel', () => {
     expect(itemSetOf(plan([build([1, 2, 3]), build([2, 4, 5]), build([5, 6, 1])]))).toEqual({
       core: [1, 2, 3],
+      boots: [],
       more: [4, 5, 6],
     });
+  });
+
+  it('nimmt arammetas Stiefel als eigenen Block und Einzel-Items der Richtung danach', () => {
+    const one = (id: number, kind: 'ap' | 'tank', mana = false) => ({
+      items: [{ id, name: `${id}`, mana, kind }],
+      games: 100,
+      winRate: 0.55,
+      pick: 0.1,
+    });
+    const extra = {
+      boots: [one(3020, 'ap'), one(3111, 'tank'), one(3047, 'tank'), one(3158, 'ap')],
+      // 2 is in the core; 8 is tank (not AP), 9 a mana item without mana in the core.
+      items: [one(2, 'ap'), one(7, 'ap'), one(8, 'tank'), one(9, 'ap', true)],
+    };
+    expect(itemSetOf(plan([build([1, 2, 3]), build([4])]), extra)).toEqual({
+      core: [1, 2, 3],
+      boots: [3020, 3111, 3047],
+      more: [4, 7],
+    });
+    const many = { boots: [], items: Array.from({ length: 20 }, (_, i) => one(100 + i, 'ap')) };
+    expect(itemSetOf(plan([build([1, 2, 3])]), many)!.more).toHaveLength(12);
   });
 
   it('nimmt Mana-Items nur, wenn der Kern sie hat', () => {

@@ -3,6 +3,16 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Champ-Karte: alle Champion-Daten von arammeta — 08.10.2026
+
+- Benutzerauftrag „alle Daten von arammeta in mein System und App gut einbauen, so viele Daten wie möglich“; dieser Teil: alles je Champion. Ein anderer Agent macht die Tier-Listen-/Detailseiten der Mayhem-App (`pages.tsx`, `mayhem_tiers`).
+- `champCard.ts`: `parseExtra` liest `boots`, `singleItems` (top, popularBad, bot), `items` (Paare), `spells`, `bot` (schwächste Augments je Seltenheit mit `slots` = Zahlen je Wahl 1–4), `augTypes`; jeder Teil für sich streng geprüft, ein kaputter Teil bleibt leer. `metaExtra` → `ChampView.extra` (nur bei arammeta als Quelle): nutzlose Items nie als Vorschlag, Mana-Items zuletzt und markiert, „beliebt, aber schwach“ ohne die besten, Zauber nur bekannte und nie Erschöpfung/Barriere, schwächste Augments ohne die, die die Karte irgendwo S/A einstuft. Kern-Gruppen tragen Name (`label`) und spätere Items (`later`, aus `tail`). `sets` war überall leer, nicht gelesen.
+- Anzeige: blank.-Popout mit Reitern Augments/Items/Zauber/Meiden unter „Dein Build“ (nicht im Spiel, dort zählt das Angebot); Mayhem-App links unter dem Kern (Stiefel, Einzel-Items, Paare, Beliebt aber schwach, Zauber, Augment-Arten, schwächste Augments), rechts die Stufenliste wie bisher; `sticky` der linken Spalte entfernt (zu lang).
+- Item-Set: Kern, Block „Stiefel“ (arammetas beste, bis 3), danach die übrigen Kerne, spätere Items und Einzel-Items der Richtung (bis 12). Rust `item_set`/`aram_champ_build` nehmen `boots`.
+- Zauber: Rust liest arammetas beste Paarung je Champion einmal pro Lauf (`meta_spell_of`, auch Fehler gemerkt); nur mit Schneeball, ≥ 100 Spielen, nie Erschöpfung/Barriere, sonst die feste Regel (`SPELL_EXCEPTIONS`). Blitz-Taste und „aufhören nach eigener Änderung“ wie bisher.
+- `flyout.rs` `MAX_ITEM_BYTES` 64 → 128 KB: die Karte war schon bis ~61 KB groß, mit den neuen Daten bis ~70 KB (gemessen).
+- Offen: Datenlizenz arammeta (ROADMAP), Test auf Windows mit echtem Client (VALIDATION).
+
 ## Mayhem-App: echter Spieler und Rang — 08.10.2026
 
 - ROADMAP „Jetzt 2“ (malte: „mache alles“). Rust `mayhem_ranks` (`aram_website.rs`, in `mayhem.rs`, `build.rs`, `capabilities/mayhem.json`): Spieler aus dem Client, dann `/api/players/<puuid>` und `/api/leaderboard` über dieselben Helfer wie blank. (`read_json`, `site_client`, `plain_id`), aber ohne die Upload-Freigabe (`enabled`), weil die Mayhem-App keine Einstellungen hat und nichts hochlädt. Antwort als JSON-Text, geprüft mit `parseBoard`/`parseProfile` aus `aramSite.ts`.
