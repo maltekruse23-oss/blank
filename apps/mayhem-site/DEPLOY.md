@@ -3,7 +3,28 @@
 Für Codex beim Veröffentlichen der Website `apps/mayhem-site/` aus `main`. Claude veröffentlicht
 nicht selbst.
 
-## Aktueller Auftrag: Website im Design „Arena“ (08.10.2026)
+## Aktueller Auftrag: Download der Mayhem-App (08.10.2026)
+
+Stand `main` nach dem PR „Website: Download der Mayhem-App“ (`claude/website-download`). Ablauf wie
+unten, dieselbe Site und Projekt-ID, **keine neue Migration**, `public/downloads/` wie immer
+übernehmen. Neu ist nur ein kleiner Block „Get the Mayhem app“ (`app/ui/get-app.tsx`) unter der
+Rangliste und unten auf `/join`; Adressen, API und Antworten sind gleich. Ist der Auftrag „Arena“
+(unten) noch nicht veröffentlicht, geht er mit diesem zusammen live: dann auch dessen Prüfungen.
+
+Erst veröffentlichen, wenn das neueste GitHub-Release `mayhem.exe` enthält (v0.10.0 oder später;
+`gh release view --json assets`), sonst führt der Knopf ins Leere.
+
+Zusätzlich live prüfen (Rechner und um 390 px):
+
+1. `/leaderboard`: direkt unter der Liste (vor „How it counts“) der Block „Get the Mayhem app“ mit
+   einer Zeile, was die App tut, goldenem „Download for Windows“ und der Zeile „Windows 10/11 · free ·
+   not signed …“. Bei 390 px steht der Knopf unter dem Text, kein seitliches Scrollen.
+2. Klick auf „Download for Windows“ lädt `mayhem.exe` von GitHub
+   (`https://github.com/maltekruse23-oss/blank/releases/latest/download/mayhem.exe`, Release ab v0.10.0).
+3. `/join`: derselbe Block unten unter „What the Collector does“ / „Already using blank.?“; der
+   Collector-Download oben ist unverändert.
+
+## Vorheriger Auftrag: Website im Design „Arena“ (08.10.2026)
 
 Stand `main` nach dem PR „Website im Design Arena“ (`claude/website-arena`). Ablauf wie unten
 („Vorher“, dann veröffentlichen, dann „Danach prüfen“), dieselbe Site und Projekt-ID, **keine neue

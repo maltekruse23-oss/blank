@@ -10,6 +10,7 @@ import { rankName, seasonOf } from '../../src/features/aram/aramRating';
 import { apexLines, distributionOf, topShare } from '../../src/insights';
 import { serverParam, serversIn } from '../../src/servers';
 import ArchiveCounter from '../archive-counter';
+import GetApp from '../ui/get-app';
 import { GradeChip, GradeIcon, Histogram, Img, More, Podium, Problem, RankCell, Tabs, TierMark, points, step } from '../ui/bits';
 import { championLabel, profileHref, profileImage, splitName, useDragon, useLive, useNow, type Board, type PlayerSummary } from '../ui/data';
 import { meText, useMe } from '../ui/me';
@@ -192,6 +193,8 @@ export default function Ranking() {
           </div>
         )}
       </section>
+
+      <GetApp />
 
       <section className="card in" style={step(2)} aria-labelledby="how">
         <h2 id="how">How it counts</h2>

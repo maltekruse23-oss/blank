@@ -1,5 +1,12 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Website – Download der Mayhem-App
+
+- Block „Get the Mayhem app“ unter der Rangliste und unten auf `/join` (`apps/mayhem-site/app/ui/get-app.tsx`), Knopf auf `releases/latest/download/mayhem.exe`.
+- Geprüft auf Windows: Website `npx tsc --noEmit`, `npm run lint` (nur die bekannte Warnung in `src/validation.ts`), `npm run build`; frische lokale D1 (0000–0006): `node tests/smoke.mjs` grün. Repo: `pnpm test` (38 Dateien, 303 Tests), `pnpm lint`.
+- Ansicht (Browser-Pane gegen die lokale Vorschau, leere D1): `/leaderboard` und `/join` bei 1280 px (Text links, goldener Knopf rechts) und 390 px (Knopf unter dem Text), kein Querscrollen, Link zeigt auf `…/releases/latest/download/mayhem.exe`.
+- Nicht geprüft: der Download selbst von GitHub (nur der Link; beim Prüfen lief der Release-Ablauf v0.10.0 noch, neuestes Release war v0.9.2 ohne `mayhem.exe`) und die Ansicht mit gefüllter Rangliste.
+
 ## Nachtrag 08.10.2026: Karte nach dem Spiel in der Mayhem-App
 
 - Gebaut (ROADMAP „Als Nächstes 0“): nach jedem ARAM-Mayhem-Spiel ein Dialog in der Mayhem-App (`src-tauri/src/aram/game_card.rs`, `src/mayhem/afterGame.ts`, `src/mayhem/AfterGameView.tsx`), gespeist aus derselben Spielende-Erkennung wie „Find my Mayhem rank“. Ablauf: Spielstart → Rangliste der Website lesen (Riot-IDs) → Ende des Spielprozesses → EoG 60 × 1 s mit genau dieser Spiel-ID, sonst Spielverlauf → einmal `mayhem-card` → Rekorde `/api/rekorde` → Rang aus dem Spiel-Schritt des eigenen Profils, solange er fehlt fünf Nachfragen in etwa 2 min.

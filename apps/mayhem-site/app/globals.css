@@ -3027,6 +3027,20 @@ details.fold > :not(summary) {
   }
 }
 
+/* "Get the Mayhem app": text left, the download on the right; stacked on phones. */
+.get-app {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 24px;
+}
+
+@media (max-width: 760px) {
+  .get-app {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
 .steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
