@@ -20,7 +20,8 @@ fn root(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|_| "Archivordner nicht verfügbar.".into())
 }
 
-fn identity(raw: &[u8]) -> Result<(String, String), String> {
+/// The archive key ("EUW1_123") and SHA-256 of a complete Mayhem game (also aram/ladder.rs).
+pub(super) fn identity(raw: &[u8]) -> Result<(String, String), String> {
     if raw.is_empty() || raw.len() > MAX_RAW {
         return Err("Archiv: Matchantwort zu groß oder leer.".into());
     }

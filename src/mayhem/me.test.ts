@@ -3,12 +3,13 @@ import type { AramEntry } from '../adapters/aram';
 import { standings } from '../features/aram/aramRating';
 import { parseBoard } from '../features/aram/aramSite';
 import { open, summary } from '../../apps/mayhem-site/src/summary';
-import { ago, curvePath, ladderOf, ownState } from './me';
+import { ago, curvePath, ladderOf, ownState, withChampions } from './me';
 
 // The Mayhem app's player (me.ts): the website's answers, in the form it sends them
 // (apps/mayhem-site/src/summary.ts), become what Home and Rang show.
 const NOW = 1_790_000_000_000;
 const HOUR = 3_600_000;
+const CHAMPION_IDS: Record<string, number> = { Annie: 1, Brand: 63, Lux: 99, Ahri: 103 };
 
 function game(id: number, puuid: string, at: number, champion: string, damage: number): AramEntry {
   const seat = { team: 100, championId: 1, kills: 8, deaths: 6, assists: 20, damage: 25_000 };
@@ -33,7 +34,7 @@ function game(id: number, puuid: string, at: number, champion: string, damage: n
     patch: '16.19',
     puuid,
     name: `${puuid}#EUW`,
-    championId: 1,
+    championId: CHAMPION_IDS[champion]!,
     champion,
     championName: champion,
     win: id % 2 === 0,
@@ -75,7 +76,13 @@ describe('Mayhem app player', () => {
 
   it('shows a player the website does not know, with the leaderboard', () => {
     const state = ownState({ name: 'Neu#EUW', board, me: null });
-    expect(state).toMatchObject({ state: 'ready', name: 'Neu#EUW', me: null, mock: false });
+    expect(state).toMatchObject({
+      state: 'ready',
+      name: 'Neu#EUW',
+      siteId: null,
+      me: null,
+      mock: false,
+    });
     expect(state.state === 'ready' && state.ladder.every((r) => !r.me)).toBe(true);
   });
 
@@ -83,6 +90,8 @@ describe('Mayhem app player', () => {
     const state = ownState({ name: 'Me#EUW', board, me: profile('me') });
     if (state.state !== 'ready' || !state.me) throw new Error(state.state);
     const me = state.me;
+    // The public id the records name the player by (records.ts, "You: #7").
+    expect(state.siteId).toBe('me');
     const local = all.find((s) => s.puuid === 'me')!;
     expect(me.rank).toEqual(local.rank);
     expect([me.games, me.wins]).toEqual([8, local.wins]);
@@ -92,6 +101,30 @@ describe('Mayhem app player', () => {
     expect(me.recent[0]).toMatchObject({ name: 'Brand', kda: '8/6/20' });
     expect(me.curve.length).toBeGreaterThan(0);
     expect(state.ladder.find((r) => r.me)?.name).toBe('me#EUW');
+  });
+
+  it('names the champions of archive games by id', () => {
+    // The archive sends games without champion names (apps/mayhem-site/src/archive-entries.ts).
+    const text = JSON.parse(profile('me'));
+    for (const s of text.history) Object.assign(s.entry, { champion: '', championName: '' });
+    const state = ownState({ name: 'Me#EUW', board, me: JSON.stringify(text) });
+    if (state.state !== 'ready' || !state.me) throw new Error(state.state);
+    // Still grouped by champion: five games of Ahri, not eight of "".
+    expect(state.me.main).toMatchObject({ championId: 103, name: '', games: 5 });
+    const list = [
+      { id: 103, name: 'Ahri', alias: 'Ahri' },
+      { id: 63, name: 'Brand', alias: 'Brand' },
+    ];
+    const named = withChampions(state, list);
+    if (named.state !== 'ready' || !named.me) throw new Error(named.state);
+    expect(named.me.main).toMatchObject({ name: 'Ahri', alias: 'Ahri', games: 5 });
+    expect(named.me.recent[0]).toMatchObject({ name: 'Brand', alias: 'Brand' });
+    // Without the list (not loaded yet): "–", never an empty heading.
+    const bare = withChampions(state, []);
+    expect(bare.state === 'ready' && bare.me?.main).toMatchObject({ name: '–', alias: null });
+    // Games with names stay as the website named them.
+    const own = ownState({ name: 'Me#EUW', board, me: profile('me') });
+    expect(withChampions(own, [])).toEqual(own);
   });
 
   it('leaves values the website does not give empty, never 0', () => {

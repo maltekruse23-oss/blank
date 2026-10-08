@@ -96,7 +96,10 @@ export default function HidePage() {
           Only the PUUID from the game is stored, not your name. That way it stays hidden even after you rename.
         </li>
         <li>
-          Anyone who uploads with blank. has a profile and deletes it in blank. with their own key. If you upload yourself later, you will be named again.
+          Anyone who uploads with blank. has a profile and deletes it in blank. with their own key. If you upload with blank. later, you will be named again.
+        </li>
+        <li>
+          Once hidden, the Mayhem app no longer uploads your games by itself, and uploading with it does not unhide you.
         </li>
         <li>
           {'Unhiding is only possible through the operator, via an issue in the '}

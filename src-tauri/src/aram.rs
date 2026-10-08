@@ -36,6 +36,7 @@ pub mod website;
 mod after_game;
 mod client;
 mod games;
+pub mod ladder;
 pub mod offers;
 mod validate;
 

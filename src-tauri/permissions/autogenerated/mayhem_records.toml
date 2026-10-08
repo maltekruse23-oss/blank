@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mayhem-records"
+description = "Enables the mayhem_records command without any pre-configured scope."
+commands.allow = ["mayhem_records"]
+
+[[permission]]
+identifier = "deny-mayhem-records"
+description = "Denies the mayhem_records command without any pre-configured scope."
+commands.deny = ["mayhem_records"]

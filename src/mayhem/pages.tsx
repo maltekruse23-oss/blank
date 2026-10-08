@@ -10,6 +10,7 @@ import type { Grade } from '../features/aram/aramPerformance';
 import { PLACEMENT, rankName, seasonOf, type Rank } from '../features/aram/aramRating';
 import { TIERS, type Tier } from '../features/aram/champCard';
 import { games, number, percent, winsIn } from './format';
+import { CONSENT, findView, type FindState } from './findRank';
 import { ago, CURVE_SIZE, curvePath, type MeState, type MeView } from './me';
 import type { Page } from './MayhemApp';
 import {
@@ -378,16 +379,45 @@ const season = () => {
   return `Season ${s.number} · ${s.year}`;
 };
 
-/** Why there is no player to show: client closed, loading, failed or not in the database. */
-function MeNotice({ me, onRetry }: { me: MeState; onRetry: () => void }) {
+/** "Find my Mayhem rank" (findRank.ts): the button with its consent line, and how it went. */
+function FindRank({ find, onFind }: Finding) {
+  const v = findView(find, navigator.onLine);
+  return (
+    <>
+      <h1>{v.title}</h1>
+      {v.text && <p role="status">{v.text}</p>}
+      {(v.action || v.busy) && (
+        <>
+          <div className="mayhem-hero-actions">
+            <button
+              type="button"
+              className="mayhem-button primary"
+              disabled={v.busy}
+              onClick={onFind}
+            >
+              {v.busy ? 'Uploading …' : v.action === 'retry' ? 'Try again' : 'Find my Mayhem rank'}
+            </button>
+          </div>
+          <p className="mayhem-note mayhem-consent">{CONSENT}</p>
+        </>
+      )}
+    </>
+  );
+}
+
+/** The click on "Find my Mayhem rank" and its state (MayhemApp keeps it across pages). */
+type Finding = { find: FindState; onFind: () => void };
+
+/** Why there is no player to show: client closed, loading, failed or not on the leaderboard (then
+ * the way onto it). */
+function MeNotice({ me, onRetry, find, onFind }: { me: MeState; onRetry: () => void } & Finding) {
+  if (me.state === 'ready') return <FindRank find={find} onFind={onFind} />;
   const [title, line] =
     me.state === 'loading'
       ? ['Loading your player …', 'From mayhemstats.lol.']
       : me.state === 'closed'
         ? ['Start League', 'Your rank shows up once you are signed in to the League client.']
-        : me.state === 'failed'
-          ? ['No connection', me.message]
-          : ['No games yet', `${me.name} has no games on mayhemstats.lol yet.`];
+        : ['No connection', me.message];
   return (
     <>
       <h1>{title}</h1>
@@ -406,7 +436,12 @@ function MeNotice({ me, onRetry }: { me: MeState; onRetry: () => void }) {
 const ready = (me: MeState) => (me.state === 'ready' ? me : null);
 
 /** What is my rank? The rank card on top, then the leaderboard and the match history. */
-export function RankPage({ me, onRetry }: { me: MeState; onRetry: () => void }) {
+export function RankPage({
+  me,
+  onRetry,
+  find,
+  onFind,
+}: { me: MeState; onRetry: () => void } & Finding) {
   const got = ready(me);
   const own = got?.me ?? null;
   const rank = own?.rank ?? null;
@@ -439,7 +474,7 @@ export function RankPage({ me, onRetry }: { me: MeState; onRetry: () => void }) 
                   <div className="mayhem-rank-facts">{winLoss(own)}</div>
                 </>
               ) : (
-                <MeNotice me={me} onRetry={onRetry} />
+                <MeNotice me={me} onRetry={onRetry} find={find} onFind={onFind} />
               )}
             </div>
           </section>
@@ -539,13 +574,15 @@ export function HomePage({
   onOpen,
   onAugment,
   onRetry,
+  find,
+  onFind,
 }: {
   tiers: TierState;
   me: MeState;
   onOpen: (page: Page) => void;
   onAugment: (id: number) => void;
   onRetry: () => void;
-}) {
+} & Finding) {
   const top = tiers.state === 'ready' ? tiers.lists.augments.slice(0, HOME_AUGMENTS) : [];
   const got = ready(me);
   const own = got?.me ?? null;
@@ -590,7 +627,7 @@ export function HomePage({
                 <p>Your rated games on mayhemstats.lol show up here.</p>
               </>
             ) : (
-              <MeNotice me={me} onRetry={onRetry} />
+              <MeNotice me={me} onRetry={onRetry} find={find} onFind={onFind} />
             )}
           </section>
         )}
