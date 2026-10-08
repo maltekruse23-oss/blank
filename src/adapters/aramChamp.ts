@@ -38,21 +38,25 @@ export type MetaInfo = {
 
 /** Follow the champion select while the client runs (on), or stop (off). With `itemSet` and
  * `spells` (blank.'s switches, MAYHEM-BERATER.md 6a) Rust also writes the item set and sets the
- * summoner spells; without them it only reads. */
-export const watchChamp = (on: boolean, writes: { itemSet?: boolean; spells?: boolean } = {}) =>
+ * summoner spells; with `offers` it reads the augment offers in the game (offers.rs). */
+export const watchChamp = (
+  on: boolean,
+  writes: { itemSet?: boolean; spells?: boolean; offers?: boolean } = {},
+) =>
   isTauri()
     ? invoke<void>('aram_champ_watch', { on, ...writes }).catch(() => undefined)
     : Promise.resolve();
 
-/** The item set "blank. <direction>" for the champion held in the champion select; Rust does
- * nothing with the switch off or for any other champion. Failures are in the error log. */
-export const writeItemSet = (
+/** The build chosen for the champion held in the champion select: Rust remembers it for the
+ * game's offers and writes the item set "blank. <direction>" with that switch on; nothing for any
+ * other champion. Failures are in the error log. */
+export const chooseBuild = (
   championId: number,
   direction: string,
   set: { core: number[]; more: number[] } | null,
 ) =>
   isTauri() && set
-    ? invoke<void>('aram_item_set', { championId, direction, ...set }).catch(() => undefined)
+    ? invoke<void>('aram_champ_build', { championId, direction, ...set }).catch(() => undefined)
     : Promise.resolve();
 
 /** The champion held in the champion select, with Data Dragon key and name from the client. */
@@ -76,5 +80,18 @@ export const leagueClientOpen = () =>
 export function onLeagueClient(handler: (open: boolean) => void) {
   if (!isTauri()) return () => undefined;
   const stop = listen<boolean>('league-client', ({ payload }) => handler(payload));
+  return () => void stop.then((unlisten) => unlisten());
+}
+
+/** Augments offered in the game, read off the screen (offers.rs); an empty list: the offer closed. */
+export type Offers = {
+  championId: number;
+  direction: 'ap' | 'ad' | 'tank' | null;
+  offers: { id: number; name: string }[];
+};
+
+export function onOffers(handler: (offers: Offers) => void) {
+  if (!isTauri()) return () => undefined;
+  const stop = listen<Offers>('aram-offers', ({ payload }) => handler(payload));
   return () => void stop.then((unlisten) => unlisten());
 }

@@ -64,6 +64,9 @@ static TOLD: AtomicI64 = AtomicI64::new(0);
 /// The switches "Item-Set schreiben" and "Beschwörerzauber setzen" (`champItemSet`, `champSpells`).
 static ITEM_SET_WANTED: AtomicBool = AtomicBool::new(false);
 static SPELLS_WANTED: AtomicBool = AtomicBool::new(false);
+/// The last champion picked (kept after the select ends) and the build chosen for it on the card;
+/// the augment offers in the game are ranked for it (offers.rs).
+static CHOSEN: Mutex<(i64, Option<String>)> = Mutex::new((0, None));
 
 const MY_SELECTION: &str = "/lol-champ-select/v1/session/my-selection";
 const FLASH: i64 = 4;
@@ -194,6 +197,9 @@ fn select_event(text: &str) -> Option<(String, Value)> {
 
 fn tell(app: &AppHandle, champion_id: i64, names: &HashMap<i64, (String, String)>) {
     if TOLD.swap(champion_id, Ordering::Relaxed) != champion_id {
+        if champion_id > 0 {
+            *CHOSEN.lock().unwrap_or_else(|p| p.into_inner()) = (champion_id, None);
+        }
         let (alias, name) = names.get(&champion_id).cloned().unwrap_or_default();
         let champ = Champ {
             champion_id,
@@ -328,9 +334,17 @@ async fn is_mayhem() -> bool {
 }
 
 /// The app window switches the card on or off (setting `popoutChamp`), and the writes into the
-/// client (`champItemSet`, `champSpells`; the Mayhem app leaves them out: off).
+/// client (`champItemSet`, `champSpells`) and the reading of offers in the game (`champOffers`);
+/// the Mayhem app leaves them out: off.
 #[tauri::command]
-pub fn aram_champ_watch(app: AppHandle, on: bool, item_set: Option<bool>, spells: Option<bool>) {
+pub fn aram_champ_watch(
+    app: AppHandle,
+    on: bool,
+    item_set: Option<bool>,
+    spells: Option<bool>,
+    offers: Option<bool>,
+) {
+    super::offers::set_wanted(on && offers == Some(true));
     ITEM_SET_WANTED.store(on && item_set == Some(true), Ordering::Relaxed);
     SPELLS_WANTED.store(on && spells == Some(true), Ordering::Relaxed);
     WANTED.store(on, Ordering::Relaxed);
@@ -402,19 +416,30 @@ fn with_item_set(mut sets: Value, champion: i64, set: Value) -> Option<Value> {
     Some(sets)
 }
 
-/// Writes the item set of the chosen build for the champion held in the ARAM Mayhem champion
-/// select (only then, and only with the switch on; otherwise nothing happens).
+/// The champion picked last and the build chosen for it (offers.rs).
+pub(super) fn chosen() -> (i64, Option<String>) {
+    CHOSEN.lock().unwrap_or_else(|p| p.into_inner()).clone()
+}
+
+/// The build chosen on the card for the champion held in the ARAM Mayhem champion select (only
+/// then): remembered for the game's offers, and written as item set with that switch on.
 #[tauri::command]
-pub async fn aram_item_set(
+pub async fn aram_champ_build(
     champion_id: i64,
     direction: String,
     core: Vec<u32>,
     more: Vec<u32>,
 ) -> Result<(), String> {
-    if !ITEM_SET_WANTED.load(Ordering::Relaxed)
-        || champion_id <= 0
-        || TOLD.load(Ordering::Relaxed) != champion_id
-    {
+    if champion_id <= 0 || TOLD.load(Ordering::Relaxed) != champion_id {
+        return Ok(());
+    }
+    if matches!(direction.as_str(), "ap" | "ad" | "tank") {
+        let mut chosen = CHOSEN.lock().unwrap_or_else(|p| p.into_inner());
+        if chosen.0 == champion_id {
+            chosen.1 = Some(direction.clone());
+        }
+    }
+    if !ITEM_SET_WANTED.load(Ordering::Relaxed) {
         return Ok(());
     }
     let stamp = std::time::SystemTime::now()

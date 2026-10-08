@@ -36,6 +36,7 @@ pub mod website;
 mod after_game;
 mod client;
 mod games;
+mod offers;
 mod validate;
 
 pub use after_game::league_seen;

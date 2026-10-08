@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Etappe 2b: Augments im Spiel — 08.10.2026
+
+- Benutzerwahl (Empfehlung „Etappe 2b“; „noch keine Tests, erstmal weiter“). `src-tauri/src/aram/offers.rs`: Start bei Spielbeginn (`game_started` → `offers::follow`), Stufe aus Live Client Data, nach jedem Aufstieg Ausschnitt + Windows-OCR alle 250 ms, Spalten → Namen (Hamming ≤ 1/8, `ponytail:`-Grenze), Ereignis `aram-offers` mit Champ und gewählter Richtung (`aram_champ_build`, vorher `aram_item_set`, merkt die Wahl). Frontend: `useChampCard` zeigt die Champ-Karte mit `offer` (`offerRows`), Reroll per `updatePopout`.
+- Offen: Test im Spiel (VALIDATION), Etappe 3 (genommenes Augment, Ranking danach), Anzeige in der App selbst.
+
 ## Etappe 2c: Item-Set und Beschwörerzauber — 08.10.2026
 
 - Benutzerwahl („2.“ aus den offenen Punkten). Gebaut nur in blank.: Schalter `champItemSet`, `champSpells` (preferences, Standard aus) unter der Champ-Karte. Item-Set: beim Einrasten des Champs die vorgewählte Richtung, Klick auf eine andere Richtung in der Karte ersetzt es (`itemSetOf` in champCard.ts, Rust `aram_item_set`: GET Liste, nur „blank. …“-Sets dieses Champs ersetzen, PUT). Zauber: Rust im Ereignis-Strom (`spells_for`, `SPELL_EXCEPTIONS`), hört nach eigener Änderung des Benutzers auf.

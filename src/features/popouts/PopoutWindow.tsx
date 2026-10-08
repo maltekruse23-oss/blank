@@ -283,6 +283,11 @@ export function PopoutWindow() {
       }),
       // The own mix changed while its popout may be open: new state in place, same time left.
       onPopoutUpdate((item) => {
+        // A reroll in the game: the offer on the open card changes (useChampCard.ts).
+        if (item.kind === 'champ')
+          return setQueue((list) =>
+            list.map((i) => (i.kind === 'champ' && i.id === item.id ? item : i)),
+          );
         if (item.kind !== 'mix') return;
         setQueue((list) =>
           item.ended
