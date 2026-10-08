@@ -3,3 +3,5 @@
 export const COLLECTOR = '/downloads/blank-mayhem-collector-0.1.0.exe';
 export const COLLECTOR_INFO = '/downloads/collector-info.txt';
 export const APP = 'https://github.com/maltekruse23-oss/blank/releases/latest/download/blank.exe';
+/** The Mayhem app, attached to every release next to blank.exe since v0.10.0. */
+export const MAYHEM_APP = 'https://github.com/maltekruse23-oss/blank/releases/latest/download/mayhem.exe';

@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Website: Download der Mayhem-App — 08.10.2026
+
+- Benutzerwunsch 08.10.2026 „Rang-Tab wird angezeigt und dann Verweis App herunterladen“: die Rangliste bleibt wie sie ist, direkt darunter (vor „How it counts“) ein kleiner Block „Get the Mayhem app“ (`apps/mayhem-site/app/ui/get-app.tsx`, CSS `.get-app` in `globals.css`): eine Zeile, was die App tut, goldener Knopf „Download for Windows“ auf `MAYHEM_APP` (`app/ui/join.ts`, `releases/latest/download/mayhem.exe`, im Release seit v0.10.0), eine kleine Zeile zu Windows 10/11, kostenlos, nicht signiert („More info“ → „Run anyway“). Derselbe Block unten auf `/join`; der Collector-Download dort bleibt.
+- Entscheidungen ohne Rückfrage: kein Link „Find my Mayhem rank“ (war optional, der Block soll klein bleiben); kein `download`-Attribut (fremde Herkunft, GitHub liefert die Datei ohnehin als Download). Keine Zahlen, keine Änderung an Adressen, API oder Daten. Nicht veröffentlicht (DEPLOY.md „Aktueller Auftrag“).
+
 ## Mayhem-App: Karte nach dem Spiel — 08.10.2026
 
 - ROADMAP „Als Nächstes 0“, Benutzerwunsch 08.10.2026 „eine After-Game-Card auch mit einbauen wie bei blank“. Gebaut im PR `claude/mayhem-karte`, nicht gemergt; der Test mit einem echten Spiel fehlt (VALIDATION).
