@@ -3,7 +3,37 @@
 Für Codex beim Veröffentlichen der Website `apps/mayhem-site/` aus `main`. Claude veröffentlicht
 nicht selbst.
 
-## Aktueller Auftrag: Website nur Englisch, mit Server-Filter (08.10.2026)
+## Aktueller Auftrag: Website im Design „Arena“ (08.10.2026)
+
+Stand `main` nach dem PR „Website im Design Arena“ (`claude/website-arena`). Ablauf wie unten
+(„Vorher“, dann veröffentlichen, dann „Danach prüfen“), dieselbe Site und Projekt-ID, **keine neue
+Migration** (`drizzle/` unverändert seit 0006), `public/downloads/` wie immer übernehmen. Geändert
+haben sich nur Aussehen und Anordnung der Seiten (`app/`, `public/fonts`, `public/favicon.svg`);
+Adressen, Weiterleitungen, API und Antworten sind gleich. Ist der Auftrag „Website nur Englisch“
+(unten) noch nicht veröffentlicht, geht er mit diesem zusammen live: dann auch dessen Prüfungen.
+
+Zusätzlich zu „Danach prüfen“ live prüfen und dem Benutzer melden (im Browser, Rechner und Handy bzw.
+schmales Fenster um 390 px):
+
+1. `https://mayhemstats.lol/`: dunkles Graublau mit warmem Schein oben, Kopfzeile „mayhemstats“
+   („stats“ gold) mit goldenem „Join“, Titel in Unbounded. Im Netzwerk-Tab laden
+   `/fonts/unbounded-latin.woff2`, `/fonts/hankengrotesk-latin.woff2`, `/fonts/geistmono-latin.woff2`
+   mit 200; keine Anfrage an Google Fonts.
+2. `/leaderboard`: Platz 1–3 als Kacheln (Gold, Silber, Bronze), darunter Zeilen mit Wappen, Rang und
+   „… points“ (nirgends „MP“), unten „Show … more“. Reiter „By rank“, „By average grade“, „Rank
+   spread“ (Verteilung). `?server=euw` zeigt nur EUW mit Plätzen ab 1.
+3. Ein Profil: Rang-Karte rechts oben, Reiter Overview/Matches/Champions/Play style/Seasons; Klick auf
+   ein Spiel klappt Note, Items, Augments und alle zehn Spieler auf.
+4. `/champions/<Name>`: Splash-Art mit Siegquote und Spielen, Reiter Build/Combos/Top players/Best games.
+5. `/augments` (Karten mit Stufe S–D), `/items`, `/tier-list` (erst S und A, dann „Show all tiers“),
+   `/records` (eine Kachel je Rekord), ein Spiel (`/game/<id>`, Klick auf eine Note zeigt die Werte),
+   `/scoring#rank` öffnet den Reiter „The rank“.
+6. Bei 390 px: nirgends seitliches Scrollen, Kopfzeile scrollt mit der Seite.
+7. `GET /api/leaderboard` und `/api/players/<id>` antworten wie vorher (dieselben Felder, `server`).
+
+Gespeicherte Antworten (`snapshots`) sind nicht betroffen, nur die Seiten haben sich geändert.
+
+## Vorheriger Auftrag: Website nur Englisch, mit Server-Filter (08.10.2026)
 
 Stand `main` nach PR #58 (Englisch/Deutsch), #59 (Server-Kürzel und -Filter) und dem PR
 „Website nur Englisch“ (Benutzerentscheidung 08.10.2026: „Website auch Englisch only.“). Ablauf wie

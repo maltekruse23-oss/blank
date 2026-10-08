@@ -1,15 +1,15 @@
 'use client';
-// All champions: games, pick rate, win rate, average grade, share of SSS/MAYHEM, damage per minute and role, sortable,
-// with a role filter. Every seat of a game with the values of all ten counts (no names); champions
-// with fewer than five graded games are listed with "little data" and no values.
-import Link from 'next/link';
+// All champions: which ones win most? One row per champion with the win rate as its one number and
+// the games below; pick rate, average grade, SSS/MAYHEM share and damage per minute in the tooltip.
+// Strongest first (win rate pulled towards 50 % for few games), a role filter and a search. Every
+// seat of a game with the values of all ten counts (no names).
 import { useState } from 'react';
 import type { Role } from '../../src/features/aram/aramPerformance';
 import { MIN_GAMES, ROLES, roleName, type ChampionStat } from '../../src/champions';
-import { GradeChip, Img, Problem } from '../ui/bits';
+import { Img, More, Problem } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, championKey, championLabel, useDragon, useLive } from '../ui/data';
-import { percent } from '../ui/meta';
+import { gamesText, MetaRow, percent, SortSelect, sortRows, strongest, type Sort } from '../ui/meta';
 import { num, season } from '../ui/format';
 
 type Champions = {
@@ -18,56 +18,50 @@ type Champions = {
   games: number;
   champions: ChampionStat[];
 };
-type Dragon = ReturnType<typeof useDragon>;
-type Sort = 'grade' | 'games' | 'pick' | 'win' | 'top' | 'dpm' | 'name';
-
-const SORTS: { id: Sort; of: (c: ChampionStat) => number | null }[] = [
-  { id: 'games', of: (c) => c.games },
-  { id: 'pick', of: (c) => c.pick ?? null },
-  { id: 'win', of: (c) => c.winRate ?? null },
-  { id: 'grade', of: (c) => c.pct },
-  { id: 'top', of: (c) => c.top },
-  { id: 'dpm', of: (c) => c.damagePerMinute },
-];
 
 /** By the key the server knows (from an upload), otherwise by ID. */
 const linkOf = (c: ChampionStat) => '/champions/' + (c.champion || c.championId);
+
+/** Everything a row does not show, for its tooltip. */
+const more = (c: ChampionStat) =>
+  [
+    c.winRate === null ? `Win rate from ${MIN_GAMES} games on` : `Win rate ${percent(c.winRate)}`,
+    gamesText(c.games),
+    `In ${percent(c.pick)} of games`,
+    c.grade ? `Average grade ${c.grade}` : null,
+    c.top !== null ? `SSS or MAYHEM in ${percent(c.top)}` : null,
+    c.damagePerMinute !== null ? `${num(c.damagePerMinute)} damage per minute` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
 export default function ChampionsPage() {
   const filters = useFilters();
   const { data, error, live } = useLive<Champions>('/api/champions?' + filters.query);
   const dragon = useDragon();
-  const [sort, setSort] = useState<Sort>('grade');
+  const [sort, setSort] = useState<Sort>('strong');
   const [role, setRole] = useState<Role | ''>('');
   const [find, setFind] = useState('');
 
+  const name = (c: ChampionStat) => championLabel(dragon, c);
   const q = find.trim().toLowerCase();
-  const shown = (data?.champions ?? []).filter(
-    (c) => (!role || c.role === role) && (!q || championLabel(dragon, c).toLowerCase().includes(q)),
+  const shown = sortRows(
+    (data?.champions ?? []).filter((c) => (!role || c.role === role) && (!q || name(c).toLowerCase().includes(q))),
+    sort,
+    name,
   );
-  const of = SORTS.find((s) => s.id === sort)?.of;
-  const sorted = [...shown].sort((a, b) => {
-    if (sort === 'name') return championLabel(dragon, a).localeCompare(championLabel(dragon, b), 'en');
-    const x = of!(a);
-    const y = of!(b);
-    return (y ?? -1) - (x ?? -1) || b.games - a.games || championLabel(dragon, a).localeCompare(championLabel(dragon, b), 'en');
-  });
-  const few = data?.champions.filter((c) => c.pct === null).length ?? 0;
-
-  const head = (id: Sort, label: string, className = '') => (
-    <th className={className} aria-sort={sort === id ? (id === 'name' ? 'ascending' : 'descending') : undefined}>
-      <button type="button" className="sort" data-on={sort === id} onClick={() => setSort(id)}>
-        {label}
-      </button>
-    </th>
-  );
+  const best = strongest(shown, name)[0];
+  const top = best?.winRate != null && shown.length > 1 ? best.championId : null;
 
   return (
     <>
-      <div className="page-head">
+      <div className="page-head in">
         <div>
           <h1>Champions</h1>
-          <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : 'All time'}</p>
+          <p className="page-sub">
+            Which champions win most? {data && filters.scope === 'season' ? season(data.season) : 'All time'}
+            {data ? ` · ${gamesText(data.games)}` : ''}
+          </p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
@@ -79,62 +73,56 @@ export default function ChampionsPage() {
 
       {error && <Problem message={error} />}
 
-      <section className="card">
-        <div className="card-head champ-tools">
-          <form className="field" onSubmit={(e) => e.preventDefault()}>
-            <input aria-label="Search champions" placeholder="Search champions" value={find} onChange={(e) => setFind(e.target.value)} />
-          </form>
+      <section className="section" aria-label="Champions">
+        <div className="tools">
           <label className="field">
-            <select aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as Role | '')}>
-              <option value="">All roles</option>
-              {(Object.keys(ROLES) as Role[]).map((r) => (
-                <option key={r} value={r}>
-                  {roleName(r)}
-                </option>
-              ))}
-            </select>
+            <span className="sr">Search champions</span>
+            <input type="search" placeholder="Search champions" value={find} onChange={(e) => setFind(e.target.value)} />
           </label>
+          <div className="chips" role="group" aria-label="Role">
+            <button type="button" aria-pressed={role === ''} onClick={() => setRole('')}>
+              All
+            </button>
+            {(Object.keys(ROLES) as Role[]).map((r) => (
+              <button key={r} type="button" aria-pressed={role === r} onClick={() => setRole(r)}>
+                {roleName(r)}
+              </button>
+            ))}
+          </div>
+          <SortSelect value={sort} onChange={setSort} />
         </div>
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th className="hide-sm">#</th>
-                {head('name', 'Champion')}
-                <th className="hide-sm">Role</th>
-                {head('games', 'Games', 'right')}
-                {head('pick', 'Pick rate', 'right hide-sm')}
-                {head('win', 'Win rate', 'right hide-sm')}
-                {head('grade', 'Avg grade')}
-                {head('top', 'SSS/MAYHEM', 'right hide-sm')}
-                {head('dpm', 'Damage/min', 'right hide-sm')}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((c, i) => (
-                <ChampionRow key={c.championId} champion={c} place={i + 1} dragon={dragon} />
-              ))}
-            </tbody>
-          </table>
-          {!data && !error && <p className="empty">Loading champions …</p>}
-          {data && !data.champions.length && (
-            <p className="empty">
-              {filters.scope === 'season' ? (
-                'No games this season yet.'
-              ) : (
-                <>No games yet. Champions show up as soon as someone uploads games. <a href="/join">Join</a></>
-              )}
-            </p>
-          )}
-          {data && data.champions.length > 0 && !sorted.length && (
-            <p className="empty">No champion matches the filter.</p>
-          )}
-        </div>
+
+        {!data && !error && <p className="empty">Loading champions …</p>}
+        {data && !data.champions.length && (
+          <p className="empty">
+            {filters.scope === 'season' ? (
+              'No games this season yet.'
+            ) : (
+              <>
+                No games yet. Champions show up as soon as someone uploads games. <a href="/join">Join</a>
+              </>
+            )}
+          </p>
+        )}
+        {data && data.champions.length > 0 && !shown.length && <p className="empty">No champion matches the filter.</p>}
+
+        {shown.length > 0 && (
+          <More
+            key={`${role}-${sort}`}
+            list={shown}
+            className="rows grid"
+            first={12}
+            all={!!q}
+            label="Champions"
+            render={(c, i) => (
+              <MetaRowTitled key={c.championId} champion={c} index={i} top={c.championId === top} dragon={dragon} />
+            )}
+          />
+        )}
+
         {data && data.champions.length > 0 && (
-          <p className="fine" style={{ marginTop: 12 }}>
-            {`${num(data.games)} games, ${num(data.champions.length)} champions. Every seat of a game with the values of all ten counts, from 8 minutes on. The pick rate is the share of games the champion was in. Win or loss does not count for the grade; the win rate is shown next to it. The grade compares with what the champion usually achieves, so a champion does not lead just by being strong.`}
-            {few > 0 &&
-              ` Below ${MIN_GAMES} rated games there are no values (little data).`}
+          <p className="fine">
+            {`Strongest = most wins, with few games pulled towards 50%. Every seat of a game with the values of all ten counts, from 8 minutes on; win rate from ${MIN_GAMES} games on. Hover a row for pick rate, average grade and damage.`}
           </p>
         )}
       </section>
@@ -142,32 +130,17 @@ export default function ChampionsPage() {
   );
 }
 
-function ChampionRow({ champion: c, place, dragon }: { champion: ChampionStat; place: number; dragon: Dragon }) {
-  const name = championLabel(dragon, c);
+function MetaRowTitled({ champion: c, index, top, dragon }: { champion: ChampionStat; index: number; top: boolean; dragon: ReturnType<typeof useDragon> }) {
   return (
-    <tr>
-      <td className="place num hide-sm">{place}</td>
-      <td>
-        <Link className="who" href={linkOf(c)}>
-          <Img className="champ" src={championImage(dragon, championKey(dragon, c) || undefined)} size={28} />
-          <b>{name}</b>
-        </Link>
-      </td>
-      <td className="hide-sm muted">{roleName(c.role)}</td>
-      <td className="right num">{num(c.games)}</td>
-      <td className="right num hide-sm">{percent(c.pick)}</td>
-      <td className="right num hide-sm">{percent(c.winRate)}</td>
-      <td>
-        {c.grade ? (
-          <GradeChip grade={c.grade} />
-        ) : (
-          <span className="badge nowrap" title={`Fewer than ${MIN_GAMES} rated games`}>
-            little data
-          </span>
-        )}
-      </td>
-      <td className="right num hide-sm">{percent(c.top)}</td>
-      <td className="right num hide-sm">{c.damagePerMinute === null ? '–' : num(c.damagePerMinute)}</td>
-    </tr>
+    <MetaRow
+      index={index}
+      href={linkOf(c)}
+      picture={<Img className="champ" src={championImage(dragon, championKey(dragon, c) || undefined)} size={40} />}
+      name={championLabel(dragon, c)}
+      sub={roleName(c.role)}
+      stat={{ games: c.games, pick: c.pick, winRate: c.winRate ?? null, graded: c.graded, pct: c.pct, grade: c.grade }}
+      top={top}
+      title={more(c)}
+    />
   );
 }

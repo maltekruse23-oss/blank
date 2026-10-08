@@ -1,146 +1,130 @@
 'use client';
-// The shared parts of the augment, item and champion statistics: sortable columns for games, pick
-// rate, win rate and average grade, the cells of one row, and the names and pictures of augments
-// and items with links to their pages.
+// The shared parts of the augment, item and champion statistics (rule "Übersicht vor
+// Vollständigkeit"): a row shows one main number (the win rate) and one small extra (games);
+// pick rate and average grade stay in the row's tooltip. Lists are sorted by strength: the win
+// rate pulled towards 50 % for few games (src/tiers.ts), so three lucky wins do not lead.
 import Link from 'next/link';
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import type { MetaStat } from '../../src/meta';
 import { MIN_GAMES } from '../../src/meta';
-import { Augment, GradeChip, Img } from './bits';
+import { scoreOf } from '../../src/tiers';
+import type { AugmentInfo } from '../../src/augments';
+import { Augment, Img, Top, step } from './bits';
 import { itemImage, type ItemInfo, type useDragon } from './data';
 import { num } from './format';
-import type { AugmentInfo } from '../../src/augments';
-
-export type MetaSort = 'games' | 'pick' | 'win' | 'grade' | 'name';
-
-const VALUE: Record<Exclude<MetaSort, 'name'>, (s: MetaStat) => number | null> = {
-  games: (s) => s.games,
-  pick: (s) => s.pick,
-  win: (s) => s.winRate ?? null,
-  grade: (s) => s.pct,
-};
 
 /** Percent with one decimal ("12.3%"), "–" when there is no value (also for snapshots from before). */
 export const percent = (x: number | null | undefined) => (x == null ? '–' : `${num(x * 100, 1)}%`);
+/** Whole percent for the big numbers ("57%"). */
+export const wholePercent = (x: number | null | undefined) => (x == null ? '–' : `${Math.round(x * 100)}%`);
+export const gamesText = (n: number) => `${num(n)} ${n === 1 ? 'game' : 'games'}`;
 
-/** Sorted rows; `name` gives the label for sorting by name and as the last tie-break. */
-export function useMetaSort<T extends MetaStat>(rows: T[], name: (row: T) => string, initial: MetaSort = 'games') {
-  const [sort, setSort] = useState<MetaSort>(initial);
-  const sorted = [...rows].sort((a, b) => {
-    if (sort === 'name') return name(a).localeCompare(name(b), 'en');
-    const of = VALUE[sort];
-    return (of(b) ?? -1) - (of(a) ?? -1) || b.games - a.games || name(a).localeCompare(name(b), 'en');
-  });
-  const head = (id: MetaSort, label: string, className = '') => (
-    <th className={className} aria-sort={sort === id ? (id === 'name' ? 'ascending' : 'descending') : undefined}>
-      <button type="button" className="sort" data-on={sort === id} onClick={() => setSort(id)}>
-        {label}
-      </button>
-    </th>
-  );
-  return { sorted, head };
-}
+type Rated = Pick<MetaStat, 'games' | 'winRate'>;
 
-/** The column heads after the name: games, pick rate (or `pickLabel`), win rate, avg grade. */
-/** `compact`: only pick rate and grade, for the narrow side column (games and win rate in the
- * cell's tooltip). */
-export function MetaHeads({ head, pickLabel, compact = false }: { head: ReturnType<typeof useMetaSort>['head']; pickLabel?: string; compact?: boolean }) {
-  const pick = pickLabel ?? 'Pick rate';
-  if (compact)
-    return (
-      <>
-        {head('pick', pick, 'right')}
-        {head('grade', 'Avg grade')}
-      </>
-    );
-  return (
-    <>
-      {head('games', 'Games', 'right')}
-      {head('pick', pick, 'right')}
-      {head('win', 'Win rate', 'right hide-sm')}
-      {head('grade', 'Avg grade')}
-    </>
+/** Strongest first: win rate pulled towards 50 % for few games; rows without one last. */
+export function strongest<T extends Rated>(rows: T[], name: (row: T) => string): T[] {
+  return [...rows].sort(
+    (a, b) => (scoreOf(b) ?? -1) - (scoreOf(a) ?? -1) || b.games - a.games || name(a).localeCompare(name(b), 'en'),
   );
 }
 
-export function MetaCells({ stat, compact = false }: { stat: MetaStat; compact?: boolean }) {
-  const few = `Fewer than ${MIN_GAMES} rated games`;
-  if (compact)
-    return (
-      <>
-        <td className="right num nowrap" title={`${num(stat.games)} games · Win rate ${percent(stat.winRate)}`}>
-          {percent(stat.pick)}
-        </td>
-        <td>
-          {stat.grade ? (
-            <GradeChip grade={stat.grade} small />
-          ) : (
-            <span className="faint" title={few}>
-              –
-            </span>
-          )}
-        </td>
-      </>
-    );
+export type Sort = 'strong' | 'games' | 'name';
+
+/** Sorts by `sort` (strongest, most played or by name). */
+export function sortRows<T extends Rated>(rows: T[], sort: Sort, name: (row: T) => string): T[] {
+  if (sort === 'strong') return strongest(rows, name);
+  if (sort === 'games') return [...rows].sort((a, b) => b.games - a.games || name(a).localeCompare(name(b), 'en'));
+  return [...rows].sort((a, b) => name(a).localeCompare(name(b), 'en'));
+}
+
+export function SortSelect({ value, onChange }: { value: Sort; onChange: (sort: Sort) => void }) {
   return (
-    <>
-      <td className="right num">{num(stat.games)}</td>
-      <td className="right num nowrap">{percent(stat.pick)}</td>
-      <td className="right num nowrap hide-sm">{percent(stat.winRate)}</td>
-      <td>
-        {stat.grade ? (
-          <GradeChip grade={stat.grade} small />
-        ) : (
-          <span className="faint nowrap" title={few}>
-            little data
-          </span>
-        )}
-      </td>
-    </>
+    <label className="field">
+      <span>Sort</span>
+      <select value={value} onChange={(e) => onChange(e.target.value as Sort)}>
+        <option value="strong">Strongest</option>
+        <option value="games">Most played</option>
+        <option value="name">Name</option>
+      </select>
+    </label>
+  );
+}
+
+/** The tooltip of a row: everything that is not shown (games stay reachable, MAYHEM-DESIGN.md). */
+export function statTitle(stat: MetaStat, pickLabel = 'Picked in') {
+  const parts = [
+    stat.winRate === null ? `Win rate from ${MIN_GAMES} games on` : `Win rate ${percent(stat.winRate)}`,
+    gamesText(stat.games),
+    `${pickLabel} ${percent(stat.pick)} of games`,
+    stat.grade ? `Average grade ${stat.grade}` : null,
+  ];
+  return parts.filter(Boolean).join(' · ');
+}
+
+/** One main number (win rate) and one small extra (games). */
+export function WinValue({ stat }: { stat: Rated }) {
+  return (
+    <span className="value" title={stat.winRate === null ? `Win rate from ${MIN_GAMES} games on` : undefined}>
+      <b className={stat.winRate === null ? undefined : 'up'}>{wholePercent(stat.winRate)}</b>
+      <small>{gamesText(stat.games)}</small>
+    </span>
+  );
+}
+
+/** A row of a meta list: picture and name (the link), the win rate on the right. */
+export function MetaRow({
+  href,
+  picture,
+  name,
+  sub,
+  stat,
+  top,
+  index,
+  pickLabel,
+  title,
+}: {
+  href: string;
+  picture: ReactNode;
+  name: ReactNode;
+  sub?: ReactNode;
+  stat: MetaStat;
+  top?: boolean;
+  index: number;
+  pickLabel?: string;
+  /** The tooltip, when it should say more than the stat (champions: damage, SSS share). */
+  title?: string;
+}) {
+  return (
+    <li className="row in" data-top={top || undefined} style={step(index)}>
+      {picture}
+      <span className="who">
+        <Link className="stretch name" href={href} title={title ?? statTitle(stat, pickLabel)}>
+          <span>{name}</span>
+          {top && <Top />}
+        </Link>
+        {sub && <small>{sub}</small>}
+      </span>
+      <WinValue stat={stat} />
+    </li>
   );
 }
 
 export const augmentLabel = (known: Map<number, AugmentInfo>, id: number) => known.get(id)?.name ?? `Augment ${id}`;
 export const itemLabel = (known: Map<number, ItemInfo>, id: number) => known.get(id)?.name ?? `Item ${id}`;
 
-export function AugmentLink({ id, known, size = 26 }: { id: number; known: Map<number, AugmentInfo>; size?: number }) {
+/** The picture of an augment or item for a row. */
+export const augmentPicture = (known: Map<number, AugmentInfo>, id: number, size = 36) => <Augment id={id} info={known.get(id)} size={size} />;
+export const itemPicture = (dragon: ReturnType<typeof useDragon>, id: number, size = 36) => <Img className="item" src={itemImage(dragon, id)} size={size} />;
+
+/** The answer of a detail page: the win rate big, the games below; the rest in the tooltip. */
+export function Answer({ stat, pickLabel }: { stat: MetaStat; pickLabel?: string }) {
   return (
-    <Link className="augment-name" href={`/augments/${id}`}>
-      <Augment id={id} info={known.get(id)} size={size} />
-      {known.get(id)?.name ?? <span className="num muted">#{id}</span>}
-    </Link>
+    <span className="answer" title={statTitle(stat, pickLabel)}>
+      <b className={stat.winRate === null ? 'plain' : undefined}>{wholePercent(stat.winRate)}</b>
+      <small>{stat.winRate === null ? `wins from ${MIN_GAMES} games on · ${gamesText(stat.games)}` : `wins · ${gamesText(stat.games)}`}</small>
+    </span>
   );
 }
 
-export function ItemLink({ id, known, dragon, size = 26 }: { id: number; known: Map<number, ItemInfo>; dragon: ReturnType<typeof useDragon>; size?: number }) {
-  return (
-    <Link className="augment-name" href={`/items/${id}`}>
-      <Img className="item" src={itemImage(dragon, id)} size={size} />
-      {known.get(id)?.name ?? <span className="num muted">#{id}</span>}
-    </Link>
-  );
-}
-
-/** The facts of one augment or item (or champion) above its tables. */
-export function MetaFacts({ stat, pickLabel }: { stat: MetaStat; pickLabel?: string }) {
-  return (
-    <div className="stat-row" style={{ marginBottom: 'var(--gap)' }}>
-      <div className="stat">
-        <small>Games</small>
-        <strong className="num">{num(stat.games)}</strong>
-      </div>
-      <div className="stat">
-        <small>{pickLabel ?? 'Pick rate'}</small>
-        <strong className="num">{percent(stat.pick)}</strong>
-      </div>
-      <div className="stat">
-        <small>Win rate</small>
-        <strong className="num">{percent(stat.winRate)}</strong>
-      </div>
-      <div className="stat">
-        <small>Avg grade</small>
-        <strong>{stat.grade ?? '–'}</strong>
-      </div>
-    </div>
-  );
-}
+/** The best row of a list (the first by strength), when it has a win rate. */
+export const isTop = (rows: Rated[], index: number) => index === 0 && rows[0]?.winRate != null && rows.length > 1;

@@ -59,7 +59,7 @@ export default function HidePage() {
         </div>
       ) : (
         <form
-          className="hide-form"
+          className="form"
           onSubmit={(e) => {
             e.preventDefault();
             void submit();
@@ -85,7 +85,7 @@ export default function HidePage() {
               {state.error}
             </div>
           )}
-          <button className="button" disabled={state.busy}>
+          <button className="button primary" disabled={state.busy}>
             {state.busy ? 'One moment …' : 'Hide name'}
           </button>
         </form>

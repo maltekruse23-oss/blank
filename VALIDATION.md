@@ -1,5 +1,13 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Website im Design „Arena“
+
+- Ganze Website im Design der Mayhem-App, Regel „Übersicht vor Vollständigkeit“ auf jeder Seite (AI-NOTES.md). Adressen, API und Antworten unverändert, keine Migration, keine neue Abhängigkeit.
+- Geprüft auf Windows: Website `npx tsc --noEmit`, `npm run lint` (nur die bekannte Warnung in `src/validation.ts`), `npm run build`; frische lokale D1 (0000–0006): `node tests/smoke.mjs` grün; Vorschau mit frischer D1 neu gestartet: `node tests/integration.mjs` grün (auch der Live-Strom); `node tests/all-players.mjs` grün. Repo: `pnpm test` (34 Dateien, 270 Tests), `pnpm lint`, Prettier auf den geänderten Dokumenten.
+- Ansicht (Chrome, Playwright im Scratch): 14 erfundene Spieler über `POST /api/games` und 18 erfundene Archivspiele (EUW1, NA1, EUN1) gegen die lokale Vorschau; jede Seite (Start, Rangliste mit `?server=na`, Rekorde, Champions und Champion, Augments und Augment, Items und Item, Tierliste, Spieler, Spiel, Mitmachen, Wertung samt `#rank`, Datenschutz, Ausblenden, API-Anleitung, 404) bei 390, 1280 und 1920 px, jeder Reiter von Spieler- und Championseite bei 390 und 1280 px, leere D1, „That's me“ mit „Your places“ und „Jump to me“: kein Querscrollen, keine Fehler außer dem bekannten „[vinext] RSC prefetch setup error“ (auch vor dem Umbau).
+- Barrierefreiheit: axe-core 4.10 (WCAG 2.1 A/AA + Best Practice) über alle Seiten bei 390 und 1280 px, mit aufgeklappten Zeilen und nach jedem Reiter: 0 Befunde. Tastatur: sichtbarer Fokusring, Reiter mit Pfeiltasten, Zeilen-Links mit Fokus über die ganze Zeile. `prefers-reduced-motion` schaltet alle Animationen ab.
+- Nicht geprüft: live (Veröffentlichen über Codex, `apps/mayhem-site/DEPLOY.md`), Safari und Firefox (`zoom` ab 1800 px, `backdrop-filter`).
+
 ## Nachtrag 08.10.2026: Website nur Englisch
 
 - Benutzerentscheidung „Website auch Englisch only.“: keine deutschen Seiten und kein Umschalter mehr; alte Adressen (`/de/…` und die deutschen Namen an der Wurzel) leiten mit 308 auf die englische Seite weiter (`apps/mayhem-site/redirects.ts`). API unverändert (Felder und deutsche Fehlermeldungen).

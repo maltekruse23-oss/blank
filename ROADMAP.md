@@ -34,6 +34,7 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
    Ziel: Die Website hat dasselbe Design wie die Mayhem-App (die App ist seit #62/#63 im Design „Arena“).
    Gewählt am 07.10.2026: „Arena“ (MAYHEM-DESIGN.md, Vorlage Spielerseite im Artifact „mayhemstats Design 2“).
    Fertig, wenn: Die Website ist im Design „Arena“ umgebaut, veröffentlicht und live geprüft.
+   Stand 08.10.2026: umgebaut im PR `claude/website-arena` (alle Seiten, Regel „Übersicht vor Vollständigkeit“, lokal mit erfundenen Daten bei 390/1280/1920 px und axe geprüft); wartet auf Merge, Veröffentlichen über Codex (`apps/mayhem-site/DEPLOY.md`) und Live-Prüfung.
 
 3. **Lobby-Check**
    Ziel: In der Champ-Auswahl zeigt die App je Mitspieler Rang, Leistung Ø als Note, seltensten Tag und Spiele mit dem Champion aus mayhemstats.lol, zusammen mit der Champ-Karte in einer Karte.

@@ -18,11 +18,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <header className="site-head">
           <div className="wrap">
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- plain link, no client router needed */}
-            <a className="brand" href="/">
-              <span>
-                blank<b>.</b>
+            <a className="brand" href="/" aria-label="mayhemstats, start page">
+              <span className="brand-mark" aria-hidden>
+                m
               </span>
-              <small>MAYHEM</small>
+              <span aria-hidden>
+                mayhem<b>stats</b>
+              </span>
             </a>
             <Nav />
             <Search />

@@ -1,9 +1,9 @@
 'use client';
-// All augments: how often each is taken, the win rate and Ø grade of those games, sortable and
-// filterable by rarity. Names and icons come from blank. (/api/augments).
+// All augments as cards in the color of their rarity (after Blitz's augment page): which ones win
+// most? Names and icons come from blank. (/api/augments).
 import type { Rarity } from '../../src/augments';
 import { useAugments } from '../ui/data';
-import { AugmentLink, augmentLabel } from '../ui/meta';
+import { augmentLabel, augmentPicture } from '../ui/meta';
 import { MetaListPage } from '../ui/meta-page';
 
 type Only = 'all' | Exclude<Rarity, ''>;
@@ -14,18 +14,20 @@ export default function AugmentsPage() {
     <MetaListPage<Only>
       kind="augments"
       title="Augments"
+      question="Which augments win most?"
       noun="Augment"
       label={(id) => augmentLabel(known, id)}
-      cell={(id) => <AugmentLink id={id} known={known} />}
+      picture={(id, size) => augmentPicture(known, id, size)}
+      rarity={(id) => known.get(id)?.rarity || undefined}
       filter={(id, only) => only === 'all' || known.get(id)?.rarity === only}
       filters={[
-        { id: 'all', label: 'All rarities' },
+        { id: 'all', label: 'All' },
         { id: 'prismatic', label: 'Prismatic' },
         { id: 'gold', label: 'Gold' },
         { id: 'silver', label: 'Silver' },
       ]}
       initialFilter="all"
-      note="Names and icons are sent by blank.; an augment nobody has sent yet is shown with its number."
+      note="Names and icons are sent by blank.; one nobody has sent yet shows its number."
     />
   );
 }
