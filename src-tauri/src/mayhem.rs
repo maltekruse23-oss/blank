@@ -58,6 +58,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::mayhem_tiers,
             crate::aram::website::mayhem_ranks,
             crate::aram::website::mayhem_records,
+            crate::aram::website::mayhem_player,
             crate::aram::ladder::mayhem_find_rank,
             crate::aram::game_card::mayhem_open_game,
             crate::update::update_check,
@@ -192,6 +193,7 @@ mod tests {
         let permissions = capability["permissions"].as_array().expect("permissions");
         assert!(permissions.contains(&Value::from("allow-mayhem-ranks")));
         assert!(permissions.contains(&Value::from("allow-mayhem-records")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-player")));
         assert!(permissions.contains(&Value::from("allow-mayhem-find-rank")));
         assert!(permissions.contains(&Value::from("allow-mayhem-open-game")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));

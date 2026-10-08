@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: Spielerkarte, alle Rekorde, Home füllt das Fenster — 08.10.2026
+
+- Benutzerwunsch „jeder Name soll anklickbar sein überall und die Playercard soll sich öffnen“: jeder Spielername (Rangliste, Records, Home, Karte nach dem Spiel) ist ein Knopf `PlayerName` (`src/mayhem/PlayerCard.tsx`), der über der Seite die Karte öffnet: Rang, MP, Siege/Niederlagen, Ø-Note, meistgespielter Champion, letzte Spiele aus dem öffentlichen Profil von mayhemstats.lol. Neuer Rust-Befehl `mayhem_player` (`aram_website.rs`, nur lesend, nur die öffentliche ID `a123` oder eine PUUID geht hinaus, `plain_id` geprüft), freigegeben in `build.rs` und `capabilities/mayhem.json` (Test in `mayhem.rs`); Laden, nicht gelistet und Fehler mit „Try again“ als eigene Zustände (`loadPlayer` in `me.ts`, per Test). Esc schließt nur den obersten Dialog (Karte über der Karte nach dem Spiel).
+- Records: alle Kategorien sofort (die Seite scrollt), jeder Platz mit einem Balken gegen den Rekord.
+- Home: breite und hohe Fenster bekommen mehr Zeilen statt leerer Fläche; Rang auf Home zeigt zwei Plätze über und unter dir.
+- Geprüft: build, lint, test, `cargo check`, Browser-Vorschau (Karte öffnet und schließt, keine Konsolenfehler). Nicht geprüft: native EXE mit echtem Client.
+
 ## Mayhem-App und Website schlanker — 08.10.2026
 
 - Benutzeraufträge 08.10.2026 in einem PR (`claude/mayhem-ui-schlank`, nicht gemergt):

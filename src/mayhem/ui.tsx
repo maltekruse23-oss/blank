@@ -1,6 +1,6 @@
 // Small building blocks for the rule "Übersicht vor Vollständigkeit" (MAYHEM-DESIGN.md): lists
 // show their first entries and the rest behind "Show more", pages use tabs instead of length.
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { Grade } from '../features/aram/aramPerformance';
 
@@ -103,14 +103,26 @@ export function GradeMark({ grade, size = 40 }: { grade: Grade; size?: number })
 /** Marks the best entry of a list, so nobody has to compare (gold, "Top"). */
 export const Top = () => <span className="mayhem-top">Top</span>;
 
+/** Open dialogs, oldest first. */
+const open: symbol[] = [];
+
 /** The dimmed layer under a dialog: Esc and a click beside the dialog close it. Into the body: the
  * sidebar's backdrop-filter would hold a fixed overlay inside the sidebar. */
 export function Overlay({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  const close = useRef(onClose);
+  close.current = onClose;
   useEffect(() => {
-    const key = (event: globalThis.KeyboardEvent) => event.key === 'Escape' && onClose();
+    // Esc closes only the topmost dialog (a player card over the card after a game).
+    const me = Symbol();
+    open.push(me);
+    const key = (event: globalThis.KeyboardEvent) =>
+      event.key === 'Escape' && open.at(-1) === me && close.current();
     window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener('keydown', key);
+      open.splice(open.indexOf(me), 1);
+    };
+  }, []);
   return createPortal(
     <div
       className="mayhem-dialog"

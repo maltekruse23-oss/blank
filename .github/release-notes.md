@@ -8,14 +8,9 @@
 
 ## New in the Mayhem app
 
-- **New look:** No Windows title bar any more, slim own buttons top right. The app has its own gold "m" icon.
-- **Grades as letters:** Every grade is a bold colored letter now (F to MAYHEM) instead of a picture.
-- **Rank page:** The leaderboard comes first, with profile icons, rank emblems and your own row highlighted.
-- **Match history:** A new tab with all your rated games. Click one to open it on mayhemstats.lol.
-- **Records:** Categories where you have a place come first.
-- **Custom games:** ARAM Mayhem custom games are recognised too (champion select and the card after the game; they don't count for the rank).
-- **Faster:** Pages load faster because connections are reused.
-- **Tidier sidebar:** Items and Patch are gone; Home, the arammeta pages and your own pages are split by thin lines.
+- **Player cards:** Click any player's name to see their rank, most played champion and last games.
+- **Records:** Every category shows right away, each place with a bar against the record.
+- **Home:** Bigger windows show more rows instead of empty space; your rank shows the two players above and below you.
 
 ## Download
 

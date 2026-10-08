@@ -273,6 +273,7 @@ describe('the game on the ladder', () => {
       siteId: null,
       me: null,
       ladder: [],
+      around: [],
       mock: false,
     };
     expect(cardRank(unlisted, games[0]!, false)).toEqual({ state: 'unlisted' });
