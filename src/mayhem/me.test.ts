@@ -134,9 +134,9 @@ describe('Mayhem app player', () => {
   });
 
   it('says how long ago a game was', () => {
-    expect(ago(NOW - 5 * 60_000, NOW)).toBe('vor 5 min');
-    expect(ago(NOW - 3 * HOUR, NOW)).toBe('vor 3 h');
-    expect(ago(NOW - 30 * HOUR, NOW)).toBe('gestern');
-    expect(ago(NOW - 72 * HOUR, NOW)).toMatch(/^\d\d\.\d\d\.\d\d$/);
+    expect(ago(NOW - 5 * 60_000, NOW)).toBe('5 min ago');
+    expect(ago(NOW - 3 * HOUR, NOW)).toBe('3 h ago');
+    expect(ago(NOW - 30 * HOUR, NOW)).toBe('yesterday');
+    expect(ago(NOW - 72 * HOUR, NOW)).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
   });
 });

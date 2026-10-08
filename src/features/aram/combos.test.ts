@@ -3,11 +3,14 @@ import type { ChampItem, MetaAugment } from '../../adapters/aramChamp';
 import { champView } from './champCard';
 import {
   COMBO_HONESTY,
+  COMBO_HONESTY_EN,
   comboNote,
   combosFor,
   COMBOS_MAX,
+  THEME_EN,
   THEMES,
   themeOf,
+  themeText,
   type AugmentFacts,
   type Combo,
   type ItemFacts,
@@ -264,6 +267,17 @@ describe('Themen-Regeln', () => {
       expect(themeOf(t.id)).toBe(t);
     }
   });
+
+  it('jedes Thema hat eine englische Fassung für die Mayhem-App, blank. bleibt deutsch', () => {
+    expect(Object.keys(THEME_EN).sort()).toEqual(THEMES.map((t) => t.id).sort());
+    for (const t of THEMES) {
+      expect(themeText(t)).toEqual({ name: t.name, line: t.line });
+      expect(themeText(t, 'en').line.length).toBeGreaterThan(10);
+      expect(themeText(t, 'en').line).not.toMatch(/[äöüß]/);
+    }
+    expect(themeText(themeOf('giant')!, 'en').name).toBe('Giant Tank');
+    expect(themeText(themeOf('giant')!).name).toBe('Riesen-Tank');
+  });
 });
 
 describe('Combos je Champion', () => {
@@ -299,6 +313,10 @@ describe('Combos je Champion', () => {
     expect(crit.items.every((i) => i.games === null)).toBe(true);
     expect(comboNote(crit, 'Warwick')).toMatch(/Keins der Items hat Zahlen mit Warwick/);
     expect(COMBO_HONESTY).toMatch(/Zusammengesetzt/);
+    expect(comboNote(crit, 'Warwick', 'en')).toBe(
+      'None of these items has numbers on Warwick: picked by theme, dearest first.',
+    );
+    expect(COMBO_HONESTY_EN).toMatch(/never the combo as a whole/);
   });
 
   it('Maximum Heal: seine gekauften Heil-Items zuerst, Meta, nutzlose Items nie', () => {
@@ -309,6 +327,9 @@ describe('Combos je Champion', () => {
     expect(heal.items[0]).toMatchObject({ games: 185, winRate: 0.5199 });
     expect(combos.flatMap((c) => c.items.map((i) => i.id))).not.toContain(3179);
     expect(comboNote(heal, 'Warwick')).toMatch(/1 Item ohne Zahlen/);
+    expect(comboNote(heal, 'Warwick', 'en')).toBe(
+      '1 item has no numbers on Warwick: picked by theme.',
+    );
   });
 
   it('nie AP- und AD-Items zusammen, Mana nur in einem Mana-Thema', () => {

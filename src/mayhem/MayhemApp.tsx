@@ -27,7 +27,7 @@ import { loadTiers } from './tiers';
 export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'items' | 'patch' | 'rank';
 
 /** The sidebar (user, 08.10.2026: dashboard like the canvas "App · Home"; the app grows by
- * entries like these, the dashed "Bald" marks the room for the next ones). */
+ * entries like these, the dashed "Soon" marks the room for the next ones). English only. */
 const PAGES: { id: Page; label: string; Icon: typeof Swords }[] = [
   { id: 'home', label: 'Home', Icon: House },
   { id: 'champ', label: 'Champ', Icon: Swords },
@@ -35,23 +35,20 @@ const PAGES: { id: Page; label: string; Icon: typeof Swords }[] = [
   { id: 'champions', label: 'Champions', Icon: LayoutGrid },
   { id: 'items', label: 'Items', Icon: Package },
   { id: 'patch', label: 'Patch', Icon: TrendingUp },
-  { id: 'rank', label: 'Rang', Icon: Trophy },
+  { id: 'rank', label: 'Rank', Icon: Trophy },
 ];
 
-/** The tier lists from arammeta.com into `set` (loading, then ready or failed). */
+/** The tier lists from arammeta.com into `set` (loading, then ready or failed). Rust's reasons are
+ * German (blank.'s), so the Mayhem app says it in its own words. */
 function requestTiers(set: (tiers: TierState) => void) {
   set({ state: 'loading' });
   loadTiers().then(
     (lists) => set({ state: 'ready', lists }),
-    (e: unknown) =>
-      set({
-        state: 'failed',
-        message: e instanceof Error && e.message ? e.message : 'arammeta.com antwortet nicht.',
-      }),
+    () => set({ state: 'failed', message: 'arammeta.com did not answer. Check your connection.' }),
   );
 }
 
-/** Home and Rang ask mayhemstats.lol again when opened after this long (ranks change per game). */
+/** Home and Rank ask mayhemstats.lol again when opened after this long (ranks change per game). */
 const ME_FRESH_MS = 2 * 60_000;
 
 /** Swaps and rerolls come in quick turns: the card waits for the pick to settle this long. */
@@ -67,7 +64,7 @@ type Shown =
  * The Mayhem app (src-tauri/src/mayhem.rs, user's wish: "ganz schlicht", the card "direkt in der
  * App"): one window with the Champ-Karte of the champion held in an ARAM Mayhem champion select.
  * The card stays after the select, so its augment tiers can be looked up during the game, until
- * the next champion.
+ * the next champion. English only (user's choice 08.10.2026).
  */
 export function MayhemApp() {
   const [client, setClient] = useState<boolean | null>(null);
@@ -107,7 +104,7 @@ export function MayhemApp() {
   const show = (champ: HeldChamp, sample: boolean) => {
     const ask = ++asked.current;
     setShown({ state: 'loading', champ });
-    readChampInfo(champ.championId).then(
+    readChampInfo(champ.championId, true).then(
       (info) => {
         if (ask !== asked.current) return;
         const view = champView(champ, info);
@@ -162,7 +159,7 @@ export function MayhemApp() {
         <span className="mayhem-logo" aria-label="Mayhem">
           m
         </span>
-        <nav className="mayhem-nav" aria-label="Bereiche">
+        <nav className="mayhem-nav" aria-label="Sections">
           {PAGES.map(({ id, label, Icon }) => (
             <button
               key={id}
@@ -174,15 +171,15 @@ export function MayhemApp() {
               <span>{label}</span>
             </button>
           ))}
-          <span className="mayhem-soon" title="Hier kommen weitere Bereiche dazu">
+          <span className="mayhem-soon" title="More sections are coming">
             <Plus size={20} strokeWidth={1.9} aria-hidden />
-            <span>Bald</span>
+            <span>Soon</span>
           </span>
         </nav>
         <span
           className="mayhem-client"
           data-open={client === true}
-          title={client ? 'League-Client offen' : 'League-Client zu'}
+          title={client ? 'League client is open' : 'League client is closed'}
         >
           Client
         </span>
@@ -247,31 +244,33 @@ export function MayhemApp() {
               onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
             />
           ) : shown.state === 'loading' ? (
-            <p className="mayhem-note mayhem-in">Lade {shown.champ.name || shown.champ.alias} …</p>
+            <p className="mayhem-note mayhem-in">
+              Loading {shown.champ.name || shown.champ.alias} …
+            </p>
           ) : shown.state === 'failed' ? (
             <div className="mayhem-wait">
               <div className="mayhem-glow mayhem-in">
-                <p>Die Werte kamen nicht an. Prüfe die Verbindung.</p>
+                <p>The numbers did not arrive. Check your connection.</p>
                 <button
                   type="button"
                   className="mayhem-button"
                   onClick={() => show(shown.champ, shown.sample)}
                 >
-                  Nochmal
+                  Try again
                 </button>
               </div>
             </div>
           ) : (
             <div className="mayhem-wait">
               <div className="mayhem-glow mayhem-in">
-                <h1>{client ? 'Warte auf die Champ-Auswahl' : 'Starte League'}</h1>
-                <p>Hier steht dein Build, sobald du in ARAM Mayhem einen Champion hast.</p>
+                <h1>{client ? 'Waiting for champion select' : 'Start League'}</h1>
+                <p>Your build shows up here once you hold a champion in ARAM Mayhem.</p>
                 <button
                   type="button"
                   className="mayhem-button primary"
                   onClick={() => show(SAMPLE_CHAMP, true)}
                 >
-                  Beispiel: {SAMPLE_CHAMP.name}
+                  Example: {SAMPLE_CHAMP.name}
                 </button>
               </div>
             </div>
