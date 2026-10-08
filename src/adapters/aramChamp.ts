@@ -13,6 +13,8 @@ export type ChampItem = {
   mana: boolean;
   /** What it builds towards, from its Data Dragon tags (Rust, `kind_of`). */
   kind: 'ap' | 'ad' | 'tank' | 'other';
+  /** Data Dragon tags of a finished item (combos.ts themes), missing for the rest. */
+  tags?: string[];
 };
 
 /** The website's answers as JSON text (checked in champCard.ts) and the items. */
@@ -25,8 +27,14 @@ export type ChampInfo = {
 };
 
 /** An augment as arammeta lists it: English name, rarity kSilver/kGold/kPrismatic, categories
- * like "ap", "ad", "tank", icon path on arammeta.com. */
-export type MetaAugment = { name: string; rarity: string; cats: string[]; icon: string };
+ * like "ap", "ad", "tank", icon path on arammeta.com and English text (combos.ts themes). */
+export type MetaAugment = {
+  name: string;
+  rarity: string;
+  cats: string[];
+  icon: string;
+  text?: string;
+};
 
 export type MetaInfo = {
   patch: string;
@@ -34,6 +42,8 @@ export type MetaInfo = {
   /** `/api/champions/<id>.json` as it came (checked in champCard.ts). */
   champion: string | null;
   augments: Record<string, MetaAugment>;
+  /** arammeta's Mayhem items: English text and price (combos.ts themes). */
+  items?: Record<string, { text: string; price: number | null }>;
 };
 
 /** Follow the champion select while the client runs (on), or stop (off). With `itemSet` and

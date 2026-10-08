@@ -223,3 +223,53 @@
 .champ-card-guide:hover {
   text-decoration: underline;
 }
+
+/* Mayhem-Combos (combos.ts): every theme of the champion as a chip, Meta and Offmeta apart; the
+   chosen one below with its augments and items and their numbers. */
+.champ-combos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.champ-combo-picks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.champ-combo-picks button {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--radius-scale));
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.champ-combo-picks button.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.champ-combo-picks button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.champ-combo-tag {
+  --tag: var(--accent);
+  padding: 1px 6px;
+  border-radius: calc(5px * var(--radius-scale));
+  background: color-mix(in srgb, var(--tag) 18%, transparent);
+  color: var(--tag);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.champ-combo-tag[data-meta='false'] {
+  --tag: var(--rank-1);
+}
+.champ-combos h3 {
+  margin: 4px 0 0;
+}

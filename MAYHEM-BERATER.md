@@ -67,8 +67,8 @@ verzehnfacht die Stichprobe.
 Jedes fertige Item bekommt aus den Data-Dragon-Werten (`stats`, `tags`) ein Profil über diese
 Achsen: AP, AD, Tempo/Krit, On-Hit, Letalität, Leben/Rüstung/MR (Tank), Heilen/Schilde für
 andere (Enchanter). Die Achsen ergeben sich aus den Werten, nicht aus einer Liste von Hand,
-damit neue Items von selbst passen. Nur Sonderfälle werden von Hand gepflegt, mit Grund wie bei
-`USELESS_ITEMS`.
+damit neue Items von selbst passen. Von Hand gepflegt wird nur `USELESS_ITEMS` (mit Grund);
+die Themen des Offmeta-Systems (3.9) folgen derselben Regel.
 
 Der **Archetyp eines Spiels** ist die vorherrschende Achse der fertigen Items am Ende, zum
 Beispiel „AP“, „AD-Krit“, „AD-Bruiser“, „Tank“, „Enchanter“ oder „On-Hit“. Mischformen bekommen
@@ -171,6 +171,31 @@ und Lord Dominik's als „Anti-Tank“.
   zweiten Block enthalten.
 - **Ohne genug Daten:** kein Tag. Eine Regel ohne Daten („Tanks → Prozent-Schaden“) gibt es
   nicht, nur gemessene Unterschiede.
+
+### 3.9 Offmeta-System (gebaut 08.10.2026)
+
+Benutzerwünsche: Offmeta-Builds („AP-Alistar“), Mayhem-Combos („Illaoi Maximum Heal“, „Warwick
+Krit, komplettes Krit-Item-Build mit den besten Krit-Augments“), „ich will nichts von Hand
+pflegen“, „darum brauchen wir ein System für Offmeta-Builds“. Umgesetzt als eine Engine in
+`src/features/aram/combos.ts`:
+
+- **Themen sind Regeln, keine Listen.** `THEMES` (22 Themen wie Maximum Heal, Full Crit,
+  Riesen-Tank, On-Hit, Feuerteufel, Unkaputtbar, Kamikaze, Zocker, plus die Richtungen AP/AD/
+  Tank) ordnet Items nach Data-Dragon-Tags und arammetas englischem Item-Text, Augments nach
+  arammetas Kategorien und englischem Text. Neue Items und Augments eines Patches landen von
+  selbst im Thema; von Hand bleibt nur `USELESS_ITEMS` (mit Grund).
+- **Je Champion** (`combosFor`): die Augments des Themas, die er bekommt (arammetas
+  `poolAugments`), und ein Build aus den Items des Themas – auf ihm gemessene zuerst, sonst
+  „allgemein“ ohne Zahlen. Nie AP- und AD-Items zusammen, Mana zählt dagegen, Siegquoten zur
+  Ø des Champions gezogen.
+- **Meta oder Offmeta:** Meta, wenn er mindestens zwei der drei Kern-Items in ≥ 20 % seiner
+  Spiele kauft und eins der Augments in ≥ 5 % nimmt; sonst Offmeta. Die Richtungs-Builds
+  (`offmetaBuild`, AP-Alistar) sind dieselbe Engine mit dem Richtungs-Thema.
+- **Ehrlich:** jede Combo ist aus Einzelwerten zusammengesetzt, nie als Ganzes gemessen; die
+  Karte sagt das und zeigt bei jedem Augment und Item Spiele und Siegquote. Immer viele
+  Möglichkeiten (Chips), nie eine Ansage.
+- **Offen:** Seite über alle Champions (braucht alle 173 Champion-Dateien), Stiefel je Combo,
+  „Build folgt den genommenen Augments“ (ROADMAP) kann die Combo des genommenen Themas zeigen.
 
 ## 4. Anzeige
 

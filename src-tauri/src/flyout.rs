@@ -36,7 +36,8 @@ const MARGIN: f64 = 12.0;
 /// Kept free at the right end of a taskbar without a readable notification area (its clock).
 const CLOCK_ROOM: f64 = 100.0;
 /// The ARAM card carries its augment icons (a few small PNGs as data URLs); the Champ-Karte every
-/// augment of the champion in three tiers plus arammeta's further numbers (measured up to ~70 KB).
+/// augment of the champion in three tiers plus arammeta's further numbers and the combos (measured
+/// over all 173 champions on 08.10.2026: up to ~82 KB).
 const MAX_ITEM_BYTES: usize = 128 * 1024;
 const MAX_PENDING: usize = 5;
 /// A hidden popout window is closed after this long without a new popout. Hidden, its WebView

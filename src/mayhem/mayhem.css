@@ -2116,3 +2116,44 @@ li[data-place='3'] .mayhem-place {
 .mayhem-guide:hover {
   text-decoration: underline;
 }
+
+/* Mayhem-Combos (features/aram/combos.ts): every theme as a chip, Meta and Offmeta apart; the
+   chosen combo below with its augments and items and their numbers. */
+.mayhem-combo-picks {
+  align-items: center;
+}
+
+.mayhem-combo-picks button {
+  min-height: 30px;
+  padding: 0 12px;
+  color: var(--text);
+}
+
+.mayhem-combo-tag {
+  --tag: var(--up);
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tag) 16%, transparent);
+  color: var(--tag);
+  font: 800 11px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.mayhem-combo-tag[data-meta='false'] {
+  --tag: var(--prisma);
+}
+
+.mayhem-combo {
+  display: grid;
+  gap: 8px;
+}
+
+.mayhem-combo h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 800 17px var(--font-title);
+}

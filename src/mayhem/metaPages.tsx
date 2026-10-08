@@ -3,11 +3,14 @@
 // (best augments per rarity, teammates, team profile), augment detail (text, categories, lift,
 // pick rate, linked champions), the patch changes and the items. All numbers from the one list
 // tiers.ts reads; every rate with its games beside it, missing values as "–", nothing estimated.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { championSquare, itemIcon } from '../adapters/aram';
+import { readChampInfo } from '../adapters/aramChamp';
+import { champView } from '../features/aram/champCard';
+import type { Combo } from '../features/aram/combos';
 import { number, percent } from '../features/aram/format';
-import { games } from './MayhemCard';
+import { ComboSection, games } from './MayhemCard';
 import { PageHead, ROLES, step, TierWait, type TierState } from './pages';
 import {
   categoryName,
@@ -74,6 +77,26 @@ function Back({ onBack, label }: { onBack: () => void; label: string }) {
 }
 
 const byId = <T extends { id: number }>(list: T[]) => new Map(list.map((e) => [e.id, e]));
+
+/** The champion's combos from its arammeta file (one request when the page opens; none in the
+ * browser preview, which has no Rust). */
+function ChampionCombos({ champion: c }: { champion: TierChampion }) {
+  const [combos, setCombos] = useState<{ id: number; list: Combo[] | null } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const champ = { championId: c.id, alias: c.alias, name: c.name };
+    readChampInfo(c.id).then(
+      (info) => live && setCombos({ id: c.id, list: champView(champ, info)?.combos ?? null }),
+      () => live && setCombos({ id: c.id, list: null }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [c.id, c.alias, c.name]);
+  if (combos?.id !== c.id) return <p className="mayhem-note">Combos werden geladen …</p>;
+  if (!combos.list?.length) return null;
+  return <ComboSection key={c.id} combos={combos.list} champion={c.name} />;
+}
 
 /** One champion: its numbers, best augments per rarity, best teammates and team profile. */
 export function ChampionDetail({
@@ -251,6 +274,9 @@ export function ChampionDetail({
             <p className="mayhem-note">arammeta führt hier keine.</p>
           )}
         </section>
+      </div>
+      <div className="mayhem-in" style={step(4)}>
+        <ChampionCombos champion={c} />
       </div>
     </div>
   );

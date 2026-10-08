@@ -602,6 +602,9 @@ pub struct ItemInfo {
     mana: bool,
     /// What the item builds towards ("ap", "ad", "tank" or "other"), for the build directions.
     kind: &'static str,
+    /// Data Dragon tags of a finished item, for the themes of the combos (combos.ts).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tags: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -626,10 +629,18 @@ pub struct MetaInfo {
     /// `/api/champions/<id>.json` as it came (checked in the app).
     champion: Option<String>,
     augments: HashMap<u32, MetaAugment>,
+    /// arammeta's Mayhem items: English text and price, for the themes of the combos (combos.ts).
+    items: HashMap<u32, ItemText>,
+}
+
+#[derive(Serialize)]
+pub struct ItemText {
+    text: String,
+    price: Option<u32>,
 }
 
 /// An augment as arammeta lists it (English name; rarity kSilver/kGold/kPrismatic; categories
-/// like "ap", "ad", "tank"; icon path on arammeta.com).
+/// like "ap", "ad", "tank"; icon path on arammeta.com; English text for the combos' themes).
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 #[serde(default)]
 pub struct MetaAugment {
@@ -643,7 +654,7 @@ pub struct MetaAugment {
     wr: f64,
     #[serde(skip_serializing)]
     g: u32,
-    #[serde(rename(deserialize = "desc_en"), skip_serializing)]
+    #[serde(rename(deserialize = "desc_en"))]
     text: String,
     /// Win rate above what its champions win anyway, and pick rate (Mayhem app only).
     #[serde(skip_serializing, deserialize_with = "lenient")]
@@ -830,8 +841,28 @@ async fn meta_info(http: &reqwest::Client, champion_id: u32) -> Option<MetaInfo>
             .iter()
             .filter_map(|(id, a)| Some((id.parse::<u32>().ok()?, a.clone())))
             .collect(),
+        items: item_texts(&list),
     })
 }
+
+/// arammeta's Mayhem items with English text and price, for the combos' themes (combos.ts).
+fn item_texts(list: &MetaList) -> HashMap<u32, ItemText> {
+    list.items
+        .iter()
+        // arammeta keeps items taken out of the game as "Deprecated item" (e.g. Stormrazor).
+        .filter(|(_, i)| !i.e.starts_with("Deprecated"))
+        .filter_map(|(id, i)| {
+            let text = ItemText {
+                text: short(&i.de, ITEM_TEXT_MAX),
+                price: i.p,
+            };
+            Some((id.parse::<u32>().ok()?, text))
+        })
+        .collect()
+}
+
+/// Enough of an item's text for its effects (arammeta's are at most about 370 characters).
+const ITEM_TEXT_MAX: usize = 600;
 
 /// One champion of the Mayhem app's tier list (arammeta's numbers over all its Mayhem games).
 #[derive(Serialize)]
@@ -1199,6 +1230,7 @@ fn items_of(list: DragonItems) -> HashMap<u32, ItemInfo> {
                     done,
                     mana,
                     kind,
+                    tags: if done { item.tags } else { Vec::new() },
                 },
             ))
         })
@@ -1458,6 +1490,11 @@ mod tests {
         assert!(!items[&1058].done);
         assert!(!items[&3020].done);
         assert!(!items[&2003].done);
+        // Tags only for finished items (the combos' themes), not sent for the rest.
+        assert_eq!(items[&3031].tags, ["Damage", "CriticalStrike"]);
+        assert!(items[&3020].tags.is_empty());
+        let sent = serde_json::to_value(&items[&3020]).unwrap();
+        assert!(sent.get("tags").is_none());
     }
 
     #[test]
@@ -1467,7 +1504,8 @@ mod tests {
             "champs": {"12": {"g": 60574, "name_en": "Alistar", "top": {"kGold": []}}},
             "augs": {"1025": {
                 "name_en": "Dive Bomber", "name": "x", "icon": "assets/icons/divebomber_large.png",
-                "rarity": "kSilver", "cats": ["amp"], "wr": 0.49
+                "rarity": "kSilver", "cats": ["amp"], "wr": 0.49,
+                "desc_en": "Explodes when you die, dealing massive true damage."
             }},
             "itemLut": {}
         }))
@@ -1482,6 +1520,28 @@ mod tests {
         let sent = serde_json::to_value(augment).unwrap();
         assert_eq!(sent["name"], "Dive Bomber");
         assert_eq!(sent["icon"], "assets/icons/divebomber_large.png");
+        // The English text goes along for the combos' themes (combos.ts).
+        assert_eq!(
+            sent["text"],
+            "Explodes when you die, dealing massive true damage."
+        );
+        assert!(sent.get("wr").is_none());
+    }
+
+    #[test]
+    fn item_texts_leave_out_items_taken_out_of_the_game() {
+        let list: MetaList = serde_json::from_value(json!({"itemLut": {
+            "3031": {"e": "Infinity Edge", "p": 3500, "de": "75 Attack Damage\n25% Critical Strike Chance"},
+            "3095": {"e": "Deprecated item", "p": 3000, "de": "50 Attack Damage"},
+            "x": {"e": "Kaputt", "de": "?"}
+        }}))
+        .unwrap();
+        let texts = item_texts(&list);
+        assert_eq!(texts.len(), 1);
+        assert_eq!(texts[&3031].price, Some(3500));
+        assert!(texts[&3031].text.starts_with("75 Attack Damage"));
+        let sent = serde_json::to_value(&texts[&3031]).unwrap();
+        assert_eq!(sent["price"], 3500);
     }
 
     #[test]
