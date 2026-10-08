@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { MIN_GAMES, roleName, type ChampionDetail, type ChampionGame } from '../../src/champions';
 import { Augment, GradeChip, GradeIcon, Img, Problem } from '../ui/bits';
-import { AugmentLink, ItemLink, MetaCells, MetaHeads, augmentLabel, itemLabel, percentIn, useMetaSort } from '../ui/meta';
-import { useLang } from '../ui/i18n';
+import { AugmentLink, ItemLink, MetaCells, MetaHeads, augmentLabel, itemLabel, percent, useMetaSort } from '../ui/meta';
+import { num, date, season } from '../ui/format';
 import { useState } from 'react';
 import { combosOf, MIN_COMBO_GAMES, type Combo } from '../../src/builds';
 import { Filters, useFilters, type Scope } from '../ui/filters';
@@ -39,15 +39,13 @@ const profileLink = (puuid: string, name: string) => profileHref({ puuid, name }
 const gameLink = (g: ChampionGame) => `/game/${g.gameId}?p=${encodeURIComponent(g.puuid)}`;
 
 export default function ChampionPage() {
-  const { lang, t, href, num, season } = useLang();
-  const percent = percentIn(lang);
   const params = useParams<{ name: string }>();
   const name = params.name;
   const filters = useFilters();
   const { data, error, missing } = useLive<Detail>(VALID.test(name) ? `/api/champions/${name}?${filters.query}` : null);
   const dragon = useDragon();
 
-  if (!VALID.test(name)) return <Problem message={t('Unknown champion', 'Unbekannter Champion')} missing />;
+  if (!VALID.test(name)) return <Problem message="Unknown champion" missing />;
 
   const c = data?.champion;
   const key = c ? championKey(dragon, c) : /^[0-9]+$/.test(name) ? '' : name;
@@ -55,7 +53,7 @@ export default function ChampionPage() {
 
   return (
     <>
-      <Link className="back" href={href('/champions')}>
+      <Link className="back" href="/champions">
         ← Champions
       </Link>
 
@@ -67,8 +65,8 @@ export default function ChampionPage() {
           <Img className="champ" src={championImage(dragon, key || undefined)} alt="" size={64} />
           <div>
             <h1>{title || 'Champion'}</h1>
-            <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : t('All time', 'Alle Zeiten')}</p>
-            {c && <div className="facts">{roleName(c.role, lang)}</div>}
+            <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : 'All time'}</p>
+            {c && <div className="facts">{roleName(c.role)}</div>}
           </div>
           {c?.grade && <GradeIcon grade={c.grade} size={72} />}
         </div>
@@ -78,42 +76,39 @@ export default function ChampionPage() {
       </section>
 
       {error && <Problem message={error} missing={missing} />}
-      {!data && !error && <p className="empty">{t('Loading champion …', 'Champion wird geladen …')}</p>}
+      {!data && !error && <p className="empty">Loading champion …</p>}
 
       {c && (
         <>
           {c.pct === null && (
             <div className="notice" role="note">
-              {t(
-                `Little data: only ${c.graded} of ${MIN_GAMES} rated games. Averages show from ${MIN_GAMES} on.`,
-                `Wenige Daten: erst ${c.graded} von ${MIN_GAMES} gewerteten Spielen. Durchschnitte erscheinen ab ${MIN_GAMES}.`,
-              )}
+              {`Little data: only ${c.graded} of ${MIN_GAMES} rated games. Averages show from ${MIN_GAMES} on.`}
             </div>
           )}
 
           <div className="stat-row" style={{ marginBottom: 'var(--gap)' }}>
             <div className="stat">
-              <small>{t('Games', 'Spiele')}</small>
+              <small>Games</small>
               <strong className="num">{num(c.games)}</strong>
             </div>
             <div className="stat">
-              <small>{t('Avg grade', 'Note Ø')}</small>
+              <small>Avg grade</small>
               <strong>{c.grade ?? '–'}</strong>
             </div>
             <div className="stat">
-              <small>{t('Pick rate', 'Pickrate')}</small>
+              <small>Pick rate</small>
               <strong className="num">{percent(c.pick)}</strong>
             </div>
             <div className="stat">
-              <small>{t('Win rate', 'Siegquote')}</small>
+              <small>Win rate</small>
               <strong className="num">{percent(c.winRate)}</strong>
             </div>
             <div className="stat">
-              <small>{t('SSS or MAYHEM', 'SSS oder MAYHEM')}</small>
+              <small>SSS or MAYHEM</small>
               <strong className="num">{percent(c.top)}</strong>
             </div>
             <div className="stat">
-              <small>{t('Avg damage/min', 'Schaden/Min Ø')}</small>
+              <small>Avg damage/min</small>
               <strong className="num">{c.damagePerMinute === null ? '–' : num(c.damagePerMinute)}</strong>
             </div>
           </div>
@@ -131,10 +126,7 @@ export default function ChampionPage() {
           </div>
 
           <p className="fine" style={{ marginTop: 'var(--gap)' }}>
-            {t(
-              'Games, pick rate, win rate, grade and damage count every seat of a game with the values of all ten. Top players, augments, items and best games come from the games with names (uploaded or archived). Win or loss does not count for the grade.',
-              'Spiele, Pickrate, Siegquote, Note und Schaden zählen jeden Platz eines Spiels mit den Werten aller zehn. Bestenliste, Augments, Items und beste Spiele kommen aus den Spielen mit Namen (hochgeladen oder archiviert). Für die Note zählen Sieg oder Niederlage nicht.',
-            )}
+            Games, pick rate, win rate, grade and damage count every seat of a game with the values of all ten. Top players, augments, items and best games come from the games with names (uploaded or archived). Win or loss does not count for the grade.
           </p>
         </>
       )}
@@ -143,11 +135,10 @@ export default function ChampionPage() {
 }
 
 function Players({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
-  const { t, href, num } = useLang();
   return (
     <section className="card">
       <div className="card-head">
-        <h2>{t('Top players', 'Bestenliste')}</h2>
+        <h2>Top players</h2>
       </div>
       {detail.players.length ? (
         <div className="table-wrap flat">
@@ -155,12 +146,12 @@ function Players({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon })
             <thead>
               <tr>
                 <th>#</th>
-                <th>{t('Player', 'Spieler')}</th>
-                <th className="right">{t('Games', 'Spiele')}</th>
-                <th>{t('Avg grade', 'Note Ø')}</th>
+                <th>Player</th>
+                <th className="right">Games</th>
+                <th>Avg grade</th>
                 <th className="right hide-sm">K / D / A</th>
-                <th className="right hide-sm">{t('Damage/min', 'Schaden/Min')}</th>
-                <th className="hide-sm">{t('Best game', 'Bestes Spiel')}</th>
+                <th className="right hide-sm">Damage/min</th>
+                <th className="hide-sm">Best game</th>
               </tr>
             </thead>
             <tbody>
@@ -170,7 +161,7 @@ function Players({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon })
                   <tr key={p.puuid} data-place={p.pct === null ? undefined : i + 1}>
                     <td className="place num">{i + 1}</td>
                     <td>
-                      <Link className="who" href={href(profileLink(p.puuid, p.name))} title={p.name}>
+                      <Link className="who" href={profileLink(p.puuid, p.name)} title={p.name}>
                         <Img className="avatar" src={profileImage(dragon, p.icon)} size={28} />
                         <span style={{ minWidth: 0 }}>
                           <b>{name}</b>
@@ -186,7 +177,7 @@ function Players({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon })
                     <td className="right num hide-sm">{num(p.damagePerMinute)}</td>
                     <td className="hide-sm">
                       {p.best ? (
-                        <Link href={href(`/game/${p.best.gameId}?p=${encodeURIComponent(p.puuid)}`)} title={t('View game', 'Spiel ansehen')}>
+                        <Link href={`/game/${p.best.gameId}?p=${encodeURIComponent(p.puuid)}`} title="View game">
                           <GradeChip grade={p.best.grade} />
                         </Link>
                       ) : (
@@ -200,18 +191,17 @@ function Players({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon })
           </table>
         </div>
       ) : (
-        <p className="empty">{t('Nobody with a profile has played this champion yet.', 'Noch niemand mit Profil hat diesen Champion gespielt.')}</p>
+        <p className="empty">Nobody with a profile has played this champion yet.</p>
       )}
     </section>
   );
 }
 
 function BestGames({ detail, dragon, champion }: { detail: ChampionDetail; dragon: Dragon; champion: string }) {
-  const { t, href, num, date } = useLang();
   return (
     <section className="card">
       <div className="card-head">
-        <h2>{t('Best games', 'Beste Spiele')}</h2>
+        <h2>Best games</h2>
       </div>
       {detail.best.length ? (
         <ol className="champ-games">
@@ -222,32 +212,31 @@ function BestGames({ detail, dragon, champion }: { detail: ChampionDetail; drago
             return (
               <li key={`${g.gameId}:${g.puuid}`} style={splash ? ({ '--splash': splash } as React.CSSProperties) : undefined}>
                 <GradeIcon grade={g.grade} size={40} />
-                <Link className="who" href={href(profileLink(g.puuid, g.name))} title={g.name}>
+                <Link className="who" href={profileLink(g.puuid, g.name)} title={g.name}>
                   <Img className="avatar" src={profileImage(dragon, g.icon)} size={26} />
                   <b>{splitName(g.name).name}</b>
                 </Link>
                 <span className="num muted">
-                  {g.kills} / {g.deaths} / {g.assists} · {num(g.damage)} {t('damage', 'Schaden')}
+                  {g.kills} / {g.deaths} / {g.assists} · {num(g.damage)} damage
                 </span>
                 <span className="num faint hide-sm">
                   {date(g.at)} · {duration(g.seconds)} min
                 </span>
-                <Link className="record-link" href={href(gameLink(g))}>
-                  {t('View game', 'Spiel ansehen')}
+                <Link className="record-link" href={gameLink(g)}>
+                  View game
                 </Link>
               </li>
             );
           })}
         </ol>
       ) : (
-        <p className="empty">{t('No rated game from players with a profile yet.', 'Noch kein gewertetes Spiel von Spielern mit Profil.')}</p>
+        <p className="empty">No rated game from players with a profile yet.</p>
       )}
     </section>
   );
 }
 
 function Augments({ detail }: { detail: ChampionDetail }) {
-  const { t } = useLang();
   const known = useAugments();
   const { sorted, head } = useMetaSort(detail.augments, (a) => augmentLabel(known, a.id), 'grade');
   return (
@@ -261,7 +250,7 @@ function Augments({ detail }: { detail: ChampionDetail }) {
             <thead>
               <tr>
                 {head('name', 'Augment')}
-                <MetaHeads head={head} pickLabel={t('Share', 'Anteil')} compact />
+                <MetaHeads head={head} pickLabel="Share" compact />
               </tr>
             </thead>
             <tbody>
@@ -276,14 +265,11 @@ function Augments({ detail }: { detail: ChampionDetail }) {
             </tbody>
           </table>
           <p className="fine" style={{ marginTop: 10 }}>
-            {t(
-              'Share: in how many of this champion\'s games the augment was taken (hover the value for games and win rate). Names and icons are sent by blank.; an augment nobody has sent yet is shown with its number.',
-              'Anteil: in wie vielen Spielen dieses Champions das Augment genommen wurde (Spiele und Siegquote beim Zeigen auf den Wert). Namen und Symbole schickt blank. mit; ein Augment, das noch niemand geschickt hat, steht mit seiner Nummer da.',
-            )}
+            {'Share: in how many of this champion\'s games the augment was taken (hover the value for games and win rate). Names and icons are sent by blank.; an augment nobody has sent yet is shown with its number.'}
           </p>
         </>
       ) : (
-        <p className="empty">{t('No augments in uploaded games.', 'Keine Augments in hochgeladenen Spielen.')}</p>
+        <p className="empty">No augments in uploaded games.</p>
       )}
     </section>
   );
@@ -293,7 +279,6 @@ const ITEMS_SHOWN = 12;
 
 /** The items in the final builds on this champion, by default only finished ones. */
 function Items({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
-  const { t } = useLang();
   const known = useItems();
   const [all, setAll] = useState(false);
   const rows = (detail.items ?? []).filter((i) => !known.size || known.get(i.id)?.kind !== 'other');
@@ -310,7 +295,7 @@ function Items({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
             <thead>
               <tr>
                 {head('name', 'Item')}
-                <MetaHeads head={head} pickLabel={t('Share', 'Anteil')} compact />
+                <MetaHeads head={head} pickLabel="Share" compact />
               </tr>
             </thead>
             <tbody>
@@ -326,18 +311,15 @@ function Items({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
           </table>
           {sorted.length > ITEMS_SHOWN && (
             <button type="button" className="button" style={{ marginTop: 10 }} onClick={() => setAll(!all)}>
-              {all ? t('Show less', 'Weniger anzeigen') : t(`Show all ${sorted.length}`, `Alle ${sorted.length} anzeigen`)}
+              {all ? 'Show less' : `Show all ${sorted.length}`}
             </button>
           )}
           <p className="fine" style={{ marginTop: 10 }}>
-            {t(
-              "Finished items and boots at the end of the game; share: in how many of this champion's games the item was there.",
-              'Fertige Items und Stiefel am Spielende; Anteil: in wie vielen Spielen dieses Champions das Item dabei war.',
-            )}
+            {"Finished items and boots at the end of the game; share: in how many of this champion's games the item was there."}
           </p>
         </>
       ) : (
-        <p className="empty">{t('No items in games with names.', 'Keine Items in Spielen mit Namen.')}</p>
+        <p className="empty">No items in games with names.</p>
       )}
     </section>
   );
@@ -345,7 +327,6 @@ function Items({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
 
 /** The most common augment pairs and cores of three finished items on this champion. */
 function Builds({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
-  const { t, href } = useLang();
   const augments = useAugments();
   const items = useItems();
   const games = detail.builds ?? [];
@@ -359,20 +340,20 @@ function Builds({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) 
       </div>
       <div className="builds">
         <BuildTable
-          title={t('Augment combos', 'Augment-Kombis')}
+          title="Augment combos"
           rows={pairs}
           cell={(id) => (
-            <Link key={id} href={href(`/augments/${id}`)} title={augmentLabel(augments, id)}>
+            <Link key={id} href={`/augments/${id}`} title={augmentLabel(augments, id)}>
               <Augment id={id} info={augments.get(id)} size={30} />
             </Link>
           )}
           label={(ids) => ids.map((id) => augmentLabel(augments, id)).join(' + ')}
         />
         <BuildTable
-          title={t('Item core (3 finished items)', 'Item-Kern (3 fertige Items)')}
+          title="Item core (3 finished items)"
           rows={cores}
           cell={(id) => (
-            <Link key={id} href={href(`/items/${id}`)} title={itemLabel(items, id)}>
+            <Link key={id} href={`/items/${id}`} title={itemLabel(items, id)}>
               <Img className="item" src={itemImage(dragon, id)} size={30} />
             </Link>
           )}
@@ -380,10 +361,7 @@ function Builds({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) 
         />
       </div>
       <p className="fine" style={{ marginTop: 10 }}>
-        {t(
-          `Most common combos in this champion's games, from ${MIN_COMBO_GAMES} games on. Items: what was in the inventory when the game ended; the buy order is not stored.`,
-          `Häufigste Kombinationen in den Spielen dieses Champions, ab ${MIN_COMBO_GAMES} Spielen. Items: was am Spielende im Inventar war; die Kauf-Reihenfolge ist nicht gespeichert.`,
-        )}
+        {`Most common combos in this champion's games, from ${MIN_COMBO_GAMES} games on. Items: what was in the inventory when the game ended; the buy order is not stored.`}
       </p>
     </section>
   );
@@ -400,8 +378,6 @@ function BuildTable({
   cell: (id: number) => React.ReactNode;
   label: (ids: number[]) => string;
 }) {
-  const { lang, t, num } = useLang();
-  const percent = percentIn(lang);
   return (
     <div>
       <h3 className="build-title">{title}</h3>
@@ -409,10 +385,10 @@ function BuildTable({
         <table className="table augment-table">
           <thead>
             <tr>
-              <th>{t('Combo', 'Kombination')}</th>
-              <th className="right">{t('Share', 'Anteil')}</th>
-              <th className="right hide-sm">{t('Win rate', 'Siegquote')}</th>
-              <th>{t('Avg grade', 'Note Ø')}</th>
+              <th>Combo</th>
+              <th className="right">Share</th>
+              <th className="right hide-sm">Win rate</th>
+              <th>Avg grade</th>
             </tr>
           </thead>
           <tbody>
@@ -423,7 +399,7 @@ function BuildTable({
                     {r.ids.map(cell)}
                   </span>
                 </td>
-                <td className="right num nowrap" title={t(`${num(r.games)} games`, `${num(r.games)} Spiele`)}>
+                <td className="right num nowrap" title={`${num(r.games)} games`}>
                   {percent(r.pick)}
                 </td>
                 <td className="right num nowrap hide-sm">{percent(r.winRate)}</td>
@@ -434,7 +410,7 @@ function BuildTable({
         </table>
       ) : (
         <p className="empty">
-          {t(`No combo in at least ${MIN_COMBO_GAMES} games yet.`, `Noch keine Kombination in mindestens ${MIN_COMBO_GAMES} Spielen.`)}
+          {`No combo in at least ${MIN_COMBO_GAMES} games yet.`}
         </p>
       )}
     </div>

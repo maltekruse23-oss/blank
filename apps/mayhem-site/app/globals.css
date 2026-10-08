@@ -263,30 +263,6 @@ select {
   width: min(260px, 40vw);
 }
 
-/* EN | DE: two small links, the current language in the text colour. */
-.lang-switch {
-  display: flex;
-  gap: 2px;
-  margin-left: -12px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-}
-
-.lang-switch a {
-  padding: 6px 6px;
-  border-radius: var(--radius-sm);
-  color: var(--faint);
-}
-
-.lang-switch a:hover {
-  color: var(--text);
-}
-
-.lang-switch a[aria-current] {
-  color: var(--text);
-  font-weight: 500;
-}
-
 .search input {
   width: 100%;
   height: 36px;
@@ -1922,7 +1898,7 @@ tr[data-place='3'] .place { color: var(--tier-d); }
   }
 }
 
-/* ---- Plain text pages (Datenschutz, API) ---------------------------------------------- */
+/* ---- Plain text pages (privacy, API) ------------------------------------------------- */
 
 .game-hide {
   margin: calc(var(--gap) * -0.5) 0 var(--gap);

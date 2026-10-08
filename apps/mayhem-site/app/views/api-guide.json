@@ -1,18 +1,14 @@
 [
   {
-    "title": "Verbindung und Schlüssel",
-    "titleEn": "Connection and key",
-    "text": "HTTPS-Basis: https://mayhemstats.lol/api. JSON; maximal 65.536 UTF-8-Bytes pro Schreibanfrage. Beispiele sind für PowerShell 7 mit curl.exe. In upload.json stehen echte AramEntry-Werte aus blank.; die Beispieldatei enthält ausschließlich erfundene Testwerte und darf nicht als echtes Spiel hochgeladen werden. Beim ersten Upload kann die App einen vorher sicher gespeicherten, kryptografisch zufälligen Schlüssel mit 64 Hex-Zeichen als Bearer mitsenden. Ohne Schlüssel erzeugt der Server einen und liefert playerToken einmalig zurück. Bei allen weiteren Uploads derselben player.puuid sowie bei DELETE muss dieser Schlüssel mitgeschickt werden. Kein globaler Schlüssel gehört in Browser-Code oder eine veröffentlichte EXE. Diese Erstregistrierung beweist keine Riot-Identität.",
-    "textEn": "HTTPS base: https://mayhemstats.lol/api. JSON; at most 65,536 UTF-8 bytes per write request. Examples are for PowerShell 7 with curl.exe. upload.json holds real AramEntry values from blank.; the example file contains only made-up test values and must not be uploaded as a real game. On the first upload the app can send a cryptographically random key with 64 hex characters, stored safely beforehand, as Bearer. Without a key the server creates one and returns playerToken once. All further uploads of the same player.puuid and DELETE must send this key. No global key belongs in browser code or a published EXE. This first registration does not prove a Riot identity. Placeholders and comments in the examples and the error messages of the API are in German.",
-    "request": "$API = \"https://mayhemstats.lol/api\"\n$PUUID = \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n$TOKEN = \"PERSOENLICHER_SCHLUESSEL\"",
+    "title": "Connection and key",
+    "text": "HTTPS base: https://mayhemstats.lol/api. JSON; at most 65,536 UTF-8 bytes per write request. Examples are for PowerShell 7 with curl.exe. upload.json holds real AramEntry values from blank.; the example file contains only made-up test values and must not be uploaded as a real game. On the first upload the app can send a cryptographically random key with 64 hex characters, stored safely beforehand, as Bearer. Without a key the server creates one and returns playerToken once. All further uploads of the same player.puuid and DELETE must send this key. No global key belongs in browser code or a published EXE. This first registration does not prove a Riot identity. Error messages of the API are in German.",
+    "request": "$API = \"https://mayhemstats.lol/api\"\n$PUUID = \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n$TOKEN = \"PERSONAL_KEY\"",
     "response": null
   },
   {
     "title": "POST /api/games",
-    "titleEn": "POST /api/games",
-    "text": "Body: entries und player. Ein Feld group (früher für Gruppen) wird noch angenommen und ignoriert. Einträge dürfen die vom Client gelesenen Freunde enthalten; player identifiziert den Uploader. Ergebnis pro Eintrag; rank ist RankResult oder null, wenn das Spiel nicht zählt. MP werden ausschließlich mit standings()/rankResult() berechnet. Der erste Antwortschlüssel muss sicher in der Desktop-App gespeichert werden.",
-    "textEn": "Body: entries and player. A group field (formerly for groups) is still accepted and ignored. Entries may contain the friends read from the client; player identifies the uploader. Result per entry; rank is a RankResult, or null when the game does not count. MP are calculated only with standings()/rankResult(). The first key in the response must be stored safely in the desktop app.",
-    "request": "curl.exe -X POST \"$API/games\" -H \"Content-Type: application/json\" -H \"Origin: http://tauri.localhost\" --data-binary \"@upload.json\"\n# Danach:\ncurl.exe -X POST \"$API/games\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" --data-binary \"@upload.json\"",
+    "text": "Body: entries and player. A group field (formerly for groups) is still accepted and ignored. Entries may contain the friends read from the client; player identifies the uploader. Result per entry; rank is a RankResult, or null when the game does not count. MP are calculated only with standings()/rankResult(). The first key in the response must be stored safely in the desktop app.",
+    "request": "curl.exe -X POST \"$API/games\" -H \"Content-Type: application/json\" -H \"Origin: http://tauri.localhost\" --data-binary \"@upload.json\"\n# After that:\ncurl.exe -X POST \"$API/games\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" --data-binary \"@upload.json\"",
     "response": {
       "results": [
         {
@@ -29,7 +25,7 @@
           }
         }
       ],
-      "playerToken": "NUR_BEIM_ERSTEN_UPLOAD",
+      "playerToken": "ONLY_ON_FIRST_UPLOAD",
       "season": {
         "id": "v1",
         "start": 1577836800000,
@@ -39,9 +35,7 @@
   },
   {
     "title": "GET /api/leaderboard?season=<id>",
-    "titleEn": "GET /api/leaderboard?season=<id>",
-    "text": "season ist optional; Standard-Saison v1. Saisonstart v1 ist 01.01.2020, sodass bestehende App-Historien übernommen werden können. Sortierung ist exakt diejenige von standings(). Gezählt werden alle Spieler aus hochgeladenen und archivierten Spielen (Rohdatenarchiv des Collectors), je Spieler und Spiel ein Eintrag; Spieler ohne eigenes Profil stehen dort unter einer öffentlichen Nummer (`puuid: \"a123\"`), nie mit ihrer PUUID, ausgeblendete gar nicht. Beispielantwort für einen noch leeren globalen Bestand.",
-    "textEn": "season is optional; default season v1. Season v1 starts on January 1, 2020, so existing app histories can be taken over. Sorting is exactly that of standings(). It counts all players from uploaded and archived games (the Collector's raw data archive), one entry per player and game; players without their own profile appear under a public number (`puuid: \"a123\"`), never with their PUUID, hidden players not at all. Example response for a still empty global data set.",
+    "text": "season is optional; default season v1. Season v1 starts on January 1, 2020, so existing app histories can be taken over. Sorting is exactly that of standings(). It counts all players from uploaded and archived games (the Collector's raw data archive), one entry per player and game; players without their own profile appear under a public number (`puuid: \"a123\"`), never with their PUUID, hidden players not at all. Example response for a still empty global data set.",
     "request": "curl.exe \"$API/leaderboard?season=v1\"",
     "response": {
       "season": {
@@ -55,14 +49,12 @@
     }
   },
   {
-    "title": "GET /api/players/<Riot-ID, puuid oder a123>",
-    "titleEn": "GET /api/players/<Riot ID, puuid or a123>",
-    "text": "Rang, Saisonverlauf und fünf beste Spiele nach Note, mit den archivierten Spielen. Statt der PUUID geht die Riot-ID wie bei op.gg (/api/players/Name-TAG) oder die öffentliche Nummer eines Spielers ohne Profil (/api/players/a123). Optional season wie bei der Rangliste. history enthält die unveränderten Step-Objekte mit entry, mark, gain, before, after und change; bestGames dieselbe Form. Beispiel für einen Spieler ohne wertbare Spiele.",
-    "textEn": "Rank, season history and the five best games by grade, including archived games. Instead of the PUUID you can use the Riot ID like on op.gg (/api/players/Name-TAG) or the public number of a player without a profile (/api/players/a123). Optional season as for the leaderboard. history contains the unchanged Step objects with entry, mark, gain, before, after and change; bestGames has the same shape. Example for a player without rated games.",
+    "title": "GET /api/players/<Riot ID, puuid or a123>",
+    "text": "Rank, season history and the five best games by grade, including archived games. Instead of the PUUID you can use the Riot ID like on op.gg (/api/players/Name-TAG) or the public number of a player without a profile (/api/players/a123). Optional season as for the leaderboard. history contains the unchanged Step objects with entry, mark, gain, before, after and change; bestGames has the same shape. Example for a player without rated games.",
     "request": "curl.exe \"$API/players/$PUUID\"\ncurl.exe \"$API/players/${PUUID}?season=v1\"",
     "response": {
       "puuid": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-      "name": "Beispiel#EUW",
+      "name": "Example#EUW",
       "icon": 1,
       "lastSeen": 1790812800000,
       "season": {
@@ -78,9 +70,7 @@
   },
   {
     "title": "GET /api/games?since=<ms>",
-    "titleEn": "GET /api/games?since=<ms>",
-    "text": "Alle nicht beanstandeten AramEntry-Datensätze ab since. disputed enthält betroffene Schlüssel; die App muss bereits lokal vorhandene Spiele mit diesen Schlüsseln aus der Wertung entfernen. Zum Abgleich von Qualitätsverbesserungen auch ältere Spiele erneut laden: since bezieht sich auf den Spielstart und nicht auf receivedAt.",
-    "textEn": "All undisputed AramEntry records from since. disputed contains the affected keys; the app must remove games with these keys that it already has locally from the rating. To pick up quality improvements, load older games again too: since refers to the game start, not to receivedAt.",
+    "text": "All undisputed AramEntry records from since. disputed contains the affected keys; the app must remove games with these keys that it already has locally from the rating. To pick up quality improvements, load older games again too: since refers to the game start, not to receivedAt.",
     "request": "curl.exe \"$API/games?since=0\"\ncurl.exe \"$API/games?since=1790812800000\"",
     "response": {
       "entries": [],
@@ -90,9 +80,7 @@
   },
   {
     "title": "DELETE /api/players/<puuid>",
-    "titleEn": "DELETE /api/players/<puuid>",
-    "text": "Löscht Profil, eigene Spiele, Upload-Nachweise, Mitgliedschaften und personenbezogene Verweise in den with-Feldern fremder Spiele. Widersprüche werden danach neu bewertet. Alle Website-Ansichten werden über reset aktualisiert. Bereits heruntergeladene Kopien und Plattform-Backups werden nicht zurückgerufen.",
-    "textEn": "Deletes the profile, own games, upload records, memberships and personal references in the with fields of other players' games. Contradictions are then evaluated again. All website views are updated through reset. Copies already downloaded and platform backups are not recalled.",
+    "text": "Deletes the profile, own games, upload records, memberships and personal references in the with fields of other players' games. Contradictions are then evaluated again. All website views are updated through reset. Copies already downloaded and platform backups are not recalled.",
     "request": "curl.exe -X DELETE \"$API/players/$PUUID\" -H \"Authorization: Bearer $TOKEN\"",
     "response": {
       "deleted": true
@@ -100,17 +88,13 @@
   },
   {
     "title": "GET /api/live",
-    "titleEn": "GET /api/live",
-    "text": "Server-Sent Events. game enthält entry, rank und disputed. ready bestätigt die Verbindung; reset fordert vollständiges Nachladen; heartbeat hält sie offen. Der Server prüft das dauerhafte Ereignisprotokoll alle 2 Sekunden, also kein garantierter Sofort-Push. Der Stream verbindet sich nach ca. 45 Sekunden mit Last-Event-ID neu. Ereignisverweise werden 24 Stunden vorgehalten; nach längeren Ausfällen vollständig synchronisieren. Die Website nutzt bei Verbindungsfehlern automatisch 5-Sekunden-Polling. WebSocket ist hier nicht implementiert.",
-    "textEn": "Server-Sent Events. game contains entry, rank and disputed. ready confirms the connection; reset asks for a full reload; heartbeat keeps it open. The server checks the persistent event log every 2 seconds, so there is no guaranteed instant push. The stream reconnects after about 45 seconds with Last-Event-ID. Event references are kept for 24 hours; after longer outages, sync completely. On connection errors the website automatically falls back to 5-second polling. WebSocket is not implemented here.",
-    "request": "curl.exe -N \"$API/live\"\n# Wiederaufnahme:\ncurl.exe -N \"$API/live\" -H \"Last-Event-ID: 42\"",
-    "response": "id: 43\nevent: game\ndata: {\"entry\": {\"...\":\"vollständiges AramEntry\"}, \"rank\": null, \"disputed\": true}\n\nevent: reset\ndata: {}"
+    "text": "Server-Sent Events. game contains entry, rank and disputed. ready confirms the connection; reset asks for a full reload; heartbeat keeps it open. The server checks the persistent event log every 2 seconds, so there is no guaranteed instant push. The stream reconnects after about 45 seconds with Last-Event-ID. Event references are kept for 24 hours; after longer outages, sync completely. On connection errors the website automatically falls back to 5-second polling. WebSocket is not implemented here.",
+    "request": "curl.exe -N \"$API/live\"\n# Resume:\ncurl.exe -N \"$API/live\" -H \"Last-Event-ID: 42\"",
+    "response": "id: 43\nevent: game\ndata: {\"entry\": {\"...\":\"full AramEntry\"}, \"rank\": null, \"disputed\": true}\n\nevent: reset\ndata: {}"
   },
   {
     "title": "GET /api/export",
-    "titleEn": "GET /api/export",
-    "text": "Zusatzendpunkt: gesamter öffentlicher Datenbestand als JSON, mit games (entry, quality, receivedAt, sourceHash, disputed), players und seasons. Keine Berechtigungsschlüssel, Rate-Limit-Daten oder IP-Adressen. Der Export ist zum Archivieren und Migrieren gedacht; ein öffentlicher Import-Endpunkt ist absichtlich nicht vorhanden.",
-    "textEn": "Extra endpoint: the whole public data set as JSON, with games (entry, quality, receivedAt, sourceHash, disputed), players and seasons. No authorization keys, rate limit data or IP addresses. The export is meant for archiving and migrating; there is intentionally no public import endpoint.",
+    "text": "Extra endpoint: the whole public data set as JSON, with games (entry, quality, receivedAt, sourceHash, disputed), players and seasons. No authorization keys, rate limit data or IP addresses. The export is meant for archiving and migrating; there is intentionally no public import endpoint.",
     "request": "curl.exe \"$API/export\" -o blank-mayhem-export.json",
     "response": {
       "exportedAt": 1790812800000,
@@ -127,26 +111,20 @@
     }
   },
   {
-    "title": "CORS und Fehler",
-    "titleEn": "CORS and errors",
-    "text": "http://tauri.localhost und die eigene Website sind erlaubt. Native HTTP-Aufrufe aus Rust ohne Origin funktionieren ebenfalls. OPTIONS kostet kein Anfragelimit. 400: ungültiges JSON oder Eintrag mit reasons; 401: falscher/fehlender Schlüssel; 403: fremder Origin; 404: Spieler/Saison fehlt; 409: Versions- oder Registrierungs-Konflikt; 413: mehr als 64 KB; 429: mehr als 30 schreibende Anfragen (POST, DELETE) pro Minute/IP (Retry-After: 60); lesende Anfragen (GET) sind nicht begrenzt; 503: Speicher/Dienst vorübergehend nicht verfügbar. Bei 400 wird der Upload vor den Spieländerungen verworfen.",
-    "textEn": "http://tauri.localhost and the website itself are allowed. Native HTTP calls from Rust without Origin work too. OPTIONS does not count toward the rate limit. 400: invalid JSON or entry with reasons; 401: wrong/missing key; 403: foreign Origin; 404: player/season missing; 409: version or registration conflict; 413: more than 64 KB; 429: more than 30 write requests (POST, DELETE) per minute/IP (Retry-After: 60); read requests (GET) are not limited; 503: storage/service temporarily unavailable. On 400 the upload is discarded before any game changes. Error messages are in German.",
+    "title": "CORS and errors",
+    "text": "http://tauri.localhost and the website itself are allowed. Native HTTP calls from Rust without Origin work too. OPTIONS does not count toward the rate limit. 400: invalid JSON or entry with reasons; 401: wrong/missing key; 403: foreign Origin; 404: player/season missing; 409: version or registration conflict; 413: more than 64 KB; 429: more than 30 write requests (POST, DELETE) per minute/IP (Retry-After: 60); read requests (GET) are not limited; 503: storage/service temporarily unavailable. On 400 the upload is discarded before any game changes. Error messages are in German.",
     "request": "curl.exe -i -X OPTIONS \"$API/games\" -H \"Origin: http://tauri.localhost\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type,authorization\"",
     "response": "HTTP 204\nAccess-Control-Allow-Origin: http://tauri.localhost\nAccess-Control-Allow-Methods: GET,POST,DELETE,OPTIONS\nAccess-Control-Allow-Headers: Content-Type,Authorization,Last-Event-ID"
   },
   {
-    "title": "Wertung, Konflikte und Grenzen",
-    "titleEn": "Rating, conflicts and limits",
-    "text": "Die drei Originaldateien sind unverändert vom Git-Commit 7c875fd592502ed016420607a846cf0743f0e0cd übernommen. RATING_VERSION=1. Das AramEntry-Format enthält keine Queue-ID: blank. muss Queue 2400 vor dem Upload prüfen. Kein Server kann Client-Werte allein durch Bereichsprüfungen als echt bestätigen. Beim Lobby-Abgleich werden you und Reihenfolge ignoriert; alle übrigen Lobby-Werte werden verglichen. Abweichende Meldungen verschiedener Uploader schließen das ganze Spiel aus, bis deren bessere Fassungen übereinstimmen oder ein Bericht mit der Spieler-Löschung entfällt. Gleichwertige Fassungen ersetzen nichts. Wie im Original zählen auch unvollständige oder vorläufige Einträge nur, soweit markGame sie akzeptiert. Aus Sicherheitsgründen ist für eine nichtleere Lobby genau ein you erforderlich. Der originale Rust-Grenzwert gameId ist strikt kleiner als 10^13.",
-    "textEn": "The three original files are taken unchanged from Git commit 7c875fd592502ed016420607a846cf0743f0e0cd. RATING_VERSION=1. The AramEntry format has no queue ID: blank. must check queue 2400 before uploading. No server can confirm client values as genuine through range checks alone. When matching lobbies, you and the order are ignored; all other lobby values are compared. Differing reports from different uploaders exclude the whole game until their better versions agree or a report is dropped with the player's deletion. Equivalent versions replace nothing. As in the original, incomplete or provisional entries only count as far as markGame accepts them. For security reasons a non-empty lobby needs exactly one you. The original Rust limit for gameId is strictly less than 10^13.",
+    "title": "Rating, conflicts and limits",
+    "text": "The three original files are taken unchanged from Git commit 7c875fd592502ed016420607a846cf0743f0e0cd. RATING_VERSION=1. The AramEntry format has no queue ID: blank. must check queue 2400 before uploading. No server can confirm client values as genuine through range checks alone. When matching lobbies, you and the order are ignored; all other lobby values are compared. Differing reports from different uploaders exclude the whole game until their better versions agree or a report is dropped with the player's deletion. Equivalent versions replace nothing. As in the original, incomplete or provisional entries only count as far as markGame accepts them. For security reasons a non-empty lobby needs exactly one you. The original Rust limit for gameId is strictly less than 10^13.",
     "request": null,
     "response": null
   },
   {
-    "title": "Betrieb, Kosten und Änderungen",
-    "titleEn": "Operation, costs and changes",
-    "text": "Stand 01.10.2026: Sites ist während der öffentlichen Beta in berechtigten ChatGPT-Abos enthalten. Die offizielle Sites-Dokumentation nennt 10 GB D1 pro Site; Hosting-Nutzungslimits gelten planabhängig über alle Sites. Eine verlässliche Zahl für API-Anfragen pro Tag und verbindliche Fristen bei Abo-Ende sind dort nicht veröffentlicht. Keine unbegrenzte Nutzung oder Weiterbetrieb nach Kündigung zugesichert. Bei Erreichen von Limits kann insbesondere öffentliche Erreichbarkeit eingeschränkt werden. Das eigene API-Limit beträgt 30 Anfragen je Kalenderminute und IP. Rangberechnung und Export lesen die relevanten Spiele vollständig; sehr große Bestände können vor Erreichen von 10 GB an Laufzeit-/Speichergrenzen stoßen. Seitenänderungen hier im Chat oder über Sites > diese Website > Bearbeiten; gespeicherte Daten bleiben bei normalen Code-Updates erhalten. Bei einer neuen Rating-Version muss eine neue Saison samt passendem Originalcode eingeführt werden. Quellcode und JSON-Export ermöglichen einen späteren Umzug. Quellen: https://learn.chatgpt.com/docs/sites und https://learn.chatgpt.com/docs/pricing.",
-    "textEn": "As of October 1, 2026: Sites is included in eligible ChatGPT plans during the public beta. The official Sites documentation lists 10 GB of D1 per site; hosting usage limits apply per plan across all sites. A reliable number of API requests per day and binding deadlines when a plan ends are not published there. No unlimited use or continued operation after cancellation is promised. When limits are reached, public availability in particular can be restricted. The API's own limit is 30 requests per calendar minute and IP. Rank calculation and export read the relevant games in full; very large data sets can hit runtime/storage limits before reaching 10 GB. Change pages here in the chat or via Sites > this website > Edit; stored data is kept with normal code updates. A new rating version needs a new season with matching original code. Source code and the JSON export allow a later move. Sources: https://learn.chatgpt.com/docs/sites and https://learn.chatgpt.com/docs/pricing.",
+    "title": "Operation, costs and changes",
+    "text": "As of October 1, 2026: Sites is included in eligible ChatGPT plans during the public beta. The official Sites documentation lists 10 GB of D1 per site; hosting usage limits apply per plan across all sites. A reliable number of API requests per day and binding deadlines when a plan ends are not published there. No unlimited use or continued operation after cancellation is promised. When limits are reached, public availability in particular can be restricted. The API's own limit is 30 requests per calendar minute and IP. Rank calculation and export read the relevant games in full; very large data sets can hit runtime/storage limits before reaching 10 GB. Change pages here in the chat or via Sites > this website > Edit; stored data is kept with normal code updates. A new rating version needs a new season with matching original code. Source code and the JSON export allow a later move. Sources: https://learn.chatgpt.com/docs/sites and https://learn.chatgpt.com/docs/pricing.",
     "request": null,
     "response": null
   }

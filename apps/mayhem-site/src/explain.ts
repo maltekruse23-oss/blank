@@ -1,4 +1,4 @@
-// The numbers on "How it works" (/scoring, /de/wertung), read from the rating core itself, so the page
+// The numbers on "How it works" (/scoring), read from the rating core itself, so the page
 // can never say something the calculation does not do.
 import {
   GRADES,
@@ -36,18 +36,9 @@ export const gradeShares = (): { grade: Grade; share: number; best: number }[] =
     return { grade: g.id, share: to - from, best: 1 - from };
   });
 
-/** The English names of the five values (AXES in ./insights holds the German ones). */
-export const AXES_EN: Record<Metric, string> = {
-  dmg: 'Damage',
-  tank: 'Damage taken',
-  care: 'Healing & shields',
-  part: 'Kill participation',
-  death: 'Survival',
-};
-
-/** What counts how much in a game's grade (label German, labelEn English). */
-export const weights = (): { metric: Metric; label: string; labelEn: string; weight: number }[] =>
-  METRICS.map((m, i) => ({ metric: m, label: AXES[m], labelEn: AXES_EN[m], weight: WEIGHTS[i] }));
+/** What counts how much in a game's grade. */
+export const weights = (): { metric: Metric; label: string; weight: number }[] =>
+  METRICS.map((m, i) => ({ metric: m, label: AXES[m], weight: WEIGHTS[i] }));
 
 export type TierInfo = {
   tier: Tier;
@@ -102,8 +93,8 @@ export function climbing(tierIndex: number) {
   return { up: pointsFor(muOf(ladder) + TAU, ladder, mu), down: pointsFor(muOf(ladder) - TAU, ladder, mu) };
 }
 
-/** The three season starts of a year, as "8. Januar" (de) or "January 8" (en). */
-export function seasonStarts(year: number, lang: 'en' | 'de' = 'de'): string[] {
+/** The three season starts of a year, as "January 8". */
+export function seasonStarts(year: number): string[] {
   const starts = new Set<number>();
   for (let day = 0; day < 366; day++) {
     const season = seasonOf(Date.UTC(year, 0, 1) + day * 86_400_000);
@@ -111,7 +102,7 @@ export function seasonStarts(year: number, lang: 'en' | 'de' = 'de'): string[] {
   }
   return [...starts]
     .sort((a, b) => a - b)
-    .map((s) => new Date(s).toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'UTC' }));
+    .map((s) => new Date(s).toLocaleDateString('en-US', { day: 'numeric', month: 'long', timeZone: 'UTC' }));
 }
 
 export const RULES = {

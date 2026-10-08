@@ -1,6 +1,6 @@
 # Roadmap
 
-Stand: 08.10.2026. Gilt für mayhemstats.lol, die Mayhem-App, den Collector und die Mayhem-Teile von blank.
+Stand: 08.10.2026 (Fokus Mayhem-App + Website). Gilt für mayhemstats.lol, die Mayhem-App, den Collector und die Mayhem-Teile von blank.
 Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-BERATER.md](MAYHEM-BERATER.md) und [AI-NOTES.md](AI-NOTES.md).
 
 ## Arbeitsregeln
@@ -14,21 +14,21 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 
 ## Jetzt
 
-1. **Mayhem-App im Design „Arena“** (Benutzerwunsch 07.10.2026: „Website erstmal hinten an, erst App“)
-   Ziel: `mayhem.exe` ist eine Desktop-App wie Blitz im Design „Arena“ (Canvas „mayhemstats Design 2“, Seite „App UI“): Seitenleiste, Home-Dashboard, Champ-Karte, Augment- und Champion-Tier-Liste; Rang folgt.
-   Fertig, wenn: Der Umbau ist gemergt, `pnpm mayhem:build` läuft auf malte's PC, Home, Champ („Beispiel: Alistar“), Augments und Champions sehen in `mayhem.exe` aus wie im Canvas und zeigen arammetas Zahlen, und mit ausgeschalteten Windows-Animationen steht alles sofort da.
-   Stand 08.10.2026: Umbau gemergt (#62, #63). Offen: Prüfung auf malte's PC.
+Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (malte arbeitet später daran weiter); bestehende blank.-Installationen werden per Update zur Mayhem-App.
 
-2. **Mayhem-App: echter Spieler und Rang** (malte: „mache alles“, 08.10.2026)
-   Ziel: Home und Rang in `mayhem.exe` zeigen den angemeldeten Spieler und die Rangliste von mayhemstats.lol statt Beispieldaten.
-   Fertig, wenn: Mit laufendem Client stehen eigener Rang und Rangliste da, ohne Client oder ohne Eintrag ein klarer Hinweis („nicht in der Datenbank“), der Mock-Hinweis ist weg. Nur die eigene Spieler-Kennung geht hinaus, nur lesend.
-   Stand 08.10.2026: gebaut (PR `claude/mayhem-echter-rang`, Rust `mayhem_ranks`, `src/mayhem/me.ts`), Mock nur noch in der Browser-Vorschau. Offen: Prüfung mit echtem Client auf malte's PC (VALIDATION).
+1. **blank. wird zur Mayhem-App** (malte 08.10.2026: „bestehende App von blank auf anderen PCs soll mit Patch zu Mayhem umgewandelt werden“, Daten: „Aufräumen“)
+   Ziel: Wer blank. installiert hat, bekommt mit dem nächsten Update die Mayhem-App an derselben Stelle (Release-Asset `blank.exe` = Mayhem-Build). Beim ersten Start räumt sie blank. auf: zuerst die Gaming-Optimierung zurücknehmen, dann Autostart, Twitch-Anmeldung, Einstellungen und ARAM-Spiele von blank. löschen.
+   Fertig, wenn: Ein blank. v0.9.2 wird per Update-Klick zur Mayhem-App, die Optimierungen sind exakt zurückgesetzt, nichts von blank. bleibt außer dem Ordner, Verknüpfungen starten die Mayhem-App; auf Windows geprüft.
+
+2. **Eine öffentliche Rangliste: „Find my Mayhem rank“** (malte 08.10.2026: „keine Gruppen, nur eine Rangliste, auf ‚Mayhem-Rang herausfinden‘ klicken und automatisch in die öffentliche Rangliste“)
+   Ziel: Ein Klick in der Mayhem-App lädt die letzten Mayhem-Spiele hoch und trägt einen in die öffentliche Rangliste ein; danach geht jedes neue Spiel nach Spielende von selbst hoch. Ob man eingetragen ist, weiß der Server (die App speichert nichts).
+   Fertig, wenn: Nach dem Klick steht man mit Rang auf mayhemstats.lol und in der App, neue Spiele erscheinen ohne weiteren Klick, Austragen über „Daten entfernen“ der Website; Website und App zeigen dieselben Zahlen.
 
 ## Als Nächstes
 
 1. **Englische Version der Website mit Server-Kürzel und Server-Filter**
    Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.
-   Fertig, wenn: Alle Seiten und Meldungen gibt es auf Englisch und Deutsch, die Sprache ist umschaltbar und hat eigene Adressen, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft. (Gebaut und gemergt in #58–#60; wartet auf Codex, Benutzer: Website erstmal hinten an.)
+   Fertig, wenn: Alle Seiten und Meldungen sind nur auf Englisch (Benutzerentscheidung 08.10.2026 „Website auch Englisch only.“: kein Deutsch, kein Umschalter), alte deutsche Adressen (`/de/…`) leiten dauerhaft auf die englische Seite weiter, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft. (Server-Kürzel und -Filter gemergt in #58–#60, nur Englisch im PR `claude/website-englisch`; wartet auf Codex, Benutzer: Website erstmal hinten an.)
 
 2. **Website im Design „Arena“** (Benutzerauftrag 07.10.2026)
    Ziel: Die Website hat dasselbe Design wie die Mayhem-App (die App ist seit #62/#63 im Design „Arena“).
@@ -48,7 +48,7 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 
 - **Mayhem-Teile mit echtem Client bestätigen** (malte, wenn er testen will)
   Ziel: Es ist belegt, dass Champ-Karte, Item-Set und Zauber (2c), Angebote im Spiel (2b) und genommene Augments (3a) im echten Client bzw. Spiel funktionieren.
-  Fertig, wenn: Die Prüfschritte der Nachträge vom 06.–08.10.2026 in VALIDATION.md sind auf Windows durchgegangen und die Ergebnisse stehen dort.
+  Fertig, wenn: Die Prüfschritte der Nachträge vom 06.–08.10.2026 in VALIDATION.md sind auf Windows durchgegangen und die Ergebnisse stehen dort. Dazu gehören jetzt auch: Mayhem-App im Design „Arena“ (`pnpm mayhem:build` auf malte's PC, Vollbild) und echter Spieler und Rang (#62–#74).
 
 - **Riot fragen** (malte schickt, Claude schreibt den Text)
   Ziel: Riot hat eigene Rangliste, Live-Hinweise im Spiel, das Lesen der Angebote per Bildschirmausschnitt und das Schreiben von Item-Sets und Zaubern bewertet, bevor wir öffentlich werben oder etwas davon öffentlich machen.
@@ -116,3 +116,7 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 - **Release nach v0.9.2** (malte gibt frei)
   Ziel: Freunde bekommen die Änderungen seit v0.9.2 (über 25 PRs, u. a. Champ-Karte, 2b, 2c) per Update.
   Fertig, wenn: Version angehoben, Klick-Prüfung „Vor jedem Release“ gemacht, Tag gepusht, `blank.exe` und `mayhem.exe` hängen am Release.
+
+- **Alle sehen dasselbe: Server als einzige Wahrheit** (malte 08.10.2026: „Website und App immer synchron, alle Spieler auf allen Geräten sehen zu jeder Zeit das Gleiche“)
+  Ziel: Rang, MP, Rangliste und Rekorde rechnet nur der Server; die arammeta-Daten holt der Server einmal und gibt allen denselben Stand mit Kennung („Patch 16.20 · Stand 14:00“); offene App und Website fragen alle 30–60 s nach Neuem (nicht minimiert); der Server kann eine Mindest-Version der App verlangen.
+  Fertig, wenn: Website und Mayhem-App zeigen nach einem Spiel innerhalb einer Minute dieselben Zahlen und dieselben Tierlisten/Combos.

@@ -12,7 +12,7 @@ import type { DayGame, StartView } from '../../src/start';
 import { GradeChip, GradeIcon, Problem, RankLine, TierMark } from '../ui/bits';
 import { PlayerRow } from '../ui/player-row';
 import { meText, setMe, useMe, type Me } from '../ui/me';
-import { useLang } from '../ui/i18n';
+import { num, season, ago } from '../ui/format';
 import type { Placement, PlacesView } from '../../src/places';
 import { Search } from '../ui/header';
 import {
@@ -40,8 +40,7 @@ const RARE = gradeShares()
   .reduce((t, g) => t + g.share, 0);
 
 export default function StartPage() {
-  const { t, href, num, season } = useLang();
-  const ME_TEXT = meText(t);
+  const ME_TEXT = meText;
   const { data, error } = useLive<Start>('/api/start');
   const dragon = useDragon();
   const now = useNow();
@@ -50,7 +49,7 @@ export default function StartPage() {
 
   return (
     <>
-      <section className="start-hero" aria-label={t('Search', 'Suche')}>
+      <section className="start-hero" aria-label="Search">
         <div className="start-ask">
           <h1>{ME_TEXT.findTitle}</h1>
           <p className="muted start-lead">{ME_TEXT.findLead}</p>
@@ -62,15 +61,15 @@ export default function StartPage() {
 
       <dl className="start-facts">
         <div>
-          <dt>{t('Games', 'Spiele')}</dt>
+          <dt>Games</dt>
           <dd className="num">{data ? num(data.trackedGames) : '–'}</dd>
         </div>
         <div>
-          <dt>{t('Players', 'Spieler')}</dt>
+          <dt>Players</dt>
           <dd className="num">{data ? num(data.players) : '–'}</dd>
         </div>
         <div data-g="MAYHEM">
-          <dt>{t('MAYHEM grades this season', 'MAYHEM-Noten diese Saison')}</dt>
+          <dt>MAYHEM grades this season</dt>
           <dd className="num">{mayhem !== undefined ? num(mayhem) : '–'}</dd>
         </div>
       </dl>
@@ -86,10 +85,10 @@ export default function StartPage() {
           <section aria-labelledby="top">
             <div className="card-head">
               <h2 id="top" className="section-title">
-                {t('Places 4 to 10', 'Plätze 4 bis 10')}
+                Places 4 to 10
               </h2>
-              <Link href={href('/leaderboard')} className="faint">
-                {t('Full leaderboard', 'Ganze Rangliste')}
+              <Link href="/leaderboard" className="faint">
+                Full leaderboard
               </Link>
             </div>
             {data.top.length > 3 ? (
@@ -98,9 +97,9 @@ export default function StartPage() {
                   <thead>
                     <tr>
                       <th>#</th>
-                      <th>{t('Player', 'Spieler')}</th>
-                      <th>{t('Rank', 'Rang')}</th>
-                      <th className="hide-sm">{t('Avg performance', 'Leistung Ø')}</th>
+                      <th>Player</th>
+                      <th>Rank</th>
+                      <th className="hide-sm">Avg performance</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -112,40 +111,34 @@ export default function StartPage() {
               </div>
             ) : (
               <p className="empty">{data.top.length
-                  ? t('No more than three players yet.', 'Noch nicht mehr als drei Spieler.')
-                  : t(
-                      'No players yet. Anyone who allows uploads in blank. shows up here.',
-                      'Noch keine Spieler. Wer in blank. das Hochladen erlaubt, erscheint hier.',
-                    )}</p>
+                  ? 'No more than three players yet.'
+                  : 'No players yet. Anyone who allows uploads in blank. shows up here.'}</p>
             )}
           </section>
 
           <aside className="start-side">
             <section aria-labelledby="grades">
               <h2 id="grades" className="section-title">
-                {t('Grades this season', 'Noten diese Saison')}
+                Grades this season
               </h2>
               {data.seasonGames ? (
                 <GradeHistogram rows={data.grades} />
               ) : (
-                <p className="empty">{t('No grades this season yet.', 'Diese Saison noch keine Noten.')}</p>
+                <p className="empty">No grades this season yet.</p>
               )}
               <p className="fine" style={{ marginTop: 12 }}>
-                {t(
-                  `Only the best ${num(RARE * 100, 1)}\u00a0% of all games get SSS or MAYHEM.`,
-                  `SSS und MAYHEM bekommen nur die besten ${num(RARE * 100, 1)}\u00a0% aller Spiele.`,
-                )}{' '}
-                <Link href={href('/scoring#note')}>{t('How the grade works', 'So entsteht die Note')}</Link>
+                {`Only the best ${num(RARE * 100, 1)}\u00a0% of all games get SSS or MAYHEM.`}{' '}
+                <Link href="/scoring#grade">How the grade works</Link>
               </p>
             </section>
 
             <section aria-labelledby="fresh">
               <div className="card-head">
                 <h2 id="fresh" className="section-title">
-                  {t("This week's new records", 'Neue Rekorde der Woche')}
+                  {"This week's new records"}
                 </h2>
-                <Link href={href('/records')} className="faint">
-                  {t('All', 'Alle')}
+                <Link href="/records" className="faint">
+                  All
                 </Link>
               </div>
               {data.records.length ? (
@@ -155,7 +148,7 @@ export default function StartPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="empty">{t('No new record this week yet.', 'Diese Woche noch kein neuer Rekord.')}</p>
+                <p className="empty">No new record this week yet.</p>
               )}
             </section>
           </aside>
@@ -168,20 +161,19 @@ export default function StartPage() {
 /** The top three of the ladder beside the search: first place large with its emblem, second and
     third below. Empty frames while loading, so nothing jumps. */
 function Podium({ top, season }: { top: PlayerSummary[] | undefined; season: string }) {
-  const { t, href } = useLang();
   if (top && !top.length) return null;
   const [first, ...rest] = top ?? [];
   return (
-    <ol className="podium" aria-label={t(`Top of the leaderboard, ${season}`, `Spitze der Rangliste, ${season}`)} aria-busy={!top}>
+    <ol className="podium" aria-label={`Top of the leaderboard, ${season}`} aria-busy={!top}>
       <li className="podium-one">
         {first ? (
-          <Link href={href(profileHref(first))}>
+          <Link href={profileHref(first)}>
             <span className="podium-text">
-              <small className="num">{t('Place 1', 'Platz 1')}, {season}</small>
+              <small className="num">Place 1, {season}</small>
               <b>{splitName(first.name).name}</b>
               <span className="num muted">
-                {first.rank ? `${rankName(first.rank)}, ${first.rank.points} MP` : t('Placement', 'Einstufung')},{' '}
-                {t(`${first.games} games`, `${first.games} Spiele`)}
+                {first.rank ? `${rankName(first.rank)}, ${first.rank.points} MP` : 'Placement'},{' '}
+                {`${first.games} games`}
               </span>
             </span>
             <TierMark rank={first.rank} size={132} />
@@ -193,11 +185,11 @@ function Podium({ top, season }: { top: PlayerSummary[] | undefined; season: str
       {(top ? rest : [undefined, undefined]).map((p, i) => (
         <li key={p?.puuid ?? i} className="podium-two">
           {p ? (
-            <Link href={href(profileHref(p))}>
+            <Link href={profileHref(p)}>
               <TierMark rank={p.rank} size={52} />
               <span>
                 <b>{splitName(p.name).name}</b>
-                <small className="num muted">{p.rank ? `${rankName(p.rank)}, ${p.rank.points} MP` : t('Placement', 'Einstufung')}</small>
+                <small className="num muted">{p.rank ? `${rankName(p.rank)}, ${p.rank.points} MP` : 'Placement'}</small>
               </span>
               <i className="num">{i + 2}</i>
             </Link>
@@ -211,10 +203,9 @@ function Podium({ top, season }: { top: PlayerSummary[] | undefined; season: str
 }
 
 /** The best games of the last 24 hours, three at a time: the best one large with its splash art,
-    the next two beside it. "Neu würfeln" shows the next three once, like the one reroll in the
+    the next two beside it. "Reroll" shows the next three once, like the one reroll in the
     game. */
 function DayPick({ games, dragon, now }: { games: DayGame[]; dragon: Dragon; now: number }) {
-  const { t } = useLang();
   const [rolled, setRolled] = useState(false);
   const canRoll = games.length > PICK;
   const shown = rolled && canRoll ? games.slice(PICK, PICK * 2) : games.slice(0, PICK);
@@ -222,11 +213,11 @@ function DayPick({ games, dragon, now }: { games: DayGame[]; dragon: Dragon; now
     <section className="day-pick" aria-labelledby="today">
       <div className="card-head">
         <h2 id="today" className="section-title">
-          {t('Games of the day', 'Spiele des Tages')}
+          Games of the day
         </h2>
         {canRoll && (
           <button type="button" className="button" disabled={rolled} onClick={() => setRolled(true)}>
-            {t('Reroll', 'Neu würfeln')} ({rolled ? 0 : 1})
+            Reroll ({rolled ? 0 : 1})
           </button>
         )}
       </div>
@@ -238,7 +229,7 @@ function DayPick({ games, dragon, now }: { games: DayGame[]; dragon: Dragon; now
         </ol>
       ) : (
         <p className="empty">
-          {t('No game was rated in the last 24 hours.', 'In den letzten 24 Stunden wurde noch kein Spiel gewertet.')}
+          No game was rated in the last 24 hours.
         </p>
       )}
     </section>
@@ -249,7 +240,6 @@ function DayPick({ games, dragon, now }: { games: DayGame[]; dragon: Dragon; now
 const PICK = 3;
 
 function DayGameItem({ game: g, dragon, now, big }: { game: DayGame; dragon: Dragon; now: number; big: boolean }) {
-  const { t, href, num, ago } = useLang();
   const key = championKey(dragon, g);
   const champion = championLabel(dragon, g);
   const { name, tag } = splitName(g.name);
@@ -257,8 +247,8 @@ function DayGameItem({ game: g, dragon, now, big }: { game: DayGame; dragon: Dra
   return (
     <li className={big ? 'day-game big' : 'day-game'} data-g={g.grade} style={style}>
       <Link
-        href={href(`/game/${g.gameId}?p=${encodeURIComponent(g.puuid)}`)}
-        aria-label={t(`View ${name}'s game with ${champion}`, `Spiel von ${name} mit ${champion} ansehen`)}
+        href={`/game/${g.gameId}?p=${encodeURIComponent(g.puuid)}`}
+        aria-label={`View ${name}'s game with ${champion}`}
       >
         <GradeIcon grade={g.grade} size={big ? 96 : 56} />
         <span className="day-who">
@@ -272,7 +262,7 @@ function DayGameItem({ game: g, dragon, now, big }: { game: DayGame; dragon: Dra
         </span>
         <span className="day-value num">
           {num(g.damage)}
-          <small>{t('Damage', 'Schaden')}</small>
+          <small>Damage</small>
         </span>
       </Link>
     </li>
@@ -303,30 +293,28 @@ function GradeHistogram({ rows }: { rows: { grade: Grade; games: number }[] }) {
 }
 
 function FreshRecord({ category: c }: { category: RecordView }) {
-  const { lang, t, href, num } = useLang();
   const top = c.places[0];
   const value = c.unit === 'seconds' ? `${num(top.value)} s` : num(top.value);
   return (
     <li data-hue={c.hue}>
-      <Link href={href(`/game/${top.game.gameId}?p=${encodeURIComponent(top.puuid)}`)}>
-        <b>{recordText(c, lang).title}</b>
+      <Link href={`/game/${top.game.gameId}?p=${encodeURIComponent(top.puuid)}`}>
+        <b>{recordText(c).title}</b>
         <span className="num">{value}</span>
         <small>
           {splitName(top.name).name}
-          {c.places.length > 1 && t(` and ${c.places.length - 1} more`, ` und ${c.places.length - 1} weitere`)}
+          {c.places.length > 1 && ` and ${c.places.length - 1} more`}
         </small>
       </Link>
     </li>
   );
 }
 
-/** Places shown before "Alle zeigen". */
+/** Places shown before "Show all". */
 const MY_PLACES = 6;
 
 /** The visitor's own places (app/ui/me.ts, /api/plaetze), best first. */
 function MyPlaces({ me }: { me: Me }) {
-  const { t, href } = useLang();
-  const ME_TEXT = meText(t);
+  const ME_TEXT = meText;
   const { data, missing } = useLive<PlacesView & { id: string }>('/api/plaetze/' + encodeURIComponent(me.id));
   const [all, setAll] = useState(false);
   const { name, tag } = splitName(data?.name || me.name);
@@ -344,7 +332,7 @@ function MyPlaces({ me }: { me: Me }) {
           </span>
         </h2>
         <span className="my-places-links">
-          <Link href={href(profileHref({ puuid: me.id, name: data?.name || me.name }))} className="faint">
+          <Link href={profileHref({ puuid: me.id, name: data?.name || me.name })} className="faint">
             {ME_TEXT.profile}
           </Link>
           <button type="button" className="link-button faint" onClick={() => setMe(null)}>
@@ -358,7 +346,7 @@ function MyPlaces({ me }: { me: Me }) {
           {data.average && <GradeChip grade={data.average.grade} />}
         </div>
       )}
-      {!data && !missing && <p className="empty">{t('Loading …', 'Wird geladen …')}</p>}
+      {!data && !missing && <p className="empty">Loading …</p>}
       {(missing || (data && !list.length)) && <p className="empty">{ME_TEXT.placesEmpty}</p>}
       {shown.length > 0 && (
         <ol className="my-places-list">
@@ -369,7 +357,7 @@ function MyPlaces({ me }: { me: Me }) {
       )}
       {list.length > MY_PLACES && (
         <button type="button" className="button more" onClick={() => setAll((a) => !a)}>
-          {all ? t('Show less', 'Weniger zeigen') : t(`Show all ${list.length} places`, `Alle ${list.length} Plätze zeigen`)}
+          {all ? 'Show less' : `Show all ${list.length} places`}
         </button>
       )}
     </section>
@@ -377,21 +365,19 @@ function MyPlaces({ me }: { me: Me }) {
 }
 
 function PlaceItem({ place: p, id }: { place: Placement; id: string }) {
-  const { lang, t, href: to, num } = useLang();
-  const ME_TEXT = meText(t);
+  const ME_TEXT = meText;
   const label =
     p.kind === 'rank'
       ? ME_TEXT.ladder
       : p.kind === 'performance'
         ? ME_TEXT.performance
-        : recordText({ id: p.id, title: p.title ?? '' }, lang).title;
-  const href = to(
+        : recordText({ id: p.id, title: p.title ?? '' }).title;
+  const href =
     p.kind === 'record' && p.gameId !== null
       ? `/game/${p.gameId}?p=${encodeURIComponent(id)}`
       : p.kind === 'record'
         ? `/records#${p.id}`
-        : '/leaderboard',
-  );
+        : '/leaderboard';
   const value = p.value === null ? null : p.unit === 'seconds' ? `${num(p.value)} s` : num(p.value);
   const top = Math.max(1, Math.round((p.place / p.of) * 100));
   return (
@@ -402,7 +388,7 @@ function PlaceItem({ place: p, id }: { place: Placement; id: string }) {
           <b>{label}</b>
           <small className="faint num">
             {ME_TEXT.placesFrom} {num(p.of)}
-            {p.of >= 10 ? t(` · Top ${top}%`, ` · Top ${top} %`) : ''}
+            {p.of >= 10 ? ` · Top ${top}%` : ''}
           </small>
         </span>
         {value && <span className="num my-place-value">{value}</span>}

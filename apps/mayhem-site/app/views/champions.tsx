@@ -9,8 +9,8 @@ import { MIN_GAMES, ROLES, roleName, type ChampionStat } from '../../src/champio
 import { GradeChip, Img, Problem } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, championKey, championLabel, useDragon, useLive } from '../ui/data';
-import { useLang } from '../ui/i18n';
-import { percentIn } from '../ui/meta';
+import { percent } from '../ui/meta';
+import { num, season } from '../ui/format';
 
 type Champions = {
   scope: Scope;
@@ -34,7 +34,6 @@ const SORTS: { id: Sort; of: (c: ChampionStat) => number | null }[] = [
 const linkOf = (c: ChampionStat) => '/champions/' + (c.champion || c.championId);
 
 export default function ChampionsPage() {
-  const { lang, t, href, num, season } = useLang();
   const filters = useFilters();
   const { data, error, live } = useLive<Champions>('/api/champions?' + filters.query);
   const dragon = useDragon();
@@ -48,10 +47,10 @@ export default function ChampionsPage() {
   );
   const of = SORTS.find((s) => s.id === sort)?.of;
   const sorted = [...shown].sort((a, b) => {
-    if (sort === 'name') return championLabel(dragon, a).localeCompare(championLabel(dragon, b), lang);
+    if (sort === 'name') return championLabel(dragon, a).localeCompare(championLabel(dragon, b), 'en');
     const x = of!(a);
     const y = of!(b);
-    return (y ?? -1) - (x ?? -1) || b.games - a.games || championLabel(dragon, a).localeCompare(championLabel(dragon, b), lang);
+    return (y ?? -1) - (x ?? -1) || b.games - a.games || championLabel(dragon, a).localeCompare(championLabel(dragon, b), 'en');
   });
   const few = data?.champions.filter((c) => c.pct === null).length ?? 0;
 
@@ -68,11 +67,11 @@ export default function ChampionsPage() {
       <div className="page-head">
         <div>
           <h1>Champions</h1>
-          <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : t('All time', 'Alle Zeiten')}</p>
+          <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : 'All time'}</p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
-            {live ? 'Live' : t('Updates every 5 s', 'Aktualisiert alle 5 s')}
+            {live ? 'Live' : 'Updates every 5 s'}
           </span>
           <Filters {...filters} />
         </div>
@@ -83,14 +82,14 @@ export default function ChampionsPage() {
       <section className="card">
         <div className="card-head champ-tools">
           <form className="field" onSubmit={(e) => e.preventDefault()}>
-            <input aria-label={t('Search champions', 'Champion suchen')} placeholder={t('Search champions', 'Champion suchen')} value={find} onChange={(e) => setFind(e.target.value)} />
+            <input aria-label="Search champions" placeholder="Search champions" value={find} onChange={(e) => setFind(e.target.value)} />
           </form>
           <label className="field">
-            <select aria-label={t('Role', 'Rolle')} value={role} onChange={(e) => setRole(e.target.value as Role | '')}>
-              <option value="">{t('All roles', 'Alle Rollen')}</option>
+            <select aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as Role | '')}>
+              <option value="">All roles</option>
               {(Object.keys(ROLES) as Role[]).map((r) => (
                 <option key={r} value={r}>
-                  {roleName(r, lang)}
+                  {roleName(r)}
                 </option>
               ))}
             </select>
@@ -102,13 +101,13 @@ export default function ChampionsPage() {
               <tr>
                 <th className="hide-sm">#</th>
                 {head('name', 'Champion')}
-                <th className="hide-sm">{t('Role', 'Rolle')}</th>
-                {head('games', t('Games', 'Spiele'), 'right')}
-                {head('pick', t('Pick rate', 'Pickrate'), 'right hide-sm')}
-                {head('win', t('Win rate', 'Siegquote'), 'right hide-sm')}
-                {head('grade', t('Avg grade', 'Note Ø'))}
+                <th className="hide-sm">Role</th>
+                {head('games', 'Games', 'right')}
+                {head('pick', 'Pick rate', 'right hide-sm')}
+                {head('win', 'Win rate', 'right hide-sm')}
+                {head('grade', 'Avg grade')}
                 {head('top', 'SSS/MAYHEM', 'right hide-sm')}
-                {head('dpm', t('Damage/min', 'Schaden/Min'), 'right hide-sm')}
+                {head('dpm', 'Damage/min', 'right hide-sm')}
               </tr>
             </thead>
             <tbody>
@@ -117,33 +116,25 @@ export default function ChampionsPage() {
               ))}
             </tbody>
           </table>
-          {!data && !error && <p className="empty">{t('Loading champions …', 'Champions werden geladen …')}</p>}
+          {!data && !error && <p className="empty">Loading champions …</p>}
           {data && !data.champions.length && (
             <p className="empty">
               {filters.scope === 'season' ? (
-                t('No games this season yet.', 'In dieser Saison gibt es noch keine Spiele.')
-              ) : lang === 'de' ? (
-                <>Noch keine Spiele. Champions erscheinen, sobald jemand Spiele hochlädt. <a href={href('/join')}>Mitmachen</a></>
+                'No games this season yet.'
               ) : (
-                <>No games yet. Champions show up as soon as someone uploads games. <a href={href('/join')}>Join</a></>
+                <>No games yet. Champions show up as soon as someone uploads games. <a href="/join">Join</a></>
               )}
             </p>
           )}
           {data && data.champions.length > 0 && !sorted.length && (
-            <p className="empty">{t('No champion matches the filter.', 'Kein Champion passt zur Auswahl.')}</p>
+            <p className="empty">No champion matches the filter.</p>
           )}
         </div>
         {data && data.champions.length > 0 && (
           <p className="fine" style={{ marginTop: 12 }}>
-            {t(
-              `${num(data.games)} games, ${num(data.champions.length)} champions. Every seat of a game with the values of all ten counts, from 8 minutes on. The pick rate is the share of games the champion was in. Win or loss does not count for the grade; the win rate is shown next to it. The grade compares with what the champion usually achieves, so a champion does not lead just by being strong.`,
-              `${num(data.games)} Spiele, ${num(data.champions.length)} Champions. Es zählt jeder Platz eines Spiels mit den Werten aller zehn, ab 8 Minuten. Die Pickrate ist der Anteil der Spiele, in denen der Champion dabei war. Für die Note zählen Sieg oder Niederlage nicht; die Siegquote steht daneben. Die Note vergleicht mit dem, was der Champion üblicherweise schafft, deshalb liegt ein Champion nicht schon durch seine Stärke vorn.`,
-            )}
+            {`${num(data.games)} games, ${num(data.champions.length)} champions. Every seat of a game with the values of all ten counts, from 8 minutes on. The pick rate is the share of games the champion was in. Win or loss does not count for the grade; the win rate is shown next to it. The grade compares with what the champion usually achieves, so a champion does not lead just by being strong.`}
             {few > 0 &&
-              t(
-                ` Below ${MIN_GAMES} rated games there are no values (little data).`,
-                ` Unter ${MIN_GAMES} gewerteten Spielen stehen keine Werte (wenige Daten).`,
-              )}
+              ` Below ${MIN_GAMES} rated games there are no values (little data).`}
           </p>
         )}
       </section>
@@ -152,19 +143,17 @@ export default function ChampionsPage() {
 }
 
 function ChampionRow({ champion: c, place, dragon }: { champion: ChampionStat; place: number; dragon: Dragon }) {
-  const { lang, t, href, num } = useLang();
-  const percent = percentIn(lang);
   const name = championLabel(dragon, c);
   return (
     <tr>
       <td className="place num hide-sm">{place}</td>
       <td>
-        <Link className="who" href={href(linkOf(c))}>
+        <Link className="who" href={linkOf(c)}>
           <Img className="champ" src={championImage(dragon, championKey(dragon, c) || undefined)} size={28} />
           <b>{name}</b>
         </Link>
       </td>
-      <td className="hide-sm muted">{roleName(c.role, lang)}</td>
+      <td className="hide-sm muted">{roleName(c.role)}</td>
       <td className="right num">{num(c.games)}</td>
       <td className="right num hide-sm">{percent(c.pick)}</td>
       <td className="right num hide-sm">{percent(c.winRate)}</td>
@@ -172,8 +161,8 @@ function ChampionRow({ champion: c, place, dragon }: { champion: ChampionStat; p
         {c.grade ? (
           <GradeChip grade={c.grade} />
         ) : (
-          <span className="badge nowrap" title={t(`Fewer than ${MIN_GAMES} rated games`, `Weniger als ${MIN_GAMES} gewertete Spiele`)}>
-            {t('little data', 'wenige Daten')}
+          <span className="badge nowrap" title={`Fewer than ${MIN_GAMES} rated games`}>
+            little data
           </span>
         )}
       </td>
