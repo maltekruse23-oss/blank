@@ -21,6 +21,11 @@ neue Migration** (`drizzle/` unverändert seit 0006). Neu ist nur:
   `/spiel/<id>` …) gehen direkt auf die englische Seite.
 - Die API ist unverändert (Felder und deutsche Fehlermeldungen wie bisher, die App braucht sie).
 - `/api/leaderboard` und `/api/players/<id>` haben je Spieler `server` (EUW, NA …).
+- Nur Text (PR „Find my Mayhem rank“, `claude/find-my-rank`): `/privacy` nennt die Mayhem-App als
+  Quelle neben blank. und dem Collector, `/privacy/remove` hat unter „Good to know“ die Zeile „The
+  Mayhem app then no longer uploads your games by itself.“ Keine API-Änderung: die Mayhem-App lädt
+  über die bestehenden Archiv-Endpunkte des Collectors hoch (`/api/archive/enroll`,
+  `/api/archive/contribute`) und liest `/api/players/<Name-TAG>`.
 
 Zusätzlich zu „Danach prüfen“ live prüfen und dem Benutzer melden:
 

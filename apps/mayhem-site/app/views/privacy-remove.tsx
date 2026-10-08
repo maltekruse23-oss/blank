@@ -98,6 +98,7 @@ export default function HidePage() {
         <li>
           Anyone who uploads with blank. has a profile and deletes it in blank. with their own key. If you upload yourself later, you will be named again.
         </li>
+        <li>The Mayhem app then no longer uploads your games by itself.</li>
         <li>
           {'Unhiding is only possible through the operator, via an issue in the '}
           <a href="https://github.com/maltekruse23-oss/blank/issues">repository</a>.

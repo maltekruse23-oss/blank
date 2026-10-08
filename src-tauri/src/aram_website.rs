@@ -102,7 +102,13 @@ fn write_progress(path: &Path, p: &Progress) -> Result<(), String> {
 }
 
 fn credential(puuid: &str) -> Result<String, String> {
-    let entry = keyring::Entry::new(SERVICE, puuid)
+    stored_key(SERVICE, puuid)
+}
+
+/// A random key of 64 hex characters in the Windows Credential Manager, made on first use (also
+/// the Mayhem app's upload key, aram/ladder.rs).
+pub(super) fn stored_key(service: &str, user: &str) -> Result<String, String> {
+    let entry = keyring::Entry::new(service, user)
         .map_err(|_| "Windows-Schlüsselspeicher nicht verfügbar.")?;
     match entry.get_password() {
         Ok(token) if token.len() == 64 && token.bytes().all(|b| b.is_ascii_hexdigit()) => Ok(token),
@@ -527,7 +533,10 @@ fn plain_id(id: &str) -> bool {
             .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
 }
 
-async fn read_json(http: &reqwest::Client, path: &str) -> Result<Option<String>, String> {
+pub(super) async fn read_json(
+    http: &reqwest::Client,
+    path: &str,
+) -> Result<Option<String>, String> {
     let response = http
         .get(format!("{BASE}{path}"))
         .send()
@@ -591,8 +600,8 @@ pub async fn aram_site_profile(app: AppHandle, puuid: String) -> Result<Option<S
 
 /// The Mayhem app's rank (mayhem.rs, ROADMAP "Jetzt 2"): the player signed in to the League client,
 /// their profile and the leaderboard from the Site, as JSON text the app checks strictly
-/// (aramSite.ts). The Mayhem app has no settings and uploads nothing, so this only reads: the one
-/// thing that goes out is the user's own PUUID in the address.
+/// (aramSite.ts). Only reads: what goes out is the user's own PUUID and Riot ID in the address
+/// (uploading is aram/ladder.rs, "Find my Mayhem rank").
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OwnRanks {
@@ -604,13 +613,47 @@ pub struct OwnRanks {
 }
 
 /// The signed-in player's PUUID and Riot ID, if the client names a plain one.
-fn own_player(me: &super::Summoner) -> Option<(String, String)> {
+pub(super) fn own_player(me: &super::Summoner) -> Option<(String, String)> {
     (super::valid_puuid(&me.puuid) && plain_id(&me.puuid)).then(|| {
         (
             me.puuid.clone(),
             super::riot_id(&me.game_name, &me.tag_line, ""),
         )
     })
+}
+
+/// "Name Zwei#EUW" → "Name%20Zwei-EUW": a Riot ID as the Site's profile address (its riotSlug,
+/// encoded); None without a tag.
+fn riot_slug(riot_id: &str) -> Option<String> {
+    let (name, tag) = riot_id.rsplit_once('#')?;
+    (!name.is_empty() && !tag.is_empty()).then(|| {
+        format!("{name}-{tag}")
+            .bytes()
+            .map(|b| match b {
+                b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                    char::from(b).to_string()
+                }
+                _ => format!("%{b:02X}"),
+            })
+            .collect()
+    })
+}
+
+/// The player's profile on the Site, or None when it does not list them (never there, removed or
+/// hidden). By PUUID (players who upload with blank.), else by Riot ID: players of the archive
+/// (Collector, the Mayhem app's "Find my Mayhem rank") have no profile under their PUUID.
+pub(super) async fn own_profile(
+    http: &reqwest::Client,
+    puuid: &str,
+    name: &str,
+) -> Result<Option<String>, String> {
+    if let Some(profile) = read_json(http, &format!("/api/players/{puuid}")).await? {
+        return Ok(Some(profile));
+    }
+    match riot_slug(name) {
+        Some(slug) => read_json(http, &format!("/api/players/{slug}")).await,
+        None => Ok(None),
+    }
 }
 
 /// None while the client is closed or nobody is signed in.
@@ -624,12 +667,12 @@ pub async fn mayhem_ranks() -> Result<Option<OwnRanks>, String> {
         return Ok(None);
     };
     let http = site_client()?;
-    let me = read_json(&http, &format!("/api/players/{puuid}")).await?;
+    let me = own_profile(&http, &puuid, &name).await?;
     let board = read_json(&http, "/api/leaderboard").await?;
     Ok(Some(OwnRanks { name, board, me }))
 }
 
-fn site_client() -> Result<reqwest::Client, String> {
+pub(super) fn site_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(5))
@@ -661,6 +704,20 @@ mod tests {
         assert!(!plain_id("a/../b"));
         assert!(!plain_id("a?x=1"));
         assert!(!plain_id(&"a".repeat(101)));
+    }
+
+    #[test]
+    fn a_riot_id_becomes_the_sites_profile_address() {
+        assert_eq!(riot_slug("Name#EUW").as_deref(), Some("Name-EUW"));
+        // As the Site's riotSlug: the last "#" separates the tag; everything else is encoded.
+        assert_eq!(
+            riot_slug("Näme Zwei#EUW").as_deref(),
+            Some("N%C3%A4me%20Zwei-EUW")
+        );
+        assert_eq!(riot_slug("a/../b?x#1").as_deref(), Some("a%2F..%2Fb%3Fx-1"));
+        assert_eq!(riot_slug("Name"), None);
+        assert_eq!(riot_slug("#EUW"), None);
+        assert_eq!(riot_slug("Name#"), None);
     }
 
     #[test]

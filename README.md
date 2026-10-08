@@ -10,7 +10,7 @@ Kleine Windows-App für nebenbei: zeigt, wer auf Twitch live ist (mit Sofort-Mel
 2. `blank.exe` doppelklicken. Keine Installation nötig.
 3. Erscheint „Der Computer wurde durch Windows geschützt“: auf **Weitere Informationen** und dann auf **Trotzdem ausführen** klicken. (Die App ist nicht signiert; das kommt nur beim ersten Start.)
 
-**Mayhem-App:** [mayhem.exe herunterladen](https://github.com/maltekruse23-oss/blank/releases/latest/download/mayhem.exe) (ab der nächsten Version). Kleine eigene App nur für ARAM Mayhem: In der Champ-Auswahl zeigt sie deinen Champion mit Build und allen Augments in Stufen S–D. Läuft unabhängig von blank. Neue Versionen holt sie über **Update** unten links in der Seitenleiste (mit Patchnotes).
+**Mayhem-App:** [mayhem.exe herunterladen](https://github.com/maltekruse23-oss/blank/releases/latest/download/mayhem.exe) (ab der nächsten Version). Kleine eigene App nur für ARAM Mayhem: In der Champ-Auswahl zeigt sie deinen Champion mit Build und allen Augments in Stufen S–D. Mit **Find my Mayhem rank** lädt sie deine letzten Mayhem-Spiele auf mayhemstats.lol hoch und zeigt deinen Rang; danach geht jedes neue Spiel von selbst hoch (austragen auf mayhemstats.lol/privacy/remove). Läuft unabhängig von blank. Neue Versionen holt sie über **Update** unten links in der Seitenleiste (mit Patchnotes).
 
 Mehr brauchst du nicht. Die Ordner auf dieser Seite und die „Source code“-Dateien im Release sind nur der Quellcode.
 

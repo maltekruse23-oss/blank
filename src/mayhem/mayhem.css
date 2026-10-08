@@ -275,6 +275,19 @@ button {
   background: #fff;
 }
 
+.mayhem-button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+  transform: none;
+}
+
+/* What a click makes public ("Find my Mayhem rank"), right under its button. */
+.mayhem-consent {
+  max-width: 48ch;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
 .mayhem-button.small {
   min-height: 32px;
   margin: 0;
