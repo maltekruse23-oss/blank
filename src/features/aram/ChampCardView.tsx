@@ -1,9 +1,12 @@
 import { championSquare } from '../../adapters/aram';
-import { chooseBuild, markTaken } from '../../adapters/aramChamp';
+import { chooseBuild, markTaken, openGuide } from '../../adapters/aramChamp';
 import { DDRAGON_VERSION } from '../../data/proStreamers';
 import { useState } from 'react';
 import {
+  assembledFacts,
   DIRECTION_LABEL,
+  isOffmeta,
+  itemTitle,
   itemSetOf,
   offerRows,
   planNote,
@@ -39,20 +42,20 @@ function Builds({ builds }: { builds: BuildPick[] }) {
       {builds.map((b) => (
         <li key={b.items.map((i) => i.id).join(',')}>
           <span className="champ-card-items">
-            {b.items.map((i) => (
+            {b.items.map((i, n) => (
               <img
                 key={i.id}
                 className={i.mana ? 'mana' : undefined}
                 src={itemImage(i.id)}
                 alt={i.name}
-                title={i.mana ? `${i.name} (Mana, in ARAM schwach)` : i.name}
+                title={itemTitle(b, n, i)}
                 width={26}
                 height={26}
               />
             ))}
           </span>
           <small>
-            {games(b.games)} · {percent(b.winRate)} Siege
+            {assembledFacts(b) ?? `${games(b.games)} · ${percent(b.winRate)} Siege`}
             {b.mana > 0 && ' · Mana'}
           </small>
           {b.grade && <GradeBadge grade={b.grade} title={`Note Ø ${b.grade}`} />}
@@ -328,7 +331,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
                   }}
                 >
                   {DIRECTION_LABEL[p.direction]}
-                  <small>{percent(p.share)}</small>
+                  <small>{isOffmeta(p) && !p.share ? 'Offmeta' : percent(p.share)}</small>
                 </button>
               ))}
             </div>
@@ -338,6 +341,16 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
             ) : (
               <p className="champ-card-empty">Noch zu wenig Spiele für einen Kern.</p>
             )}
+            <button
+              type="button"
+              className="champ-card-guide"
+              onClick={(event) => {
+                event.stopPropagation();
+                void openGuide(view.championId);
+              }}
+            >
+              Guides auf aramonly.com
+            </button>
           </section>
           {tabRow}
           {extraTab && view.extra ? (

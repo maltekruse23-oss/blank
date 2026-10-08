@@ -1,13 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "mayhem",
-  "description": "The Mayhem app's window (mayhem.rs, its own EXE): follows the ARAM Mayhem champion select of the League client on this PC (read-only, its password stays in Rust), reads the champion's public stats from arammeta.com and mayhemstats.lol (only the champion's number goes out), the signed-in player's own rank and the leaderboard from mayhemstats.lol (read-only, only the player's own identifier goes out), the augment and champion tier lists with champion details, items and patch changes from arammeta.com (one public list, nothing sent) and the item list from Data Dragon, and writes its errors to the local error log. Nothing else; no window, filesystem, shell or HTTP permissions.",
+  "description": "The Mayhem app's window (mayhem.rs, its own EXE): follows the ARAM Mayhem champion select of the League client on this PC (read-only, its password stays in Rust), reads the champion's public stats from arammeta.com and mayhemstats.lol (only the champion's number goes out), the signed-in player's own rank and the leaderboard from mayhemstats.lol (read-only, only the player's own identifier goes out), the augment and champion tier lists with champion details, items and patch changes from arammeta.com (one public list, nothing sent) and the item list from Data Dragon, and writes its errors to the local error log. Opens a champion's guide page on aramonly.com in the browser (aram_open_guide, a fixed address). Nothing else; no window, filesystem, shell or HTTP permissions.",
   "windows": ["mayhem"],
   "permissions": [
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "allow-aram-champ-watch",
     "allow-aram-champ-info",
+    "allow-aram-open-guide",
     "allow-mayhem-tiers",
     "allow-mayhem-ranks",
     "allow-league-client-open",

@@ -1,8 +1,12 @@
 import { useState, type CSSProperties } from 'react';
 import { championSplash } from '../adapters/aram';
+import { openGuide } from '../adapters/aramChamp';
 import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
+  assembledFacts,
   DIRECTION_LABEL,
+  isOffmeta,
+  itemTitle,
   planNote,
   slotsText,
   sourceLabel,
@@ -38,13 +42,13 @@ function Builds({ builds }: { builds: BuildPick[] }) {
       {builds.map((b, n) => (
         <li key={b.items.map((i) => i.id).join(',')} className="mayhem-in" style={step(n + 2)}>
           <span className="mayhem-items">
-            {b.items.map((i) => (
+            {b.items.map((i, n) => (
               <img
                 key={i.id}
                 data-mana={i.mana || undefined}
                 src={itemImage(i.id)}
                 alt={i.name}
-                title={i.mana ? `${i.name} (Mana, in ARAM schwach)` : i.name}
+                title={itemTitle(b, n, i)}
                 width={34}
                 height={34}
               />
@@ -62,11 +66,15 @@ function Builds({ builds }: { builds: BuildPick[] }) {
             ))}
           </span>
           <span className="mayhem-facts">
-            <b>{percent(b.winRate)} Siege</b>
-            <span>
-              {games(b.games)}
-              {b.mana > 0 && ' · Mana'}
-            </span>
+            {b.assembled ? (
+              <span>{assembledFacts(b)}</span>
+            ) : (
+              <>
+                <b>{percent(b.winRate)} Siege</b>
+                <span>{games(b.games)}</span>
+              </>
+            )}
+            {b.mana > 0 && <span>Mana</span>}
             {b.label && <span>{b.label}</span>}
           </span>
           {b.grade && (
@@ -320,7 +328,7 @@ export function MayhemCard({
                 onClick={() => setChosen(p.direction)}
               >
                 {DIRECTION_LABEL[p.direction]}
-                <small>{percent(p.share)}</small>
+                <small>{isOffmeta(p) && !p.share ? 'Offmeta' : percent(p.share)}</small>
               </button>
             ))}
           </div>
@@ -332,6 +340,13 @@ export function MayhemCard({
             ) : (
               <p className="mayhem-note">Noch zu wenig Spiele für einen Kern.</p>
             )}
+            <button
+              type="button"
+              className="mayhem-guide"
+              onClick={() => void openGuide(view.championId)}
+            >
+              Guides und Offmeta-Builds auf aramonly.com
+            </button>
           </section>
           {view.extra && <ExtraItems extra={view.extra} />}
           {/* Here, not under the long tier list, so it is seen. */}

@@ -9,6 +9,7 @@
 // rule: mana is useless in ARAM). Pure, tested in champCard.test.ts.
 import type { ChampInfo, ChampItem, MetaAugment } from '../../adapters/aramChamp';
 import { gradeOf, type Grade } from './aramPerformance';
+import { number, percent } from './format';
 
 /** Where the card's numbers come from, as the card names it. */
 export const sourceLabel = (view: { source: 'arammeta' | 'mayhemstats'; patch: string | null }) =>
@@ -79,6 +80,9 @@ export type BuildPick = {
    * built later, without numbers of their own (useless ones left out). */
   label?: string;
   later?: { id: number; name: string; mana: boolean }[];
+  /** Offmeta (`offmetaBuild`): put together from single items, each with its own numbers on the
+   * champion; the build as a whole was never measured. */
+  assembled?: { games: number; winRate: number }[];
 };
 
 export type ChampView = {
@@ -472,6 +476,8 @@ export function planNote(view: Pick<ChampView, 'source' | 'name' | 'alias'>, pla
   const n = plan.games.toLocaleString('de-DE');
   if (plan.source !== view.source)
     return `Für ${dir} hat arammeta.com kaum Spiele. Kern und Augments kommen von mayhemstats.lol (${n} ${plan.games === 1 ? 'Spiel' : 'Spiele'}).`;
+  if (plan.source === 'arammeta' && plan.builds.length && plan.builds.every((b) => b.assembled))
+    return `Offmeta: arammeta.com hat keinen ganzen ${dir}-Build mit ${view.name || view.alias}. Der Kern sind die drei besten ${dir}-Items auf ihm, jedes einzeln gemessen.`;
   if (plan.source === 'arammeta' && !plan.builds.length)
     return `arammeta.com hat kaum ${dir}-Spiele mit ${view.name || view.alias}. Die Stufen beruhen auf allen Spielen, passende Augments stehen höher.`;
   return null;
@@ -536,9 +542,11 @@ export function champView(
     // A direction without an item core at arammeta (none of its games go there): the website's
     // games of that direction, if it has enough; arammeta's share stays on the tab.
     const site = parsed ? buildPlans(parsed.builds, info.items, names) : [];
+    // An offmeta build from arammeta's single items stays beside the website's games, never added.
     const plans = meta.plans.map((p) => {
-      const own = p.builds.length ? null : site.find((s) => s.direction === p.direction);
-      return own ? { ...own, share: p.share } : p;
+      const measured = p.builds.filter((b) => !b.assembled);
+      const own = measured.length ? null : site.find((s) => s.direction === p.direction);
+      return own ? { ...own, share: p.share, builds: [...own.builds, ...p.builds] } : p;
     });
     return { ...meta, plans };
   }
@@ -796,6 +804,7 @@ export function metaView(
       .slice(0, PLAN_BUILDS_SHOWN)
       .map((b) => b.pick);
 
+  const mainRate = total ? groups.reduce((t, g) => t + g.wr * g.g, 0) / total : null;
   const pool = parsed.pool.filter((a) => a.g >= META_MIN_GAMES);
   const known = pool.length > 0 || groups.length > 0;
   const plans: BuildPlan[] = (known ? DIRECTIONS : [])
@@ -822,7 +831,11 @@ export function metaView(
         games,
         share: total ? games / total : 0,
         source: 'arammeta' as const,
-        builds: builds(own),
+        builds: own.length
+          ? builds(own)
+          : [
+              offmetaBuild(d, [...parsed.extra.items, ...parsed.extra.weak], items, mainRate),
+            ].filter((b): b is BuildPick => b !== null),
         // Rounded once ranked: the card goes to the popout whole (flyout.rs takes ≤ 64 KB).
         augments: tiered(rows).map((r) => ({ ...r, score: Math.round(r.score * 1e4) / 1e4 })),
       };
@@ -863,6 +876,70 @@ export function metaView(
         ),
       ]),
     ),
+  };
+}
+
+/** A direction the champion rarely goes but that plays well (`offmetaBuild`). */
+export const isOffmeta = (plan: BuildPlan) => plan.builds.some((b) => b.assembled);
+
+/** The numbers of an offmeta build as the card names them: each item measured on its own. */
+export function assembledFacts(b: BuildPick) {
+  if (!b.assembled?.length) return null;
+  const g = b.assembled.map((a) => a.games);
+  const [low, high] = [number(Math.min(...g)), number(Math.max(...g))];
+  return `Ø ${percent(b.winRate)} Siege · ${low === high ? low : `${low}–${high}`} Spiele je Item`;
+}
+
+/** An item's tooltip: mana marked, and its own numbers when the build is put together (offmeta). */
+export function itemTitle(b: BuildPick, n: number, i: { name: string; mana: boolean }) {
+  const own = b.assembled?.[n];
+  const facts = own ? ` · ${number(own.games)} Spiele · ${percent(own.winRate)} Siege` : '';
+  return `${i.name}${i.mana ? ' (Mana, in ARAM schwach)' : ''}${facts}`;
+}
+
+/** Offmeta: an item of the direction needs this many games on the champion. */
+export const OFFMETA_MIN_GAMES = 40;
+/** It may win this much less often than the champion's usual builds and still count as playable. */
+export const OFFMETA_MARGIN = 0.015;
+
+/**
+ * Offmeta (user's wish 08.10.2026, e.g. AP-Alistar): a direction arammeta has no item core for,
+ * put together from the champion's single items of that direction (the items are the same as in
+ * normal League; their Mayhem numbers on the champion are arammeta's, each measured on its own).
+ * The best three by win rate, pulled towards 50 % when few, mana ones lower (user's rule), never
+ * useless ones; the next three as later items. Null without three such items or when they play
+ * clearly worse than the champion's usual builds (`mainRate`, null: unknown).
+ */
+export function offmetaBuild(
+  d: Direction,
+  rows: { ids: number[]; g: number; wr: number }[],
+  items: Record<string, ChampItem>,
+  mainRate: number | null,
+): BuildPick | null {
+  const seen = new Set<number>();
+  const pool = rows
+    .filter((r) => r.ids.length === 1 && !seen.has(r.ids[0]) && !!seen.add(r.ids[0]))
+    .map((r) => ({ id: r.ids[0], g: r.g, wr: r.wr, item: items[String(r.ids[0])] }))
+    .filter(
+      (r) =>
+        r.item?.kind === d && r.item.done && !(r.id in USELESS_ITEMS) && r.g >= OFFMETA_MIN_GAMES,
+    )
+    .map((r) => ({ ...r, score: pulled(r.wr, r.g) - (r.item.mana ? MANA_PENALTY : 0) }))
+    .sort((a, b) => b.score - a.score || b.g - a.g || a.id - b.id);
+  const core = pool.slice(0, CORE_SIZE);
+  if (core.length < CORE_SIZE) return null;
+  const winRate = mean(core.map((r) => r.wr));
+  if (mainRate !== null && winRate < mainRate - OFFMETA_MARGIN) return null;
+  const shown = (r: (typeof pool)[number]) => ({ id: r.id, name: r.item.name, mana: r.item.mana });
+  return {
+    items: core.map(shown),
+    games: Math.min(...core.map((r) => r.g)),
+    winRate,
+    grade: null,
+    mana: core.filter((r) => r.item.mana).length,
+    label: 'Offmeta',
+    later: pool.slice(CORE_SIZE, CORE_SIZE * 2).map(shown),
+    assembled: core.map((r) => ({ games: r.g, winRate: r.wr })),
   };
 }
 

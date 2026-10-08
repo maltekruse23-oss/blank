@@ -58,6 +58,16 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
   Ziel: Mehr Leute kennen mayhemstats.lol und laden den Collector.
   Fertig, wenn: Website und `/mitmachen` mit Download sind live, Riot ist gefragt, der Entwurf (Deutsch und Englisch) ist ohne Gruppen und auf Tribüne-Stand, und malte hat ihn gepostet.
 
+- **Offmeta-Builds** (Benutzerwunsch 08.10.2026: „meine App soll Offmeta-Builds haben, z. B. AP-Alistar mit passenden Mayhem-Augments, super spielbar“)
+  Ziel: Champ-Karte und Mayhem-App zeigen je Champion spielbare Builds abseits der Hauptrichtung (z. B. AP-Alistar) mit den Augments, die dazu passen, immer mit Spielen und Siegquote.
+  Weg (malte 08.10.2026: Offbuilds gibt es auch im normalen League, Items sind gleich; Vorlagen u.gg, mobafire, mobalytics, aramonly): eine von Hand gepflegte Liste `offmetaBuilds.ts` (wie die Pro-Liste) mit Items, Quelle als Link und Datum; nie zur Laufzeit von diesen Seiten lesen. Zahlen dazu je Item und passende Augments aus arammeta, Mana-Items markiert.
+  Stand 08.10.2026: Teil 1 und 2 gebaut (aus arammetas Einzel-Items berechnet, 36 Offmeta-Builds über alle Champions, darunter AP-Alistar; Link „Guides auf aramonly.com“). Offen: Handliste für Sonderfälle (z. B. Full Magic Pen) und die Seite „Offmeta“ in der Mayhem-App.
+  Fertig, wenn: Für jeden Champion mit genug Spielen in einer selten gespielten Richtung steht ein „Offmeta“-Build (Kern, Stiefel, passende Augments) auf der Karte, eine Seite „Offmeta“ in der Mayhem-App listet die stärksten über alle Champions, und die Karte sagt ehrlich, ob die Zahlen aus ganzen Spielen oder aus Einzelwerten stammen.
+
+- **Build folgt den genommenen Augments** (Benutzerwunsch 08.10.2026: „er erkennt, du nimmst mit Alistar AP-Augments, und schlägt in der App direkt AP-Items vor“; MAYHEM-BERATER.md „Hauptargument“)
+  Ziel: Nimmt man im Spiel Augments einer Richtung (z. B. AP auf Alistar), wechselt die Karte von selbst zu dieser Richtung bzw. zum passenden Offmeta-Build und zeigt dessen Items.
+  Fertig, wenn: Nach einem genommenen Augment mit klarer Richtung (Kategorie bei arammeta, Umwandler) zeigt die Karte innerhalb einer Sekunde den Build dieser Richtung mit mehreren Item-Optionen und Zahlen; die eigene Wahl per Klick geht immer vor. Braucht 3a (genommenes Augment) und die Offmeta-Builds. Riot-Grauzone (reagiert auf den Spielverlauf): immer mehrere Optionen, vor einer öffentlichen Version Riot fragen.
+
 - **Angebote nach den genommenen Augments ranken** (Etappe 3b, MAYHEM-BERATER.md)
   Ziel: Die nächsten Angebote bekommen ihre Stufe auch danach, welche Augments schon genommen sind.
   Fertig, wenn: Es gibt genug Spiele mit gemeinsamen Augments (heute rund 147 Spiele, zu wenig), der Rückblick-Test ist bestanden, immer mehrere Optionen mit Zahlen.

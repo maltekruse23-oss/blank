@@ -101,3 +101,9 @@ export function onOffers(handler: (offers: Offers) => void) {
   const stop = listen<Offers>('aram-offers', ({ payload }) => handler(payload));
   return () => void stop.then((unlisten) => unlisten());
 }
+
+/** The champion's ARAM guides on aramonly.com in the browser (many offmeta builds); a link only. */
+export const openGuide = (championId: number) =>
+  isTauri()
+    ? invoke<void>('aram_open_guide', { championId }).catch(() => undefined)
+    : Promise.resolve();

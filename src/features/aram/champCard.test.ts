@@ -3,6 +3,11 @@ import type { AramEntry, AramSeat } from '../../adapters/aram';
 import type { ChampItem } from '../../adapters/aramChamp';
 import { championView } from '../../../apps/mayhem-site/src/champions';
 import {
+  assembledFacts,
+  isOffmeta,
+  itemTitle,
+  offmetaBuild,
+  OFFMETA_MIN_GAMES,
   itemSetOf,
   offerRows,
   AUGMENTS_SHOWN,
@@ -710,5 +715,71 @@ describe('Angebot im Spiel', () => {
       [1, 'S'],
     ]);
     expect(rows[1].name).toBe('Neu');
+  });
+});
+
+describe('Offmeta-Build', () => {
+  const item = (kind: ChampItem['kind'], mana = false, done = true) => ({
+    name: `Item`,
+    done,
+    mana,
+    kind,
+  });
+  // AP-Alistar as on arammeta 08.10.2026 (games, win rates), item names shortened.
+  const items: Record<string, ChampItem> = {
+    3089: { ...item('ap'), name: 'Rabadon' },
+    4645: { ...item('ap'), name: 'Shadowflame' },
+    4633: { ...item('ap'), name: 'Riftmaker' },
+    6655: { ...item('ap', true), name: 'Luden' },
+    3179: { ...item('ad'), name: 'Umbral Glaive' },
+    3084: { ...item('tank'), name: 'Heartsteel' },
+    1026: { ...item('ap', false, false), name: 'Blasting Wand' },
+  };
+  const rows = [
+    { ids: [3084], g: 1309, wr: 0.5356 },
+    { ids: [3089], g: 136, wr: 0.5352 },
+    { ids: [4645], g: 144, wr: 0.5286 },
+    { ids: [4633], g: 64, wr: 0.5468 },
+    { ids: [6655], g: 81, wr: 0.5325 },
+    { ids: [1026], g: 500, wr: 0.6 },
+    { ids: [3089], g: 136, wr: 0.5352 },
+  ];
+
+  it('setzt AP-Alistar aus den besten AP-Items zusammen, Mana nur später', () => {
+    const b = offmetaBuild('ap', rows, items, 0.541)!;
+    expect(b.items.map((i) => i.name)).toEqual(['Rabadon', 'Shadowflame', 'Riftmaker']);
+    expect(b.later?.map((i) => i.name)).toEqual(['Luden']);
+    expect(b.assembled).toEqual([
+      { games: 136, winRate: 0.5352 },
+      { games: 144, winRate: 0.5286 },
+      { games: 64, winRate: 0.5468 },
+    ]);
+    expect(b.label).toBe('Offmeta');
+    expect(assembledFacts(b)).toBe('Ø 54 % Siege · 64–144 Spiele je Item');
+    // Few games are pulled towards 50 %: Riftmaker (64 games) after Shadowflame (144).
+    expect(itemTitle(b, 2, b.items[2])).toBe('Riftmaker · 64 Spiele · 55 % Siege');
+  });
+
+  it('braucht drei Items mit genug Spielen, die nicht klar schlechter sind', () => {
+    expect(offmetaBuild('ad', rows, items, 0.5)).toBeNull();
+    expect(offmetaBuild('ap', rows, items, 0.56)).toBeNull();
+    const few = rows.map((r) => ({ ...r, g: Math.min(r.g, OFFMETA_MIN_GAMES - 1) }));
+    expect(offmetaBuild('ap', few, items, null)).toBeNull();
+    expect(offmetaBuild('ap', rows, items, null)).not.toBeNull();
+  });
+
+  it('erkennt einen Offmeta-Plan', () => {
+    const b = offmetaBuild('ap', rows, items, null)!;
+    const plan = {
+      direction: 'ap' as const,
+      games: 0,
+      share: 0,
+      source: 'arammeta' as const,
+      builds: [b],
+      augments: [],
+    };
+    expect(isOffmeta(plan)).toBe(true);
+    expect(isOffmeta({ ...plan, builds: [] })).toBe(false);
+    expect(itemSetOf(plan)?.core).toEqual([3089, 4645, 4633]);
   });
 });
