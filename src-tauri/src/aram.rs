@@ -53,6 +53,14 @@ use validate::{quality, valid_entry, DAY_MS, PLAUSIBLE_FROM};
 
 /// Queue of ARAM: Mayhem (the only mode that counts, user's choice).
 const MAYHEM_QUEUE: i64 = 2400;
+/// ARAM Mayhem's game mode, also in a custom game of it (queue 0/-1; user's report 08.10.2026:
+/// a Mayhem custom game was not recognised).
+const MAYHEM_MODE: &str = "KIWI";
+
+/// A Mayhem game: its queue, or a custom game in its mode.
+fn mayhem_game(queue: i64, mode: &str) -> bool {
+    queue == MAYHEM_QUEUE || mode.eq_ignore_ascii_case(MAYHEM_MODE)
+}
 /// The client's history: the last 20 games, whatever range is asked for.
 const HISTORY: &str = "begIndex=0&endIndex=20";
 /// Friends in the leaderboard: with the user ten, as many as in one game (user's wish: more).

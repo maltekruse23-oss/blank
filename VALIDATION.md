@@ -8,6 +8,11 @@
 - Ansicht im Browser-Pane (Mock, 1280 × 820): Home (Noten als Buchstaben, „See all“ zu Matches), Rang (Rangliste mit Symbolen und eigener Zeile 7, rechts Rang-Karte und 5 Spiele), Matches (10, dann „Show 2 more“), Karte nach dem Spiel (`?card=legend`, Note SSS als Buchstabe). Bei 1024 × 660 passt die Seitenleiste mit beiden Strichen ohne Scrollen. Website lokal mit fünf erfundenen Spielern (danach D1 verworfen): `/leaderboard` bei 1280 und 390 px (Podest mit Symbol, am Handy ohne), Spielerseite, Spielseite; Kopfzeile ohne „Items“, neues Logo.
 - Nicht geprüft: das echte rahmenlose Fenster (Ziehen, Doppelklick, Rand-Größenänderung, Schatten/Ecken von Windows 11, Schließen beendet) – braucht einen sichtbaren Start von `mayhem.exe`; die Champ-Karte (braucht den League-Client, in der Vorschau nicht darstellbar); Klick auf ein Spiel in Matches mit echtem Profil; Taskleisten-Icon zur Laufzeit.
 
+## Nachtrag 08.10.2026: Mayhem-Custom-Spiele
+
+- Geprüft: Rust-Test `a_mayhem_custom_game_counts_as_mayhem` (Queue 2400, Custom mit Modus „KIWI“ in Queue oder Map, nie ARAM), clippy, cargo test.
+- Nicht geprüft: ein echtes Custom-Spiel – ob die Gameflow-Sitzung dort `map.gameMode` = „KIWI“ meldet (angenommen; der Spielverlauf nennt Mayhem-Spiele „KIWI“, gemessen 06.10.2026).
+
 ## Nachtrag 08.10.2026: Website – Download der Mayhem-App
 
 - Block „Get the Mayhem app“ unter der Rangliste und unten auf `/join` (`apps/mayhem-site/app/ui/get-app.tsx`), Knopf auf `releases/latest/download/mayhem.exe`.

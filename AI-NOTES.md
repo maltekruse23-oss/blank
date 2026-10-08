@@ -15,6 +15,11 @@ Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Sta
   - **Seitenleiste gruppiert** nur mit feinem Strich (`<hr className="mayhem-nav-line">`): Home | Champ, Augments, Champions (arammeta) | Rank, Records, Matches (mayhemstats.lol). Passt bei 1024 × 660 ohne Scrollen.
 - Entscheidungen ohne Rückfrage: Name im Menü „Matches“ (kurz genug für 86 px), Seitentitel „Match history“; die Spielerseite der Website bleibt unverändert (Rang-Karte steht dort schon oben, Reiter Matches bleibt). Die Champ-Karte lässt sich in der Browser-Vorschau weiterhin nicht ansehen (braucht `aram_champ_info`, wie vorher).
 
+## Mayhem-Custom-Spiele erkennen — 08.10.2026
+
+- Benutzermeldung: ein ARAM-Mayhem-Custom-Spiel wurde nicht erkannt. Ursache: überall galt nur Queue 2400. Jetzt zählt auch der Spielmodus „KIWI“ (`mayhem_game` in aram.rs; Gameflow-Sitzung `gameData.queue.gameMode` oder `map.gameMode`, Spielverlauf `gameMode`): Champ-Auswahl (aram_live.rs), Spielstart/-ende (after_game.rs, für Karte, Angebote und Upload-Verfolgung) und die Karte nach dem Spiel (game_card.rs).
+- Bewusst nicht: hochgeladen und gewertet werden weiter nur Spiele der Queue 2400 (ladder.rs, aram.rs) – Custom-Spiele sind leicht zu manipulieren. Die Karte eines Custom-Spiels zeigt deshalb keinen Rang (wartet und sagt, dass die Seite das Spiel nicht hat).
+
 ## Website: Download der Mayhem-App — 08.10.2026
 
 - Benutzerwunsch 08.10.2026 „Rang-Tab wird angezeigt und dann Verweis App herunterladen“: die Rangliste bleibt wie sie ist, direkt darunter (vor „How it counts“) ein kleiner Block „Get the Mayhem app“ (`apps/mayhem-site/app/ui/get-app.tsx`, CSS `.get-app` in `globals.css`): eine Zeile, was die App tut, goldener Knopf „Download for Windows“ auf `MAYHEM_APP` (`app/ui/join.ts`, `releases/latest/download/mayhem.exe`, im Release seit v0.10.0), eine kleine Zeile zu Windows 10/11, kostenlos, nicht signiert („More info“ → „Run anyway“). Derselbe Block unten auf `/join`; der Collector-Download dort bleibt.

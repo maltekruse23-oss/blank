@@ -18,7 +18,7 @@
 //! arammeta's best pair for the champion when that pair has Snowball and enough games, else Flash
 //! or the exception with a reason in `SPELL_EXCEPTIONS`; once the user changes them, nothing more
 //! in that select).
-use super::{champion_names, lockfile, parse_lockfile, Lcu, MAYHEM_QUEUE, SESSION};
+use super::{champion_names, lockfile, mayhem_game, parse_lockfile, Lcu, SESSION};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -391,6 +391,12 @@ async fn is_mayhem() -> bool {
     #[serde(default, rename_all = "camelCase")]
     struct Session {
         game_data: Game,
+        map: Mode,
+    }
+    #[derive(Deserialize, Default)]
+    #[serde(default, rename_all = "camelCase")]
+    struct Mode {
+        game_mode: String,
     }
     #[derive(Deserialize, Default)]
     #[serde(default)]
@@ -401,13 +407,16 @@ async fn is_mayhem() -> bool {
     #[serde(default)]
     struct Queue {
         id: i64,
+        #[serde(rename = "gameMode")]
+        game_mode: String,
     }
     let Ok(Some(lcu)) = Lcu::connect() else {
         return false;
     };
-    lcu.get::<Session>(SESSION)
-        .await
-        .is_ok_and(|s| s.game_data.queue.id == MAYHEM_QUEUE)
+    lcu.get::<Session>(SESSION).await.is_ok_and(|s| {
+        let q = &s.game_data.queue;
+        mayhem_game(q.id, &q.game_mode) || mayhem_game(0, &s.map.game_mode)
+    })
 }
 
 /// The app window switches the card on or off (setting `popoutChamp`), and the writes into the
@@ -897,15 +906,26 @@ const RARITIES: [&str; 3] = ["kPrismatic", "kGold", "kSilver"];
 /// itself; this only reads the list the champ card already keeps. Left out on purpose: the
 /// trained team model (`team_score`, `draftModel`, `recommendation_composition`, for the later
 /// Lobby-Check) and fields without a clear meaning (`skillScaling`, `prevMix`, `slots`).
-#[tauri::command]
-pub async fn mayhem_tiers() -> Result<Tiers, String> {
-    let http = reqwest::Client::builder()
+/// One client for arammeta.com and Data Dragon for the whole run: open connections are reused, so
+/// later requests skip the TLS handshake (user's wish 08.10.2026: "Laden schneller machen").
+fn web_client() -> Result<reqwest::Client, String> {
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    if let Some(client) = CLIENT.get() {
+        return Ok(client.clone());
+    }
+    let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(5))
         .timeout(Duration::from_secs(30))
         .user_agent(concat!("blank/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| e.to_string())?;
+    Ok(CLIENT.get_or_init(|| client).clone())
+}
+
+#[tauri::command]
+pub async fn mayhem_tiers() -> Result<Tiers, String> {
+    let http = web_client()?;
     let list = meta_list(&http)
         .await
         .ok_or_else(|| "arammeta.com antwortet nicht.".to_string())?;
@@ -1157,13 +1177,7 @@ pub async fn aram_champ_info(
         return Err("Ungültige Anfrage.".into());
     }
     let locale = item_locale(english);
-    let http = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .connect_timeout(Duration::from_secs(5))
-        .timeout(Duration::from_secs(20))
-        .user_agent(concat!("blank/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let http = web_client()?;
     let text = |bytes: Option<Vec<u8>>| bytes.and_then(|b| String::from_utf8(b).ok());
     let champion_url = format!("{SITE}/api/champions/{champion_id}");
     let augments_url = format!("{SITE}/api/augments");
