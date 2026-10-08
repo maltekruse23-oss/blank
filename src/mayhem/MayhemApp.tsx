@@ -17,11 +17,13 @@ import {
   watchChamp,
   type HeldChamp,
 } from '../adapters/aramChamp';
+import { findRank, onRankUpload, onRankUploaded } from '../adapters/aramSite';
 import { champView, SAMPLE_CHAMP, type ChampView } from '../features/aram/champCard';
+import { found, type FindState } from './findRank';
 import { MayhemCard } from './MayhemCard';
 import { AugmentDetail, ChampionDetail, ItemsPage, PatchPage } from './metaPages';
 import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
-import { loadMe, type MeState } from './me';
+import { loadMe, withChampions, type MeState } from './me';
 import { loadTiers } from './tiers';
 import { UpdateButton } from './UpdateButton';
 
@@ -86,6 +88,30 @@ export function MayhemApp() {
   };
   const fetchMeRef = useRef(fetchMe);
   fetchMeRef.current = fetchMe;
+  const [find, setFind] = useState<FindState>({ state: 'idle' });
+  /** "Find my Mayhem rank": uploads the games, then shows the player (findRank.ts). */
+  const findMine = () => {
+    setFind({ state: 'uploading', done: 0, total: 0 });
+    const stop = onRankUpload((p) =>
+      setFind((old) => (old.state === 'uploading' ? { state: 'uploading', ...p } : old)),
+    );
+    findRank()
+      .then(
+        (answer) => {
+          const next = found(answer);
+          // Replaces a player still being asked for.
+          meAsked.current = { ask: meAsked.current.ask + 1, at: Date.now() };
+          setMe(next.me);
+          setFind(next.find);
+        },
+        (error: unknown) =>
+          setFind({
+            state: 'failed',
+            message: typeof error === 'string' ? error : 'mayhemstats.lol did not take the games.',
+          }),
+      )
+      .finally(stop);
+  };
   /** A champion or augment opened from a list (its page keeps the list's filters underneath). */
   const [detail, setDetail] = useState<{ champion?: number; augment?: number }>({});
   const mainRef = useRef<HTMLElement>(null);
@@ -120,10 +146,14 @@ export function MayhemApp() {
   // Home shows the top augments: the list is asked for once at the start.
   useEffect(() => requestTiers(setTiers), []);
 
-  // The player is asked for when the client opens or closes (also at the start).
+  // The player is asked for when the client opens or closes (also at the start), and after games
+  // went up by themselves (aram/ladder.rs). An earlier click's answer may be another account's.
   useEffect(() => {
-    if (client !== null) fetchMeRef.current();
+    if (client === null) return;
+    fetchMeRef.current();
+    setFind((old) => (old.state === 'uploading' ? old : { state: 'idle' }));
   }, [client]);
+  useEffect(() => onRankUploaded(() => fetchMeRef.current()), []);
 
   useEffect(() => {
     void leagueClientOpen().then(setClient);
@@ -153,6 +183,7 @@ export function MayhemApp() {
   const augment = lists?.augments.find((a) => a.id === detail.augment);
   const toChampion = (id: number) => openDetail('champions', { champion: id });
   const toAugment = (id: number) => openDetail('augments', { augment: id });
+  const meShown = withChampions(me, lists?.champions ?? []);
 
   return (
     <div className="mayhem">
@@ -191,10 +222,12 @@ export function MayhemApp() {
           {page === 'home' ? (
             <HomePage
               tiers={tierState}
-              me={me}
+              me={meShown}
               onOpen={open}
               onAugment={toAugment}
               onRetry={fetchMe}
+              find={find}
+              onFind={findMine}
             />
           ) : page === 'augments' ? (
             <>
@@ -237,7 +270,7 @@ export function MayhemApp() {
               onAugment={toAugment}
             />
           ) : page === 'rank' ? (
-            <RankPage me={me} onRetry={fetchMe} />
+            <RankPage me={meShown} onRetry={fetchMe} find={find} onFind={findMine} />
           ) : shown.state === 'ready' ? (
             <MayhemCard
               key={`${shown.view.championId}-${shown.sample}`}

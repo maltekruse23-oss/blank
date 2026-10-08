@@ -11,7 +11,9 @@ Stats and builds for League of Legends' ARAM Mayhem.
 
 1. Double-click `mayhem.exe`. No installation needed.
 2. If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. The app is not signed; this only comes up the first time.
-3. New versions: click **Update** at the bottom left of the app. It shows what's new and installs with one click.
+3. **Find my Mayhem rank** (Home or Rank): uploads your recent Mayhem games to mayhemstats.lol and shows your rank; after that each new game uploads by itself while the app runs. Remove yourself anytime at mayhemstats.lol/privacy/remove.
+
+New versions: click **Update** at the bottom left of the app. It shows what's new and installs with one click.
 
 Windows 10 or 11 (64-bit). The folders on this page and the "Source code" files are only the source code. All versions: [Releases](https://github.com/maltekruse23-oss/blank/releases).
 
