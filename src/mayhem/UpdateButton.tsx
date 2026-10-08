@@ -5,7 +5,7 @@ import { version } from '../../package.json';
 import notes from '../../.github/release-notes.md?raw';
 import { inline, MAYHEM_NEWS, newsItems } from '../app/releaseNotes';
 import { useUpdate } from '../app/useUpdate';
-import { updateNews } from '../platform/system';
+import { mayhemMoved, updateNews } from '../platform/system';
 import { More } from './ui';
 import { updateView } from './updateView';
 
@@ -20,11 +20,18 @@ export function UpdateButton() {
   const updates = useUpdate(true);
   const [open, setOpen] = useState(false);
   const [news, setNews] = useState(false);
+  /** blank.'s update made this app (from_blank.rs): what was cleaned up, shown with the news. */
+  const [moved, setMoved] = useState<string | null>(null);
   const button = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     void updateNews?.().then(
       (updated) => updated && setNews(true),
+      () => undefined,
+    );
+    // Waits for the cleanup in Rust; a second call (dev double effect) gets null.
+    void mayhemMoved?.().then(
+      (line) => line && setMoved(line),
       () => undefined,
     );
   }, []);
@@ -110,9 +117,13 @@ export function UpdateButton() {
         </Dialog>
       ) : (
         news &&
-        fresh.length > 0 && (
-          <Dialog title={`What's new in ${version}`} onClose={close}>
-            <Notes items={fresh} />
+        (moved || fresh.length > 0) && (
+          <Dialog
+            title={moved ? 'blank. is now the Mayhem app' : `What's new in ${version}`}
+            onClose={close}
+          >
+            {moved && <p>{moved}</p>}
+            {fresh.length > 0 && <Notes items={fresh} />}
             <div className="mayhem-dialog-actions">
               <button type="button" className="mayhem-button primary" autoFocus onClick={close}>
                 Got it

@@ -19,6 +19,7 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 1. **blank. wird zur Mayhem-App** (malte 08.10.2026: „bestehende App von blank auf anderen PCs soll mit Patch zu Mayhem umgewandelt werden“, Daten: „Aufräumen“)
    Ziel: Wer blank. installiert hat, bekommt mit dem nächsten Update die Mayhem-App an derselben Stelle (Release-Asset `blank.exe` = Mayhem-Build). Beim ersten Start räumt sie blank. auf: zuerst die Gaming-Optimierung zurücknehmen, dann Autostart, Twitch-Anmeldung, Einstellungen und ARAM-Spiele von blank. löschen.
    Fertig, wenn: Ein blank. v0.9.2 wird per Update-Klick zur Mayhem-App, die Optimierungen sind exakt zurückgesetzt, nichts von blank. bleibt außer dem Ordner, Verknüpfungen starten die Mayhem-App; auf Windows geprüft.
+   Stand 08.10.2026: gebaut im PR `claude/blank-wird-mayhem` (Release hängt den Mayhem-Build auch als `blank.exe` an, Aufräumen in `from_blank.rs`, README oben englisch). Offen: der echte Durchlauf v0.9.2 → nächstes Release auf Windows (geht erst nach dem Release, VALIDATION).
 
 2. **Eine öffentliche Rangliste: „Find my Mayhem rank“** (malte 08.10.2026: „keine Gruppen, nur eine Rangliste, auf ‚Mayhem-Rang herausfinden‘ klicken und automatisch in die öffentliche Rangliste“)
    Ziel: Ein Klick in der Mayhem-App lädt die letzten Mayhem-Spiele hoch und trägt einen in die öffentliche Rangliste ein; danach geht jedes neue Spiel nach Spielende von selbst hoch. Ob man eingetragen ist, weiß der Server (die App speichert nichts).
