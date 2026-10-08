@@ -6,7 +6,6 @@ import { isTauri } from '@tauri-apps/api/core';
 import { readOwnRanks, type OwnRanks } from '../adapters/aramSite';
 import { gradeOf, type Grade } from '../features/aram/aramPerformance';
 import type { Rank } from '../features/aram/aramRating';
-import { day } from '../features/aram/format';
 import { parseBoard, parseProfile, type Ranked } from '../features/aram/aramSite';
 import { ladderPlace } from '../features/aram/RankHistory';
 import { MOCK_STATE } from './mock';
@@ -48,7 +47,7 @@ export type MeState =
   /** The League client is closed or nobody is signed in. */
   | { state: 'closed' }
   | { state: 'failed'; message: string }
-  /** `me` null: mayhemstats.lol has no profile of the player ("nicht in der Datenbank"). */
+  /** `me` null: mayhemstats.lol has no profile of the player ("no games yet"). */
   | { state: 'ready'; name: string; me: MeView | null; ladder: LadderRow[]; mock: boolean };
 
 const RECENT = 6;
@@ -151,13 +150,13 @@ export function curvePath(values: number[]) {
   return { line, area: `${line} L${width} ${height} L0 ${height} Z`, end: points.at(-1)! };
 }
 
-/** "vor 5 min", "vor 2 h", "gestern", else the date. */
+/** "5 min ago", "2 h ago", "yesterday", else the date ("Oct 5"). */
 export function ago(at: number, now: number) {
   const minutes = Math.max(0, Math.floor((now - at) / 60_000));
-  if (minutes < 60) return `vor ${minutes} min`;
-  if (minutes < 24 * 60) return `vor ${Math.floor(minutes / 60)} h`;
-  if (minutes < 48 * 60) return 'gestern';
-  return day(at);
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} h ago`;
+  if (minutes < 48 * 60) return 'yesterday';
+  return new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 /** The answer of mayhem_ranks as the pages show it. */
@@ -174,15 +173,16 @@ export function ownState(answer: OwnRanks | null): MeState {
       mock: false,
     };
   } catch {
-    return { state: 'failed', message: 'Die Antwort von mayhemstats.lol passt nicht.' };
+    return { state: 'failed', message: 'The answer from mayhemstats.lol does not fit.' };
   }
 }
 
-/** The player's rank; the browser preview shows invented values (and says "Mock"). */
+/** The player's rank; the browser preview shows invented values (and says "Mock"). Rust's reasons
+ * are German (blank.'s), so the Mayhem app says it in English. */
 export const loadMe = (): Promise<MeState> =>
   isTauri()
-    ? readOwnRanks().then(ownState, (e: unknown) => ({
+    ? readOwnRanks().then(ownState, () => ({
         state: 'failed' as const,
-        message: typeof e === 'string' && e ? e : 'mayhemstats.lol antwortet nicht.',
+        message: 'mayhemstats.lol did not answer. Check your connection.',
       }))
     : Promise.resolve(MOCK_STATE);

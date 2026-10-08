@@ -177,9 +177,9 @@ describe('arammeta pages', () => {
   });
 
   it('writes changes in percentage points with one decimal', () => {
-    expect(pointsChange({ currentWr: 0.4623, baselineWr: 0.4394 })).toBe('+2,3');
-    expect(pointsChange({ currentWr: 0.378, baselineWr: 0.5231 })).toBe('−14,5');
-    expect(signedPoints(0)).toBe('±0,0');
+    expect(pointsChange({ currentWr: 0.4623, baselineWr: 0.4394 })).toBe('+2.3');
+    expect(pointsChange({ currentWr: 0.378, baselineWr: 0.5231 })).toBe('−14.5');
+    expect(signedPoints(0)).toBe('±0.0');
   });
 
   it('finds the champions an augment is among the best for, surest first', () => {
@@ -190,9 +190,10 @@ describe('arammeta pages', () => {
     expect(championsWithAugment(lists.champions, 4242)).toEqual([]);
   });
 
-  it('names categories in German and shows only those some augment has', () => {
-    expect(categoryName(lists, 'tank')).toBe('Verteidigung');
+  it("names categories with arammeta's English label and shows only those some augment has", () => {
+    expect(categoryName(lists, 'tank')).toBe('Defense');
     expect(categoryName({ categories: [{ id: 'x', label: 'Fresh' }] }, 'x')).toBe('Fresh');
+    expect(categoryName({ categories: [] }, 'odd')).toBe('odd');
     expect(usedCategories(lists).map((c) => c.id)).toEqual(lists.categories.map((c) => c.id));
     expect(usedCategories({ ...lists, augments: [] })).toEqual([]);
   });

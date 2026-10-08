@@ -20,7 +20,7 @@ import {
   type Combo,
   type ItemTexts,
 } from './combos';
-import { number, percent } from './format';
+import { number, percent, type Lang } from './format';
 
 // The engine behind offmeta builds and combos lives in combos.ts (Offmeta-System).
 export {
@@ -471,9 +471,23 @@ export function buildPlans(
  * A line under the direction when its numbers are not the card's usual ones: taken from the
  * website, or arammeta has no games of that direction (its tiers then rest on all games).
  */
-export function planNote(view: Pick<ChampView, 'source' | 'name' | 'alias'>, plan: BuildPlan) {
+export function planNote(
+  view: Pick<ChampView, 'source' | 'name' | 'alias'>,
+  plan: BuildPlan,
+  lang: Lang = 'de',
+) {
   const dir = DIRECTION_LABEL[plan.direction];
-  const n = plan.games.toLocaleString('de-DE');
+  const n = number(plan.games, lang);
+  if (lang === 'en') {
+    const who = view.name || view.alias;
+    if (plan.source !== view.source)
+      return `arammeta.com has few ${dir} games. Core and augments come from mayhemstats.lol (${n} ${plan.games === 1 ? 'game' : 'games'}).`;
+    if (plan.source === 'arammeta' && plan.builds.length && plan.builds.every((b) => b.assembled))
+      return `Offmeta: arammeta.com has no full ${dir} build on ${who}. The core is the three best ${dir} items on ${who}, each measured on its own.`;
+    if (plan.source === 'arammeta' && !plan.builds.length)
+      return `arammeta.com has few ${dir} games on ${who}. The tiers rest on all games, ${dir} augments rank higher.`;
+    return null;
+  }
   if (plan.source !== view.source)
     return `Für ${dir} hat arammeta.com kaum Spiele. Kern und Augments kommen von mayhemstats.lol (${n} ${plan.games === 1 ? 'Spiel' : 'Spiele'}).`;
   if (plan.source === 'arammeta' && plan.builds.length && plan.builds.every((b) => b.assembled))
@@ -891,16 +905,26 @@ export function metaView(
 export const isOffmeta = (plan: BuildPlan) => plan.builds.some((b) => b.assembled);
 
 /** The numbers of an offmeta build as the card names them: each item measured on its own. */
-export function assembledFacts(b: BuildPick) {
+export function assembledFacts(b: BuildPick, lang: Lang = 'de') {
   if (!b.assembled?.length) return null;
   const g = b.assembled.map((a) => a.games);
-  const [low, high] = [number(Math.min(...g)), number(Math.max(...g))];
-  return `Ø ${percent(b.winRate)} Siege · ${low === high ? low : `${low}–${high}`} Spiele je Item`;
+  const [low, high] = [number(Math.min(...g), lang), number(Math.max(...g), lang)];
+  const range = low === high ? low : `${low}–${high}`;
+  return lang === 'en'
+    ? `avg ${percent(b.winRate, lang)} wins · ${range} games per item`
+    : `Ø ${percent(b.winRate)} Siege · ${range} Spiele je Item`;
 }
 
 /** An item's tooltip: mana marked, and its own numbers when the build is put together (offmeta). */
-export function itemTitle(b: BuildPick, n: number, i: { name: string; mana: boolean }) {
+export function itemTitle(
+  b: BuildPick,
+  n: number,
+  i: { name: string; mana: boolean },
+  lang: Lang = 'de',
+) {
   const own = b.assembled?.[n];
+  if (lang === 'en')
+    return `${i.name}${i.mana ? ' (mana, weak in ARAM)' : ''}${own ? `: ${percent(own.winRate, lang)} wins in ${number(own.games, lang)} games` : ''}`;
   const facts = own ? ` · ${number(own.games)} Spiele · ${percent(own.winRate)} Siege` : '';
   return `${i.name}${i.mana ? ' (Mana, in ARAM schwach)' : ''}${facts}`;
 }
@@ -915,23 +939,31 @@ export const EXTRA_SHOWN = {
   avoid: 4,
   types: 4,
 };
-/** Summoner spells the card names, by id: German name and Data Dragon key for the picture. */
-export const SPELLS: Readonly<Record<number, readonly [string, string]>> = {
-  1: ['Läuterung', 'SummonerBoost'],
-  3: ['Erschöpfung', 'SummonerExhaust'],
-  4: ['Blitz', 'SummonerFlash'],
-  6: ['Geist', 'SummonerHaste'],
-  7: ['Heilen', 'SummonerHeal'],
-  13: ['Klarheit', 'SummonerMana'],
-  14: ['Entzünden', 'SummonerDot'],
-  21: ['Barriere', 'SummonerBarrier'],
-  32: ['Markieren', 'SummonerSnowball'],
+/** Summoner spells the card names, by id: German name, Data Dragon key for the picture and English
+ * name (the Mayhem app, `spellName`). */
+export const SPELLS: Readonly<Record<number, readonly [string, string, string]>> = {
+  1: ['Läuterung', 'SummonerBoost', 'Cleanse'],
+  3: ['Erschöpfung', 'SummonerExhaust', 'Exhaust'],
+  4: ['Blitz', 'SummonerFlash', 'Flash'],
+  6: ['Geist', 'SummonerHaste', 'Ghost'],
+  7: ['Heilen', 'SummonerHeal', 'Heal'],
+  13: ['Klarheit', 'SummonerMana', 'Clarity'],
+  14: ['Entzünden', 'SummonerDot', 'Ignite'],
+  21: ['Barriere', 'SummonerBarrier', 'Barrier'],
+  32: ['Markieren', 'SummonerSnowball', 'Mark'],
 };
+/** A spell's name by id in the language asked for; null for one the card does not know. */
+export const spellName = (id: number, lang: Lang = 'de') =>
+  SPELLS[id]?.[lang === 'en' ? 2 : 0] ?? null;
 /** The numbers of a weak augment per pick (1st to 4th augment of the game), for its tooltip. */
-export const slotsText = (slots: AvoidAugment['slots']) =>
+export const slotsText = (slots: AvoidAugment['slots'], lang: Lang = 'de') =>
   slots
     .map((s, i) =>
-      s ? `Wahl ${i + 1}: ${s.games} Spiele, ${Math.round(s.winRate * 100)} % Siege` : null,
+      !s
+        ? null
+        : lang === 'en'
+          ? `Pick ${i + 1}: ${percent(s.winRate, lang)} wins in ${number(s.games, lang)} games`
+          : `Wahl ${i + 1}: ${s.games} Spiele, ${Math.round(s.winRate * 100)} % Siege`,
     )
     .filter(Boolean)
     .join('\n');

@@ -163,11 +163,26 @@ button {
   overflow-y: auto;
 }
 
+/* Wide windows (user 08.10.2026: maximized "sieht kacke aus"): the content takes the width up to
+   about 1680 px and is centered beyond; grids gain columns (auto-fill), never denser rows; type
+   and spacing grow a little in steps so 1920+ does not look tiny. */
 .mayhem-wrap {
-  max-width: 1180px;
+  max-width: 1680px;
   min-height: 100%;
   margin: 0 auto;
-  padding: 28px 32px 48px;
+  padding: 28px clamp(24px, 2.4vw, 44px) 48px;
+}
+
+@media (min-width: 1700px) {
+  .mayhem {
+    zoom: 1.1;
+  }
+}
+
+@media (min-width: 2200px) {
+  .mayhem {
+    zoom: 1.25;
+  }
 }
 
 /* --- Waiting: one gold glow tile ---------------------------------------------------------- */
@@ -271,9 +286,14 @@ button {
 
 .mayhem-card {
   display: grid;
-  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 34%) minmax(0, 1fr);
   gap: 28px;
   align-items: start;
+}
+
+/* The tabs with everything else on the champion, under both columns. */
+.mayhem-card-more {
+  grid-column: 1 / -1;
 }
 
 .mayhem-card-side,
@@ -408,6 +428,13 @@ button {
   letter-spacing: -0.005em;
 }
 
+.mayhem-section h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .mayhem-builds,
 .mayhem-best,
 .mayhem-tier ul {
@@ -416,6 +443,61 @@ button {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Wide columns show rows side by side instead of stretching them. */
+.mayhem-best,
+.mayhem-tier ul {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+}
+
+/* A tab's content: its blocks side by side when there is room. */
+.mayhem-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: 18px 28px;
+  align-items: start;
+}
+
+/* "Show more" under a list (lists show five first, MAYHEM-DESIGN.md). */
+.mayhem-more {
+  justify-self: start;
+  min-height: 30px;
+  margin-top: 2px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color var(--slow) var(--ease),
+    border-color var(--slow) var(--ease);
+}
+
+.mayhem-more:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* The best entry of a list, marked so nobody has to compare. */
+.mayhem-top {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font: 800 10.5px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mayhem-best li[data-top='true'],
+.mayhem-grid li[data-top='true'] {
+  --row: color-mix(in oklab, var(--accent) 50%, transparent);
+  border-color: color-mix(in oklab, var(--accent) 28%, transparent);
 }
 
 /* Rows with a soft glow on the left in their color (--row); the best build in gold. */
@@ -606,7 +688,7 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
    win rate in green and the games below; weak ones faded. */
 .mayhem-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
   gap: 6px;
   margin: 0;
   padding: 0;
@@ -883,6 +965,19 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   border-color: rgba(242, 193, 78, 0.5);
 }
 
+.mayhem-select {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .mayhem-chips {
   display: flex;
   flex-wrap: wrap;
@@ -945,10 +1040,23 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   color: var(--silver);
 }
 
+.mayhem-aug-grid,
+.mayhem-item-grid,
+.mayhem-meta-faces {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .mayhem-aug-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 14px;
+}
+
+/* The best card of the list: gold edge (its "Top" sits by the games). */
+.mayhem-aug-card[data-top='true'] {
+  border-color: color-mix(in oklab, var(--accent) 45%, transparent);
 }
 
 .mayhem-aug-card {
@@ -1045,6 +1153,9 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
 }
 
 .mayhem-aug-card-games {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: auto;
   padding-top: 6px;
   font: 400 11px var(--font-mono);
@@ -1053,9 +1164,9 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
 
 .mayhem-aug-card-rate {
   position: absolute;
-  top: 12px;
+  top: 10px;
   left: 12px;
-  font: 500 12px var(--font-mono);
+  font: 500 15px var(--font-mono);
   color: var(--up);
 }
 
@@ -1199,12 +1310,17 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   color: var(--up);
 }
 
-/* Two columns: side (rank, ladder) and main (match history), like the website's player page. */
+/* Two columns: side (rank, ladder) and main (match history), like the website's player page; the
+   side grows with the window. The detail pages put the side on the right (main first). */
 .mayhem-columns {
   display: grid;
-  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 30%) minmax(0, 1fr);
   gap: 28px;
   align-items: start;
+}
+
+.mayhem-columns-end {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 32%);
 }
 
 .mayhem-column-side {
@@ -1426,7 +1542,7 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-home {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 28%);
   gap: 18px;
   align-items: start;
 }
@@ -1436,6 +1552,33 @@ li[data-place='3'] .mayhem-place {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+.mayhem-home-main {
+  container: home / inline-size;
+}
+
+/* No player yet (client closed, loading, no games): one small notice, not an empty hero. */
+.mayhem-notice {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 18px 22px;
+}
+
+.mayhem-notice h1 {
+  font: 800 20px/1.2 var(--font-title);
+}
+
+.mayhem-notice p {
+  color: var(--muted);
+}
+
+.mayhem-notice > .mayhem-pill {
+  position: absolute;
+  top: 14px;
+  right: 14px;
 }
 
 .mayhem-hero-big {
@@ -1516,7 +1659,8 @@ li[data-place='3'] .mayhem-place {
   color: var(--text);
 }
 
-.mayhem-tabs button[aria-pressed='true'] {
+.mayhem-tabs button[aria-pressed='true'],
+.mayhem-tabs button[aria-selected='true'] {
   background: var(--accent);
   color: var(--accent-ink);
 }
@@ -1528,8 +1672,15 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-row-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 8px 10px;
+}
+
+/* "Mock" stays by the heading, the link at the end. */
+.mayhem-row-head > .mayhem-pill {
+  margin-right: auto;
 }
 
 .mayhem-row-head h2 {
@@ -1548,10 +1699,68 @@ li[data-place='3'] .mayhem-place {
   color: var(--accent);
 }
 
-.mayhem-mini-grid {
+/* Home's rows of cards fill exactly one row: wider windows show more cards, the rest stays out
+   (display: none, so no hidden card takes keyboard focus). */
+.mayhem-mini-grid,
+.mayhem-game-cards {
+  --n: 4;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
   gap: 12px;
+}
+
+.mayhem-game-cards {
+  --n: 3;
+}
+
+.mayhem-mini-grid > :nth-child(n + 5),
+.mayhem-game-cards > :nth-child(n + 4) {
+  display: none;
+}
+
+@container home (min-width: 900px) {
+  .mayhem-mini-grid {
+    --n: 5;
+  }
+  .mayhem-game-cards {
+    --n: 4;
+  }
+  .mayhem-mini-grid > :nth-child(5) {
+    display: grid;
+  }
+  .mayhem-game-cards > :nth-child(4) {
+    display: block;
+  }
+}
+
+@container home (min-width: 1080px) {
+  .mayhem-mini-grid {
+    --n: 6;
+  }
+  .mayhem-game-cards {
+    --n: 5;
+  }
+  .mayhem-mini-grid > :nth-child(6) {
+    display: grid;
+  }
+  .mayhem-game-cards > :nth-child(5) {
+    display: block;
+  }
+}
+
+@container home (min-width: 1260px) {
+  .mayhem-mini-grid {
+    --n: 7;
+  }
+  .mayhem-game-cards {
+    --n: 6;
+  }
+  .mayhem-mini-grid > :nth-child(7) {
+    display: grid;
+  }
+  .mayhem-game-cards > :nth-child(6) {
+    display: block;
+  }
 }
 
 /* A small augment tile lit from below in its rarity. */
@@ -1637,12 +1846,6 @@ li[data-place='3'] .mayhem-place {
   color: var(--up);
 }
 
-.mayhem-game-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
 .mayhem-game-card {
   position: relative;
   overflow: hidden;
@@ -1716,10 +1919,11 @@ li[data-place='3'] .mayhem-place {
   filter: drop-shadow(0 0 18px rgba(242, 193, 78, 0.45));
 }
 
+/* Grows with the bento column (its viewBox keeps the proportions). */
 .mayhem-curve {
   display: block;
   width: 100%;
-  height: 70px;
+  height: auto;
   margin-top: 8px;
 }
 
@@ -1952,7 +2156,13 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-meta-stats dd {
   margin: 0;
-  font: 500 18px var(--font-mono);
+  font: 500 22px var(--font-mono);
+  color: var(--up);
+}
+
+.mayhem-meta-stats small {
+  font: 400 11px var(--font-mono);
+  color: var(--faint);
 }
 
 /* The tier letter reuses the card's corner badge, here in the flow. */
@@ -2026,7 +2236,7 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-profile-row {
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr) 40px;
+  grid-template-columns: 120px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   font-size: 13px;
@@ -2036,9 +2246,15 @@ li[data-place='3'] .mayhem-place {
   margin: 0;
 }
 
-.mayhem-profile-row .mono {
-  color: var(--muted);
-  text-align: right;
+/* The champion's strongest trait in gold. */
+.mayhem-profile-row[data-top='true'] {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.mayhem-profile-row[data-top='false'] .mayhem-bar span {
+  background: var(--muted);
+  box-shadow: none;
 }
 
 .mayhem-meta-split {
@@ -2067,7 +2283,7 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-item-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
 }
 
@@ -2098,7 +2314,7 @@ li[data-place='3'] .mayhem-place {
   color: var(--muted);
   font-size: 12.5px;
   white-space: pre-line;
-  -webkit-line-clamp: 8;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
 }
 
@@ -2127,6 +2343,11 @@ li[data-place='3'] .mayhem-place {
   min-height: 30px;
   padding: 0 12px;
   color: var(--text);
+}
+
+.mayhem-combo-picks .mayhem-chip-more {
+  border-style: dashed;
+  color: var(--muted);
 }
 
 .mayhem-combo-tag {
