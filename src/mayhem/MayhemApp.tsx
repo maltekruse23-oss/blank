@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { House, LayoutGrid, Plus, Sparkles, Swords, Trophy } from 'lucide-react';
+import {
+  House,
+  LayoutGrid,
+  Package,
+  Plus,
+  Sparkles,
+  Swords,
+  TrendingUp,
+  Trophy,
+} from 'lucide-react';
 import {
   leagueClientOpen,
   onChamp,
@@ -10,11 +19,12 @@ import {
 } from '../adapters/aramChamp';
 import { champView, SAMPLE_CHAMP, type ChampView } from '../features/aram/champCard';
 import { MayhemCard } from './MayhemCard';
+import { AugmentDetail, ChampionDetail, ItemsPage, PatchPage } from './metaPages';
 import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
 import { loadMe, type MeState } from './me';
 import { loadTiers } from './tiers';
 
-export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'rank';
+export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'items' | 'patch' | 'rank';
 
 /** The sidebar (user, 08.10.2026: dashboard like the canvas "App · Home"; the app grows by
  * entries like these, the dashed "Bald" marks the room for the next ones). */
@@ -23,6 +33,8 @@ const PAGES: { id: Page; label: string; Icon: typeof Swords }[] = [
   { id: 'champ', label: 'Champ', Icon: Swords },
   { id: 'augments', label: 'Augments', Icon: Sparkles },
   { id: 'champions', label: 'Champions', Icon: LayoutGrid },
+  { id: 'items', label: 'Items', Icon: Package },
+  { id: 'patch', label: 'Patch', Icon: TrendingUp },
   { id: 'rank', label: 'Rang', Icon: Trophy },
 ];
 
@@ -76,8 +88,17 @@ export function MayhemApp() {
   };
   const fetchMeRef = useRef(fetchMe);
   fetchMeRef.current = fetchMe;
+  /** A champion or augment opened from a list (its page keeps the list's filters underneath). */
+  const [detail, setDetail] = useState<{ champion?: number; augment?: number }>({});
+  const mainRef = useRef<HTMLElement>(null);
+  const openDetail = (next: Page, which: { champion?: number; augment?: number }) => {
+    setPage(next);
+    setDetail(which);
+    mainRef.current?.scrollTo(0, 0);
+  };
   const open = (next: Page) => {
     setPage(next);
+    setDetail({});
     if (next !== 'champ' && next !== 'rank' && (!tiers || tiers.state === 'failed')) fetchTiers();
     const stale = me.state !== 'ready' || Date.now() - meAsked.current.at > ME_FRESH_MS;
     if ((next === 'home' || next === 'rank') && stale) fetchMe();
@@ -128,6 +149,13 @@ export function MayhemApp() {
     };
   }, []);
 
+  const tierState = tiers ?? { state: 'loading' };
+  const lists = tierState.state === 'ready' ? tierState.lists : null;
+  const champion = lists?.champions.find((c) => c.id === detail.champion);
+  const augment = lists?.augments.find((a) => a.id === detail.augment);
+  const toChampion = (id: number) => openDetail('champions', { champion: id });
+  const toAugment = (id: number) => openDetail('augments', { augment: id });
+
   return (
     <div className="mayhem">
       <aside className="mayhem-side">
@@ -159,19 +187,56 @@ export function MayhemApp() {
           Client
         </span>
       </aside>
-      <main className="mayhem-main" key={page}>
+      <main className="mayhem-main" key={page} ref={mainRef}>
         <div className="mayhem-wrap">
           {page === 'home' ? (
             <HomePage
-              tiers={tiers ?? { state: 'loading' }}
+              tiers={tierState}
               me={me}
               onOpen={open}
+              onAugment={toAugment}
               onRetry={fetchMe}
             />
           ) : page === 'augments' ? (
-            <AugmentsPage tiers={tiers ?? { state: 'loading' }} onRetry={fetchTiers} />
+            <>
+              <div hidden={!!augment}>
+                <AugmentsPage tiers={tierState} onRetry={fetchTiers} onSelect={toAugment} />
+              </div>
+              {lists && augment && (
+                <AugmentDetail
+                  key={augment.id}
+                  lists={lists}
+                  augment={augment}
+                  onBack={() => setDetail({})}
+                  onChampion={toChampion}
+                />
+              )}
+            </>
           ) : page === 'champions' ? (
-            <ChampionsPage tiers={tiers ?? { state: 'loading' }} onRetry={fetchTiers} />
+            <>
+              <div hidden={!!champion}>
+                <ChampionsPage tiers={tierState} onRetry={fetchTiers} onSelect={toChampion} />
+              </div>
+              {lists && champion && (
+                <ChampionDetail
+                  key={champion.id}
+                  lists={lists}
+                  champion={champion}
+                  onBack={() => setDetail({})}
+                  onChampion={toChampion}
+                  onAugment={toAugment}
+                />
+              )}
+            </>
+          ) : page === 'items' ? (
+            <ItemsPage tiers={tierState} onRetry={fetchTiers} />
+          ) : page === 'patch' ? (
+            <PatchPage
+              tiers={tierState}
+              onRetry={fetchTiers}
+              onChampion={toChampion}
+              onAugment={toAugment}
+            />
           ) : page === 'rank' ? (
             <RankPage me={me} onRetry={fetchMe} />
           ) : shown.state === 'ready' ? (

@@ -12,12 +12,18 @@ import { number, percent } from '../features/aram/format';
 import { games } from './MayhemCard';
 import { ago, CURVE_SIZE, curvePath, type MeState, type MeView } from './me';
 import type { Page } from './MayhemApp';
-import type { TierAugment, TierChampion, TierLists } from './tiers';
+import {
+  categoryName,
+  usedCategories,
+  type TierAugment,
+  type TierChampion,
+  type TierLists,
+} from './tiers';
 
-const step = (i: number) => ({ ['--i' as string]: Math.min(i, 16) }) as CSSProperties;
+export const step = (i: number) => ({ ['--i' as string]: Math.min(i, 16) }) as CSSProperties;
 
 /** Header of a page: title, a short line and, for invented values, the "Mock" badge. */
-function PageHead({ title, line, badge }: { title: string; line: string; badge?: string }) {
+export function PageHead({ title, line, badge }: { title: string; line: string; badge?: string }) {
   return (
     <header className="mayhem-page-head mayhem-in">
       <div>
@@ -35,7 +41,7 @@ export type TierState =
   | { state: 'failed'; message: string }
   | { state: 'ready'; lists: TierLists };
 
-function TierWait({ tiers, onRetry }: { tiers: TierState; onRetry: () => void }) {
+export function TierWait({ tiers, onRetry }: { tiers: TierState; onRetry: () => void }) {
   if (tiers.state === 'loading')
     return <p className="mayhem-note mayhem-in">Lade die Liste von arammeta.com …</p>;
   if (tiers.state === 'failed')
@@ -68,23 +74,39 @@ const RARITY_CHIP: Record<TierAugment['rarity'] | 'all', string> = {
   silver: 'Silber',
 };
 
-export function AugmentsPage({ tiers, onRetry }: { tiers: TierState; onRetry: () => void }) {
+export function AugmentsPage({
+  tiers,
+  onRetry,
+  onSelect,
+}: {
+  tiers: TierState;
+  onRetry: () => void;
+  onSelect: (id: number) => void;
+}) {
   const [rarity, setRarity] = useState<TierAugment['rarity'] | 'all'>('all');
   const [tier, setTier] = useState<Tier | 'all'>('all');
+  const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
+  const lists = tiers.state === 'ready' ? tiers.lists : null;
+  const categories = useMemo(() => (lists ? usedCategories(lists) : []), [lists]);
   const shown = useMemo(() => {
-    const list = tiers.state === 'ready' ? tiers.lists.augments : [];
+    const list = lists?.augments ?? [];
     const q = query.trim().toLowerCase();
     return list.filter(
       (a) =>
         (rarity === 'all' || a.rarity === rarity) &&
         (tier === 'all' || a.tier === tier) &&
+        (category === 'all' || a.cats.includes(category)) &&
         (!q || a.name.toLowerCase().includes(q) || a.text.toLowerCase().includes(q)),
     );
-  }, [tiers, rarity, tier, query]);
+  }, [lists, rarity, tier, category, query]);
   return (
     <div className="mayhem-page">
-      <PageHead title="ARAM Mayhem Augments" line={source(tiers, 'Jedes Augment')} />
+      <PageHead
+        title="ARAM Mayhem Augments"
+        line={source(tiers, 'Jedes Augment')}
+        badge={lists?.mock ? 'Mock' : undefined}
+      />
       {tiers.state !== 'ready' ? (
         <TierWait tiers={tiers} onRetry={onRetry} />
       ) : (
@@ -118,6 +140,20 @@ export function AugmentsPage({ tiers, onRetry }: { tiers: TierState; onRetry: ()
                 </button>
               ))}
             </div>
+            {lists && categories.length > 0 && (
+              <div className="mayhem-chips" role="group" aria-label="Kategorie">
+                {[{ id: 'all', label: '' }, ...categories].map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={category === c.id}
+                    onClick={() => setCategory(c.id)}
+                  >
+                    {c.id === 'all' ? 'Alle Kategorien' : categoryName(lists, c.id)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {RARITIES.map((r) => {
             const inRarity = shown.filter((a) => a.rarity === r.id);
@@ -130,7 +166,7 @@ export function AugmentsPage({ tiers, onRetry }: { tiers: TierState; onRetry: ()
                 </div>
                 <div className="mayhem-aug-grid">
                   {inRarity.map((a, i) => (
-                    <AugmentCard key={a.id} augment={a} index={i + 2} />
+                    <AugmentCard key={a.id} augment={a} index={i + 2} onSelect={onSelect} />
                   ))}
                 </div>
               </section>
@@ -144,7 +180,15 @@ export function AugmentsPage({ tiers, onRetry }: { tiers: TierState; onRetry: ()
 }
 
 /** One augment as a card (after Blitz): picture in the middle, tier top right, win rate top left. */
-function AugmentCard({ augment: a, index }: { augment: TierAugment; index: number }) {
+function AugmentCard({
+  augment: a,
+  index,
+  onSelect,
+}: {
+  augment: TierAugment;
+  index: number;
+  onSelect: (id: number) => void;
+}) {
   return (
     <article className="mayhem-aug-card mayhem-in" data-rarity={a.rarity} style={step(index)}>
       <span className="mayhem-aug-card-tier" data-tier={a.tier}>
@@ -154,15 +198,22 @@ function AugmentCard({ augment: a, index }: { augment: TierAugment; index: numbe
       <span className="mayhem-aug-card-icon">
         {a.image && <img src={a.image} alt="" width={56} height={56} loading="lazy" />}
       </span>
-      <h3>{a.name}</h3>
+      <h3>
+        {/* The whole card opens the augment (the button's ::after covers it). */}
+        <button type="button" className="mayhem-stretch" onClick={() => onSelect(a.id)}>
+          {a.name}
+        </button>
+      </h3>
       <p>{a.text}</p>
-      <span className="mayhem-aug-card-games">{games(a.games)}</span>
+      <span className="mayhem-aug-card-games">
+        {games(a.games)} · Pick {a.pick === null ? '–' : percent(a.pick)}
+      </span>
     </article>
   );
 }
 
 /** Data Dragon's classes in German (the tier list filters by the first one). */
-const ROLES: Record<string, string> = {
+export const ROLES: Record<string, string> = {
   Tank: 'Tank',
   Fighter: 'Kämpfer',
   Mage: 'Magier',
@@ -179,7 +230,15 @@ const TIER_LINE: Record<Tier, string> = {
   D: 'Letzte 10 %',
 };
 
-export function ChampionsPage({ tiers, onRetry }: { tiers: TierState; onRetry: () => void }) {
+export function ChampionsPage({
+  tiers,
+  onRetry,
+  onSelect,
+}: {
+  tiers: TierState;
+  onRetry: () => void;
+  onSelect: (id: number) => void;
+}) {
   const [role, setRole] = useState<string>('all');
   const [query, setQuery] = useState('');
   const shown = useMemo(() => {
@@ -191,7 +250,11 @@ export function ChampionsPage({ tiers, onRetry }: { tiers: TierState; onRetry: (
   }, [tiers, role, query]);
   return (
     <div className="mayhem-page">
-      <PageHead title="ARAM Mayhem Tier-Liste" line={source(tiers, 'Jeder Champion')} />
+      <PageHead
+        title="ARAM Mayhem Tier-Liste"
+        line={source(tiers, 'Jeder Champion')}
+        badge={tiers.state === 'ready' && tiers.lists.mock ? 'Mock' : undefined}
+      />
       {tiers.state !== 'ready' ? (
         <TierWait tiers={tiers} onRetry={onRetry} />
       ) : (
@@ -216,7 +279,15 @@ export function ChampionsPage({ tiers, onRetry }: { tiers: TierState; onRetry: (
           {TIERS.map((tier, t) => {
             const inTier = shown.filter((c) => c.tier === tier);
             if (!inTier.length) return null;
-            return <ChampionTier key={tier} tier={tier} list={inTier} index={t + 2} />;
+            return (
+              <ChampionTier
+                key={tier}
+                tier={tier}
+                list={inTier}
+                index={t + 2}
+                onSelect={onSelect}
+              />
+            );
           })}
           {!shown.length && <p className="mayhem-note">Nichts gefunden.</p>}
         </>
@@ -226,7 +297,17 @@ export function ChampionsPage({ tiers, onRetry }: { tiers: TierState; onRetry: (
 }
 
 /** A tier as Blitz shows it: a lit block with the letter, the champions in a grid beside it. */
-function ChampionTier({ tier, list, index }: { tier: Tier; list: TierChampion[]; index: number }) {
+function ChampionTier({
+  tier,
+  list,
+  index,
+  onSelect,
+}: {
+  tier: Tier;
+  list: TierChampion[];
+  index: number;
+  onSelect: (id: number) => void;
+}) {
   return (
     <section className="mayhem-tier-block mayhem-in" data-tier={tier} style={step(index)}>
       <div className="mayhem-tier-side">
@@ -235,7 +316,13 @@ function ChampionTier({ tier, list, index }: { tier: Tier; list: TierChampion[];
       </div>
       <div className="mayhem-champ-grid">
         {list.map((c) => (
-          <span key={c.id} className="mayhem-champ" title={`${c.name}: ${games(c.games)}`}>
+          <button
+            key={c.id}
+            type="button"
+            className="mayhem-champ"
+            title={`${c.name}: ${games(c.games)}`}
+            onClick={() => onSelect(c.id)}
+          >
             <img
               src={championSquare(c.alias) ?? undefined}
               alt=""
@@ -247,7 +334,7 @@ function ChampionTier({ tier, list, index }: { tier: Tier; list: TierChampion[];
               <b>{c.name}</b>
               <small>{percent(c.winRate)}</small>
             </span>
-          </span>
+          </button>
         ))}
       </div>
     </section>
@@ -422,11 +509,13 @@ export function HomePage({
   tiers,
   me,
   onOpen,
+  onAugment,
   onRetry,
 }: {
   tiers: TierState;
   me: MeState;
   onOpen: (page: Page) => void;
+  onAugment: (id: number) => void;
   onRetry: () => void;
 }) {
   const top = tiers.state === 'ready' ? tiers.lists.augments.slice(0, 4) : [];
@@ -490,11 +579,20 @@ export function HomePage({
           <button type="button" onClick={() => onOpen('rank')}>
             Rang
           </button>
+          <button type="button" onClick={() => onOpen('patch')}>
+            Patch
+          </button>
+          <button type="button" onClick={() => onOpen('items')}>
+            Items
+          </button>
         </div>
 
         <section className="mayhem-row">
           <div className="mayhem-row-head mayhem-in" style={step(2)}>
             <h2>Top Augments</h2>
+            {tiers.state === 'ready' && tiers.lists.mock && (
+              <span className="mayhem-pill mock">Mock</span>
+            )}
             <button type="button" className="mayhem-link" onClick={() => onOpen('augments')}>
               Alle ansehen
             </button>
@@ -508,7 +606,7 @@ export function HomePage({
                   className="mayhem-mini mayhem-in"
                   data-rarity={a.rarity}
                   style={step(i + 3)}
-                  onClick={() => onOpen('augments')}
+                  onClick={() => onAugment(a.id)}
                   title={a.text}
                 >
                   <span className="mayhem-aug-card-tier" data-tier={a.tier}>

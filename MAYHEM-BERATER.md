@@ -308,6 +308,34 @@ mit Seitenleiste, Home, Champ-Karte, Augment- und Champion-Tier-Liste, Rang (bis
 echter Spieler in Arbeit). Weiterhin ohne Einstellungen, Popouts und gespeicherte Daten; Item-Sets,
 Zauber und Angebote im Spiel gibt es nur in blank.
 
+arammetas ganze Liste (Benutzerauftrag 08.10.2026: „ich will alle Daten von arammeta in mein System
+und App gut einbauen, so viele Daten wie möglich“): `tier-list.json` liefert mehr als Siegquote und
+Spiele, und die Mayhem-App zeigt es jetzt, alles aus derselben Liste (`mayhem_tiers`, 6 h im
+Speicher, nichts gespeichert):
+
+- Champion-Detail (Klick in der Tier-Liste): beste Augments je Seltenheit (`top`, mit Siegquote,
+  Lift, Pickrate, Spielen), beste Mitspieler (`pairs`: Siegquote zusammen, erwartete Quote, Lift,
+  Spiele), Team-Profil (`comp`: Schaden pro Minute physisch/magisch/absolut als Anteile, Werte 0–3
+  für Frontlinie, Schadenswert, Engage, Wellen, Poke, Durchhalten, Kontrolle als Balken gegen den
+  höchsten Champion).
+- Augment-Detail: Text, Kategorien (`augCategories`), Lift, Pickrate, Spiele, „Stark bei“ (die
+  Champions, bei denen es unter den besten steht) und die Champions, die arammetas Suche damit
+  verknüpft (`searchIndex.related.augments`, Schlüssel = Augment-Name, Werte = Champion-IDs).
+- Patch (`patchChanges`): aktueller gegen vorigen Patch mit Spielzahlen, Aufsteiger und Absteiger
+  für Champions (mit arammetas Stufen OP/T1–T5, nur dort gibt es sie je Eintrag), Augments, Items,
+  Champion + Augment und Champion + Item.
+- Items (`itemLut`): Name, Preis, Rolle, Text, Filter nach Rolle.
+
+Bewusst nicht gezeigt: `skillScaling`, `prevMix`, `rawWr`, `slots` je Augment (Bedeutung nicht
+belegt), `set_en`/`sets` (zurzeit überall leer), `roleMeta` (leer), `tiers.colors` (eigenes Design).
+Für den späteren Lobby-Check liegen in derselben Datei ein trainiertes Teammodell (`team_score`:
+Logit `team-logit-v2` mit Validierungs- und Testwerten; `draftModel`: logistische Regression
+`composition_lr` mit 255 Koeffizienten, Champion-Index und Profil je Champion) und
+`recommendation_composition` (Schwellen für fehlende Teamrollen wie `wave`, `cc`, `engage`, Tabellen
+für Frontlinie × AD-Anteil usw.). Noch nicht gebaut, keine Vorhersage ohne eigenen Auftrag und
+Rückblick-Test (Abschnitt 7). Vor einer öffentlichen Version gilt weiter: Datenlizenz klären
+(ROADMAP „Datenlizenz arammeta.com klären“).
+
 Daten (Benutzerwahl 06.10.2026): zuerst arammeta.com (offene JSON, nur Mayhem, viel mehr Spiele),
 sonst mayhemstats.lol; Einzelheiten in CLAUDE.md (Champ-Karte).
 

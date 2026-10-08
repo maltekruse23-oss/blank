@@ -13,6 +13,13 @@ Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Sta
 - `flyout.rs` `MAX_ITEM_BYTES` 64 → 128 KB: die Karte war schon bis ~61 KB groß, mit den neuen Daten bis ~70 KB (gemessen).
 - Offen: Datenlizenz arammeta (ROADMAP), Test auf Windows mit echtem Client (VALIDATION).
 
+## Mayhem-App: arammetas ganze Liste — 08.10.2026
+
+- Benutzerauftrag „alle Daten von arammeta … so viele Daten wie möglich“, Teil Tier-Liste (ein anderer Agent macht parallel die Champ-Karte; `champCard.ts`, `ChampCardView.tsx`, `MayhemCard.tsx` hier nicht angefasst). Rust: `MetaList`/`MetaChamp`/`MetaAugment` in `aram_live.rs` lesen zusätzlich `top`, `pairs`, `comp`, Lift, Pickrate, `augCategories`, `itemLut`, `patchChanges`, `searchIndex.related.augments`; alle neuen Felder über `lenient` (falsche Form → Standardwert statt kaputter Liste, sonst fiele auch blank.'s `meta_info` aus). `mayhem_tiers` gibt das begrenzt und geprüft weiter (kein neuer Befehl, Capability-Beschreibung angepasst). Tests: `the_mayhem_pages_get_every_part_of_the_list`, `a_changed_extra_field_keeps_the_champ_cards_list`, ignoriert `the_real_list_has_every_part` (echter Abruf, lief grün).
+- Frontend: `src/mayhem/tiers.ts` (Typen, strenges Lesen, `teamProfile`, `filterItems`, `itemRoles`, `championsWithAugment`, `categoryName`, `usedCategories`, `signedPoints`/`pointsChange`), neue Seiten in `src/mayhem/metaPages.tsx` (Champion-/Augment-Detail, Patch, Items), Seitenleiste + Home-Schnellreiter um Items und Patch ergänzt, Augments mit Kategorie-Filter und Pickrate. Details liegen über der Liste (Liste bleibt mit ihren Filtern versteckt darunter). Browser-Vorschau: `MOCK_TIERS` in `mock.ts`, Abzeichen „Mock“ (vorher zeigte die Vorschau „Nur in der Mayhem-App.“).
+- Entscheidungen ohne Rückfrage: eigene Stufen S–D bleiben (arammeta hat OP/T1–T5 nur bei den Patch-Änderungen); `searchIndex.related` sind Champion-IDs, nicht Augments → als „Verknüpfte Champions“ angezeigt; `slots`, `skillScaling`, `prevMix` weggelassen (Bedeutung unklar); Teammodell nur in MAYHEM-BERATER.md 8a beschrieben.
+- Offen: Ansicht mit echten Daten in `mayhem.exe` (VALIDATION), Größe der Antwort (~0,5–1 MB JSON über IPC), Datenlizenz (ROADMAP).
+
 ## Mayhem-App: echter Spieler und Rang — 08.10.2026
 
 - ROADMAP „Jetzt 2“ (malte: „mache alles“). Rust `mayhem_ranks` (`aram_website.rs`, in `mayhem.rs`, `build.rs`, `capabilities/mayhem.json`): Spieler aus dem Client, dann `/api/players/<puuid>` und `/api/leaderboard` über dieselben Helfer wie blank. (`read_json`, `site_client`, `plain_id`), aber ohne die Upload-Freigabe (`enabled`), weil die Mayhem-App keine Einstellungen hat und nichts hochlädt. Antwort als JSON-Text, geprüft mit `parseBoard`/`parseProfile` aus `aramSite.ts`.
