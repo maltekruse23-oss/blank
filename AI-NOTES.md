@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-Custom-Spiele erkennen — 08.10.2026
+
+- Benutzermeldung: ein ARAM-Mayhem-Custom-Spiel wurde nicht erkannt. Ursache: überall galt nur Queue 2400. Jetzt zählt auch der Spielmodus „KIWI“ (`mayhem_game` in aram.rs; Gameflow-Sitzung `gameData.queue.gameMode` oder `map.gameMode`, Spielverlauf `gameMode`): Champ-Auswahl (aram_live.rs), Spielstart/-ende (after_game.rs, für Karte, Angebote und Upload-Verfolgung) und die Karte nach dem Spiel (game_card.rs).
+- Bewusst nicht: hochgeladen und gewertet werden weiter nur Spiele der Queue 2400 (ladder.rs, aram.rs) – Custom-Spiele sind leicht zu manipulieren. Die Karte eines Custom-Spiels zeigt deshalb keinen Rang (wartet und sagt, dass die Seite das Spiel nicht hat).
+
 ## Website: Download der Mayhem-App — 08.10.2026
 
 - Benutzerwunsch 08.10.2026 „Rang-Tab wird angezeigt und dann Verweis App herunterladen“: die Rangliste bleibt wie sie ist, direkt darunter (vor „How it counts“) ein kleiner Block „Get the Mayhem app“ (`apps/mayhem-site/app/ui/get-app.tsx`, CSS `.get-app` in `globals.css`): eine Zeile, was die App tut, goldener Knopf „Download for Windows“ auf `MAYHEM_APP` (`app/ui/join.ts`, `releases/latest/download/mayhem.exe`, im Release seit v0.10.0), eine kleine Zeile zu Windows 10/11, kostenlos, nicht signiert („More info“ → „Run anyway“). Derselbe Block unten auf `/join`; der Collector-Download dort bleibt.

@@ -18,7 +18,7 @@
 //! arammeta's best pair for the champion when that pair has Snowball and enough games, else Flash
 //! or the exception with a reason in `SPELL_EXCEPTIONS`; once the user changes them, nothing more
 //! in that select).
-use super::{champion_names, lockfile, parse_lockfile, Lcu, MAYHEM_QUEUE, SESSION};
+use super::{champion_names, lockfile, mayhem_game, parse_lockfile, Lcu, SESSION};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -391,6 +391,12 @@ async fn is_mayhem() -> bool {
     #[serde(default, rename_all = "camelCase")]
     struct Session {
         game_data: Game,
+        map: Mode,
+    }
+    #[derive(Deserialize, Default)]
+    #[serde(default, rename_all = "camelCase")]
+    struct Mode {
+        game_mode: String,
     }
     #[derive(Deserialize, Default)]
     #[serde(default)]
@@ -401,13 +407,16 @@ async fn is_mayhem() -> bool {
     #[serde(default)]
     struct Queue {
         id: i64,
+        #[serde(rename = "gameMode")]
+        game_mode: String,
     }
     let Ok(Some(lcu)) = Lcu::connect() else {
         return false;
     };
-    lcu.get::<Session>(SESSION)
-        .await
-        .is_ok_and(|s| s.game_data.queue.id == MAYHEM_QUEUE)
+    lcu.get::<Session>(SESSION).await.is_ok_and(|s| {
+        let q = &s.game_data.queue;
+        mayhem_game(q.id, &q.game_mode) || mayhem_game(0, &s.map.game_mode)
+    })
 }
 
 /// The app window switches the card on or off (setting `popoutChamp`), and the writes into the

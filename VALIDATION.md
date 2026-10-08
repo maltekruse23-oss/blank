@@ -1,5 +1,10 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Mayhem-Custom-Spiele
+
+- Geprüft: Rust-Test `a_mayhem_custom_game_counts_as_mayhem` (Queue 2400, Custom mit Modus „KIWI“ in Queue oder Map, nie ARAM), clippy, cargo test.
+- Nicht geprüft: ein echtes Custom-Spiel – ob die Gameflow-Sitzung dort `map.gameMode` = „KIWI“ meldet (angenommen; der Spielverlauf nennt Mayhem-Spiele „KIWI“, gemessen 06.10.2026).
+
 ## Nachtrag 08.10.2026: Website – Download der Mayhem-App
 
 - Block „Get the Mayhem app“ unter der Rangliste und unten auf `/join` (`apps/mayhem-site/app/ui/get-app.tsx`), Knopf auf `releases/latest/download/mayhem.exe`.

@@ -28,6 +28,7 @@ fn game() -> Game {
         game_creation: 1_790_000_000_000,
         game_duration: 1200,
         queue_id: MAYHEM_QUEUE,
+        game_mode: "KIWI".into(),
         game_version: "16.19.712.1234".into(),
         participant_identities: (1..=4)
             .map(|i| Identity {
@@ -450,4 +451,25 @@ fn collection_survives_a_round_trip() {
     std::fs::write(&path, "{kaputt").unwrap();
     assert_eq!(load(&path).err().as_deref(), Some(DAMAGED));
     std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_mayhem_custom_game_counts_as_mayhem() {
+    // Matchmade Mayhem, a custom game in its mode (queue 0 or -1), never other modes.
+    assert!(mayhem_game(MAYHEM_QUEUE, ""));
+    assert!(mayhem_game(0, "KIWI"));
+    assert!(mayhem_game(-1, "kiwi"));
+    assert!(!mayhem_game(0, "ARAM"));
+    assert!(!mayhem_game(450, "ARAM"));
+    assert!(!mayhem_game(0, ""));
+    let custom: Session = serde_json::from_str(
+        r#"{"gameData":{"gameId":7,"queue":{"id":-1,"gameMode":""}},"map":{"gameMode":"KIWI"}}"#,
+    )
+    .unwrap();
+    assert!(custom.mayhem());
+    let aram: Session = serde_json::from_str(
+        r#"{"gameData":{"gameId":7,"queue":{"id":450,"gameMode":"ARAM"}},"map":{"gameMode":"ARAM"}}"#,
+    )
+    .unwrap();
+    assert!(!aram.mayhem());
 }
