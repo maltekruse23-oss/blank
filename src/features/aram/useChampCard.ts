@@ -94,11 +94,18 @@ export function useChampCard(preferences: Preferences) {
         })();
       }, SETTLE_MS);
     });
-    // The card of the offer open now (a reroll updates it in place).
-    let shown: PopoutItem | null = null;
+    // The card of the offer open now or last (a reroll updates it in place).
+    let shown: Extract<PopoutItem, { kind: 'champ' }> | null = null;
+    let open = false;
     const show = async (event: Offers) => {
       if (!event.offers.length) {
-        shown = null;
+        // The offer closed: its card, if still there, shows what was taken.
+        const offer = shown?.view.offer;
+        if (shown && offer) {
+          shown = { ...shown, view: { ...shown.view, offer: { ...offer, taken: event.taken } } };
+          void updatePopout(shown);
+        }
+        open = false;
         return;
       }
       if (held?.championId !== event.championId && event.championId > 0) {
@@ -108,12 +115,14 @@ export function useChampCard(preferences: Preferences) {
       }
       const p = latest.current;
       if (!held || !mayShow(p)) return;
-      const view = { ...held, offer: { direction: event.direction, augments: event.offers } };
-      if (shown) {
+      const offer = { direction: event.direction, augments: event.offers, taken: event.taken };
+      const view = { ...held, offer };
+      if (shown && open) {
         shown = { kind: 'champ', id: shown.id, view };
         void updatePopout(shown);
       } else {
         shown = { kind: 'champ', id: ++serial, view };
+        open = true;
         await showView(view, p, shown.id);
       }
     };

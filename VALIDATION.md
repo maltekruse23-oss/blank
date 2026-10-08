@@ -12,6 +12,12 @@
 - Geprüft: Rust-Test `only_a_signed_in_player_with_a_plain_puuid_is_asked_for`, `mayhem::tests` (Capability mit `allow-mayhem-ranks`), Vitest `src/mayhem/me.test.ts` (Profil und Rangliste in der Form der Website → Rang, meistgespielter Champion, Rekorde, letzte Spiele, Platz, Top 10 plus eigener Platz, „–“ statt 0, ungültige Antworten → Fehler, MP-Kurve, „vor … h“), build/lint/test/`mayhem:web`/fmt/clippy/`cargo test --lib`, Browser-Vorschau von Home und Rang mit den Mock-Werten.
 - Nicht geprüft (braucht malte's PC mit Client): `pnpm mayhem:dev`/`mayhem.exe` mit angemeldetem Client (eigener Rang, eigene Zeile in der Rangliste hervorgehoben), mit geschlossenem Client („Starte League“), mit einem Konto ohne Eintrag („Nicht in der Datenbank“), ohne Internet („Keine Verbindung“, „Nochmal“). Größe und Ladezeit der Rangliste (bis 16 MB erlaubt) beim Öffnen von Home.
 
+## Nachtrag 08.10.2026: Genommenes Augment erkennen (Etappe 3a)
+
+- Nur Anzeige: Champ-Karte zeigt „Bisher: …“ und „genommen“ an der Zeile; Klick auf einen angebotenen Namen markiert ihn (zweiter Klick nimmt es zurück, `aram_offer_taken`, nur Karten des offenen bzw. letzten Angebots dieses Spiels). Empfehlungen und Stufen unverändert.
+- Geprüft: Rust-Tests `the_card_left_last_was_taken` (Reroll, alle zugleich weg, nur eine Karte gelesen, Fehllesung), `only_a_difference_is_noted`, Vitest (Angebot mit `taken`), build/lint/test, `cargo fmt --check`, clippy `-D warnings`, `cargo test --lib`.
+- Nicht geprüft (braucht ein Mayhem-Spiel): ob beim Wählen die anderen Karten wirklich zuerst verschwinden und die Texterkennung die übrige Karte noch einmal allein liest (sonst bleibt es „unbekannt“, dann hilft der Klick). Nach dem Spiel steht bei Abweichung eine Zeile `Augment-Erkennung` in `errors.log` (erkannt vs. tatsächlich); verglichen wird nur, wenn der Endbildschirm brauchbar ist und die Rangliste (`aram.json`) existiert.
+
 ## Nachtrag 08.10.2026: Augments im Spiel (Etappe 2b)
 
 - Settings → Popouts → Meldungen: „Augments im Spiel“ (Standard aus). Geprüft: Rust-Tests `cards_are_read_in_columns_left_to_right` (Spalten, umbrochene Namen, ein falscher Buchstabe von acht), `no_text_no_offer`, Vitest `Angebot im Spiel`, build/lint/test/clippy.

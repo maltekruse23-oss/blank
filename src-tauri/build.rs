@@ -12,6 +12,7 @@ const COMMANDS: &[&str] = &[
     "aram_champ_watch",
     "aram_champ_info",
     "aram_champ_build",
+    "aram_offer_taken",
     "mayhem_tiers",
     "mayhem_ranks",
     "league_client_open",

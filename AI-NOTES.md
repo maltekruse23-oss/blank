@@ -10,6 +10,11 @@ Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Sta
 - Entscheidungen ohne Rückfrage: Server-Kürzel in der Rangliste weggelassen (`parseBoard` liest es nicht), statt Champion-Bild das Wappen; Zeitraum der Zahlen = alle Spiele, die das Profil liefert (Standard-Saison der Website), daher „meistgespielter Champion“ statt „diese Saison“.
 - Branch auf `claude/roadmap-stand` (#66) aufgesetzt, weil „Jetzt 2“ erst dort steht. Offen: Test auf malte's PC (VALIDATION).
 
+## Etappe 3a: genommenes Augment — 08.10.2026
+
+- Benutzerauftrag („mache alles“). Nur Anzeige, keine Änderung an Empfehlungen (das ist 3b, braucht mehr Daten). `offers.rs`: je Spiel `taken` (zurückgesetzt in `follow`), automatisch wenn die letzte Lesung nur noch eine Karte zeigt, die vorher mit anderen da war (`taken_of`), sonst unbekannt; Ersatz per Klick (`aram_offer_taken`, Umschalten, nur Karten der aktuellen/letzten Runde; ein Klick in der Runde hat Vorrang vor der Automatik). `taken` im Ereignis `aram-offers`; Karte zeigt „Bisher: …“ und „genommen“, auch nach dem Schließen des Angebots.
+- Nach dem Spiel: `record_eog` → `offers::check_taken` vergleicht mit den echten Augments, nur Abweichungen als Zeile `Augment-Erkennung` in `errors.log` (lokal). Offen: Test im Spiel (VALIDATION).
+
 ## Etappe 2b: Augments im Spiel — 08.10.2026
 
 - Benutzerwahl (Empfehlung „Etappe 2b“; „noch keine Tests, erstmal weiter“). `src-tauri/src/aram/offers.rs`: Start bei Spielbeginn (`game_started` → `offers::follow`), Stufe aus Live Client Data, nach jedem Aufstieg Ausschnitt + Windows-OCR alle 250 ms, Spalten → Namen (Hamming ≤ 1/8, `ponytail:`-Grenze), Ereignis `aram-offers` mit Champ und gewählter Richtung (`aram_champ_build`, vorher `aram_item_set`, merkt die Wahl). Frontend: `useChampCard` zeigt die Champ-Karte mit `offer` (`offerRows`), Reroll per `updatePopout`.
