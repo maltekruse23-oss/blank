@@ -28,7 +28,7 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 
 1. **Englische Version der Website mit Server-Kürzel und Server-Filter**
    Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.
-   Fertig, wenn: Alle Seiten und Meldungen gibt es auf Englisch und Deutsch, die Sprache ist umschaltbar und hat eigene Adressen, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft. (Gebaut und gemergt in #58–#60; wartet auf Codex, Benutzer: Website erstmal hinten an.)
+   Fertig, wenn: Alle Seiten und Meldungen sind nur auf Englisch (Benutzerentscheidung 08.10.2026 „Website auch Englisch only.“: kein Deutsch, kein Umschalter), alte deutsche Adressen (`/de/…`) leiten dauerhaft auf die englische Seite weiter, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft. (Server-Kürzel und -Filter gemergt in #58–#60, nur Englisch im PR `claude/website-englisch`; wartet auf Codex, Benutzer: Website erstmal hinten an.)
 
 2. **Website im Design „Arena“** (Benutzerauftrag 07.10.2026)
    Ziel: Die Website hat dasselbe Design wie die Mayhem-App (die App ist seit #62/#63 im Design „Arena“).

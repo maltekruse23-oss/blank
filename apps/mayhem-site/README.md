@@ -5,6 +5,7 @@ Public Sites website and D1-backed JSON API for the blank. desktop app.
 - Original rating files: maltekruse23-oss/blank commit 7c875fd592502ed016420607a846cf0743f0e0cd, RATING_VERSION=1; copied byte-for-byte.
 - AramEntry, AramSeat and associated type declarations are extracted without changes from src/adapters/aram.ts in that commit. Runtime Tauri imports are intentionally omitted.
 - API contract, curl examples, security boundaries and operations: API.md.
+- The site is English only (user decision 08.10.2026). Pages live in app/views, routes in app/<page>/page.tsx, number and date formats in app/ui/format.ts. Old German addresses (/de/…, /rangliste …) redirect permanently via redirects.ts. The API keeps its German labels and error messages; pages translate known messages (app/ui/data.ts).
 - Database: db/schema.ts and generated drizzle migrations. Never edit an already deployed migration.
 - No production sample records. Tests run against local D1 only.
 

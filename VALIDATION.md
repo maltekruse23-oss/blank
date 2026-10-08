@@ -1,5 +1,12 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Website nur Englisch
+
+- Benutzerentscheidung „Website auch Englisch only.“: keine deutschen Seiten und kein Umschalter mehr; alte Adressen (`/de/…` und die deutschen Namen an der Wurzel) leiten mit 308 auf die englische Seite weiter (`apps/mayhem-site/redirects.ts`). API unverändert (Felder und deutsche Fehlermeldungen).
+- Geprüft auf Windows: Website `npx tsc --noEmit`, `npm run lint` (nur die bekannte Warnung in `src/validation.ts`), `npm run build`; frische lokale D1 (Migrationen 0000–0006): `node tests/smoke.mjs` grün (alle Seiten englisch mit `lang="en"`, ohne Umschalter, 16 Weiterleitungen mit 308 und erhaltener Anfrage, 404 „Page not found“), `node tests/all-players.mjs` grün. Vitest `siteRedirects.test.ts` (alle deutschen Adressen, englische bleiben, jedes Ziel ist eine Seite, Formate), `siteExplain.test.ts` angepasst (englische Achse, Saisonstarts „January 8“ …). Repo: `pnpm test` (34 Dateien, 268 Tests), `pnpm lint`, Prettier auf den geänderten Dokumenten.
+- Ansicht: sechs erfundene Spieler in der lokalen D1, Seiten bei 1280 und 390 px (Start, Rangliste, Profil, Spiel, Wertung, Datenschutz, Ausblenden, Mitmachen, API-Anleitung, 404): englisch, kein Querscrollen; Textsuche nach deutschen Wörtern auf allen Seiten ohne Treffer. `/de/spiel/<id>?p=a2` landet im Browser auf `/game/<id>?p=a2`.
+- Nicht grün: `node tests/integration.mjs` bricht beim Live-Strom (SSE) mit „Network connection lost“ im lokalen workerd ab, genauso mit dem unveränderten Stand von `main` (gegengeprüft) – nicht durch diese Änderung; live nicht geprüft (Veröffentlichen über Codex, `apps/mayhem-site/DEPLOY.md`).
+
 ## Nachtrag 08.10.2026: Mayhem-App englisch und übersichtlich, auch maximiert
 
 - Geprüft: `pnpm build`, `pnpm lint`, `pnpm test` (270, darunter neu: englische `planNote`/`assembledFacts`/`itemTitle`/`slotsText`/`comboNote`, jedes Thema mit englischer Fassung und deutsche bleibt, `spellName`, englische Zahlen und `games`, `ago` englisch, Kategorien mit arammetas Bezeichnung), `pnpm mayhem:web`, Prettier auf allen geänderten Dateien, `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --lib` (neu `item_names_are_english_only_when_asked`).

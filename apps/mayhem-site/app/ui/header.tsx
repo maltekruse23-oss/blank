@@ -1,59 +1,36 @@
 'use client';
-// Navigation in one row with the current page marked ("So funktioniert's" and the API are in
-// the footer), and the player search (Riot-ID; the list comes from
-// the leaderboard, loaded on first focus).
+// Navigation in one row with the current page marked ("How it works" and the API are in the
+// footer), and the player search (Riot ID; the list comes from the leaderboard, loaded on first
+// focus).
 import { useRouter, usePathname } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { profileHref, profileImage, splitName, useDragon, type Board } from './data';
 import { Img } from './bits';
-import { meText } from './me';
-import { english, LANGS, switchTo, useLang } from './i18n';
+import { meText as me } from './me';
 
-/** Pages in the header by English address; the leaderboard also stands for profiles and games. */
+/** Pages in the header; the leaderboard also stands for profiles and games. */
 const PAGES = [
-  { path: '/leaderboard', en: 'Leaderboard', de: 'Rangliste', also: ['/players', '/game'] },
-  { path: '/records', en: 'Records', de: 'Rekorde' },
-  { path: '/champions', en: 'Champions', de: 'Champions' },
-  { path: '/augments', en: 'Augments', de: 'Augments' },
-  { path: '/items', en: 'Items', de: 'Items' },
-  { path: '/tier-list', en: 'Tier list', de: 'Tier-Liste' },
-  { path: '/join', en: 'Join', de: 'Mitmachen', cta: true },
+  { path: '/leaderboard', label: 'Leaderboard', also: ['/players', '/game'] },
+  { path: '/records', label: 'Records' },
+  { path: '/champions', label: 'Champions' },
+  { path: '/augments', label: 'Augments' },
+  { path: '/items', label: 'Items' },
+  { path: '/tier-list', label: 'Tier list' },
+  { path: '/join', label: 'Join', cta: true },
 ];
 
 export function Nav() {
-  const { t, href } = useLang();
-  const path = english(usePathname() ?? '/');
+  const path = usePathname() ?? '/';
   return (
-    <nav className="nav" aria-label={t('Pages', 'Seiten')}>
+    <nav className="nav" aria-label="Pages">
       {PAGES.map((p) => (
         <a
           key={p.path}
-          href={href(p.path)}
+          href={p.path}
           className={p.cta ? 'cta' : undefined}
           aria-current={[p.path, ...(p.also ?? [])].some((s) => path.startsWith(s)) ? 'page' : undefined}
         >
-          {t(p.en, p.de)}
-        </a>
-      ))}
-    </nav>
-  );
-}
-
-/** EN | DE: the same page in the other language (a full load, so everything switches). */
-export function LangSwitch() {
-  const { lang, t } = useLang();
-  const path = usePathname() ?? '/';
-  // Query and anchor (filters, ?p=) are added on click: useSearchParams would need a Suspense boundary.
-  const keep = (e: React.MouseEvent<HTMLAnchorElement>, l: typeof lang) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    e.preventDefault();
-    window.location.assign(switchTo(path + window.location.search + window.location.hash, l));
-  };
-  return (
-    <nav className="lang-switch" aria-label={t('Language', 'Sprache')}>
-      {LANGS.map((l) => (
-        <a key={l} href={switchTo(path, l)} onClick={(e) => keep(e, l)} hrefLang={l} lang={l} aria-current={l === lang ? 'true' : undefined}>
-          {l.toUpperCase()}
+          {p.label}
         </a>
       ))}
     </nav>
@@ -65,10 +42,8 @@ type Found = Board['players'][number];
 /** `big`: the large search on the start page (its own id for the list of hits). */
 export function Search({ big = false }: { big?: boolean }) {
   const hitsId = big ? 'start-search-hits' : 'search-hits';
-  const { t, href } = useLang();
-  const me = meText(t);
   /** The join page for someone who searched `name` and is not in the database. */
-  const joinHref = (name: string) => href('/join?name=' + encodeURIComponent(name.trim().slice(0, 40)));
+  const joinHref = (name: string) => '/join?name=' + encodeURIComponent(name.trim().slice(0, 40));
   const path = usePathname();
   const router = useRouter();
   const dragon = useDragon();
@@ -94,11 +69,11 @@ export function Search({ big = false }: { big?: boolean }) {
   const go = (p: Found) => {
     setOpen(false);
     setQuery('');
-    router.push(href(profileHref(p)));
+    router.push(profileHref(p));
   };
 
   // The start page has its own large search.
-  if (!big && (path === '/' || path === '/de')) return <div className="search" aria-hidden />;
+  if (!big && path === '/') return <div className="search" aria-hidden />;
   return (
     <div className={big ? 'search big' : 'search'}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
@@ -107,8 +82,8 @@ export function Search({ big = false }: { big?: boolean }) {
       </svg>
       <input
         type="search"
-        placeholder={t('Search player (Riot ID)', 'Spieler suchen (Riot-ID)')}
-        aria-label={t('Search player', 'Spieler suchen')}
+        placeholder="Search player (Riot ID)"
+        aria-label="Search player"
         role="combobox"
         aria-expanded={open && hits.length > 0}
         aria-controls={hitsId}
@@ -141,7 +116,7 @@ export function Search({ big = false }: { big?: boolean }) {
               return (
                 <li key={p.puuid} role="option" aria-selected={i === active}>
                   <a
-                    href={href(profileHref(p))}
+                    href={profileHref(p)}
                     data-active={i === active}
                     onMouseDown={(e) => {
                       e.preventDefault();
@@ -153,7 +128,7 @@ export function Search({ big = false }: { big?: boolean }) {
                       {name}
                       {tag && <span className="faint">#{tag}</span>}
                     </span>
-                    <small>{p.rank ? p.rank.tier.name : t('Placement', 'Einstufung')}</small>
+                    <small>{p.rank ? p.rank.tier.name : 'Placement'}</small>
                   </a>
                 </li>
               );

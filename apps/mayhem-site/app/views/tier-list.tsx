@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { ChampionStat } from '../../src/champions';
 import { championImage, championKey, championLabel, itemImage, useAugments, useDragon, useItems, useLive } from '../ui/data';
-import { useLang } from '../ui/i18n';
-import { augmentLabel, itemLabel, percentIn } from '../ui/meta';
+import { num, season } from '../ui/format';
+import { augmentLabel, itemLabel, percent } from '../ui/meta';
 import type { MetaRow } from '../../src/meta';
 import { MIN_GAMES } from '../../src/meta';
 import { PRIOR, TIERS, tiersOf, type Tier } from '../../src/tiers';
@@ -22,7 +22,6 @@ type Tile = { key: string; href: string; label: string; picture: React.ReactNode
 const PATHS: Record<Kind, string> = { champions: '/api/champions', augments: '/api/stats/augments', items: '/api/stats/items' };
 
 export default function TierListPage() {
-  const { t, href, num, season } = useLang();
   const filters = useFilters();
   const [kind, setKind] = useState<Kind>('champions');
   const path = `${PATHS[kind]}?${filters.query}`;
@@ -39,7 +38,7 @@ export default function TierListPage() {
     kind === 'champions'
       ? (data?.champions ?? []).map((c) => ({
           key: `c${c.championId}`,
-          href: href('/champions/' + (c.champion || c.championId)),
+          href: '/champions/' + (c.champion || c.championId),
           label: championLabel(dragon, c),
           picture: <Img className="champ" src={championImage(dragon, championKey(dragon, c) || undefined)} size={44} />,
           games: c.games,
@@ -50,7 +49,7 @@ export default function TierListPage() {
         : kind === 'augments'
           ? data.rows.map((r) => ({
               key: `a${r.id}`,
-              href: href(`/augments/${r.id}`),
+              href: `/augments/${r.id}`,
               label: augmentLabel(augments, r.id),
               picture: <Augment id={r.id} info={augments.get(r.id)} size={44} />,
               games: r.games,
@@ -61,7 +60,7 @@ export default function TierListPage() {
               .filter((r) => !items.size || (items.get(r.id) && items.get(r.id)!.kind !== 'other'))
               .map((r) => ({
                 key: `i${r.id}`,
-                href: href(`/items/${r.id}`),
+                href: `/items/${r.id}`,
                 label: itemLabel(items, r.id),
                 picture: <Img className="item" src={itemImage(dragon, r.id)} size={44} />,
                 games: r.games,
@@ -75,19 +74,19 @@ export default function TierListPage() {
     <>
       <div className="page-head">
         <div>
-          <h1>{t('Tier list', 'Tier-Liste')}</h1>
-          <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : t('All time', 'Alle Zeiten')}</p>
+          <h1>Tier list</h1>
+          <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : 'All time'}</p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
-            {live ? 'Live' : t('Updates every 5 s', 'Aktualisiert alle 5 s')}
+            {live ? 'Live' : 'Updates every 5 s'}
           </span>
           <Filters {...filters} />
         </div>
       </div>
 
       <Tabs<Kind>
-        label={t('What', 'Was')}
+        label="What"
         value={kind}
         onChange={setKind}
         options={[
@@ -98,13 +97,10 @@ export default function TierListPage() {
       />
 
       {error && <Problem message={error} />}
-      {!ready && !error && <p className="empty">{t('Loading tier list …', 'Tier-Liste wird geladen …')}</p>}
+      {!ready && !error && <p className="empty">Loading tier list …</p>}
       {ready && !tiers.length && (
         <p className="empty">
-          {t(
-            `Not enough games yet: an entry needs at least ${MIN_GAMES} games.`,
-            `Noch zu wenige Spiele: ein Eintrag braucht mindestens ${MIN_GAMES} Spiele.`,
-          )}
+          {`Not enough games yet: an entry needs at least ${MIN_GAMES} games.`}
         </p>
       )}
 
@@ -118,13 +114,10 @@ export default function TierListPage() {
 
       {ready && (
         <p className="fine" style={{ marginTop: 12 }}>
-          {t(
-            `Sorted by win rate, pulled towards 50% for few games (as if ${PRIOR} games at 50% were added). The top 10% are S, then 20% A, 40% B, 20% C and the bottom 10% D. Not by grade: the grade compares with what the champion usually achieves, so it says nothing about the champion itself.`,
-            `Sortiert nach Siegquote, bei wenigen Spielen zu 50 % gezogen (als kämen ${PRIOR} Spiele mit 50 % dazu). Die besten 10 % sind S, dann 20 % A, 40 % B, 20 % C und die letzten 10 % D. Nicht nach Note: die Note vergleicht mit dem, was der Champion üblicherweise schafft, und sagt deshalb nichts über den Champion selbst.`,
-          )}
+          {`Sorted by win rate, pulled towards 50% for few games (as if ${PRIOR} games at 50% were added). The top 10% are S, then 20% A, 40% B, 20% C and the bottom 10% D. Not by grade: the grade compares with what the champion usually achieves, so it says nothing about the champion itself.`}
           {few > 0 &&
-            t(` ${num(few)} with fewer than ${MIN_GAMES} games are left out.`, ` ${num(few)} mit weniger als ${MIN_GAMES} Spielen fehlen.`)}
-          {kind === 'items' && t(' Only finished items and boots.', ' Nur fertige Items und Stiefel.')}
+            ` ${num(few)} with fewer than ${MIN_GAMES} games are left out.`}
+          {kind === 'items' && ' Only finished items and boots.'}
         </p>
       )}
     </>
@@ -132,11 +125,9 @@ export default function TierListPage() {
 }
 
 function TierRow({ tier, tiles }: { tier: Tier; tiles: Tile[] }) {
-  const { lang, t, num } = useLang();
-  const percent = percentIn(lang);
   return (
     <div className="tier-row" data-tier={tier}>
-      <strong className="tier-letter" aria-label={t(`Tier ${tier}`, `Stufe ${tier}`)}>
+      <strong className="tier-letter" aria-label={`Tier ${tier}`}>
         {tier}
       </strong>
       {tiles.length ? (
@@ -145,10 +136,7 @@ function TierRow({ tier, tiles }: { tier: Tier; tiles: Tile[] }) {
             <li key={tile.key}>
               <Link
                 href={tile.href}
-                title={t(
-                  `${tile.label} · Win rate ${percent(tile.winRate)} · ${num(tile.games)} games`,
-                  `${tile.label} · Siegquote ${percent(tile.winRate)} · ${num(tile.games)} Spiele`,
-                )}
+                title={`${tile.label} · Win rate ${percent(tile.winRate)} · ${num(tile.games)} games`}
               >
                 {tile.picture}
                 <span>{tile.label}</span>

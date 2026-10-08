@@ -9,7 +9,6 @@ import { riotSlug } from '../../src/hidden';
 import type { TagCensus } from '../../src/tags';
 import type { Grade, Performance } from '../../src/features/aram/aramPerformance';
 import type { Average, Rank, Season, Step } from '../../src/features/aram/aramRating';
-import { useLang, type Lang } from './i18n';
 
 export type Champion = { championId: number; champion: string; games: number };
 
@@ -47,7 +46,6 @@ export type Profile = Omit<PlayerSummary, 'champions' | 'last6'> & {
 
 /** Loads `path` and reloads it on every new game; `live` tells whether events arrive. */
 export function useLive<T>(path: string | null) {
-  const { t } = useLang();
   const [data, setData] = useState<T | null>(null);
   /** The path `data` answers. */
   const [loaded, setLoaded] = useState<string | null>(null);
@@ -103,7 +101,7 @@ export function useLive<T>(path: string | null) {
       clearInterval(timer);
     };
   }, [path]);
-  return { data, error: error && apiError(error, t), live, missing, path: loaded };
+  return { data, error: error && apiError(error), live, missing, path: loaded };
 }
 
 const UNAVAILABLE = 'Nicht verfügbar.';
@@ -134,55 +132,49 @@ const API_ERRORS = new Map<string, string>([
 /** The English text of a known API message (undefined for any other text). */
 export const knownApiError = (message: string): string | undefined => API_ERRORS.get(message);
 
-/** An error message from the API in the page's language: known messages translated; unknown ones
- * stay as they are in German and become a plain "Not available." in English. */
-export const apiError = (message: string, t: (en: string, de: string) => string) =>
-  t(API_ERRORS.get(message) ?? 'Not available.', message);
+/** An error message from the API (German) in English; an unknown one becomes "Not available.". */
+export const apiError = (message: string) => API_ERRORS.get(message) ?? 'Not available.';
 
 // ---- Data Dragon --------------------------------------------------------------------------
 
 type Dragon = { version: string; champions: Map<number, { id: string; name: string; tags: string[] }> };
-/** Data Dragon's language for the page's language (champion and item names). */
-const DRAGON_LOCALE: Record<Lang, string> = { en: 'en_US', de: 'de_DE' };
-const dragons = new Map<Lang, Promise<Dragon>>();
+let dragons: Promise<Dragon> | null = null;
 
-function loadDragon(lang: Lang): Promise<Dragon> {
-  const known = dragons.get(lang);
-  if (known) return known;
+function loadDragon(): Promise<Dragon> {
+  if (dragons) return dragons;
   const dragon = (async () => {
     const versions = (await (
       await fetch('https://ddragon.leagueoflegends.com/api/versions.json')
     ).json()) as string[];
     const version = versions[0];
     const list = (await (
-      await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/${DRAGON_LOCALE[lang]}/champion.json`)
+      await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`)
     ).json()) as { data: Record<string, { id: string; key: string; name: string; tags?: string[] }> };
     const champions = new Map(
       Object.values(list.data).map((c) => [Number(c.key), { id: c.id, name: c.name, tags: c.tags ?? [] }]),
     );
     return { version, champions };
   })().catch((error) => {
-    dragons.delete(lang);
+    dragons = null;
     throw error;
   });
-  dragons.set(lang, dragon);
+  dragons = dragon;
   return dragon;
 }
 
 /** The current Data Dragon version and champion list (null while loading or offline). */
 export function useDragon() {
-  const { lang } = useLang();
   const [value, setValue] = useState<Dragon | null>(null);
   useEffect(() => {
     let stop = false;
-    loadDragon(lang).then(
+    loadDragon().then(
       (d) => !stop && setValue(d),
       () => undefined,
     );
     return () => {
       stop = true;
     };
-  }, [lang]);
+  }, []);
   return value;
 }
 
@@ -197,7 +189,7 @@ export const profileImage = (d: Dragon | null, icon: number | null) =>
 /** Data Dragon key of a champion: the uploaded one, otherwise from the list ('' while unknown). */
 export const championKey = (d: Dragon | null, c: { championId: number; champion: string }) =>
   c.champion || d?.champions.get(c.championId)?.id || '';
-/** Name of a champion in the page's language. */
+/** Name of a champion. */
 export const championLabel = (d: Dragon | null, c: { championId: number; champion: string; championName: string }) =>
   d?.champions.get(c.championId)?.name ?? (c.championName || c.champion || `Champion ${c.championId}`);
 export const splashImage = (key: string, skin = 0) =>
@@ -209,15 +201,14 @@ export const splashImage = (key: string, skin = 0) =>
 export type ItemKind = 'done' | 'boots' | 'other';
 export type ItemInfo = { name: string; kind: ItemKind; gold: number };
 
-const itemLists = new Map<Lang, Promise<Map<number, ItemInfo>>>();
+let itemLists: Promise<Map<number, ItemInfo>> | null = null;
 
-function loadItems(lang: Lang) {
-  const known = itemLists.get(lang);
-  if (known) return known;
+function loadItems() {
+  if (itemLists) return itemLists;
   const items = (async () => {
-    const { version } = await loadDragon(lang);
+    const { version } = await loadDragon();
     const list = (await (
-      await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/${DRAGON_LOCALE[lang]}/item.json`)
+      await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/item.json`)
     ).json()) as { data: Record<string, { name: string; into?: string[]; tags?: string[]; gold?: { total: number } }> };
     return new Map(
       Object.entries(list.data).map(([id, i]) => {
@@ -234,27 +225,26 @@ function loadItems(lang: Lang) {
       }),
     );
   })().catch((error) => {
-    itemLists.delete(lang);
+    itemLists = null;
     throw error;
   });
-  itemLists.set(lang, items);
+  itemLists = items;
   return items;
 }
 
 /** Names and kinds of all items (empty while loading or offline). */
 export function useItems() {
-  const { lang } = useLang();
   const [value, setValue] = useState<Map<number, ItemInfo>>(() => new Map());
   useEffect(() => {
     let stop = false;
-    loadItems(lang).then(
+    loadItems().then(
       (i) => !stop && setValue(i),
       () => undefined,
     );
     return () => {
       stop = true;
     };
-  }, [lang]);
+  }, []);
   return value;
 }
 

@@ -3,29 +3,42 @@
 Für Codex beim Veröffentlichen der Website `apps/mayhem-site/` aus `main`. Claude veröffentlicht
 nicht selbst.
 
-## Aktueller Auftrag: Englische Version mit Server-Filter (07.10.2026)
+## Aktueller Auftrag: Website nur Englisch, mit Server-Filter (08.10.2026)
 
-Stand `main` nach PR #58 (Englisch/Deutsch) und #59 (Server-Kürzel und -Filter). Ablauf wie unten
-(„Vorher“, dann veröffentlichen, dann „Danach prüfen“), dieselbe Site und Projekt-ID, **keine neue
-Migration** (`drizzle/` unverändert seit 0006). Neu ist nur:
+Stand `main` nach PR #58 (Englisch/Deutsch), #59 (Server-Kürzel und -Filter) und dem PR
+„Website nur Englisch“ (Benutzerentscheidung 08.10.2026: „Website auch Englisch only.“). Ablauf wie
+unten („Vorher“, dann veröffentlichen, dann „Danach prüfen“), dieselbe Site und Projekt-ID, **keine
+neue Migration** (`drizzle/` unverändert seit 0006). Neu ist nur:
 
-- Englisch ist jetzt Standard an der Wurzel (`/leaderboard`, `/records`, `/tier-list`, `/join`,
-  `/game/<id>`, `/scoring`, `/privacy`), Deutsch unter `/de` (`/de/rangliste` …). `proxy.ts`
-  (Next-16-Middleware) setzt nur einen Kopf für die Sprache; `next.config.ts` leitet alte deutsche
-  Adressen dauerhaft auf `/de/…` weiter. Beides muss im Deployment mitlaufen.
+- Die Website ist nur noch englisch. Es gibt keine deutschen Seiten und keinen Umschalter EN/DE mehr;
+  `proxy.ts` ist entfallen. Alte deutsche Adressen leiten dauerhaft (308, Anfrage bleibt) auf die
+  englische Seite weiter (`redirects.ts`, eingebunden in `next.config.ts`; muss im Deployment
+  mitlaufen): `/de` → `/`, `/de/rangliste` → `/leaderboard`, `/de/rekorde` → `/records`,
+  `/de/tierliste` → `/tier-list`, `/de/mitmachen` → `/join`, `/de/spiel/<id>` → `/game/<id>`,
+  `/de/wertung` → `/scoring`, `/de/datenschutz` → `/privacy`, `/de/datenschutz/entfernen` →
+  `/privacy/remove`, alles andere unter `/de/…` → dieselbe Adresse ohne `/de` (`/de/players/…`,
+  `/de/champions/…`, `/de/api-guide` …); die ganz alten Adressen an der Wurzel (`/rangliste`,
+  `/spiel/<id>` …) gehen direkt auf die englische Seite.
+- Die API ist unverändert (Felder und deutsche Fehlermeldungen wie bisher, die App braucht sie).
 - `/api/leaderboard` und `/api/players/<id>` haben je Spieler `server` (EUW, NA …).
 
 Zusätzlich zu „Danach prüfen“ live prüfen und dem Benutzer melden:
 
 1. `https://mayhemstats.lol/` ist englisch (`<html lang="en"`, Fußzeile „isn't endorsed by Riot
-   Games“), `https://mayhemstats.lol/de` deutsch (`lang="de"`, „inoffizielles Fanprojekt“).
-2. Der Umschalter EN/DE oben rechts führt auf dieselbe Seite der anderen Sprache (z. B. ein Spiel
-   `/game/<id>?p=…` ↔ `/de/spiel/<id>?p=…`).
-3. `https://mayhemstats.lol/rangliste` und `/spiel/<id>` antworten mit 308 und `Location: /de/…`.
+   Games“), oben rechts steht kein EN/DE mehr.
+2. Weiterleitungen (mit `curl.exe -sI <Adresse>`: Status 308, `Location` wie hier):
+   `/de` → `/`, `/de/rangliste?server=euw` → `/leaderboard?server=euw`, `/de/spiel/<id>?p=a1` →
+   `/game/<id>?p=a1`, `/de/datenschutz/entfernen` → `/privacy/remove`, `/de/players/<Name-TAG>` →
+   `/players/<Name-TAG>`, `/rangliste` → `/leaderboard`. Im Browser landen sie auf der englischen Seite.
+3. Englisch auf `/leaderboard`, `/records`, `/tier-list`, `/join`, `/scoring`, `/privacy`,
+   `/privacy/remove`, `/api-guide`, einem Profil und einem Spiel: keine deutschen Beschriftungen
+   (Rollen, Tags, Rekord-Namen, Achsen im Radar, Saisonstarts auf `/scoring`). Ausnahme: Augment-Namen
+   kommen aus dem League-Client der Hochladenden und können deutsch sein (bekannt, nicht Teil dieses
+   Auftrags).
 4. Rangliste: Spieler tragen ein Kürzel (EUW, NA …); die Auswahl „Server“ zeigt die vorhandenen Server
    mit Spielerzahl; mit `?server=euw` stehen nur EUW-Spieler da, Plätze ab 1. Ein Profil zeigt das
    Kürzel vor Siegen/Niederlagen.
-5. Eine unbekannte Adresse zeigt „Page not found“, unter `/de/…` „Seite nicht gefunden“.
+5. Eine unbekannte Adresse zeigt „Page not found“.
 6. `GET /api/leaderboard`: jeder Spieler hat das Feld `server`; keine PUUIDs (nur `a123`).
 
 Hinweis: Gespeicherte Antworten (`snapshots`) von vor dem Veröffentlichen haben noch kein `server`;
@@ -48,7 +61,7 @@ Veröffentlichen, das ist kein Fehler.
 
 1. `public/downloads/` aus dem bisherigen Deployment-Checkout übernehmen (Collector-EXE und
    `collector-info.txt`). Diese Dateien liegen absichtlich nicht in Git; ohne sie zeigen die
-   Download-Links der Archiv-Karte und der Seite `/join` bzw. `/de/mitmachen` ins Leere (Dateiname in
+   Download-Links der Archiv-Karte und der Seite `/join` ins Leere (Dateiname in
    `app/ui/join.ts`).
 2. `npm ci`, `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 3. Im Repo-Wurzelordner `pnpm test` (die Website-Logik wird dort mit Vitest geprüft).
@@ -73,8 +86,8 @@ an. Nie eine bereits angewendete Datei ändern. Alle legen nur neue Tabellen an,
 
 ## Danach prüfen
 
-- `/`, `/leaderboard`, `/records`, `/champions`, `/scoring`, `/privacy` (Englisch) und `/de`, `/de/rangliste`, `/de/rekorde`, `/de/wertung` (Deutsch) laden mit echten Daten; der Umschalter EN/DE oben rechts führt auf dieselbe Seite der anderen Sprache. Alte Adressen wie `/rangliste` oder `/spiel/<id>` leiten dauerhaft auf `/de/…` weiter.
-- Ein Profil und ein Spiel öffnen; eine unbekannte Adresse zeigt „Seite nicht gefunden“.
+- `/`, `/leaderboard`, `/records`, `/champions`, `/scoring`, `/privacy` laden englisch mit echten Daten. Alte deutsche Adressen wie `/de/rangliste`, `/rangliste` oder `/de/spiel/<id>` leiten dauerhaft (308) auf die englische Seite weiter.
+- Ein Profil und ein Spiel öffnen; eine unbekannte Adresse zeigt „Page not found“.
 - `GET /api/leaderboard` zweimal: gleiche Antwort (zweites Mal aus `snapshots`).
 - Downloads unter `/downloads/` erreichbar.
 - Etappe 7: Die älteren Archivspiele baut die Seite selbst auf, bis zu 20 je Seitenaufruf. Nach dem

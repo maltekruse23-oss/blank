@@ -1,4 +1,4 @@
-// The records page (/records, /de/rekorde): one ranking per category, the best ten players, each with the game
+// The records page (/records): one ranking per category, the best ten players, each with the game
 // of their value. The same categories, order and counting as the app's leaderboard
 // (src/features/aram/aramCategories.ts, recordCategories; src/features/aram/siteRecords.test.ts
 // checks both). Only games someone uploaded, so every player here has a profile.
@@ -12,7 +12,7 @@ export type RecordCategory = {
   /** German title and note (the app's wording, checked by siteRecords.test.ts). */
   title: string;
   note: string;
-  /** The same in English (the site's default language). */
+  /** The same in English (what the site shows). */
   titleEn: string;
   noteEn: string;
   /** best: highest single game (with that game); total: summed up. */
@@ -43,14 +43,14 @@ export const RECORDS: RecordCategory[] = [
   { id: 'turrets', hue: 'fire', title: 'Turm-Schaden', note: 'bestes Spiel', titleEn: 'Turret damage', noteEn: 'best game', kind: 'best', unit: 'number', value: detail((d) => d.turretDamage) },
 ];
 
-/** Title and note of a category in a language. Takes a category (or anything with its id or German
- * title, e.g. from an older API answer or src/places.ts) and finds the English by id. */
-export function recordText(
-  category: { id?: string; title: string; note?: string; titleEn?: string; noteEn?: string },
-  lang: 'en' | 'de',
-): { title: string; note: string } {
+/** English title and note of a category (the site is English only; the API keeps the German
+ * `title`/`note`). Takes a category (or anything with its id or German title, e.g. from an older API
+ * answer or src/places.ts) and finds the English by id. */
+export function recordText(category: { id?: string; title: string; note?: string; titleEn?: string; noteEn?: string }): {
+  title: string;
+  note: string;
+} {
   const known = RECORDS.find((c) => c.id === category.id || c.title === category.title);
-  if (lang === 'de') return { title: category.title, note: category.note ?? known?.note ?? '' };
   return {
     title: category.titleEn ?? known?.titleEn ?? category.title,
     note: category.noteEn ?? known?.noteEn ?? category.note ?? '',

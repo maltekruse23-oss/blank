@@ -3,14 +3,12 @@
 // filterable by rarity. Names and icons come from blank. (/api/augments).
 import type { Rarity } from '../../src/augments';
 import { useAugments } from '../ui/data';
-import { useLang } from '../ui/i18n';
 import { AugmentLink, augmentLabel } from '../ui/meta';
 import { MetaListPage } from '../ui/meta-page';
 
 type Only = 'all' | Exclude<Rarity, ''>;
 
 export default function AugmentsPage() {
-  const { t } = useLang();
   const known = useAugments();
   return (
     <MetaListPage<Only>
@@ -21,16 +19,13 @@ export default function AugmentsPage() {
       cell={(id) => <AugmentLink id={id} known={known} />}
       filter={(id, only) => only === 'all' || known.get(id)?.rarity === only}
       filters={[
-        { id: 'all', label: t('All rarities', 'Alle Seltenheiten') },
-        { id: 'prismatic', label: t('Prismatic', 'Prismatisch') },
+        { id: 'all', label: 'All rarities' },
+        { id: 'prismatic', label: 'Prismatic' },
         { id: 'gold', label: 'Gold' },
-        { id: 'silver', label: t('Silver', 'Silber') },
+        { id: 'silver', label: 'Silver' },
       ]}
       initialFilter="all"
-      note={t(
-        'Names and icons are sent by blank.; an augment nobody has sent yet is shown with its number.',
-        'Namen und Symbole schickt blank. mit; ein Augment, das noch niemand geschickt hat, steht mit seiner Nummer da.',
-      )}
+      note="Names and icons are sent by blank.; an augment nobody has sent yet is shown with its number."
     />
   );
 }

@@ -7,8 +7,8 @@ import { recordText, type RecordPlace, type RecordView } from '../../src/records
 import { Img, Problem } from '../ui/bits';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import { championImage, profileHref, profileImage, splashImage, splitName, useDragon, useLive } from '../ui/data';
-import { useLang } from '../ui/i18n';
 import { meText, useMe } from '../ui/me';
+import { num, season, date } from '../ui/format';
 
 type Records = {
   scope: Scope;
@@ -18,9 +18,8 @@ type Records = {
   categories: RecordView[];
 };
 type Dragon = ReturnType<typeof useDragon>;
-type Lang = ReturnType<typeof useLang>;
 
-const valueText = (num: Lang['num'], category: RecordView, value: number) =>
+const valueText = (category: RecordView, value: number) =>
   category.unit === 'seconds' ? `${num(value)} s` : num(value);
 const gameLink = (p: RecordPlace) => `/game/${p.game.gameId}?p=${encodeURIComponent(p.puuid)}`;
 const profileLink = (p: RecordPlace) => profileHref(p);
@@ -29,7 +28,6 @@ const championOf = (dragon: Dragon, p: RecordPlace) =>
   dragon?.champions.get(p.game.championId)?.name ?? (p.game.championName || p.game.champion || 'Champion');
 
 export default function RecordsPage() {
-  const { lang, t, href, num, season } = useLang();
   const filters = useFilters();
   const { scope } = filters;
   const { data, error, live } = useLive<Records>('/api/rekorde?' + filters.query);
@@ -42,35 +40,35 @@ export default function RecordsPage() {
     <>
       <div className="page-head">
         <div>
-          <h1>{t('Records', 'Rekorde')}</h1>
-          <p className="page-sub">{data && scope === 'season' ? season(data.season) : t('All time', 'Alle Zeiten')}</p>
+          <h1>Records</h1>
+          <p className="page-sub">{data && scope === 'season' ? season(data.season) : 'All time'}</p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
-            {live ? 'Live' : t('Updates every 5 s', 'Aktualisiert alle 5 s')}
+            {live ? 'Live' : 'Updates every 5 s'}
           </span>
           <Filters {...filters} />
         </div>
       </div>
 
       {error && <Problem message={error} />}
-      {!data && !error && <p className="empty">{t('Loading records …', 'Rekorde werden geladen …')}</p>}
+      {!data && !error && <p className="empty">Loading records …</p>}
 
       {data && !shown.length && (
         <div className="card empty">
           {scope === 'season'
-            ? t('No records this season yet.', 'In dieser Saison gibt es noch keine Rekorde.')
-            : <>{t('No records yet. They appear as soon as someone uploads games.', 'Noch keine Rekorde. Sie erscheinen, sobald jemand Spiele hochlädt.')} <a href={href('/join')}>{t('Join', 'Mitmachen')}</a></>}
+            ? 'No records this season yet.'
+            : <>No records yet. They appear as soon as someone uploads games. <a href="/join">Join</a></>}
         </div>
       )}
 
       {fresh.length > 0 && (
         <p className="fresh-line">
-          <b>{t('New this week:', 'Neu diese Woche:')}</b>{' '}
+          <b>New this week:</b>{' '}
           {fresh.map((c, i) => (
             <span key={c.id}>
               {i > 0 && ', '}
-              <a href={'#' + c.id}>{recordText(c, lang).title}</a>
+              <a href={'#' + c.id}>{recordText(c).title}</a>
             </span>
           ))}
         </p>
@@ -86,10 +84,7 @@ export default function RecordsPage() {
 
       {data && shown.length > 0 && (
         <p className="fine" style={{ marginTop: 'var(--gap)' }}>
-          {t(
-            `${num(data.games)} games from ${num(data.players)} players. Only uploaded games count, disputed ones don't. Missing values of older games never count as 0. Records from the last seven days are marked "New".`,
-            `${num(data.games)} Spiele von ${num(data.players)} Spielern. Es zählen nur hochgeladene Spiele, umstrittene nicht. Fehlende Werte älterer Spiele zählen nie als 0. Rekorde der letzten sieben Tage sind als „Neu“ markiert.`,
-          )}
+          {`${num(data.games)} games from ${num(data.players)} players. Only uploaded games count, disputed ones don't. Missing values of older games never count as 0. Records from the last seven days are marked "New".`}
         </p>
       )}
     </>
@@ -103,9 +98,8 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
     ? [top.game.skin ? `url(${splashImage(key, top.game.skin)})` : '', `url(${splashImage(key)})`].filter(Boolean).join(', ')
     : null;
   const { name, tag } = splitName(top.name);
-  const { lang, t, href, num, date } = useLang();
-  const words = meText(t);
-  const label = recordText(category, lang);
+  const words = meText;
+  const label = recordText(category);
   const me = useMe();
   const total = category.kind === 'total';
   return (
@@ -122,7 +116,7 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
           </svg>
           <Img className="avatar" src={profileImage(dragon, top.icon)} size={34} />
           <span style={{ minWidth: 0 }}>
-            <Link href={href(profileLink(top))} title={top.name}>
+            <Link href={profileLink(top)} title={top.name}>
               <b>{name}</b>
             </Link>
             {tag && <small className="faint">#{tag}</small>}
@@ -130,18 +124,18 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
           </span>
         </div>
         <div className="record-value">
-          <strong className="num">{valueText(num, category, top.value)}</strong>
-          {category.places[1]?.place === 1 && <span className="badge">{t('Tie', 'Gleichstand')}</span>}
-          {top.fresh && <span className="badge">{t('New', 'Neu')}</span>}
+          <strong className="num">{valueText(category, top.value)}</strong>
+          {category.places[1]?.place === 1 && <span className="badge">Tie</span>}
+          {top.fresh && <span className="badge">New</span>}
         </div>
         <div className="record-game">
           <Img className="champ" src={championImage(dragon, key || undefined)} alt="" size={24} />
           <span>
-            {total ? t('last with ', 'zuletzt mit ') : ''}
+            {total ? 'last with ' : ''}
             {championOf(dragon, top)}, {date(top.game.at)}
           </span>
-          <Link className="record-link" href={href(gameLink(top))}>
-            {t('View game', 'Spiel ansehen')}
+          <Link className="record-link" href={gameLink(top)}>
+            View game
           </Link>
         </div>
       </div>
@@ -152,16 +146,16 @@ function RecordCard({ category, dragon }: { category: RecordView; dragon: Dragon
             <li key={p.puuid} data-place={p.place} data-me={p.puuid === me?.id || undefined}>
               <span className="place num">{p.place}</span>
               <Img className="champ" src={championImage(dragon, keyOf(dragon, p) || undefined)} alt={championOf(dragon, p)} size={22} />
-              <Link className="label" href={href(profileLink(p))} title={p.name}>
+              <Link className="label" href={profileLink(p)} title={p.name}>
                 {splitName(p.name).name}
               </Link>
-              {p.fresh && <span className="badge">{t('New', 'Neu')}</span>}
+              {p.fresh && <span className="badge">New</span>}
               <Link
                 className="num value"
-                href={href(gameLink(p))}
-                title={`${t('View game', 'Spiel ansehen')}: ${championOf(dragon, p)}, ${date(p.game.at)}`}
+                href={gameLink(p)}
+                title={`${'View game'}: ${championOf(dragon, p)}, ${date(p.game.at)}`}
               >
-                {valueText(num, category, p.value)}
+                {valueText(category, p.value)}
               </Link>
             </li>
           ))}

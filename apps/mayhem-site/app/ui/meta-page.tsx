@@ -6,7 +6,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { championImage, championKey, championLabel, useDragon, useLive } from './data';
-import { useLang, type Lang } from './i18n';
+import { num, season } from './format';
 import type { MetaChampion, MetaDetail, MetaRow } from '../../src/meta';
 import { MIN_GAMES } from '../../src/meta';
 import { GradeIcon, Img, Problem } from './bits';
@@ -34,7 +34,6 @@ export function MetaListPage<F extends string>({
   note,
 }: {
   kind: 'augments' | 'items';
-  /** Already in the page's language, like every text passed in. */
   title: string;
   /** "Augment" / "Item", for the search, the column and the empty states. */
   noun: string;
@@ -45,7 +44,6 @@ export function MetaListPage<F extends string>({
   initialFilter: F;
   note: string;
 }) {
-  const { lang, t, href, num, season } = useLang();
   const filters = useFilters();
   const { data, error, live } = useLive<MetaList>(`/api/stats/${kind}?` + filters.query);
   const [find, setFind] = useState('');
@@ -60,11 +58,11 @@ export function MetaListPage<F extends string>({
       <div className="page-head">
         <div>
           <h1>{title}</h1>
-          <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : t('All time', 'Alle Zeiten')}</p>
+          <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : 'All time'}</p>
         </div>
         <div className="side">
           <span className="live" data-on={live}>
-            {live ? 'Live' : t('Updates every 5 s', 'Aktualisiert alle 5 s')}
+            {live ? 'Live' : 'Updates every 5 s'}
           </span>
           <Filters {...filters} />
         </div>
@@ -75,10 +73,10 @@ export function MetaListPage<F extends string>({
       <section className="card">
         <div className="card-head champ-tools">
           <form className="field" onSubmit={(e) => e.preventDefault()}>
-            <input aria-label={t(`Search ${noun.toLowerCase()}s`, `${noun} suchen`)} placeholder={t(`Search ${noun.toLowerCase()}s`, `${noun} suchen`)} value={find} onChange={(e) => setFind(e.target.value)} />
+            <input aria-label={`Search ${noun.toLowerCase()}s`} placeholder={`Search ${noun.toLowerCase()}s`} value={find} onChange={(e) => setFind(e.target.value)} />
           </form>
           <label className="field">
-            <select aria-label={t('Filter', 'Auswahl')} value={only} onChange={(e) => setOnly(e.target.value as F)}>
+            <select aria-label="Filter" value={only} onChange={(e) => setOnly(e.target.value as F)}>
               {choices.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -106,44 +104,28 @@ export function MetaListPage<F extends string>({
               ))}
             </tbody>
           </table>
-          {!data && !error && <p className="empty">{t(`Loading ${title.toLowerCase()} …`, `${title} werden geladen …`)}</p>}
+          {!data && !error && <p className="empty">{`Loading ${title.toLowerCase()} …`}</p>}
           {data && !data.rows.length && (
             <p className="empty">
               {filters.scope === 'season'
-                ? t('No games this season yet.', 'In dieser Saison gibt es noch keine Spiele.')
-                : pick(lang,
-                    <>No games yet. {title} show up as soon as someone uploads games. <a href={href('/join')}>Join</a></>,
-                    <>Noch keine Spiele. {title} erscheinen, sobald jemand Spiele hochlädt. <a href={href('/join')}>Mitmachen</a></>,
-                  )}
+                ? 'No games this season yet.'
+                : <>No games yet. {title} show up as soon as someone uploads games. <a href="/join">Join</a></>}
             </p>
           )}
-          {data && data.rows.length > 0 && !sorted.length && <p className="empty">{t('Nothing matches the filter.', 'Nichts passt zur Auswahl.')}</p>}
+          {data && data.rows.length > 0 && !sorted.length && <p className="empty">Nothing matches the filter.</p>}
         </div>
         {data && data.rows.length > 0 && (
           <p className="fine" style={{ marginTop: 12 }}>
-            {pick(lang,
-              <>
-                {num(data.games)} games, {num(data.entries)} player games of 8 minutes or more. The pick rate is the share
-                of player games in which the {noun.toLowerCase()} was taken. {note} Win rate and grade show from {MIN_GAMES}{' '}
-                games on (little data). The grade compares with what the champion usually achieves. More games make the
-                numbers more accurate: <a href={href('/join')}>Join</a>.
-              </>,
-              <>
-                {num(data.games)} Spiele, {num(data.entries)} Spieler-Spiele ab 8 Minuten. Die Pickrate ist der Anteil der
-                Spieler-Spiele, in denen das {noun} genommen wurde. {note} Siegquote und Note erscheinen ab {MIN_GAMES} Spielen
-                (wenige Daten). Die Note vergleicht mit dem, was der Champion üblicherweise schafft. Mehr Spiele machen die
-                Zahlen genauer: <a href={href('/join')}>Mitmachen</a>.
-              </>,
-            )}
+            {num(data.games)} games, {num(data.entries)} player games of 8 minutes or more. The pick rate is the share of
+            player games in which the {noun.toLowerCase()} was taken. {note} Win rate and grade show from {MIN_GAMES} games
+            on (little data). The grade compares with what the champion usually achieves. More games make the numbers more
+            accurate: <a href="/join">Join</a>.
           </p>
         )}
       </section>
     </>
   );
 }
-
-/** A text with markup in the page's language. */
-const pick = (lang: Lang, en: ReactNode, de: ReactNode) => (lang === 'de' ? de : en);
 
 type Detail = Omit<MetaList, 'games' | 'entries' | 'rows'> & { detail: MetaDetail };
 type Dragon = ReturnType<typeof useDragon>;
@@ -166,17 +148,16 @@ export function MetaDetailPage({
   facts: ReactNode;
   paired: { title: string; noun: string; label: (id: number) => string; cell: (id: number) => ReactNode };
 }) {
-  const { lang, t, href, season } = useLang();
   const filters = useFilters();
   const { data, error, missing } = useLive<Detail>(id ? `/api/stats/${kind}/${id}?${filters.query}` : null);
   const dragon = useDragon();
-  if (!id) return <Problem message={kind === 'augments' ? t('Unknown augment', 'Unbekanntes Augment') : t('Unknown item', 'Unbekanntes Item')} missing />;
+  if (!id) return <Problem message={kind === 'augments' ? 'Unknown augment' : 'Unknown item'} missing />;
   const d = data?.detail;
   const noun = kind === 'augments' ? 'Augment' : 'Item';
 
   return (
     <>
-      <Link className="back" href={href(back.href)}>
+      <Link className="back" href={back.href}>
         ← {back.label}
       </Link>
 
@@ -185,7 +166,7 @@ export function MetaDetailPage({
           {icon}
           <div>
             <h1>{name}</h1>
-            <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : t('All time', 'Alle Zeiten')}</p>
+            <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : 'All time'}</p>
             {facts && <div className="facts">{facts}</div>}
           </div>
           {d?.grade && <GradeIcon grade={d.grade} size={72} />}
@@ -196,7 +177,7 @@ export function MetaDetailPage({
       </section>
 
       {error && <Problem message={error} missing={missing} />}
-      {!data && !error && <p className="empty">{t(`Loading ${noun.toLowerCase()} …`, `${noun} wird geladen …`)}</p>}
+      {!data && !error && <p className="empty">{`Loading ${noun.toLowerCase()} …`}</p>}
 
       {d && (
         <>
@@ -206,18 +187,9 @@ export function MetaDetailPage({
             <Paired rows={d.paired} {...paired} />
           </div>
           <p className="fine" style={{ marginTop: 'var(--gap)' }}>
-            {pick(lang,
-              <>
-                Every game of 8 minutes or more counts in which someone had the {noun.toLowerCase()}. &quot;Share&quot; for
-                champions: how often the champion took it, out of all its games. Win rate and grade show from {MIN_GAMES}{' '}
-                games on.
-              </>,
-              <>
-                Es zählt jedes Spiel ab 8 Minuten, in dem jemand das {noun} hatte. „Anteil“ bei den Champions: wie oft der
-                Champion es genommen hat, gemessen an allen seinen Spielen. Siegquote und Note erscheinen ab {MIN_GAMES}{' '}
-                Spielen.
-              </>,
-            )}
+            Every game of 8 minutes or more counts in which someone had the {noun.toLowerCase()}. &quot;Share&quot; for
+            champions: how often the champion took it, out of all its games. Win rate and grade show from {MIN_GAMES} games
+            on.
           </p>
         </>
       )}
@@ -226,7 +198,6 @@ export function MetaDetailPage({
 }
 
 function MetaChampions({ rows, dragon, noun }: { rows: MetaChampion[]; dragon: Dragon; noun: string }) {
-  const { t, href } = useLang();
   const { sorted, head } = useMetaSort(rows, (c) => championLabel(dragon, c));
   return (
     <section className="card">
@@ -238,14 +209,14 @@ function MetaChampions({ rows, dragon, noun }: { rows: MetaChampion[]; dragon: D
           <thead>
             <tr>
               {head('name', 'Champion')}
-              <MetaHeads head={head} pickLabel={t('Share', 'Anteil')} />
+              <MetaHeads head={head} pickLabel="Share" />
             </tr>
           </thead>
           <tbody>
             {sorted.map((c) => (
               <tr key={c.championId}>
                 <td>
-                  <Link className="who" href={href('/champions/' + (c.champion || c.championId))}>
+                  <Link className="who" href={'/champions/' + (c.champion || c.championId)}>
                     <Img className="champ" src={championImage(dragon, championKey(dragon, c) || undefined)} size={28} />
                     <b>{championLabel(dragon, c)}</b>
                   </Link>
@@ -256,13 +227,12 @@ function MetaChampions({ rows, dragon, noun }: { rows: MetaChampion[]; dragon: D
           </tbody>
         </table>
       </div>
-      {!rows.length && <p className="empty">{t(`No champion with this ${noun.toLowerCase()}.`, `Kein Champion mit diesem ${noun}.`)}</p>}
+      {!rows.length && <p className="empty">{`No champion with this ${noun.toLowerCase()}.`}</p>}
     </section>
   );
 }
 
 function Paired({ rows, title, noun, label, cell }: { rows: MetaRow[]; title: string; noun: string; label: (id: number) => string; cell: (id: number) => ReactNode }) {
-  const { t } = useLang();
   const { sorted, head } = useMetaSort(rows, (r) => label(r.id));
   return (
     <section className="card">
@@ -274,7 +244,7 @@ function Paired({ rows, title, noun, label, cell }: { rows: MetaRow[]; title: st
           <thead>
             <tr>
               {head('name', noun)}
-              <MetaHeads head={head} pickLabel={t('Share', 'Anteil')} compact />
+              <MetaHeads head={head} pickLabel="Share" compact />
             </tr>
           </thead>
           <tbody>
@@ -287,7 +257,7 @@ function Paired({ rows, title, noun, label, cell }: { rows: MetaRow[]; title: st
           </tbody>
         </table>
       ) : (
-        <p className="empty">{t('Nothing yet.', 'Noch nichts.')}</p>
+        <p className="empty">Nothing yet.</p>
       )}
     </section>
   );
