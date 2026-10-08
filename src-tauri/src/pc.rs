@@ -29,7 +29,7 @@ mod watch;
 use gpu::Gpu;
 use hardware::specs;
 use programs::protected;
-pub(crate) use programs::{program_pids, windows};
+pub(crate) use programs::{file_description, program_pids, windows};
 use sampler::Sampler;
 use watch::Watch;
 

@@ -17,6 +17,10 @@ export const readAppUsage = isTauri() ? () => invoke<AppUsage>('app_usage') : nu
 /** True once right after an update (src-tauri/src/update.rs): show what is new. */
 export const updateNews = isTauri() ? () => invoke<boolean>('update_news') : null;
 
+/** Mayhem app, once after blank.'s update made it the Mayhem app (src-tauri/src/from_blank.rs):
+ * what it cleaned up of blank., as one English line; null when there is nothing to say. */
+export const mayhemMoved = isTauri() ? () => invoke<string | null>('mayhem_moved') : null;
+
 /** Graphics card for the WebView (src-tauri/src/gpu.rs): follows "Animationen", after a restart. */
 export const gpu = isTauri()
   ? {

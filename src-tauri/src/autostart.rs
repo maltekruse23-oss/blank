@@ -10,12 +10,12 @@ mod registry {
         Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS},
         System::Registry::{
             RegDeleteKeyValueW, RegGetValueW, RegSetKeyValueW, HKEY_CURRENT_USER, REG_BINARY,
-            REG_SZ, RRF_RT_REG_BINARY, RRF_RT_REG_SZ,
+            REG_SZ, RRF_RT_ANY, RRF_RT_REG_BINARY, RRF_RT_REG_SZ,
         },
     };
 
-    const RUN: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
-    const APPROVED: &str =
+    pub const RUN: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+    pub const APPROVED: &str =
         r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
     const NAME: &str = "blank";
     /// "Enabled" in StartupApproved: first byte 2, then an empty time stamp (12 bytes, as Windows
@@ -143,10 +143,17 @@ mod registry {
         }
     }
 
+    /// Removes the entry and its Task Manager mark from these keys; true if either was there.
+    pub fn remove(run: &str, approved: &str) -> Result<bool, String> {
+        let there = read(run, RRF_RT_ANY)?.is_some() || read(approved, RRF_RT_ANY)?.is_some();
+        delete(run)?;
+        delete(approved)?;
+        Ok(there)
+    }
+
     pub fn set(on: bool) -> Result<(), String> {
         if !on {
-            delete(RUN)?;
-            return delete(APPROVED);
+            return remove(RUN, APPROVED).map(drop);
         }
         let value: Vec<u8> = wide(&command()?)
             .iter()
@@ -166,7 +173,44 @@ mod registry {
         }
         Ok(())
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        /// Under a throw-away test key (HKCU\Software\blank-test), never the real Run key.
+        #[test]
+        fn remove_takes_the_entry_and_its_mark() {
+            const TEST: &str = r"Software\blank-test\autostart";
+            const TEST_RUN: &str = r"Software\blank-test\autostart\Run";
+            const TEST_APPROVED: &str = r"Software\blank-test\autostart\Approved";
+            let command: Vec<u8> = wide(r#""C:\Apps\blank.exe""#)
+                .iter()
+                .flat_map(|c| c.to_le_bytes())
+                .collect();
+            write(TEST_RUN, REG_SZ, &command).unwrap();
+            write(TEST_APPROVED, REG_BINARY, &APPROVED_ON).unwrap();
+            assert_eq!(remove(TEST_RUN, TEST_APPROVED), Ok(true));
+            assert_eq!(read(TEST_RUN, RRF_RT_ANY), Ok(None));
+            assert_eq!(read(TEST_APPROVED, RRF_RT_ANY), Ok(None));
+            // Nothing there: nothing to report, no error.
+            assert_eq!(remove(TEST_RUN, TEST_APPROVED), Ok(false));
+            for key in [TEST_RUN, TEST_APPROVED, TEST, r"Software\blank-test"] {
+                // SAFETY: null-terminated key name; fails harmlessly while other tests use it.
+                unsafe {
+                    windows_sys::Win32::System::Registry::RegDeleteKeyW(
+                        HKEY_CURRENT_USER,
+                        wide(key).as_ptr(),
+                    );
+                }
+            }
+        }
+    }
 }
+
+/// blank.'s entry, removed when blank. becomes the Mayhem app (from_blank.rs).
+#[cfg(windows)]
+pub use registry::{remove, APPROVED, RUN};
 
 /// What Windows starts at sign-in, seen from this copy of the app.
 #[derive(serde::Serialize)]

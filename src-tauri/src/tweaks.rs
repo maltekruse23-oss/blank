@@ -437,6 +437,18 @@ fn apply(path: &Path, ids: &[String]) -> Result<Vec<TweakInfo>, String> {
 }
 
 fn restore(path: &Path, ids: &[String]) -> Result<Vec<TweakInfo>, String> {
+    info(&undo(path, ids)?)
+}
+
+/// Sets back every change in the backup (blank. becomes the Mayhem app, from_blank.rs); returns
+/// how many. On an error the backup keeps everything not set back, also ids it does not know.
+pub fn undo_all(path: &Path) -> Result<usize, String> {
+    let ids: Vec<String> = load(path)?.changes.into_keys().collect();
+    undo(path, &ids)?;
+    Ok(ids.len())
+}
+
+fn undo(path: &Path, ids: &[String]) -> Result<Backup, String> {
     let mut backup = load(path)?;
     for id in ids {
         let tweak = find(id)?;
@@ -450,7 +462,7 @@ fn restore(path: &Path, ids: &[String]) -> Result<Vec<TweakInfo>, String> {
         backup.changes.remove(tweak.id);
         save(path, &backup)?;
     }
-    info(&backup)
+    Ok(backup)
 }
 
 /// Location of the backup (tweaks.json next to twitch.json).

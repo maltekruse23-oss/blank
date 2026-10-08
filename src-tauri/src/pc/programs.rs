@@ -148,20 +148,28 @@ pub(super) fn disk(root: &[u16], sample: &mut Sample) {
 
 /// File description of a process's executable.
 pub(super) fn describe(handle: windows_sys::Win32::Foundation::HANDLE) -> Option<String> {
-    use windows_sys::Win32::{
-        Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW},
-        System::Threading::QueryFullProcessImageNameW,
-    };
+    use std::os::windows::ffi::OsStringExt;
+    use windows_sys::Win32::System::Threading::QueryFullProcessImageNameW;
     let mut path = vec![0u16; 1024];
     let mut size = path.len() as u32;
-    // SAFETY: buffer and size describe `path`; the version block is sized by the first call and
-    // the returned pointers point into it.
+    // SAFETY: buffer and size describe `path`.
+    if unsafe { QueryFullProcessImageNameW(handle, 0, path.as_mut_ptr(), &mut size) } == 0 {
+        return None;
+    }
+    path.truncate(size as usize);
+    file_description(std::path::Path::new(&std::ffi::OsString::from_wide(&path)))
+}
+
+/// File description in an EXE's version resource (blank. says "blank.", the Mayhem app "Mayhem").
+pub(crate) fn file_description(path: &std::path::Path) -> Option<String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW,
+    };
+    let path: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    // SAFETY: `path` is null-terminated; the version block is sized by the first call and the
+    // returned pointers point into it.
     unsafe {
-        if QueryFullProcessImageNameW(handle, 0, path.as_mut_ptr(), &mut size) == 0 {
-            return None;
-        }
-        path.truncate(size as usize);
-        path.push(0);
         let len = GetFileVersionInfoSizeW(path.as_ptr(), std::ptr::null_mut());
         if len == 0 {
             return None;

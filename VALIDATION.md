@@ -1,5 +1,13 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: blank. wird zur Mayhem-App
+
+- Geprüft auf Windows: `pnpm build`, `pnpm lint`, `pnpm test` (274), `pnpm mayhem:web`, Prettier auf den geänderten Dateien, in `src-tauri` `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --lib` (104 grün, 4 ignoriert; neu: `from_blank` – startet nur mit `--after-update` als `blank.exe`, nicht als `mayhem.exe`/normal/Neustart; räumt Wegwerf-Ordner `…\Roaming\com.blank.desktop` und `…\Local\com.blank.desktop` samt `aram-archive` und `EBWebView` ab, lässt den Nachbarordner der Mayhem-App stehen, entfernt eine Wegwerf-Anmeldung `blank-test.twitch.cleanup`, zweiter Lauf leer und ohne Meldung; unbekannte Optimierung oder beschädigtes `tweaks.json` hält alles an, Sicherung byte-gleich, Einstellungen bleiben; nie ein Ordner mit anderem Namen; Identifier gleich `tauri.conf.json` – `autostart::registry::remove` unter `HKCU\Software\blank-test\autostart` – `update::replaces_the_running_file_whatever_its_name`).
+- Browser-Vorschau (eigener Vite auf freiem Port, temporäre Seite mit nachgestelltem Tauri-Aufruf, nicht eingecheckt): nach `update_news = true` und `mayhem_moved` (0,8 s verzögert) erscheint ein Dialog „blank. is now the Mayhem app“ mit der Zeile „Cleaned up after blank.: gaming tweaks set back, start with Windows off, Twitch sign-in removed, settings and saved games deleted.“ und darunter die fünf englischen Notizen; „Got it“ schließt.
+- Nicht geprüft (geht erst mit dem nächsten Release): der echte Durchlauf blank. v0.9.2 → Update-Klick → Mayhem-App als `blank.exe` mit echten Optimierungen, Autostart und Twitch-Anmeldung; ob WebView2 von blank. `EBWebView` nach höchstens 5 s freigibt; Release-Ablauf mit zwei gleichen Dateien. Prüfschritte nach dem Release: in einem blank. v0.9.2 vorher Gaming-Optimierung anwenden (Werte notieren), Autostart an, Twitch verbinden; Update klicken; danach Werte wie vorher, Run und StartupApproved ohne „blank“, `cmdkey /list` ohne `blank.twitch`, `%APPDATA%\com.blank.desktop` und `%LOCALAPPDATA%\com.blank.desktop` weg, Verknüpfung startet die Mayhem-App, Dialog genau einmal; danach ein Update der Mayhem-App: nur „What's new in …“, kein „blank. is now the Mayhem app“, blank.-Ordner eines selbst gebauten blank. bleiben.
+- Nach dem Review (08.10.2026): entschieden wird nach der ersetzten Datei `<exe>.old` (Dateibeschreibung „blank.“), nicht mehr nach `--after-update` und Dateiname – ein umbenanntes blank. („blank (1).exe“) wird aufgeräumt, ein Update der Mayhem-App (ihre `.old` sagt „Mayhem“) nie, auch wenn es inzwischen wieder blank.-Ordner gibt. Bis zum Erfolg bleibt die Marke `from-blank` im Ordner der Mayhem-App; jeder Start versucht es dann still erneut. Der Dialog öffnet erst, wenn `update_news` und `mayhem_moved` geantwortet haben (die Zeile kann nicht mehr nach „Got it“ kommen). Englische Update-Fehler nennen die laufende Datei. Geprüft: `pnpm build`, `pnpm lint`, `pnpm test` (274), `pnpm mayhem:web`, Prettier, `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --lib` (104 grün, 5 ignoriert; neu `runs_only_when_it_replaced_blank`: ohne `.old`, mit `cmd.exe` oder einer Datei ohne Versions-Block als `.old` nie, productName der beiden Configs; `cleans_up_blank_once_and_nothing_else` mit Marke und einem späteren Mayhem-Update, das nichts löscht; `a_tweak_it_cannot_set_back_stops_everything` mit Marke, die bleibt, und stiller Wiederholung), dazu von Hand `BLANK_EXE=… cargo test --lib -- --ignored replaced_a_real_blank`: das echte blank. 0.9.2 als `.old` von „blank.exe“ und „blank (1).exe“ zählt, die echte `mayhem.exe` nicht.
+- Bekannte Grenzen: läuft beim Update schon eine `mayhem.exe`, holt der Start als `blank.exe` nur deren Fenster nach vorn; `.old` bleibt liegen, und aufgeräumt wird beim nächsten Start dieser Kopie (mit blank.s Autostart spätestens bei der nächsten Anmeldung). Wer blank. 0.2.0 oder älter von Hand ersetzt, hat keine `.old`: kein Aufräumen.
+
 ## Nachtrag 08.10.2026: Update-Knopf der Mayhem-App
 
 - Geprüft: `pnpm build`, `pnpm lint`, `pnpm test` (Vitest neu: `updateView.test.ts` mit allen Zuständen, offline, englischer Abschnitt im Release-Text), `pnpm mayhem:web` (Bundle ohne `motion`), Prettier auf den geänderten Dateien, in `src-tauri` `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --lib` (98, neu: `each_app_takes_only_its_own_file` – Identifier → Datei, nur GitHub-Download-Ordner, Größenlimit, ohne/mit falschem Digest nichts –, `reads_only_the_english_notes` mit feindlichem Text: CRLF, HTML, Steuerzeichen, leere Zeilen, 10 000 Zeichen, 100 Zeilen, nur der richtige Abschnitt; `compares_versions` erweitert; `capability_covers_only_the_mayhem_window` mit den drei Update-Rechten).
@@ -151,16 +159,16 @@ Zusätzlich: `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm lint` erfolgr
 
 ## Vor jedem Release (auf Windows, ca. 10 Minuten)
 
-Mit der neuen `blank.exe` (`pnpm desktop:build` oder das Artefakt eines manuellen Laufs von „Release“ unter Actions) nacheinander:
+Seit blank. pausiert ist (08.10.2026), ist das Release die Mayhem-App: `mayhem.exe` und dieselbe Datei als `blank.exe`. Mit der neuen `mayhem.exe` (`pnpm mayhem:build` oder das Artefakt eines manuellen Laufs von „Release“ unter Actions) nacheinander:
 
-1. Starten: Startbildschirm, Home ohne Scrollen, nirgends „Fehler in …“; das Fenster steht, wo es zuletzt war.
-2. Seiten durchklicken: Twitch (Live-Liste, Kanal hinzufügen und entfernen), Pros (Filter), ARAM (Rangliste, Beste Spiele → Ansehen), Musik (Mix starten und stoppen), Devices, PC, Apps.
-3. Zahnrad: alle sechs Reiter und die Suche („laut“); eine Einstellung ändern, blank. über das Symbol im Infobereich beenden, neu starten – die Einstellung ist noch da.
-4. Popouts: blank. in den Hintergrund, in einem Player Musik starten → Popout an seiner Stelle (kompakt mit Balken); Video ins Vollbild → Popout weg; zurück aus dem Vollbild → es kommt nicht von selbst wieder.
-5. X → Animation, blank. im Infobereich; Klick aufs Symbol → zurück.
-6. Zahnrad → System → Fehlerbericht → Kopieren und einfügen: „Keine Fehler aufgezeichnet“ oder nur Erklärbares.
-7. Update aus der vorigen Version: „Nach Updates suchen“ → „Jetzt aktualisieren“ → Neustart mit „Neu in Version …“. Mayhem-App (sobald die vorige Version schon `mayhem.exe` mit Updater hatte): „Update“ → englische Notizen → „Install and restart“ → Neustart mit „What's new in …“, nur ein Fenster, keine `mayhem.exe.old` mehr.
-8. Wenn vorhanden, Windows 10: Popouts „In der Taskleiste“ → rechts neben dem Infobereich, nicht über „Start“.
+1. Starten: ein Fenster „Mayhem“, nirgends ein Fehler; ein zweiter Start holt es nur nach vorn.
+2. Seiten durchklicken: Home, Champ (mit League-Client in der ARAM-Mayhem-Auswahl die Karte, sonst der Leerzustand), Augments, Champions, Items, Patch, Rank.
+3. „Update“: Klick fragt GitHub und zeigt „You're up to date“ bzw. die englischen Notizen.
+4. Update der Mayhem-App aus der vorigen Version (sobald die vorige schon `mayhem.exe` mit Updater hatte): „Update“ → „Install and restart“ → Neustart mit „What's new in …“ (ohne „blank. is now the Mayhem app“), nur ein Fenster, keine `mayhem.exe.old` mehr.
+5. blank. v0.9.2 → „Nach Updates suchen“ → „Jetzt aktualisieren“ → die Mayhem-App startet als `blank.exe` und zeigt genau einmal „blank. is now the Mayhem app“ (Prüfschritte im Nachtrag „blank. wird zur Mayhem-App“).
+6. `%APPDATA%\lol.mayhemstats.desktop\errors.log` fehlt oder enthält nur Erklärbares.
+
+Die blank.-Schritte (Startbildschirm, Twitch, Popouts, Infobereich, Zahnrad, Windows 10 „In der Taskleiste“) ruhen mit blank.; nur prüfen (`pnpm desktop:build`), wenn blank. wieder ausgeliefert wird.
 
 ## ARAM: Rangsystem neu mit versteckter Wertung (Benutzerauftrag, 04.10.2026)
 

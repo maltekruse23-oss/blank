@@ -4,7 +4,9 @@
 //! (blank.exe or mayhem.exe, chosen by the config, never by the page) is downloaded from that
 //! release, its size and SHA-256 must match what GitHub states, then the running EXE renames
 //! itself to `.old`, the new one takes its place and is started; it waits for this process to end
-//! and removes the `.old` file.
+//! and removes the `.old` file. The file replaced is always the running one, whatever its name:
+//! since blank. is paused, the asset blank.exe is the Mayhem build, so blank.'s update turns
+//! blank.exe into the Mayhem app (from_blank.rs), which then updates itself from mayhem.exe.
 use crate::single_instance;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -294,7 +296,7 @@ fn verify(bytes: &[u8], asset: &Asset) -> bool {
         && sha256(bytes) == Some(asset.sha256)
 }
 
-fn sibling(exe: &Path, suffix: &str) -> PathBuf {
+pub(crate) fn sibling(exe: &Path, suffix: &str) -> PathBuf {
     let mut name = exe.file_name().unwrap_or_default().to_os_string();
     name.push(suffix);
     exe.with_file_name(name)
@@ -303,16 +305,18 @@ fn sibling(exe: &Path, suffix: &str) -> PathBuf {
 /// Puts the new EXE in place of the running one; the running one keeps working as `.old`.
 fn replace(which: Exe, exe: &Path, bytes: &[u8]) -> Result<(), String> {
     let (new, old) = (sibling(exe, ".new"), sibling(exe, ".old"));
+    // The Mayhem app also runs as blank.exe (from_blank.rs), so it names its real file.
+    let name = exe.file_name().unwrap_or_default().to_string_lossy();
     let stuck = || {
         which.say(
             "blank.exe ließ sich nicht ersetzen.",
-            "mayhem.exe could not be replaced.",
+            &format!("{name} could not be replaced."),
         )
     };
     std::fs::write(&new, bytes).map_err(|_| {
         which.say(
             "Kein Schreibzugriff im Ordner von blank.exe – bitte die neue Version von Hand laden.",
-            "No write access in the folder of mayhem.exe. Download the new version by hand.",
+            &format!("No write access in the folder of {name}. Download the new version by hand."),
         )
     })?;
     let _ = std::fs::remove_file(&old);
@@ -438,6 +442,21 @@ mod tests {
     fn names_the_files_next_to_the_exe() {
         let exe = Path::new(r"C:\Apps\blank.exe");
         assert_eq!(sibling(exe, ".old"), Path::new(r"C:\Apps\blank.exe.old"));
+    }
+
+    /// blank.'s update installs the Mayhem app as blank.exe; its own update then replaces that
+    /// file (the running one, whatever its name), so shortcuts and pins keep working.
+    #[test]
+    fn replaces_the_running_file_whatever_its_name() {
+        let dir = std::env::temp_dir().join(format!("blank-update-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let exe = dir.join("blank.exe");
+        std::fs::write(&exe, b"MZ old").unwrap();
+        replace(Exe::Mayhem, &exe, b"MZ new").unwrap();
+        assert_eq!(std::fs::read(&exe).unwrap(), b"MZ new");
+        assert_eq!(std::fs::read(sibling(&exe, ".old")).unwrap(), b"MZ old");
+        assert!(!sibling(&exe, ".new").exists());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
