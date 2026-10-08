@@ -1,22 +1,23 @@
 'use client';
-// One champion: the facts of the table, the players with a profile on it by average grade, the
-// augments and items with pick rate, win rate and average grade, and the best games.
-// Below five graded games it says "little data" and shows no averages.
+// One champion: how does it do and what do I build? The answer on top (win rate and games over its
+// splash art), then tabs: the best augments and items, the most common combos, the players with a
+// profile on it and the best games. Every list shows five first, strongest first, with the win
+// rate as its one number; pick rate and average grade stay in the tooltip. Below five graded games
+// it says "little data" and shows no averages.
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MIN_GAMES, roleName, type ChampionDetail, type ChampionGame } from '../../src/champions';
-import { Augment, GradeChip, GradeIcon, Img, Problem } from '../ui/bits';
-import { AugmentLink, ItemLink, MetaCells, MetaHeads, augmentLabel, itemLabel, percent, useMetaSort } from '../ui/meta';
-import { num, date, season } from '../ui/format';
 import { useState } from 'react';
+import { MIN_GAMES, roleName, type ChampionDetail, type ChampionGame } from '../../src/champions';
 import { combosOf, MIN_COMBO_GAMES, type Combo } from '../../src/builds';
+import { Augment, GradeChip, GradeIcon, Img, More, Problem, Tabs, Top, step } from '../ui/bits';
+import { Answer, augmentLabel, augmentPicture, gamesText, isTop, itemLabel, itemPicture, MetaRow, percent, strongest, WinValue } from '../ui/meta';
+import { num, ago } from '../ui/format';
 import { Filters, useFilters, type Scope } from '../ui/filters';
 import {
   championImage,
   championKey,
   championLabel,
-  duration,
-  itemImage,
+  profileHref,
   profileImage,
   splashImage,
   splitName,
@@ -24,7 +25,7 @@ import {
   useDragon,
   useItems,
   useLive,
-  profileHref,
+  useNow,
 } from '../ui/data';
 
 type Detail = {
@@ -33,9 +34,9 @@ type Detail = {
   champion: ChampionDetail;
 };
 type Dragon = ReturnType<typeof useDragon>;
+type Part = 'build' | 'combos' | 'players' | 'games';
 
 const VALID = /^([1-9][0-9]{0,4}|[A-Za-z][A-Za-z0-9]{0,29})$/;
-const profileLink = (puuid: string, name: string) => profileHref({ puuid, name });
 const gameLink = (g: ChampionGame) => `/game/${g.gameId}?p=${encodeURIComponent(g.puuid)}`;
 
 export default function ChampionPage() {
@@ -44,6 +45,7 @@ export default function ChampionPage() {
   const filters = useFilters();
   const { data, error, missing } = useLive<Detail>(VALID.test(name) ? `/api/champions/${name}?${filters.query}` : null);
   const dragon = useDragon();
+  const [part, setPart] = useState<Part>('build');
 
   if (!VALID.test(name)) return <Problem message="Unknown champion" missing />;
 
@@ -58,20 +60,27 @@ export default function ChampionPage() {
       </Link>
 
       <section
-        className="game-hero champ-hero"
+        className="hero in"
+        aria-label={title || 'Champion'}
         style={key ? ({ '--splash': `url(${splashImage(key)})` } as React.CSSProperties) : undefined}
       >
-        <div className="champ-title">
-          <Img className="champ" src={championImage(dragon, key || undefined)} alt="" size={64} />
-          <div>
-            <h1>{title || 'Champion'}</h1>
-            <p className="page-sub">{data && filters.scope === 'season' ? season(data.season) : 'All time'}</p>
-            {c && <div className="facts">{roleName(c.role)}</div>}
+        <div className="glass hero-glass">
+          <div className="title">
+            <Img className="champ" src={championImage(dragon, key || undefined)} alt="" size={64} />
+            <div>
+              <h1>{title || 'Champion'}</h1>
+              <div className="pills">
+                {c && <span className="pill">{roleName(c.role)}</span>}
+                {c?.grade && (
+                  <span className="pill gold" title="How well players do on it compared with its usual game">
+                    {`Average grade ${c.grade}`}
+                  </span>
+                )}
+                {c && c.pct === null && <span className="pill">Little data</span>}
+              </div>
+            </div>
           </div>
-          {c?.grade && <GradeIcon grade={c.grade} size={72} />}
-        </div>
-        <div className="side champ-filters">
-          <Filters {...filters} />
+          {c && <Answer stat={{ games: c.games, pick: c.pick, winRate: c.winRate ?? null, graded: c.graded, pct: c.pct, grade: c.grade }} pickLabel="In" />}
         </div>
       </section>
 
@@ -79,254 +88,88 @@ export default function ChampionPage() {
       {!data && !error && <p className="empty">Loading champion …</p>}
 
       {c && (
-        <>
+        <section className="section in" style={step(1)} aria-label="Details">
+          <div className="tools">
+            <Tabs<Part>
+              label="Show"
+              value={part}
+              onChange={setPart}
+              options={[
+                { id: 'build', label: 'Build' },
+                { id: 'combos', label: 'Combos' },
+                { id: 'players', label: 'Top players' },
+                { id: 'games', label: 'Best games' },
+              ]}
+            />
+            <Filters {...filters} />
+          </div>
+
           {c.pct === null && (
             <div className="notice" role="note">
               {`Little data: only ${c.graded} of ${MIN_GAMES} rated games. Averages show from ${MIN_GAMES} on.`}
             </div>
           )}
 
-          <div className="stat-row" style={{ marginBottom: 'var(--gap)' }}>
-            <div className="stat">
-              <small>Games</small>
-              <strong className="num">{num(c.games)}</strong>
-            </div>
-            <div className="stat">
-              <small>Avg grade</small>
-              <strong>{c.grade ?? '–'}</strong>
-            </div>
-            <div className="stat">
-              <small>Pick rate</small>
-              <strong className="num">{percent(c.pick)}</strong>
-            </div>
-            <div className="stat">
-              <small>Win rate</small>
-              <strong className="num">{percent(c.winRate)}</strong>
-            </div>
-            <div className="stat">
-              <small>SSS or MAYHEM</small>
-              <strong className="num">{percent(c.top)}</strong>
-            </div>
-            <div className="stat">
-              <small>Avg damage/min</small>
-              <strong className="num">{c.damagePerMinute === null ? '–' : num(c.damagePerMinute)}</strong>
-            </div>
-          </div>
+          {part === 'build' && <Build detail={c} dragon={dragon} />}
+          {part === 'combos' && <Combos detail={c} dragon={dragon} />}
+          {part === 'players' && <Players detail={c} dragon={dragon} />}
+          {part === 'games' && <BestGames detail={c} dragon={dragon} />}
 
-          <div className="grid cols-main">
-            <div className="stack">
-              <Builds detail={c} dragon={dragon} />
-              <Players detail={c} dragon={dragon} />
-              <BestGames detail={c} dragon={dragon} champion={key} />
-            </div>
-            <div className="stack">
-              <Augments detail={c} />
-              <Items detail={c} dragon={dragon} />
-            </div>
-          </div>
-
-          <p className="fine" style={{ marginTop: 'var(--gap)' }}>
-            Games, pick rate, win rate, grade and damage count every seat of a game with the values of all ten. Top players, augments, items and best games come from the games with names (uploaded or archived). Win or loss does not count for the grade.
+          <p className="fine">
+            Win rate and games count every seat with the values of all ten. Players, builds and best games come from games
+            with names. Win or loss does not count for the grade.
           </p>
-        </>
+        </section>
       )}
     </>
   );
 }
 
-function Players({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
-  return (
-    <section className="card">
-      <div className="card-head">
-        <h2>Top players</h2>
-      </div>
-      {detail.players.length ? (
-        <div className="table-wrap flat">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Player</th>
-                <th className="right">Games</th>
-                <th>Avg grade</th>
-                <th className="right hide-sm">K / D / A</th>
-                <th className="right hide-sm">Damage/min</th>
-                <th className="hide-sm">Best game</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.players.map((p, i) => {
-                const { name, tag } = splitName(p.name);
-                return (
-                  <tr key={p.puuid} data-place={p.pct === null ? undefined : i + 1}>
-                    <td className="place num">{i + 1}</td>
-                    <td>
-                      <Link className="who" href={profileLink(p.puuid, p.name)} title={p.name}>
-                        <Img className="avatar" src={profileImage(dragon, p.icon)} size={28} />
-                        <span style={{ minWidth: 0 }}>
-                          <b>{name}</b>
-                          {tag && <small>#{tag}</small>}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="right num">{p.games}</td>
-                    <td>{p.grade ? <GradeChip grade={p.grade} /> : '–'}</td>
-                    <td className="right num hide-sm">
-                      {num(p.kills, 1)} / {num(p.deaths, 1)} / {num(p.assists, 1)}
-                    </td>
-                    <td className="right num hide-sm">{num(p.damagePerMinute)}</td>
-                    <td className="hide-sm">
-                      {p.best ? (
-                        <Link href={`/game/${p.best.gameId}?p=${encodeURIComponent(p.puuid)}`} title="View game">
-                          <GradeChip grade={p.best.grade} />
-                        </Link>
-                      ) : (
-                        '–'
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <p className="empty">Nobody with a profile has played this champion yet.</p>
-      )}
-    </section>
-  );
-}
-
-function BestGames({ detail, dragon, champion }: { detail: ChampionDetail; dragon: Dragon; champion: string }) {
-  return (
-    <section className="card">
-      <div className="card-head">
-        <h2>Best games</h2>
-      </div>
-      {detail.best.length ? (
-        <ol className="champ-games">
-          {detail.best.map((g) => {
-            const splash = champion
-              ? [g.skin ? `url(${splashImage(champion, g.skin)})` : '', `url(${splashImage(champion)})`].filter(Boolean).join(', ')
-              : null;
-            return (
-              <li key={`${g.gameId}:${g.puuid}`} style={splash ? ({ '--splash': splash } as React.CSSProperties) : undefined}>
-                <GradeIcon grade={g.grade} size={40} />
-                <Link className="who" href={profileLink(g.puuid, g.name)} title={g.name}>
-                  <Img className="avatar" src={profileImage(dragon, g.icon)} size={26} />
-                  <b>{splitName(g.name).name}</b>
-                </Link>
-                <span className="num muted">
-                  {g.kills} / {g.deaths} / {g.assists} · {num(g.damage)} damage
-                </span>
-                <span className="num faint hide-sm">
-                  {date(g.at)} · {duration(g.seconds)} min
-                </span>
-                <Link className="record-link" href={gameLink(g)}>
-                  View game
-                </Link>
-              </li>
-            );
-          })}
-        </ol>
-      ) : (
-        <p className="empty">No rated game from players with a profile yet.</p>
-      )}
-    </section>
-  );
-}
-
-function Augments({ detail }: { detail: ChampionDetail }) {
+/** The best augments and the best finished items on this champion, five each. */
+function Build({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
   const known = useAugments();
-  const { sorted, head } = useMetaSort(detail.augments, (a) => augmentLabel(known, a.id), 'grade');
+  const items = useItems();
+  const augments = strongest(detail.augments, (a) => augmentLabel(known, a.id));
+  const done = strongest(
+    (detail.items ?? []).filter((i) => !items.size || items.get(i.id)?.kind !== 'other'),
+    (i) => itemLabel(items, i.id),
+  );
   return (
-    <section className="card">
-      <div className="card-head">
-        <h2>Augments</h2>
-      </div>
-      {detail.augments.length ? (
-        <>
-          <table className="table augment-table">
-            <thead>
-              <tr>
-                {head('name', 'Augment')}
-                <MetaHeads head={head} pickLabel="Share" compact />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((a) => (
-                <tr key={a.id}>
-                  <td>
-                    <AugmentLink id={a.id} known={known} />
-                  </td>
-                  <MetaCells stat={a} compact />
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="fine" style={{ marginTop: 10 }}>
-            {'Share: in how many of this champion\'s games the augment was taken (hover the value for games and win rate). Names and icons are sent by blank.; an augment nobody has sent yet is shown with its number.'}
-          </p>
-        </>
-      ) : (
-        <p className="empty">No augments in uploaded games.</p>
-      )}
-    </section>
+    <div className="split even">
+      <section className="section" aria-labelledby="best-augments">
+        <h2 id="best-augments">Best augments</h2>
+        {augments.length ? (
+          <More
+            list={augments}
+            label="Best augments"
+            render={(a, i) => (
+              <MetaRow key={a.id} index={i} href={`/augments/${a.id}`} picture={augmentPicture(known, a.id)} name={augmentLabel(known, a.id)} stat={a} top={isTop(augments, i)} pickLabel="Taken in" />
+            )}
+          />
+        ) : (
+          <p className="empty">No augments in uploaded games.</p>
+        )}
+      </section>
+      <section className="section" aria-labelledby="best-items">
+        <h2 id="best-items">Best items</h2>
+        {done.length ? (
+          <More
+            list={done}
+            label="Best items"
+            render={(it, i) => (
+              <MetaRow key={it.id} index={i} href={`/items/${it.id}`} picture={itemPicture(dragon, it.id)} name={itemLabel(items, it.id)} stat={it} top={isTop(done, i)} pickLabel="Built in" />
+            )}
+          />
+        ) : (
+          <p className="empty">No items in games with names.</p>
+        )}
+      </section>
+    </div>
   );
 }
 
-const ITEMS_SHOWN = 12;
-
-/** The items in the final builds on this champion, by default only finished ones. */
-function Items({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
-  const known = useItems();
-  const [all, setAll] = useState(false);
-  const rows = (detail.items ?? []).filter((i) => !known.size || known.get(i.id)?.kind !== 'other');
-  const { sorted, head } = useMetaSort(rows, (i) => itemLabel(known, i.id));
-  const shown = all ? sorted : sorted.slice(0, ITEMS_SHOWN);
-  return (
-    <section className="card">
-      <div className="card-head">
-        <h2>Items</h2>
-      </div>
-      {rows.length ? (
-        <>
-          <table className="table augment-table">
-            <thead>
-              <tr>
-                {head('name', 'Item')}
-                <MetaHeads head={head} pickLabel="Share" compact />
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((i) => (
-                <tr key={i.id}>
-                  <td>
-                    <ItemLink id={i.id} known={known} dragon={dragon} />
-                  </td>
-                  <MetaCells stat={i} compact />
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {sorted.length > ITEMS_SHOWN && (
-            <button type="button" className="button" style={{ marginTop: 10 }} onClick={() => setAll(!all)}>
-              {all ? 'Show less' : `Show all ${sorted.length}`}
-            </button>
-          )}
-          <p className="fine" style={{ marginTop: 10 }}>
-            {"Finished items and boots at the end of the game; share: in how many of this champion's games the item was there."}
-          </p>
-        </>
-      ) : (
-        <p className="empty">No items in games with names.</p>
-      )}
-    </section>
-  );
-}
-
-/** The most common augment pairs and cores of three finished items on this champion. */
-function Builds({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
+/** The most common augment pairs and cores of three finished items. */
+function Combos({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
   const augments = useAugments();
   const items = useItems();
   const games = detail.builds ?? [];
@@ -334,85 +177,121 @@ function Builds({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) 
   // Without Data Dragon there is no telling finished items apart: no cores then.
   const cores = items.size ? combosOf(games, (g) => g.items.filter((id) => items.get(id)?.kind === 'done'), 3) : [];
   return (
-    <section className="card">
-      <div className="card-head">
-        <h2>Builds</h2>
-      </div>
-      <div className="builds">
-        <BuildTable
-          title="Augment combos"
+    <>
+      <div className="split even">
+        <ComboList
+          title="Augment pairs"
           rows={pairs}
           cell={(id) => (
             <Link key={id} href={`/augments/${id}`} title={augmentLabel(augments, id)}>
-              <Augment id={id} info={augments.get(id)} size={30} />
+              <Augment id={id} info={augments.get(id)} size={32} />
             </Link>
           )}
           label={(ids) => ids.map((id) => augmentLabel(augments, id)).join(' + ')}
         />
-        <BuildTable
-          title="Item core (3 finished items)"
+        <ComboList
+          title="Item cores"
           rows={cores}
           cell={(id) => (
             <Link key={id} href={`/items/${id}`} title={itemLabel(items, id)}>
-              <Img className="item" src={itemImage(dragon, id)} size={30} />
+              {itemPicture(dragon, id, 32)}
             </Link>
           )}
           label={(ids) => ids.map((id) => itemLabel(items, id)).join(' + ')}
         />
       </div>
-      <p className="fine" style={{ marginTop: 10 }}>
-        {`Most common combos in this champion's games, from ${MIN_COMBO_GAMES} games on. Items: what was in the inventory when the game ended; the buy order is not stored.`}
-      </p>
+      <p className="fine">{`Most common in this champion's games, from ${MIN_COMBO_GAMES} games on. Items: the inventory at the end; the buy order is not stored.`}</p>
+    </>
+  );
+}
+
+function ComboList({ title, rows, cell, label }: { title: string; rows: Combo[]; cell: (id: number) => React.ReactNode; label: (ids: number[]) => string }) {
+  const list = strongest(rows, (r) => label(r.ids));
+  return (
+    <section className="section" aria-label={title}>
+      <h2>{title}</h2>
+      {list.length ? (
+        <More
+          list={list}
+          label={title}
+          render={(r, i) => (
+            <li
+              key={r.ids.join()}
+              className="row in"
+              data-top={isTop(list, i) || undefined}
+              style={step(i)}
+              title={`${label(r.ids)} · ${r.winRate === null ? `win rate from ${MIN_GAMES} games on` : `win rate ${percent(r.winRate)}`} · ${gamesText(r.games)} · in ${percent(r.pick)} of games${r.grade ? ` · average grade ${r.grade}` : ''}`}
+            >
+              <span className="icons">{r.ids.map(cell)}</span>
+              <span className="who">{isTop(list, i) && <Top />}</span>
+              <WinValue stat={r} />
+            </li>
+          )}
+        />
+      ) : (
+        <p className="empty">{`No combo in at least ${MIN_COMBO_GAMES} games yet.`}</p>
+      )}
     </section>
   );
 }
 
-function BuildTable({
-  title,
-  rows,
-  cell,
-  label,
-}: {
-  title: string;
-  rows: Combo[];
-  cell: (id: number) => React.ReactNode;
-  label: (ids: number[]) => string;
-}) {
+function Players({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
+  if (!detail.players.length) return <p className="empty">Nobody with a profile has played this champion yet.</p>;
   return (
-    <div>
-      <h3 className="build-title">{title}</h3>
-      {rows.length ? (
-        <table className="table augment-table">
-          <thead>
-            <tr>
-              <th>Combo</th>
-              <th className="right">Share</th>
-              <th className="right hide-sm">Win rate</th>
-              <th>Avg grade</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.ids.join()}>
-                <td>
-                  <span className="build-icons" aria-label={label(r.ids)}>
-                    {r.ids.map(cell)}
-                  </span>
-                </td>
-                <td className="right num nowrap" title={`${num(r.games)} games`}>
-                  {percent(r.pick)}
-                </td>
-                <td className="right num nowrap hide-sm">{percent(r.winRate)}</td>
-                <td>{r.grade ? <GradeChip grade={r.grade} small /> : <span className="faint">–</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="empty">
-          {`No combo in at least ${MIN_COMBO_GAMES} games yet.`}
-        </p>
-      )}
-    </div>
+    <More
+      list={detail.players}
+      className="rows grid"
+      label="Top players"
+      render={(p, i) => {
+        const { name, tag } = splitName(p.name);
+        return (
+          <li key={p.puuid} className="row in" data-place={p.pct === null ? undefined : i + 1} style={step(i)}>
+            <span className="place">{i + 1}</span>
+            <Img className="avatar" src={profileImage(dragon, p.icon)} size={36} />
+            <span className="who">
+              <Link
+                className="stretch name"
+                href={profileHref({ puuid: p.puuid, name: p.name })}
+                title={`${num(p.kills, 1)} / ${num(p.deaths, 1)} / ${num(p.assists, 1)} on average · ${num(p.damagePerMinute)} damage per minute`}
+              >
+                <span>{name}</span>
+                {tag && <span className="tag">#{tag}</span>}
+              </Link>
+              <small>{gamesText(p.games)}</small>
+            </span>
+            {p.grade ? <GradeChip grade={p.grade} /> : <span className="faint">–</span>}
+          </li>
+        );
+      }}
+    />
+  );
+}
+
+function BestGames({ detail, dragon }: { detail: ChampionDetail; dragon: Dragon }) {
+  const now = useNow();
+  if (!detail.best.length) return <p className="empty">No rated game from players with a profile yet.</p>;
+  return (
+    <More
+      list={detail.best}
+      className="rows grid"
+      label="Best games"
+      render={(g, i) => {
+        const { name } = splitName(g.name);
+        return (
+          <li key={`${g.gameId}:${g.puuid}`} className="row in" data-top={i === 0 || undefined} style={step(i)}>
+            <GradeIcon grade={g.grade} size={44} />
+            <span className="who">
+              <Link className="stretch name" href={gameLink(g)} title={`${num(g.damage)} damage · view game`}>
+                <span>{name}</span>
+              </Link>
+              <small className="mono">
+                {g.kills} / {g.deaths} / {g.assists} · {ago(g.at, now)}
+              </small>
+            </span>
+            <Img className="avatar" src={profileImage(dragon, g.icon)} size={30} />
+          </li>
+        );
+      }}
+    />
   );
 }

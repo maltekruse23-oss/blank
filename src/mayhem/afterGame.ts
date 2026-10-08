@@ -2,66 +2,21 @@
 // 08.10.2026 "eine After-Game-Card auch mit einbauen wie bei blank"; Rust aram/game_card.rs sends
 // the game). What the card says besides the game itself, only from real values (as blank.'s
 // aramHighlight.ts, nothing made up): new records against mayhemstats.lol's, how special the game
-// is, and the game on the site's ladder. English only.
+// is, and the game on the site's ladder. English only. The records are the Records page's
+// (records.ts, the same `mayhem_records`, all time, checked as strictly): an answer that does not
+// fit gives no chips, never a wrong one.
 import type { AramEntry } from '../adapters/aram';
 import type { GameCard } from '../adapters/aramSite';
 import { categories } from '../features/aram/aramCategories';
 import { MIN_SECONDS } from '../features/aram/aramPerformance';
 import type { RankResult, Step } from '../features/aram/aramRating';
 import type { MeState } from './me';
-
-/** A record category's color (mayhem.css `--hue-*`): damage like fire, magic, physical, gold, guard. */
-export type Hue = 'fire' | 'magic' | 'physical' | 'gold' | 'guard';
-const HUES: readonly string[] = ['fire', 'magic', 'physical', 'gold', 'guard'];
-
-/** One "best game" category of the site's records: its places (best ten) by public id. */
-export type SiteRecord = {
-  id: string;
-  title: string;
-  hue: Hue;
-  places: { siteId: string; value: number; gameId: number }[];
-};
-
-type Raw = Record<string, unknown>;
-const raw = (v: unknown): Raw | null =>
-  typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Raw) : null;
-
-/** GET /api/rekorde → its best-game categories. A category that does not fit is left out: then no
- * chip, never a wrong one. */
-export function parseRecords(text: string): SiteRecord[] {
-  let answer: Raw | null;
-  try {
-    answer = raw(JSON.parse(text));
-  } catch {
-    return [];
-  }
-  const list = answer?.categories;
-  if (!Array.isArray(list)) return [];
-  return list.flatMap((value): SiteRecord[] => {
-    const c = raw(value);
-    const title = c?.titleEn ?? c?.title;
-    if (!c || c.kind !== 'best' || typeof c.id !== 'string' || !Array.isArray(c.places)) return [];
-    if (typeof title !== 'string' || !title || title.length > 60) return [];
-    const places = c.places.flatMap((p) => {
-      const place = raw(p);
-      const gameId = raw(place?.game)?.gameId;
-      return place &&
-        typeof place.puuid === 'string' &&
-        typeof place.value === 'number' &&
-        Number.isFinite(place.value) &&
-        Number.isSafeInteger(gameId)
-        ? [{ siteId: place.puuid, value: place.value, gameId: gameId as number }]
-        : [];
-    });
-    if (places.length !== c.places.length) return [];
-    const hue = (HUES.includes(c.hue as string) ? c.hue : 'gold') as Hue;
-    return [{ id: c.id, title, hue, places }];
-  });
-}
+import type { RecordCard } from './records';
 
 /** A chip on the card: a new #1 of the site (`record`) or a game that enters the top ten; `place`
- * as the site would show it (ties share a place, its records.ts). */
-export type Chip = { id: string; title: string; hue: Hue; place: number; record: boolean };
+ * as the site would show it (ties share a place, its records.ts). No color per kind of record (one
+ * accent, MAYHEM-DESIGN.md). */
+export type Chip = { id: string; title: string; place: number; record: boolean };
 
 /** Places a record list shows (the site's records page). */
 const TOP = 10;
@@ -70,30 +25,31 @@ const TOP = 10;
  * The player's game against the site's records: a new #1 when it beats the current one, else a
  * place in the top ten when it enters it (not when the player's own row there is better). The site
  * may have this very game already (uploaded right after it): only the player's own row of it is left
- * out, the others of the game still count. New #1s first in the site's order, then by place.
- * `siteId`: the player's public id, null when not listed (then the row of this game with the value).
+ * out, the others of the game still count. New #1s first in the site's order, then by place. Sums
+ * (Pentakills) are no game's record and make no chip. `siteId`: the player's public id, null when
+ * not listed (then the row of this game with the value).
  */
 export function recordChips(
   entry: AramEntry,
-  records: SiteRecord[],
+  records: RecordCard[],
   siteId: string | null,
 ): Chip[] {
   const chips = records.flatMap((record): Chip[] => {
+    if (record.total) return [];
     const value = categories.find((c) => c.id === record.id)?.value(entry);
     if (typeof value !== 'number' || !(value > 0)) return [];
     const self = record.places.find(
-      (p) =>
-        p.gameId === entry.gameId && (siteId === null ? p.value === value : p.siteId === siteId),
+      (p) => p.gameId === entry.gameId && (siteId === null ? p.value === value : p.id === siteId),
     );
     const rows = record.places.filter((p) => p !== self);
-    const own = siteId === null ? undefined : rows.find((p) => p.siteId === siteId);
+    const own = siteId === null ? undefined : rows.find((p) => p.id === siteId);
     if (own && own.value >= value) return [];
     const others = rows.filter((p) => p !== own);
     // The site lists ten rows, a tie behind the earlier game, and gives a tie the same place.
     const ahead = others.filter((p) => p.value >= value).length;
     if (ahead >= TOP) return [];
     const place = 1 + others.filter((p) => p.value > value).length;
-    return [{ id: record.id, title: record.title, hue: record.hue, place, record: ahead === 0 }];
+    return [{ id: record.id, title: record.title, place, record: ahead === 0 }];
   });
   return chips.sort((a, b) => (a.record ? 0 : a.place) - (b.record ? 0 : b.place));
 }

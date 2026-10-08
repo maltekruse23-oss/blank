@@ -6,8 +6,9 @@
 //! player's own result, the players of the game who are League friends or on mayhemstats.lol's
 //! leaderboard, and the augments' names, rarities and icons from the client. Exactly one card per
 //! game, remembered in memory only (the Mayhem app stores nothing). Read-only, like all of aram.
-//! The window compares with the site's records itself (`mayhem_records`) and opens a game's page
-//! only by its id (`mayhem_open_game`).
+//! The window compares with the site's all-time records itself (`mayhem_records` in
+//! aram_website.rs, the Records page's command) and opens a game's page only by its id
+//! (`mayhem_open_game`).
 
 use std::{
     collections::{HashMap, HashSet},
@@ -171,13 +172,6 @@ fn own_entry(
     entries(summary, &me, champions, &known, provisional)
         .into_iter()
         .next()
-}
-
-/// mayhemstats.lol's records (GET /api/rekorde, all time) as JSON text the window checks
-/// (src/mayhem/afterGame.ts); None when the site has none. Nothing goes out.
-#[tauri::command]
-pub async fn mayhem_records() -> Result<Option<String>, String> {
-    website::read_json(&website::site_client()?, "/api/rekorde").await
 }
 
 /// Opens a game's page on mayhemstats.lol in the browser (only the site's address with the id).

@@ -71,10 +71,6 @@ export function onGameCard(handler: (card: GameCard) => void) {
   return () => void stop.then((unlisten) => unlisten());
 }
 
-/** mayhemstats.lol's records (GET /api/rekorde) as JSON text, or null when it has none. */
-export const readRecords = (): Promise<string | null> =>
-  isTauri() ? invoke<string | null>('mayhem_records') : Promise.resolve(null);
-
 /** Opens a game's page on mayhemstats.lol in the browser. */
 export const openGame = (gameId: number) =>
   isTauri() ? invoke<void>('mayhem_open_game', { gameId }) : Promise.resolve();

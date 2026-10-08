@@ -718,6 +718,23 @@ pub async fn mayhem_ranks() -> Result<Option<OwnRanks>, String> {
     Ok(Some(OwnRanks { name, board, me }))
 }
 
+/// The Mayhem app's records (user's wish 08.10.2026: "die Rekorde von der Website auch als Tab in
+/// der Mayhem-App"): every category's best ten on the Site, all time or this season, as JSON text
+/// the app checks strictly (src/mayhem/records.ts). Read-only and public: only the choice goes out.
+#[tauri::command]
+pub async fn mayhem_records(season: bool) -> Result<Option<String>, String> {
+    read_json(&site_client()?, records_path(season)).await
+}
+
+/// The only two scopes the Site takes (`all`, `season`).
+fn records_path(season: bool) -> &'static str {
+    if season {
+        "/api/rekorde?scope=season"
+    } else {
+        "/api/rekorde?scope=all"
+    }
+}
+
 pub(super) fn site_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
@@ -750,6 +767,12 @@ mod tests {
         assert!(!plain_id("a/../b"));
         assert!(!plain_id("a?x=1"));
         assert!(!plain_id(&"a".repeat(101)));
+    }
+
+    #[test]
+    fn records_ask_only_for_the_two_scopes_the_site_takes() {
+        assert_eq!(records_path(false), "/api/rekorde?scope=all");
+        assert_eq!(records_path(true), "/api/rekorde?scope=season");
     }
 
     #[test]

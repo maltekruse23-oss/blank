@@ -1,12 +1,14 @@
-// Invented values for the browser preview only (no League client, no Tauri there): the player and
-// the leaderboard that the app reads from mayhemstats.lol (me.ts), arammeta's list in the shape
-// Rust's `mayhem_tiers` sends (tiers.ts) and the card after a game (afterGame.ts). The pages say
-// "Mock" with them; nothing here is sent anywhere.
+// Invented values for the browser preview only (no League client, no Tauri there): the player, the
+// leaderboard and the records that the app reads from mayhemstats.lol (me.ts, records.ts),
+// arammeta's list in the shape Rust's `mayhem_tiers` sends (tiers.ts) and the card after a game
+// (afterGame.ts). The pages say "Mock" with them; nothing here is sent anywhere.
 import type { AramEntry } from '../adapters/aram';
 import type { GameCard } from '../adapters/aramSite';
+import { RECORDS } from '../../apps/mayhem-site/src/records';
 import { TIERS, type Rank } from '../features/aram/aramRating';
-import type { CardRank, SiteRecord } from './afterGame';
+import type { CardRank } from './afterGame';
 import type { MeState } from './me';
+import type { RecordCard } from './records';
 
 const rank = (tier: number, division: number | null, points: number): Rank => ({
   tier: TIERS[tier]!,
@@ -21,6 +23,7 @@ const at = (hours: number) => Date.now() - hours * HOUR;
 export const MOCK_STATE: MeState = {
   state: 'ready',
   name: 'Example#EUW',
+  siteId: 'a1',
   mock: true,
   me: {
     rank: rank(5, 1, 88),
@@ -68,7 +71,6 @@ export const MOCK_STATE: MeState = {
         gain: 6,
       },
     ],
-    siteId: null,
     history: [],
   },
   ladder: [
@@ -312,29 +314,41 @@ const CARD_AUGMENTS: GameCard['augments'] = {
   '1005': { name: 'Bread And Butter', rarity: 'gold', icon: null },
 };
 
-const best = (id: string, title: string, hue: SiteRecord['hue'], first: number, step: number) => ({
-  id,
-  title,
-  hue,
-  places: Array.from({ length: 10 }, (_, i) => ({
-    siteId: `a${i + 1}`,
-    value: Math.round(first - i * step),
-    gameId: 8_000_000_000 + i,
-  })),
-});
+/** A record list as records.ts reads it, held by others than the mock player (`a1`). */
+const best = (id: string, first: number, step: number): RecordCard => {
+  const c = RECORDS.find((r) => r.id === id)!;
+  return {
+    id,
+    title: c.titleEn,
+    note: c.noteEn,
+    total: false,
+    seconds: false,
+    places: Array.from({ length: 10 }, (_, i) => ({
+      place: i + 1,
+      id: `r${i + 1}`,
+      name: `Rival ${i + 1}#EUW`,
+      value: Math.round(first - i * step),
+      championId: CHAMPS[i % CHAMPS.length]![0],
+      champion: null,
+      championName: null,
+      at: at(i * 9),
+      gameId: 8_000_000_000 + i,
+    })),
+  };
+};
 
-const CARD_RECORDS: SiteRecord[] = [
-  best('damage', 'Highest damage', 'fire', 90_210, 2_400),
-  best('dpm', 'Damage per minute', 'fire', 5_200, 160),
-  best('ap', 'AP damage', 'magic', 92_000, 2_000),
-  best('kills', 'Most kills', 'physical', 31, 1),
-  best('heal', 'Most healing', 'guard', 41_000, 2_500),
+const CARD_RECORDS: RecordCard[] = [
+  best('damage', 90_210, 2_400),
+  best('dpm', 5_200, 160),
+  best('ap', 92_000, 2_000),
+  best('kills', 31, 1),
+  best('heal', 41_000, 2_500),
 ];
 
 /** One preview of the card: the game, the records it is compared with and the rank line. */
 export function mockCard(kind: CardPreview): {
   card: GameCard;
-  records: SiteRecord[];
+  records: RecordCard[];
   rank: CardRank;
 } {
   const card = (entry: Partial<AramEntry>) => ({
@@ -384,3 +398,73 @@ export function mockCard(kind: CardPreview): {
       return { ...card(topGame), rank: { state: 'waiting' } };
   }
 }
+
+const RECORD_PLAYERS = [
+  'Example#EUW',
+  'Second Pick#NA1',
+  'Third Wheel#KR1',
+  'Bridge Troll#EUNE',
+  'Snowball King#EUW',
+  'Poro Snack#NA1',
+  'Late Flash#KR1',
+  'Mid Or Feed#EUW',
+  'Shield Bot#OCE',
+  'Last Hit#BR1',
+];
+/** An invented place 1 per category (the others follow below it); turret damage has none yet. */
+const RECORD_TOP: Record<string, number> = {
+  damage: 190_000,
+  dpm: 8_700,
+  pentas: 4,
+  ap: 150_000,
+  ad: 130_000,
+  kills: 41,
+  tank: 300_000,
+  heal: 130_000,
+  true: 70_000,
+  mitigated: 560_000,
+  crit: 2_900,
+  cc: 230,
+  spree: 10,
+  gold: 48_000,
+};
+
+/** The records as the website answers GET /api/rekorde (records.ts reads them like the real one).
+ * The mock player (`a1`, Example#EUW) holds some and is further down in others. */
+export const mockRecords = (season: boolean) => ({
+  scope: season ? 'season' : 'all',
+  season: { id: '2026-3', year: 2026, number: 3, start: 0 },
+  games: season ? 412 : 1_380,
+  players: season ? 96 : 241,
+  categories: RECORDS.map((c, n) => {
+    const top = RECORD_TOP[c.id] ?? 0;
+    const values = RECORD_PLAYERS.map((_, i) =>
+      Math.max(1, Math.round(top * (1 - i * 0.07) * (season ? 0.85 : 1))),
+    );
+    return {
+      id: c.id,
+      places: top
+        ? values.map((value, i) => {
+            const who = (i + n * 3) % RECORD_PLAYERS.length;
+            return {
+              place: values.filter((v) => v > value).length + 1,
+              puuid: `a${who + 1}`,
+              name: RECORD_PLAYERS[who],
+              icon: 1,
+              value,
+              fresh: false,
+              game: {
+                gameId: 7_000_000_000 + n * 10 + i,
+                at: at((i + n) * 7),
+                seconds: 1_260,
+                championId: CHAMPS[(i + n) % CHAMPS.length]![0],
+                champion: '',
+                championName: '',
+                skin: null,
+              },
+            };
+          })
+        : [],
+    };
+  }),
+});

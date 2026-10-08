@@ -1,28 +1,21 @@
 'use client';
-// One game: both teams with all ten Riot IDs, grade and MVP, K/D/A, items and augments, comparison
-// bars for everyone and why a player got their grade (the five axes against the champion's usual game).
+// One game: who played best? The answer on top (score, result and the best grade over the splash
+// art), then both teams with one grade per player and K/D/A below; a click on a player shows the
+// build and values and explains the grade. "Compare" puts all ten side by side in one stat.
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { MIN_SECONDS, performanceOf } from '../../src/features/aram/aramPerformance';
 import { seatEntry, type GamePlayer, type GameView } from '../../src/game';
 import { AXES, axesOf, mvpOf } from '../../src/insights';
-import { Augment, GradeChip, GradeIcon, Img, Problem, Tabs } from '../ui/bits';
+import { Augment, GradeChip, GradeIcon, Img, Problem, Tabs, step } from '../ui/bits';
 import { LOCALE, num } from '../ui/format';
-import {
-  championImage,
-  duration,
-  itemImage,
-  splashImage,
-  splitName,
-  useAugments,
-  useDragon,
-  useLive,
-  profileHref,
-} from '../ui/data';
+import { championImage, duration, itemImage, profileHref, splashImage, splitName, useAugments, useDragon, useLive } from '../ui/data';
 
 type Dragon = ReturnType<typeof useDragon>;
 type Measure = 'damage' | 'tank' | 'care' | 'gold';
+type Part = 'why' | 'compare';
+type Mark = ReturnType<typeof performanceOf>;
 
 const MEASURES: { id: Measure; label: string; of: (p: GamePlayer) => number }[] = [
   { id: 'damage', label: 'Damage', of: (p) => p.damage },
@@ -31,8 +24,7 @@ const MEASURES: { id: Measure; label: string; of: (p: GamePlayer) => number }[] 
   { id: 'gold', label: 'Gold', of: (p) => p.gold },
 ];
 
-const sideName = (team: number) =>
-  team === 100 ? 'Blue side' : team === 200 ? 'Red side' : `Team ${team}`;
+const sideName = (team: number) => (team === 100 ? 'Blue side' : team === 200 ? 'Red side' : `Team ${team}`);
 
 export default function GamePage() {
   const params = useParams<{ id: string }>();
@@ -40,6 +32,8 @@ export default function GamePage() {
   const { data, error, missing } = useLive<GameView>(/^\d{1,13}$/.test(params.id) ? '/api/spiel/' + params.id : null);
   const dragon = useDragon();
   const [picked, setPicked] = useState<number | null>(null);
+  const [open, setOpen] = useState<number | null>(null);
+  const [part, setPart] = useState<Part>('why');
   const [measure, setMeasure] = useState<Measure>('damage');
 
   const marks = useMemo(() => (data ? data.players.map((_, i) => performanceOf(seatEntry(data, i))) : []), [data]);
@@ -51,52 +45,65 @@ export default function GamePage() {
   const mvp = mvpOf(marks);
   const focused = focus ? data.players.findIndex((p) => p.puuid === focus) : -1;
   const shown = picked ?? (focused >= 0 ? focused : Math.max(0, mvp));
-  const nameOf = (p: GamePlayer) => {
-    if (p.name) return p.name;
-    const key = p.champion ?? dragon?.champions.get(p.championId)?.id;
-    return data.named.find((n) => n.champion === key)?.name ?? null;
+  // A click picks the player for "Why this grade" and opens or closes their details.
+  const pick = (i: number) => {
+    setPicked(i);
+    setOpen((o) => (o === i ? null : i));
   };
-  const linkOf = (p: GamePlayer) => {
-    if (p.puuid) return p.puuid;
-    const key = p.champion ?? dragon?.champions.get(p.championId)?.id;
-    return data.named.find((n) => n.champion === key)?.puuid ?? null;
-  };
+  const keyOf = (p: GamePlayer) => p.champion ?? dragon?.champions.get(p.championId)?.id;
+  const nameOf = (p: GamePlayer) => p.name ?? data.named.find((n) => n.champion === keyOf(p))?.name ?? null;
+  const linkOf = (p: GamePlayer) => p.puuid ?? data.named.find((n) => n.champion === keyOf(p))?.puuid ?? null;
   const teams = [...new Set(data.players.map((p) => p.team))].sort((a, b) => a - b);
   const star = data.players[Math.max(0, mvp)];
-  const starKey = star && (star.champion ?? dragon?.champions.get(star.championId)?.id);
+  const starKey = star && keyOf(star);
+  const starName = star && (nameOf(star) ? splitName(nameOf(star)!).name : (dragon?.champions.get(star.championId)?.name ?? star.champion));
   const when = new Date(data.at);
 
   return (
     <>
-      <Link className="back" href={focus ? '/players/' + encodeURIComponent(focus) : '/'}>
+      <Link className="back" href={focus ? '/players/' + encodeURIComponent(focus) : '/leaderboard'}>
         ← {focus ? 'Profile' : 'Leaderboard'}
       </Link>
 
       <section
-        className="game-hero"
+        className="hero in"
+        aria-label="Game"
         style={starKey ? ({ '--splash': `url(${splashImage(starKey)})` } as React.CSSProperties) : undefined}
       >
-        <div>
-          <h1 className="num">
-            {teams.map((team, i) => {
-              const won = data.players.some((p) => p.team === team && p.win);
-              return (
-                <span key={team} className="side-score" data-side={team}>
-                  {i > 0 && <span className="faint vs">:</span>}
-                  {data.players.filter((p) => p.team === team).reduce((n, p) => n + p.kills, 0)}
-                  <small className={won ? 'up' : 'down'}>{won ? 'Win' : 'Loss'}</small>
+        <div className="glass hero-glass">
+          <div className="title">
+            <div>
+              <h1 className="score mono">
+                {teams.map((team, i) => {
+                  const won = data.players.some((p) => p.team === team && p.win);
+                  return (
+                    <span key={team}>
+                      {i > 0 && <span className="vs">:</span>}{' '}
+                      {data.players.filter((p) => p.team === team).reduce((n, p) => n + p.kills, 0)}
+                      <small className={won ? 'up' : 'down'}>{won ? 'Win' : 'Loss'}</small>
+                    </span>
+                  );
+                })}
+              </h1>
+              <div className="pills">
+                <span className="pill">
+                  {when.toLocaleDateString(LOCALE, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })},{' '}
+                  {when.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}
                 </span>
-              );
-            })}
-          </h1>
-          <div className="facts num">
-            <span>
-              {when.toLocaleDateString(LOCALE, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })},{' '}
-              {when.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}
-            </span>
-            <span>{duration(data.seconds)} min</span>
-            {data.patch && <span>Patch {data.patch}</span>}
+                <span className="pill">{duration(data.seconds)} min</span>
+                {data.patch && <span className="pill">Patch {data.patch}</span>}
+              </div>
+            </div>
           </div>
+          {mvp >= 0 && marks[mvp] && (
+            <span className="answer best" title="The best grade of the game, win or lose">
+              <GradeIcon grade={marks[mvp]!.grade} size={56} />
+              <span>
+                <small>Best grade</small>
+                <b>{starName}</b>
+              </span>
+            </span>
+          )}
         </div>
       </section>
 
@@ -111,42 +118,44 @@ export default function GamePage() {
         </div>
       )}
 
-      <div className="game-teams">
-        {teams.map((team) => (
-          <Team
-            key={team}
-            team={team}
-            view={data}
-            marks={marks}
-            mvp={mvp}
-            shown={shown}
-            onPick={setPicked}
-            nameOf={nameOf}
-            linkOf={linkOf}
-            dragon={dragon}
-          />
+      <div className="teams">
+        {teams.map((team, t) => (
+          <Team key={team} team={team} index={t} view={data} marks={marks} mvp={mvp} shown={shown} open={open} onPick={pick} nameOf={nameOf} linkOf={linkOf} dragon={dragon} />
         ))}
       </div>
-      <p className="fine game-hide">
-        {"You're in this game and don't want to be named?"}{' '}
-        <Link href={`/privacy/remove?game=${data.gameId}`}>Hide name</Link>
-      </p>
 
-      <div className="grid cols-main">
-        <div className="card">
-          <div className="card-head">
-            <h2>Comparison</h2>
-            <Tabs<Measure>
-              label="Stat"
-              value={measure}
-              onChange={setMeasure}
-              options={MEASURES.map((m) => ({ id: m.id, label: m.label }))}
-            />
-          </div>
-          <Compare view={data} measure={measure} nameOf={nameOf} dragon={dragon} />
+      <section className="section in" style={step(3)} aria-label="Grade and comparison">
+        <div className="tools">
+          <Tabs<Part>
+            label="Show"
+            value={part}
+            onChange={setPart}
+            options={[
+              { id: 'why', label: 'Why this grade' },
+              { id: 'compare', label: 'Compare all ten' },
+            ]}
+          />
+          {part === 'compare' && (
+            <div className="chips" role="group" aria-label="Stat">
+              {MEASURES.map((m) => (
+                <button key={m.id} type="button" aria-pressed={measure === m.id} onClick={() => setMeasure(m.id)}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <Explain view={data} index={shown} mark={marks[shown] ?? null} name={nameOf(data.players[shown])} dragon={dragon} />
-      </div>
+        <div className="card">
+          {part === 'why' ? (
+            <Explain view={data} index={shown} mark={marks[shown] ?? null} name={nameOf(data.players[shown])} dragon={dragon} />
+          ) : (
+            <Compare view={data} measure={measure} nameOf={nameOf} dragon={dragon} />
+          )}
+        </div>
+        <p className="fine">
+          {"You're in this game and don't want to be named?"} <Link href={`/privacy/remove?game=${data.gameId}`}>Hide name</Link>
+        </p>
+      </section>
     </>
   );
 }
@@ -155,115 +164,128 @@ export default function GamePage() {
 
 function Team(props: {
   team: number;
+  index: number;
   view: GameView;
-  marks: ReturnType<typeof performanceOf>[];
+  marks: Mark[];
   mvp: number;
   shown: number;
+  open: number | null;
   onPick: (i: number) => void;
   nameOf: (p: GamePlayer) => string | null;
   linkOf: (p: GamePlayer) => string | null;
   dragon: Dragon;
 }) {
-  const { team, view, marks, mvp, shown, onPick, nameOf, linkOf, dragon } = props;
-  const augments = useAugments();
+  const { team, index, view, marks, mvp, shown, open, onPick, nameOf, linkOf, dragon } = props;
   const rows = view.players.map((p, i) => ({ p, i })).filter(({ p }) => p.team === team);
   const won = rows.some(({ p }) => p.win);
   return (
-    <section className="card team-card" data-side={team} aria-label={sideName(team)}>
+    <section className="section team in" style={step(index + 1)} aria-label={sideName(team)}>
       <h2>
-        {sideName(team)} ·{' '}
-        <span className={won ? 'up' : 'down'}>{won ? 'Win' : 'Loss'}</span>
+        {sideName(team)} <small className={won ? 'up' : 'down'}>{won ? 'Win' : 'Loss'}</small>
       </h2>
-      <div className="table-wrap flat">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>Grade</th>
-              <th className="right">K / D / A</th>
-              <th className="right hide-sm">Damage</th>
-              <th className="right hide-sm">Gold</th>
-              <th className="hide-sm">Items &amp; Augments</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ p, i }) => {
-              const champ = dragon?.champions.get(p.championId);
-              const name = nameOf(p);
-              const link = linkOf(p);
-              const { name: riot, tag } = name ? splitName(name) : { name: '', tag: '' };
-              const mark = marks[i];
-              return (
-                <tr key={i} data-picked={i === shown}>
-                  <td>
-                    <span className="who">
-                      <Img className="champ" src={championImage(dragon, champ?.id ?? p.champion ?? undefined)} alt={champ?.name ?? ''} size={28} />
-                      <span style={{ minWidth: 0 }}>
-                        {name ? (
-                          link ? (
-                            <Link href={profileHref({ puuid: link, name })} title={name}>
-                              <b>{riot}</b>
-                            </Link>
-                          ) : (
-                            <b title={name}>{riot}</b>
-                          )
-                        ) : (
-                          <b className="faint">No name</b>
-                        )}
-                        <small>
-                          {champ?.name ?? p.champion ?? 'Champion'}
-                          {tag && <span className="hide-sm"> · #{tag}</span>}
-                          {p.level !== null && (
-                            <span className="hide-sm">
-                              {' '}
-                              · Level {p.level}
-                            </span>
-                          )}
-                        </small>
-                      </span>
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      className="grade-pick"
-                      aria-pressed={i === shown}
-                      title="Explain grade"
-                      onClick={() => onPick(i)}
-                    >
-                      {mark ? <GradeChip grade={mark.grade} /> : <span className="faint">–</span>}
-                      {i === mvp && <span className="mvp">MVP</span>}
-                    </button>
-                  </td>
-                  <td className="right num nowrap">
-                    {p.kills} / <span className="down">{p.deaths}</span> / {p.assists}
-                  </td>
-                  <td className="right num hide-sm">{num(p.damage)}</td>
-                  <td className="right num hide-sm">{num(p.gold)}</td>
-                  <td className="hide-sm">
-                    {p.items ? (
-                      <span className="items">
-                        {p.items.filter((n) => n > 0).map((n, k) => (
-                          <Img key={k} className="item" src={itemImage(dragon, n)} size={22} />
-                        ))}
-                      </span>
-                    ) : (
-                      <span className="faint">–</span>
-                    )}
-                    {p.augments && p.augments.length > 0 && (
-                      <span className="augments" style={{ marginTop: 5 }}>
-                        {p.augments.map((id) => (
-                          <Augment key={id} id={id} info={augments.get(id)} />
-                        ))}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <ul className="rows">
+        {rows.map(({ p, i }) => (
+          <Seat key={i} player={p} index={i} mark={marks[i]} mvp={i === mvp} picked={i === shown} open={i === open} onPick={onPick} name={nameOf(p)} link={linkOf(p)} dragon={dragon} />
+        ))}
+      </ul>
     </section>
+  );
+}
+
+function Seat({
+  player: p,
+  index,
+  mark,
+  mvp,
+  picked,
+  open,
+  onPick,
+  name,
+  link,
+  dragon,
+}: {
+  player: GamePlayer;
+  index: number;
+  mark: Mark;
+  mvp: boolean;
+  picked: boolean;
+  open: boolean;
+  onPick: (i: number) => void;
+  name: string | null;
+  link: string | null;
+  dragon: Dragon;
+}) {
+  const augments = useAugments();
+  const champ = dragon?.champions.get(p.championId);
+  const champion = champ?.name ?? p.champion ?? 'Champion';
+  const riot = name ? splitName(name).name : null;
+  const id = `seat-${index}`;
+  return (
+    <li className="seat-row" data-picked={picked} data-open={open}>
+      <div className="row" data-top={mvp || undefined}>
+        <Img className="champ" src={championImage(dragon, champ?.id ?? p.champion ?? undefined)} alt="" size={40} />
+        <span className="who">
+          <b>
+            {riot ? (
+              link ? (
+                <Link href={profileHref({ puuid: link, name: name! })} title={name!}>
+                  {riot}
+                </Link>
+              ) : (
+                <span title={name!}>{riot}</span>
+              )
+            ) : (
+              <span className="faint">{champion}</span>
+            )}
+            {mvp && <span className="mvp" title="Best grade in the game">MVP</span>}
+          </b>
+          <small className="mono">
+            {riot ? `${champion} · ` : ''}
+            {p.kills} / {p.deaths} / {p.assists}
+          </small>
+        </span>
+        <button type="button" className="grade-pick" aria-expanded={open} aria-controls={id} title="Why this grade, build and values" onClick={() => onPick(index)}>
+          {mark ? <GradeChip grade={mark.grade} /> : <span className="faint">–</span>}
+          <svg className="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </div>
+      {open && (
+        <div className="seat-more" id={id}>
+          <dl className="match-facts">
+            <div>
+              <dt>Damage</dt>
+              <dd>{num(p.damage)}</dd>
+            </div>
+            <div>
+              <dt>Taken</dt>
+              <dd>{num(p.taken + p.mitigated)}</dd>
+            </div>
+            <div>
+              <dt>{'Healing & shields'}</dt>
+              <dd>{num(p.healed + p.shielded)}</dd>
+            </div>
+            <div>
+              <dt>Gold</dt>
+              <dd>{num(p.gold)}</dd>
+            </div>
+            {p.level !== null && (
+              <div>
+                <dt>Level</dt>
+                <dd>{p.level}</dd>
+              </div>
+            )}
+          </dl>
+          <div className="items" aria-label="Items and augments">
+            {p.items ? p.items.filter((n) => n > 0).map((n, k) => <Img key={k} className="item" src={itemImage(dragon, n)} size={28} />) : <span className="faint">No items known</span>}
+            {(p.augments ?? []).map((a) => (
+              <Augment key={a} id={a} info={augments.get(a)} size={28} />
+            ))}
+          </div>
+        </div>
+      )}
+    </li>
   );
 }
 
@@ -271,22 +293,22 @@ function Team(props: {
 
 function Compare(props: { view: GameView; measure: Measure; nameOf: (p: GamePlayer) => string | null; dragon: Dragon }) {
   const { view, measure, nameOf, dragon } = props;
-  const of =MEASURES.find((m) => m.id === measure)!.of;
+  const of = MEASURES.find((m) => m.id === measure)!.of;
   const max = Math.max(1, ...view.players.map(of));
   const rows = view.players.map((p, i) => ({ p, i, value: of(p) })).sort((a, b) => b.value - a.value || a.i - b.i);
   return (
-    <ol className="compare">
+    <ol className="compare" aria-label={MEASURES.find((m) => m.id === measure)!.label}>
       {rows.map(({ p, i, value }) => {
         const champ = dragon?.champions.get(p.championId);
         const name = nameOf(p);
         return (
           <li key={i} data-side={p.team}>
-            <Img className="champ" src={championImage(dragon, champ?.id ?? p.champion ?? undefined)} alt="" size={24} />
-            <span className="label">{name ? splitName(name).name : champ?.name ?? p.champion ?? '–'}</span>
+            <Img className="champ" src={championImage(dragon, champ?.id ?? p.champion ?? undefined)} alt="" size={26} />
+            <span className="label">{name ? splitName(name).name : (champ?.name ?? p.champion ?? '–')}</span>
             <span className="bar" aria-hidden>
               <span style={{ width: `${(value / max) * 100}%` }} />
             </span>
-            <span className="num value">{num(value)}</span>
+            <span className="value mono">{num(value)}</span>
           </li>
         );
       })}
@@ -296,62 +318,43 @@ function Compare(props: { view: GameView; measure: Measure; nameOf: (p: GamePlay
 
 // ---- Why this grade -------------------------------------------------------------------------
 
-function Explain(props: {
-  view: GameView;
-  index: number;
-  mark: ReturnType<typeof performanceOf>;
-  name: string | null;
-  dragon: Dragon;
-}) {
+function Explain(props: { view: GameView; index: number; mark: Mark; name: string | null; dragon: Dragon }) {
   const { view, index, mark, name, dragon } = props;
   const p = view.players[index];
   const champ = dragon?.champions.get(p.championId);
   const axes = axesOf(seatEntry(view, index));
   return (
-    <aside className="card explain" aria-live="polite">
-      <h2>Why this grade</h2>
-      <div className="who">
-        {mark ? <GradeIcon grade={mark.grade} size={56} /> : <Img className="champ lg" src={championImage(dragon, champ?.id)} size={44} />}
-        <span style={{ minWidth: 0 }}>
-          <b>{name ? splitName(name).name : champ?.name ?? p.champion ?? '–'}</b>
+    <div className="section" aria-live="polite">
+      <div className="record-holder">
+        {mark ? <GradeIcon grade={mark.grade} size={56} /> : <Img className="champ" src={championImage(dragon, champ?.id)} size={44} />}
+        <span className="who">
+          <b>
+            <span>{name ? splitName(name).name : (champ?.name ?? p.champion ?? '–')}</span>
+          </b>
           <small>
             {champ?.name ?? p.champion ?? 'Champion'}
-            {mark &&
-              ` · better than ${Math.round(mark.pct * 100)}% of all games`}
+            {mark && ` · better than ${Math.round(mark.pct * 100)}% of all games`}
           </small>
         </span>
       </div>
       {!mark || !axes ? (
-        <p className="fine" style={{ marginTop: 12 }}>
-          {view.seconds < MIN_SECONDS
-            ? 'Games under 8 minutes (remakes) get no grade.'
-            : 'This game lacks stats the grade needs.'}
-        </p>
+        <p className="fine">{view.seconds < MIN_SECONDS ? 'Games under 8 minutes (remakes) get no grade.' : 'This game lacks stats the grade needs.'}</p>
       ) : (
         <>
-          {mark.afk && (
-            <p className="fine" style={{ marginTop: 12 }}>
-              Barely earned any gold: rated as AFK, grade F.
-            </p>
-          )}
+          {mark.afk && <p className="fine">Barely earned any gold: rated as AFK, grade F.</p>}
           <ul className="axes">
             {axes.map((value, i) => {
               const label = Object.values(AXES)[i];
-              const word =
-                value > 0.25
-                  ? 'above average'
-                  : value < -0.25
-                    ? 'below average'
-                    : 'as usual';
+              const word = value > 0.25 ? 'above usual' : value < -0.25 ? 'below usual' : 'as usual';
               return (
-                <li key={label} title={`${label}: ${word}`}>
-                  <span className="label">{label}</span>
+                <li key={label}>
+                  <span>{label}</span>
                   <span className="axis" aria-hidden>
                     <span
                       className={value >= 0 ? 'plus' : 'minus'}
                       style={{
-                        left: value >= 0 ? '50%' : `${50 + (value / 2.5) * 50}%`,
-                        width: `${(Math.abs(value) / 2.5) * 50}%`,
+                        left: value >= 0 ? '50%' : `${50 + (Math.max(-2.5, value) / 2.5) * 50}%`,
+                        width: `${(Math.min(2.5, Math.abs(value)) / 2.5) * 50}%`,
                       }}
                     />
                   </span>
@@ -361,10 +364,10 @@ function Explain(props: {
             })}
           </ul>
           <p className="fine">
-            {`Each axis is the share of the lobby, compared with what ${champ?.name ?? 'this champion'} usually reaches. Win or loss doesn't count. Another grade: tap a player's grade.`}
+            {`Each value is the share of the lobby, compared with what ${champ?.name ?? 'this champion'} usually reaches. Win or loss doesn't count. Click another player's grade to see theirs.`}
           </p>
         </>
       )}
-    </aside>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Crown,
   House,
   LayoutGrid,
   Package,
@@ -23,31 +24,25 @@ import {
   onGameCard,
   onRankUpload,
   onRankUploaded,
-  readRecords,
   type GameCard,
 } from '../adapters/aramSite';
 import { Guard } from '../components/Guard';
 import { champView, SAMPLE_CHAMP, type ChampView } from '../features/aram/champCard';
 import { AfterGame } from './AfterGameView';
-import {
-  cardRank,
-  inEnglish,
-  parseRecords,
-  RANK_ASKS,
-  RANK_GIVE_UP,
-  type CardRank,
-  type SiteRecord,
-} from './afterGame';
+import { cardRank, inEnglish, RANK_ASKS, RANK_GIVE_UP, type CardRank } from './afterGame';
 import { found, type FindState } from './findRank';
 import { CARD_PREVIEWS, mockCard, type CardPreview } from './mock';
 import { MayhemCard } from './MayhemCard';
 import { AugmentDetail, ChampionDetail, ItemsPage, PatchPage } from './metaPages';
 import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
 import { loadMe, withChampions, type MeState } from './me';
+import { loadRecords, type RecordCard } from './records';
+import { RecordsPage } from './RecordsPage';
 import { loadTiers } from './tiers';
 import { UpdateButton } from './UpdateButton';
 
-export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'items' | 'patch' | 'rank';
+export type Page =
+  'home' | 'champ' | 'augments' | 'champions' | 'items' | 'patch' | 'rank' | 'records';
 
 /** The sidebar (user, 08.10.2026: dashboard like the canvas "App · Home"; the app grows by
  * entries like these, the dashed "Soon" marks the room for the next ones). English only. */
@@ -59,6 +54,7 @@ const PAGES: { id: Page; label: string; Icon: typeof Swords }[] = [
   { id: 'items', label: 'Items', Icon: Package },
   { id: 'patch', label: 'Patch', Icon: TrendingUp },
   { id: 'rank', label: 'Rank', Icon: Trophy },
+  { id: 'records', label: 'Records', Icon: Crown },
 ];
 
 /** The tier lists from arammeta.com into `set` (loading, then ready or failed). Rust's reasons are
@@ -71,7 +67,8 @@ function requestTiers(set: (tiers: TierState) => void) {
   );
 }
 
-/** Home and Rank ask mayhemstats.lol again when opened after this long (ranks change per game). */
+/** Home, Rank and Records ask mayhemstats.lol again for the player when opened after this long
+ * (ranks change per game). */
 const ME_FRESH_MS = 2 * 60_000;
 
 /** Swaps and rerolls come in quick turns: the card waits for the pick to settle this long. */
@@ -79,7 +76,7 @@ const SETTLE_MS = 600;
 
 /** The card after a game (afterGame.ts): from Rust, or invented in the browser preview (then with
  * its rank line). `gaveUp`: the game did not arrive on mayhemstats.lol while the card waited. */
-type After = { card: GameCard; records: SiteRecord[]; rank?: CardRank; gaveUp: boolean };
+type After = { card: GameCard; records: RecordCard[]; rank?: CardRank; gaveUp: boolean };
 
 const preview = (kind: CardPreview): After => ({ ...mockCard(kind), gaveUp: false });
 
@@ -159,7 +156,7 @@ export function MayhemApp() {
     setDetail({});
     if (next !== 'champ' && next !== 'rank' && (!tiers || tiers.state === 'failed')) fetchTiers();
     const stale = me.state !== 'ready' || Date.now() - meAsked.current.at > ME_FRESH_MS;
-    if ((next === 'home' || next === 'rank') && stale) fetchMe();
+    if ((next === 'home' || next === 'rank' || next === 'records') && stale) fetchMe();
   };
 
   const show = (champ: HeldChamp, sample: boolean) => {
@@ -192,21 +189,17 @@ export function MayhemApp() {
   const [after, setAfter] = useState<After | null>(previewFromAddress);
   /** A champion select runs: the card stays hidden until it ends (the Champ card comes first). */
   const [selecting, setSelecting] = useState(false);
-  // The card after each Mayhem game (aram/game_card.rs), compared with the site's records as they
-  // are now (one answer per card; without them no chips).
+  // The card after each Mayhem game (aram/game_card.rs), compared with the site's all-time records
+  // as they are now (the Records page's `mayhem_records`, one answer per card; without them no
+  // chips).
   useEffect(
     () =>
       onGameCard((card) => {
         setAfter({ card, records: [], gaveUp: false });
-        readRecords().then(
-          (text) => {
-            if (text)
-              setAfter((old) =>
-                old?.card === card ? { ...old, records: parseRecords(text) } : old,
-              );
-          },
-          () => undefined,
-        );
+        void loadRecords(false).then((got) => {
+          if (got.state === 'ready')
+            setAfter((old) => (old?.card === card ? { ...old, records: got.records.cards } : old));
+        });
       }),
     [],
   );
@@ -354,6 +347,8 @@ export function MayhemApp() {
               onFind={findMine}
               onPreviewCard={() => setAfter(preview('legend'))}
             />
+          ) : page === 'records' ? (
+            <RecordsPage me={me} champions={lists?.champions ?? []} />
           ) : shown.state === 'ready' ? (
             <MayhemCard
               key={`${shown.view.championId}-${shown.sample}`}
@@ -401,7 +396,7 @@ export function MayhemApp() {
           <AfterGame
             card={inEnglish(after.card, lists)}
             records={after.records}
-            siteId={meShown.state === 'ready' ? (meShown.me?.siteId ?? null) : null}
+            siteId={meShown.state === 'ready' ? meShown.siteId : null}
             rank={afterRank}
             mock={!!after.rank}
             onClose={() => setAfter(null)}

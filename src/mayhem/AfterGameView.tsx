@@ -14,9 +14,10 @@ import { PLACEMENT, rankName, type RankResult } from '../features/aram/aramRatin
 import { damagePerMinute } from '../features/aram/aramStats';
 import { duration } from '../features/aram/format';
 import { rankRun } from '../features/aram/rankRun';
-import { cardLevel, chipText, recordChips, type CardRank, type SiteRecord } from './afterGame';
+import { cardLevel, chipText, recordChips, type CardRank } from './afterGame';
 import { number, percent } from './format';
 import { gradeImage, rankImage, step } from './pages';
+import type { RecordCard } from './records';
 import { Overlay } from './ui';
 
 /** "play": moves now; "wait": not seen yet (minimized), everything holds at its start; "off": no
@@ -269,8 +270,9 @@ export function AfterGame({
   onRetry,
 }: {
   card: GameCard;
-  /** mayhemstats.lol's records (empty until they came, or without them: no chips). */
-  records: SiteRecord[];
+  /** mayhemstats.lol's all-time records (records.ts; empty until they came, or without them: no
+   * chips). */
+  records: RecordCard[];
   /** The player's public id on mayhemstats.lol, null when not listed. */
   siteId: string | null;
   rank: CardRank;
@@ -341,7 +343,7 @@ export function AfterGame({
               {chips.slice(0, CHIPS).map((chip) => (
                 <span
                   key={chip.id}
-                  data-hue={chip.hue}
+                  data-top={chip.place === 1 || undefined}
                   title={
                     chip.record
                       ? 'Beats the #1 on mayhemstats.lol'

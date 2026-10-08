@@ -43,8 +43,6 @@ export type MeView = {
   curve: number[];
   /** The last games, newest first. */
   recent: MeGame[];
-  /** The website's public id of the player (their rows in its records), if it named one. */
-  siteId: string | null;
   /** Every counted game on the ladder, oldest first (the card after a game finds its step). */
   history: Step[];
 };
@@ -56,8 +54,16 @@ export type MeState =
   /** The League client is closed or nobody is signed in. */
   | { state: 'closed' }
   | { state: 'failed'; message: string }
-  /** `me` null: mayhemstats.lol has no profile of the player ("no games yet"). */
-  | { state: 'ready'; name: string; me: MeView | null; ladder: LadderRow[]; mock: boolean };
+  /** `me` null: mayhemstats.lol has no profile of the player ("no games yet"). `siteId`: the
+   * player's public id there (`a123`), how the records name them. */
+  | {
+      state: 'ready';
+      name: string;
+      siteId: string | null;
+      me: MeView | null;
+      ladder: LadderRow[];
+      mock: boolean;
+    };
 
 const RECENT = 6;
 const CURVE = 20;
@@ -128,7 +134,6 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
         grade: s.mark.grade,
         gain: s.gain,
       })),
-    siteId: profile.siteId ?? null,
     history,
   };
 }
@@ -199,6 +204,7 @@ export function ownState(answer: OwnRanks | null): MeState {
     return {
       state: 'ready',
       name: answer.name || profile?.name || '–',
+      siteId: profile?.siteId ?? null,
       me: profile && meView(profile, board),
       ladder: ladderOf(board, profile?.siteId),
       mock: false,

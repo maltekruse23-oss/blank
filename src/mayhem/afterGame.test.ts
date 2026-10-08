@@ -3,18 +3,10 @@ import type { AramEntry } from '../adapters/aram';
 import { rankResult, standings, TIERS, type Rank } from '../features/aram/aramRating';
 import { rankRun } from '../features/aram/rankRun';
 import { open, summary } from '../../apps/mayhem-site/src/summary';
-import {
-  cardLevel,
-  cardRank,
-  chipText,
-  gameRank,
-  inEnglish,
-  parseRecords,
-  recordChips,
-  type SiteRecord,
-} from './afterGame';
+import { cardLevel, cardRank, chipText, gameRank, inEnglish, recordChips } from './afterGame';
 import { ownState, type MeState } from './me';
-import { mockCard } from './mock';
+import { mockCard, mockRecords } from './mock';
+import { parseRecords, type RecordCard, type RecordPlace } from './records';
 
 // The card after a game in the Mayhem app (afterGame.ts): records against the site's, how special
 // the game is, and its step on the site's ladder – only from real values.
@@ -68,59 +60,46 @@ function game(id: number, damage: number, extra: Partial<AramEntry> = {}): AramE
   };
 }
 
+/** A row of the site's records as records.ts reads it (`place` is not used by the card). */
+const row = (id: string, value: number, gameId: number): RecordPlace => ({
+  place: 1,
+  id,
+  name: `${id}#EUW`,
+  value,
+  championId: 1,
+  champion: null,
+  championName: null,
+  at: NOW,
+  gameId,
+});
 const places = (values: number[], first = 1) =>
-  values.map((value, i) => ({ siteId: `a${first + i}`, value, gameId: 500 + first + i }));
-const record = (id: string, values: number[]): SiteRecord => ({
+  values.map((value, i) => row(`a${first + i}`, value, 500 + first + i));
+const record = (id: string, values: number[], total = false): RecordCard => ({
   id,
   title: id,
-  hue: 'fire',
+  note: '',
+  total,
+  seconds: false,
   places: places(values),
 });
 const TEN = [100_000, 95_000, 90_000, 85_000, 80_000, 75_000, 70_000, 65_000, 60_000, 55_000];
 
 describe('records on the card', () => {
-  it('reads the best-game categories of the site and leaves out what does not fit', () => {
-    const answer = {
-      categories: [
-        {
-          id: 'damage',
-          hue: 'fire',
-          title: 'Höchster Schaden',
-          titleEn: 'Highest damage',
-          kind: 'best',
-          places: [{ puuid: 'a1', value: 90_000, game: { gameId: 7 } }],
-        },
-        // A sum (Pentakills) never makes a chip.
-        { id: 'pentas', hue: 'gold', titleEn: 'Pentakills', kind: 'total', places: [] },
-        // A broken row: the whole category is left out, never a wrong chip.
-        {
-          id: 'kills',
-          hue: 'physical',
-          titleEn: 'Most kills',
-          kind: 'best',
-          places: [{ puuid: 'a1', value: '30', game: { gameId: 7 } }],
-        },
-        // An unknown colour falls back to gold; an old answer without English takes `title`.
-        { id: 'heal', hue: 'pink', title: 'Meiste Heilung', kind: 'best', places: [] },
-      ],
-    };
-    expect(parseRecords(JSON.stringify(answer))).toEqual([
-      {
-        id: 'damage',
-        title: 'Highest damage',
-        hue: 'fire',
-        places: [{ siteId: 'a1', value: 90_000, gameId: 7 }],
-      },
-      { id: 'heal', title: 'Meiste Heilung', hue: 'gold', places: [] },
+  it("compares with the Records page's answer; a sum (Pentakills) makes no chip", () => {
+    // The same answer and reading as the Records page (records.ts, all time).
+    const records = parseRecords(JSON.stringify(mockRecords(false))).cards;
+    const chips = recordChips(game(1, 200_000, { pentas: 9 }), records, null);
+    expect(chips.map((c) => [c.id, c.title, c.record])).toEqual([
+      ['damage', 'Highest damage', true],
+      ['dpm', 'Damage per minute', true],
     ]);
-    expect(parseRecords('<html>')).toEqual([]);
-    expect(parseRecords('{"categories":7}')).toEqual([]);
+    expect(recordChips(game(1, 1, { pentas: 9 }), [record('pentas', [3], true)], null)).toEqual([]);
   });
 
   it('a new #1 beats the current one, a tie does not', () => {
     const records = [record('damage', TEN)];
     expect(recordChips(game(1, 100_001), records, null)).toEqual([
-      { id: 'damage', title: 'damage', hue: 'fire', place: 1, record: true },
+      { id: 'damage', title: 'damage', place: 1, record: true },
     ]);
     // A tie shares the place as on the site (records.ts), but is no new record.
     const tie = recordChips(game(1, 100_000), records, null);
@@ -161,8 +140,8 @@ describe('records on the card', () => {
 
   it('only the own row of this game goes, a better lobby mate in it still counts', () => {
     // The site lists every player of the game: the mate (a1, 120,000) and the player (a2).
-    const mate = { siteId: 'a1', value: 120_000, gameId: 1 };
-    const self = { siteId: 'a2', value: 100_000, gameId: 1 };
+    const mate = row('a1', 120_000, 1);
+    const self = row('a2', 100_000, 1);
     const records = [{ ...record('damage', []), places: [mate, self, ...places(TEN, 3)] }];
     expect(recordChips(game(1, 100_000), records, 'a2')).toMatchObject([
       { place: 2, record: false },
@@ -229,13 +208,7 @@ describe('names on the card', () => {
 });
 
 describe('how special the game is', () => {
-  const chip = (id: string, place: number) => ({
-    id,
-    title: id,
-    hue: 'fire' as const,
-    place,
-    record: place === 1,
-  });
+  const chip = (id: string, place: number) => ({ id, title: id, place, record: place === 1 });
 
   it('legend: a Pentakill or a new #1 in Highest damage', () => {
     expect(cardLevel(game(1, 1, { pentas: 1 }), [])).toEqual({
@@ -278,7 +251,7 @@ describe('the game on the ladder', () => {
     for (const g of games)
       expect(gameRank(own!.history, g.gameId)).toEqual(rankResult(games, 'me', g.gameId));
     expect(gameRank(own!.history, 999)).toBeNull();
-    expect(me.state === 'ready' && me.me?.siteId).toBe('a9');
+    expect(me.state === 'ready' && me.siteId).toBe('a9');
   });
 
   it('waits for the game while listed, then says it came late', () => {
@@ -297,6 +270,7 @@ describe('the game on the ladder', () => {
     const unlisted: MeState = {
       state: 'ready',
       name: 'New#EUW',
+      siteId: null,
       me: null,
       ladder: [],
       mock: false,
