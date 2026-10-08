@@ -13,6 +13,7 @@ import { PageHead, step } from './pages';
 import {
   crowns,
   loadRecords,
+  mineFirst,
   recordValue,
   type RecordCard,
   type RecordPlace,
@@ -152,7 +153,7 @@ export function RecordsPage({ me, champions }: { me: MeState; champions: TierCha
   const byId = useMemo(() => new Map(champions.map((c) => [c.id, c])), [champions]);
   const siteId = me.state === 'ready' ? me.siteId : null;
   const records = got.state === 'ready' ? got.records : null;
-  const cards = records?.cards.filter((c) => c.places.length) ?? [];
+  const cards = mineFirst(records?.cards.filter((c) => c.places.length) ?? [], siteId);
   const leaders = records
     ? crowns(records.cards).filter((p) => p.place <= CROWNS || p.id === siteId)
     : [];

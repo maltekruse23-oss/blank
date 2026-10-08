@@ -713,8 +713,12 @@ pub async fn mayhem_ranks() -> Result<Option<OwnRanks>, String> {
         return Ok(None);
     };
     let http = site_client()?;
-    let me = own_profile(&http, &lcu, &puuid, &name).await?;
-    let board = read_json(&http, "/api/leaderboard").await?;
+    // Both at once: the profile does not depend on the leaderboard.
+    let (me, board) = tokio::join!(
+        own_profile(&http, &lcu, &puuid, &name),
+        read_json(&http, "/api/leaderboard")
+    );
+    let (me, board) = (me?, board?);
     Ok(Some(OwnRanks { name, board, me }))
 }
 
@@ -735,14 +739,21 @@ fn records_path(season: bool) -> &'static str {
     }
 }
 
+/// One client for the whole run: it keeps its connection to the site open, so later requests skip
+/// the TLS handshake (user's wish 08.10.2026: "Laden schneller machen").
 pub(super) fn site_client() -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    if let Some(client) = CLIENT.get() {
+        return Ok(client.clone());
+    }
+    let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(5))
         .timeout(Duration::from_secs(20))
         .user_agent(concat!("blank/", env!("CARGO_PKG_VERSION")))
         .build()
-        .map_err(|_| "Website-Verbindung nicht verfügbar.".into())
+        .map_err(|_| "Website-Verbindung nicht verfügbar.".to_string())?;
+    Ok(CLIENT.get_or_init(|| client).clone())
 }
 
 #[cfg(test)]

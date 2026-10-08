@@ -3,7 +3,7 @@ import type { AramEntry } from '../adapters/aram';
 import { RECORDS, recordsView } from '../../apps/mayhem-site/src/records';
 import { recordCategories } from '../features/aram/aramCategories';
 import { mockRecords } from './mock';
-import { crowns, parseRecords, recordValue, type RecordCard } from './records';
+import { crowns, mineFirst, parseRecords, recordValue, type RecordCard } from './records';
 
 // The Mayhem app's records (records.ts): the website's answer to GET /api/rekorde, made here by the
 // website's own code (apps/mayhem-site/src/records.ts), becomes one card per category.
@@ -178,5 +178,20 @@ describe('Mayhem app records', () => {
   it('writes values in English, seconds for crowd control', () => {
     expect(recordValue({ seconds: false }, 8744.79)).toBe('8,745');
     expect(recordValue({ seconds: true }, 231)).toBe('231 s');
+  });
+});
+
+describe('Rekorde: eigene zuerst', () => {
+  const card = (id: string, ids: string[]) =>
+    ({ id, places: ids.map((p, i) => ({ id: p, place: i + 1 })) }) as unknown as RecordCard;
+  it('zeigt Kategorien mit eigenem Platz oben, bester Platz zuerst, Rest in der Reihenfolge der Seite', () => {
+    const cards = [
+      card('a', ['x', 'y']),
+      card('b', ['me']),
+      card('c', ['z']),
+      card('d', ['x', 'me']),
+    ];
+    expect(mineFirst(cards, 'me').map((c) => c.id)).toEqual(['b', 'd', 'a', 'c']);
+    expect(mineFirst(cards, null).map((c) => c.id)).toEqual(['a', 'b', 'c', 'd']);
   });
 });
