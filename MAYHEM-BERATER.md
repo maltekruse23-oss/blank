@@ -272,14 +272,15 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
 
 ## 8. Etappen
 
-| Etappe | Inhalt                                                                                                                                            | Stand                  |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| 1      | Champ-Karte in der Champ-Auswahl                                                                                                                  | PR #41                 |
-| 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler                                                | PR #41                 |
-| 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                                                                       | nach dem Test von #41  |
-| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen                                                          | nach dem Test von #41  |
-| 3      | Situations-Tags gegen das Gegnerteam (3.8), Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge             |
-| 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                                                                 | wenn der Test es trägt |
+| Etappe | Inhalt                                                                                                                                            | Stand                         |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 1      | Champ-Karte in der Champ-Auswahl                                                                                                                  | PR #41                        |
+| 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler                                                | PR #41                        |
+| 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                                                                       | PR #64, nur blank., ungeprüft |
+| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen                                                          | PR #65, nur blank., ungeprüft |
+| 3a     | Erkennen, welches Augment genommen wurde (nur Anzeige, Abgleich nach dem Spiel)                                                                   | in Arbeit (08.10.2026)        |
+| 3      | Situations-Tags gegen das Gegnerteam (3.8), Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge                    |
+| 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                                                                 | wenn der Test es trägt        |
 
 ## 8a. Eigene Mayhem-App (Benutzerwunsch, 06.10.2026)
 
@@ -296,6 +297,11 @@ Richtung in Stufen S–D; die Karte bleibt nach der Auswahl stehen, damit man im
 kann, bis zum nächsten Champion. „Beispiel: Alistar“ zeigt sie ohne Spiel. Keine Popouts, keine
 Einstellungen, keine gespeicherten Daten, kein Rang, keine Rekorde. Weitere Teile (Erkennung im
 Spiel, Item-Sets und Zauber) nur, wenn malte sie für die Mayhem-App will.
+
+Stand 08.10.2026 (Benutzerwunsch 07.10.2026 „wie Blitz“, Design „Arena“, #62/#63): Desktop-Dashboard
+mit Seitenleiste, Home, Champ-Karte, Augment- und Champion-Tier-Liste, Rang (bisher Beispieldaten,
+echter Spieler in Arbeit). Weiterhin ohne Einstellungen, Popouts und gespeicherte Daten; Item-Sets,
+Zauber und Angebote im Spiel gibt es nur in blank.
 
 Daten (Benutzerwahl 06.10.2026): zuerst arammeta.com (offene JSON, nur Mayhem, viel mehr Spiele),
 sonst mayhemstats.lol; Einzelheiten in CLAUDE.md (Champ-Karte).

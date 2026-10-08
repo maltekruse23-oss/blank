@@ -1,6 +1,6 @@
 # Roadmap
 
-Stand: 07.10.2026. Gilt für mayhemstats.lol, die Mayhem-App, den Collector und die Mayhem-Teile von blank.
+Stand: 08.10.2026. Gilt für mayhemstats.lol, die Mayhem-App, den Collector und die Mayhem-Teile von blank.
 Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-BERATER.md](MAYHEM-BERATER.md) und [AI-NOTES.md](AI-NOTES.md).
 
 ## Arbeitsregeln
@@ -10,12 +10,18 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 - Neue Ideen kommen unter „Später“. Ob sie nach vorne rücken, entscheidet malte.
 - „Jetzt“ hat höchstens 2 Punkte, „Als Nächstes“ höchstens 3.
 - Ist ein Punkt fertig, fliegt er hier raus und steht mit Datum in AI-NOTES.md.
+- Ausnahme 08.10.2026 (malte: „noch keine Tests, erstmal weiter“): Etappen 2b, 2c und 3a gehen ohne vorherigen Test weiter. Die offenen Tests stehen gesammelt unter „Später“ → „Mayhem-Teile mit echtem Client bestätigen“.
 
 ## Jetzt
 
 1. **Mayhem-App im Design „Arena“** (Benutzerwunsch 07.10.2026: „Website erstmal hinten an, erst App“)
    Ziel: `mayhem.exe` ist eine Desktop-App wie Blitz im Design „Arena“ (Canvas „mayhemstats Design 2“, Seite „App UI“): Seitenleiste, Home-Dashboard, Champ-Karte, Augment- und Champion-Tier-Liste; Rang folgt.
    Fertig, wenn: Der Umbau ist gemergt, `pnpm mayhem:build` läuft auf malte's PC, Home, Champ („Beispiel: Alistar“), Augments und Champions sehen in `mayhem.exe` aus wie im Canvas und zeigen arammetas Zahlen, und mit ausgeschalteten Windows-Animationen steht alles sofort da.
+   Stand 08.10.2026: Umbau gemergt (#62, #63). Offen: Prüfung auf malte's PC.
+
+2. **Mayhem-App: echter Spieler und Rang** (malte: „mache alles“, 08.10.2026)
+   Ziel: Home und Rang in `mayhem.exe` zeigen den angemeldeten Spieler und die Rangliste von mayhemstats.lol statt Beispieldaten.
+   Fertig, wenn: Mit laufendem Client stehen eigener Rang und Rangliste da, ohne Client oder ohne Eintrag ein klarer Hinweis („nicht in der Datenbank“), der Mock-Hinweis ist weg. Nur die eigene Spieler-Kennung geht hinaus, nur lesend.
 
 ## Als Nächstes
 
@@ -23,36 +29,37 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
    Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.
    Fertig, wenn: Alle Seiten und Meldungen gibt es auf Englisch und Deutsch, die Sprache ist umschaltbar und hat eigene Adressen, Rangliste und Spielerseiten zeigen das Server-Kürzel, die Rangliste hat einen Server-Filter. Die Seite ist veröffentlicht und live geprüft. (Gebaut und gemergt in #58–#60; wartet auf Codex, Benutzer: Website erstmal hinten an.)
 
-2. **Neues Design für Website und Mayhem-App** (Benutzerauftrag 07.10.2026)
-   Ziel: Website und Mayhem-App haben ein neues, gemeinsames Design.
+2. **Website im Design „Arena“** (Benutzerauftrag 07.10.2026)
+   Ziel: Die Website hat dasselbe Design wie die Mayhem-App (die App ist seit #62/#63 im Design „Arena“).
    Gewählt am 07.10.2026: „Arena“ (MAYHEM-DESIGN.md, Vorlage Spielerseite im Artifact „mayhemstats Design 2“).
-   Fertig, wenn: Die Website ist im Design „Arena“ umgebaut (die App folgt unter „Jetzt“), die Website ist veröffentlicht und live geprüft, die App ist auf Windows getestet.
+   Fertig, wenn: Die Website ist im Design „Arena“ umgebaut, veröffentlicht und live geprüft.
 
 3. **Lobby-Check**
    Ziel: In der Champ-Auswahl zeigt die App je Mitspieler Rang, Leistung Ø als Note, seltensten Tag und Spiele mit dem Champion aus mayhemstats.lol, zusammen mit der Champ-Karte in einer Karte.
    Fertig, wenn: In einer echten Champ-Auswahl stehen bei allen Mitspielern diese Werte (oder „nicht in der Datenbank“), jeder Champion auf der Bank hat eine Stufe S bis D. Die App liest nur und nur Daten von mayhemstats.lol. Die Version ist auf Windows getestet und veröffentlicht. Danach folgen die Gegner auf dem Ladebildschirm (Live-Client-Schnittstelle einmal beim Spielstart).
+   Wartet auf malte: Dürfen Riot-IDs der Mitspieler an mayhemstats.lol gehen? In welche App? Stufen der Bank von arammeta oder nur mayhemstats.lol? Privat, bis Riot geantwortet hat?
 
 ## Später
 
 - **Mayhem-App ausbauen** (Benutzerwunsch 07.10.2026, „machen wir später“)
   Ziel: Die App kann mehr als die Champ-Karte.
-  Fertig, wenn: malte hat entschieden, welche Teile dazukommen (z. B. eigenes Profil und Rang, Tier-Liste, Karte nach dem Spiel), und sie sind gebaut und getestet.
+  Fertig, wenn: malte hat entschieden, welche Teile dazukommen (z. B. Karte nach dem Spiel, Angebote im Spiel, Item-Sets und Zauber – dafür bräuchte sie Einstellungen), und sie sind gebaut und getestet. Home, Tier-Listen und Rang-Seite kamen mit #63.
 
-- **Champ-Karte in blank. mit echtem Client bestätigen** (malte)
-  Ziel: Es ist belegt, dass die Champ-Karte in einer echten Mayhem-Champ-Auswahl funktioniert.
-  Fertig, wenn: Die Karte erscheint in einer echten Champ-Auswahl, AP, AD und Tank wechseln die Augment-Liste, das Ergebnis steht in VALIDATION.md.
+- **Mayhem-Teile mit echtem Client bestätigen** (malte, wenn er testen will)
+  Ziel: Es ist belegt, dass Champ-Karte, Item-Set und Zauber (2c), Angebote im Spiel (2b) und genommene Augments (3a) im echten Client bzw. Spiel funktionieren.
+  Fertig, wenn: Die Prüfschritte der Nachträge vom 06.–08.10.2026 in VALIDATION.md sind auf Windows durchgegangen und die Ergebnisse stehen dort.
 
 - **Riot fragen** (malte schickt, Claude schreibt den Text)
-  Ziel: Riot hat eigene Rangliste und Live-Hinweise im Spiel bewertet, bevor wir öffentlich werben oder die Mayhem-App öffentlich machen.
+  Ziel: Riot hat eigene Rangliste, Live-Hinweise im Spiel, das Lesen der Angebote per Bildschirmausschnitt und das Schreiben von Item-Sets und Zaubern bewertet, bevor wir öffentlich werben oder etwas davon öffentlich machen.
   Fertig, wenn: Die Anfrage ist im Developer Portal (App 887776) gestellt und Riots Antwort steht in AI-NOTES.md.
 
 - **Reddit-Post** (malte postet, Claude überarbeitet den Entwurf)
   Ziel: Mehr Leute kennen mayhemstats.lol und laden den Collector.
   Fertig, wenn: Website und `/mitmachen` mit Download sind live, Riot ist gefragt, der Entwurf (Deutsch und Englisch) ist ohne Gruppen und auf Tribüne-Stand, und malte hat ihn gepostet.
 
-- **Live-Augments im Spiel**
-  Ziel: Die Mayhem-App erkennt neue Augment-Angebote und Rerolls sofort und zeigt ihre Note für den gewählten Build.
-  Fertig, wenn: Im echten Spiel erscheinen die Noten für die Angebote auf Level 7, 11 und 15 und nach jedem Reroll innerhalb einer Sekunde. Gelesen wird nur ein Bildschirmausschnitt des League-Fensters mit Windows-Texterkennung. Immer werden mehrere Optionen mit Zahlen gezeigt. Vor einer öffentlichen Version ist Riot gefragt.
+- **Angebote nach den genommenen Augments ranken** (Etappe 3b, MAYHEM-BERATER.md)
+  Ziel: Die nächsten Angebote bekommen ihre Stufe auch danach, welche Augments schon genommen sind.
+  Fertig, wenn: Es gibt genug Spiele mit gemeinsamen Augments (heute rund 147 Spiele, zu wenig), der Rückblick-Test ist bestanden, immer mehrere Optionen mit Zahlen.
 
 - **Collector vertrauenswürdiger machen** (wartet auf malte's Ja)
   Ziel: Leute laden den Collector ohne Bedenken herunter.
@@ -69,10 +76,6 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 - **Teilen-Vorschaubilder**
   Ziel: Links auf Spiel- und Spielerseiten zeigen beim Teilen ein eigenes Vorschaubild.
   Fertig, wenn: Discord, WhatsApp und X zeigen für `/spiel/<id>` und `/players/<Riot-ID>` ein Bild mit Note bzw. Rang.
-
-- **Item-Sets und Beschwörerzauber in den Client schreiben** (MAYHEM-BERATER.md 6a)
-  Ziel: Die App legt passende Item-Sets „blank. …“ und Zauber an. Für beides gibt es einen Schalter.
-  Fertig, wenn: Mit Schalter an stehen Set und Zauber nach der Champ-Auswahl im Client. Eigene Sets bleiben unberührt. Mit Schalter aus passiert nichts.
 
 - **Situations-Tags gegen das Gegnerteam** (MAYHEM-BERATER.md 3.8)
   Ziel: Builds tragen Tags wie Anti-Tank, Anti-Heilung oder Gegen Burst, je nach Gegnerteam.
@@ -92,4 +95,8 @@ Details stehen in [apps/mayhem-site/PLAN.md](apps/mayhem-site/PLAN.md), [MAYHEM-
 
 - **Sicherheits- und Dependabot-Hinweise ansehen**
   Ziel: Bekannte Lücken in Abhängigkeiten sind behoben oder bewusst offen.
-  Fertig, wenn: Alle Hinweise auf GitHub sind durchgesehen und jeder ist behoben oder mit Grund geschlossen.
+  Fertig, wenn: Alle Hinweise auf GitHub sind durchgesehen und jeder ist behoben oder mit Grund geschlossen. Stand 08.10.2026: Dependabot-Hinweise sind im Repo ausgeschaltet; malte schaltet sie unter Settings → Code security ein.
+
+- **Release nach v0.9.2** (malte gibt frei)
+  Ziel: Freunde bekommen die Änderungen seit v0.9.2 (über 25 PRs, u. a. Champ-Karte, 2b, 2c) per Update.
+  Fertig, wenn: Version angehoben, Klick-Prüfung „Vor jedem Release“ gemacht, Tag gepusht, `blank.exe` und `mayhem.exe` hängen am Release.
