@@ -57,6 +57,13 @@
   --grade-ss: #8f80f2;
   --grade-sss: #e46ddb;
   --grade-mayhem: #ff4f9e;
+  /* Kinds of records on the card after a game (data, like blank.'s --game-*): fire, magic,
+     physical, gold, guard. */
+  --hue-fire: #ff8a4c;
+  --hue-magic: #b69cff;
+  --hue-physical: #ff6b74;
+  --hue-gold: var(--accent);
+  --hue-guard: #5fd3e0;
   --radius-tile: 24px;
   --radius-card: 18px;
   --radius-row: 14px;
@@ -1050,6 +1057,13 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
 
 .mayhem-page-head .mayhem-note {
   margin-top: 4px;
+}
+
+.mayhem-page-head-side {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
 }
 
 /* "Mock": values that are invented for now (CLAUDE.md: never hide simulated data). */
@@ -2497,4 +2511,463 @@ li[data-place='3'] .mayhem-place {
   align-items: center;
   gap: 8px;
   font: 800 17px var(--font-title);
+}
+
+/* --- The card after a game (AfterGame.tsx) -------------------------------------------------
+   blank.'s AramResult in "Arena": the splash from the right, the damage big, a glow from below
+   for a special game (gold for a legend game, ice blue for a top game) that blooms once. Waits
+   while the window is minimized (data-run='wait'), plays on return. */
+
+@keyframes mayhem-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes mayhem-emblem-rise {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+    filter: blur(10px) brightness(1.8);
+  }
+}
+
+@keyframes mayhem-bloom {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.mayhem-dialog > .mayhem-result {
+  width: min(680px, 100%);
+}
+
+.mayhem-result {
+  --glow: transparent;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden auto;
+  max-height: calc(100vh - 32px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-tile);
+  background: var(--surface);
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8);
+}
+
+.mayhem-result[data-level='top'] {
+  --glow: rgba(111, 214, 255, 0.55);
+  border-color: rgba(111, 214, 255, 0.3);
+}
+
+.mayhem-result[data-level='legend'] {
+  --glow: rgba(255, 200, 90, 0.75);
+  border-color: rgba(242, 193, 78, 0.5);
+}
+
+/* The light from below: only for a special game, once. */
+.mayhem-result::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -10%;
+  right: -10%;
+  bottom: -60%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--glow), transparent);
+  filter: blur(36px);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: mayhem-glow-up 1.6s var(--ease) 0.8s both;
+}
+
+.mayhem-result[data-run='wait']::before,
+.mayhem-result[data-run='wait'] *,
+.mayhem-result[data-run='wait'] *::before {
+  animation-play-state: paused;
+}
+
+.mayhem-result-splash {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  width: 72%;
+  height: 340px;
+  object-fit: cover;
+  object-position: 70% 20%;
+  opacity: 0.55;
+  mask-image:
+    linear-gradient(to left, #000 35%, transparent), linear-gradient(#000 55%, transparent);
+  mask-composite: intersect;
+  animation: mayhem-in 1.1s var(--ease) both;
+}
+
+.mayhem-result-body {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding: 24px 26px 18px;
+}
+
+.mayhem-result-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding-right: 40px;
+  color: var(--muted);
+}
+
+.mayhem-result-outcome {
+  font: 800 18px var(--font-title);
+  color: var(--up);
+}
+
+.mayhem-result[data-win='false'] .mayhem-result-outcome {
+  color: var(--down);
+}
+
+.mayhem-result-head span:nth-of-type(1) {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.mayhem-result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border: 1px solid rgba(111, 214, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(111, 214, 255, 0.12);
+  color: var(--prisma);
+  font: 800 12px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mayhem-result[data-level='legend'] .mayhem-result-badge {
+  border-color: rgba(242, 193, 78, 0.5);
+  background: rgba(242, 193, 78, 0.14);
+  color: var(--accent);
+}
+
+.mayhem-result-damage {
+  display: grid;
+}
+
+/* Big like the numbers of the Home tiles. */
+.mayhem-result-damage strong {
+  font: 800 50px/1.05 var(--font-title);
+  letter-spacing: -0.02em;
+}
+
+.mayhem-result[data-level='legend'] .mayhem-result-damage strong {
+  color: var(--accent-soft);
+  text-shadow: 0 0 24px rgba(255, 200, 90, 0.45);
+}
+
+.mayhem-result-damage > span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.mayhem-result-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mayhem-result-chips span {
+  --c: var(--muted);
+  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--c);
+  font: 700 12px var(--font);
+}
+
+.mayhem-result-chips [data-hue='fire'] {
+  --c: var(--hue-fire);
+}
+.mayhem-result-chips [data-hue='magic'] {
+  --c: var(--hue-magic);
+}
+.mayhem-result-chips [data-hue='physical'] {
+  --c: var(--hue-physical);
+}
+.mayhem-result-chips [data-hue='gold'] {
+  --c: var(--hue-gold);
+}
+.mayhem-result-chips [data-hue='guard'] {
+  --c: var(--hue-guard);
+}
+
+.mayhem-result-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  margin: 0;
+}
+
+.mayhem-result-stats dd {
+  margin: 0;
+  font: 500 20px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.mayhem-result-stats dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mayhem-result-augments {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-result-augments .mayhem-aug-icon > span {
+  color: var(--muted);
+  font: 700 11px var(--font);
+}
+
+.mayhem-result-body > div:last-child {
+  justify-self: stretch;
+}
+
+.mayhem-result-rank {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-row);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mayhem-result-emblem {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  color: var(--faint);
+  font: 800 24px var(--font-title);
+}
+
+.mayhem-result-emblem[data-bloom='true']::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 214, 120, 0.85), transparent);
+  animation: mayhem-bloom 1.2s var(--ease) both;
+}
+
+.mayhem-result-emblem[data-bloom='true'] img {
+  position: relative;
+  animation: mayhem-emblem-rise 0.9s var(--ease) both;
+}
+
+.mayhem-result-rank-main {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mayhem-result-rank-main b {
+  font: 800 17px var(--font-title);
+  color: var(--accent);
+}
+
+.mayhem-result-rank-main small {
+  color: var(--muted);
+}
+
+.mayhem-result-change {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(242, 193, 78, 0.16);
+  color: var(--accent);
+  font: 800 11px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  animation: mayhem-in 0.6s var(--ease) both;
+}
+
+.mayhem-result-change[data-down='true'] {
+  background: rgba(255, 128, 112, 0.14);
+  color: var(--down);
+}
+
+.mayhem-result-rank .mayhem-mp {
+  flex: none;
+  font-size: 17px;
+}
+
+/* The grade symbols have a black background: blended away, and its corners faded (inside a part
+   that glides in, the blend has nothing to blend with). */
+.mayhem-result-grade {
+  flex: none;
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(closest-side, #000 78%, transparent);
+}
+
+.mayhem-result-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  color: var(--muted);
+}
+
+.mayhem-result-mates {
+  display: grid;
+  gap: 8px;
+  margin: 0 26px;
+  padding: 14px 0 22px;
+  border-top: 1px solid var(--line);
+}
+
+.mayhem-result-mates h3 {
+  margin: 0;
+  color: var(--muted);
+  font: 700 12px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mayhem-result-mates ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-result-mates li {
+  display: grid;
+  grid-template-columns: 18px 24px minmax(0, 1fr) minmax(0, 1.3fr) 64px;
+  align-items: center;
+  gap: 10px;
+}
+
+.mayhem-result-mates img {
+  border-radius: 6px;
+}
+
+.mayhem-result-mates li[data-place='1'] .mayhem-place {
+  color: var(--accent);
+}
+
+.mayhem-result-mate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mayhem-result-mates li[data-me='true'] .mayhem-result-mate {
+  font-weight: 700;
+}
+
+.mayhem-result-mate small {
+  margin-left: 6px;
+  color: var(--down);
+  font-size: 11px;
+}
+
+.mayhem-result-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.mayhem-result-track span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--silver);
+  opacity: 0.6;
+  transform-origin: left;
+  animation: mayhem-grow 0.9s var(--ease) both;
+  animation-delay: calc(1100ms + var(--i, 0) * 80ms);
+}
+
+.mayhem-result-mates li[data-me='true'] .mayhem-result-track span {
+  background: var(--accent-soft);
+  opacity: 1;
+  box-shadow: 0 0 10px rgba(255, 214, 120, 0.7);
+}
+
+.mayhem-result-mates li b {
+  font: 500 13px var(--font-mono);
+  text-align: right;
+}
+
+.mayhem-result-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 26px 20px;
+}
+
+.mayhem-result-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: rgba(11, 12, 16, 0.55);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+
+.mayhem-result-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Small windows (down to 660 px high): the whole card still fits. */
+@media (max-height: 760px) {
+  .mayhem-result-body {
+    gap: 10px;
+    padding: 18px 24px 12px;
+  }
+
+  .mayhem-result-damage strong {
+    font-size: 42px;
+  }
+
+  .mayhem-result-rank {
+    padding: 8px 12px;
+  }
+
+  .mayhem-result-mates {
+    gap: 6px;
+    padding: 10px 0 14px;
+  }
+
+  .mayhem-result-mates ol {
+    gap: 4px;
+  }
 }

@@ -6,8 +6,9 @@
 //! with champion details, items and patch changes (arammeta.com, all from its one public list,
 //! `mayhem_tiers`), the signed-in player's rank with the leaderboard (mayhemstats.lol,
 //! `mayhem_ranks` in aram_website.rs), "Find my Mayhem rank" (aram/ladder.rs: the player's own
-//! Mayhem games to mayhemstats.lol on click, then after each game while the site lists them) and
-//! "Update" (update.rs, the same verified flow as blank., for mayhem.exe); nothing else of blank.:
+//! Mayhem games to mayhemstats.lol on click, then after each game while the site lists them), the
+//! card after each Mayhem game (aram/game_card.rs, in the window, not a popout) and "Update"
+//! (update.rs, the same verified flow as blank., for mayhem.exe); nothing else of blank.:
 //! no tray, popouts, settings or stored data (only ladder.rs's upload key in the Windows Credential
 //! Manager), and it never writes into the client. blank. is paused: its update installs this app
 //! as blank.exe, which then cleans up after blank. once (from_blank.rs).
@@ -56,6 +57,8 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::mayhem_tiers,
             crate::aram::website::mayhem_ranks,
             crate::aram::ladder::mayhem_find_rank,
+            crate::aram::game_card::mayhem_records,
+            crate::aram::game_card::mayhem_open_game,
             crate::update::update_check,
             crate::update::update_install,
             crate::update::update_news,
@@ -87,8 +90,8 @@ fn look_for_client(app: AppHandle) {
                 // Does nothing while it already listens or the window does not want the card.
                 crate::aram::live::listen(&app);
             }
-            // A Mayhem game's end uploads it after the player's own click on "Find my Mayhem rank",
-            // while mayhemstats.lol lists them (ladder.rs).
+            // A Mayhem game's end shows its card (game_card.rs) and uploads it after the player's
+            // own click on "Find my Mayhem rank", while mayhemstats.lol lists them (ladder.rs).
             crate::aram::ladder::game_seen(&app, open);
             thread::sleep(LOOK_EVERY);
         }
@@ -184,6 +187,8 @@ mod tests {
         let permissions = capability["permissions"].as_array().expect("permissions");
         assert!(permissions.contains(&Value::from("allow-mayhem-ranks")));
         assert!(permissions.contains(&Value::from("allow-mayhem-find-rank")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-records")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-open-game")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
         for update in [
             "allow-update-check",
@@ -207,6 +212,12 @@ mod tests {
         for event in ["mayhem-upload", "mayhem-uploaded"] {
             assert!(ladder.contains(&format!("\"{event}\"")), "{event}");
             assert!(site.contains(&format!("'{event}'")), "{event}");
+        }
+        // The card after a game (aram/game_card.rs).
+        let card = read("src/aram/game_card.rs");
+        assert!(card.contains("\"mayhem-card\"") && site.contains("'mayhem-card'"));
+        for command in ["mayhem_records", "mayhem_open_game"] {
+            assert!(site.contains(&format!("'{command}'")), "{command}");
         }
     }
 }

@@ -185,16 +185,17 @@ async fn started_game() -> Option<(i64, u64)> {
 }
 
 /// For the Mayhem app (ladder.rs, which keeps no aram.json): the id of the game that just started,
-/// once its process has ended – only for ARAM Mayhem and only when Windows can report the end.
-pub(super) async fn await_mayhem_game() -> Option<u64> {
+/// only for ARAM Mayhem (its skins noted for the card).
+pub(super) async fn started_mayhem_game() -> Option<u64> {
     let (queue, game_id) = started_game().await?;
-    if queue != MAYHEM_QUEUE {
-        return None;
-    }
+    (queue == MAYHEM_QUEUE).then_some(game_id)
+}
+
+/// Waits for the end of the game's process; false when Windows cannot report it.
+pub(super) async fn game_ended() -> bool {
     tauri::async_runtime::spawn_blocking(wait_for_game_exit)
         .await
         .unwrap_or(false)
-        .then_some(game_id)
 }
 
 /// Blocks until the game's process ends; false if it cannot be awaited (the process list then

@@ -1,8 +1,11 @@
 // Invented values for the browser preview only (no League client, no Tauri there): the player and
-// the leaderboard that the app reads from mayhemstats.lol (me.ts) and arammeta's list in the shape
-// Rust's `mayhem_tiers` sends (tiers.ts). The pages say "Mock" with them; nothing here is sent
-// anywhere.
+// the leaderboard that the app reads from mayhemstats.lol (me.ts), arammeta's list in the shape
+// Rust's `mayhem_tiers` sends (tiers.ts) and the card after a game (afterGame.ts). The pages say
+// "Mock" with them; nothing here is sent anywhere.
+import type { AramEntry } from '../adapters/aram';
+import type { GameCard } from '../adapters/aramSite';
 import { TIERS, type Rank } from '../features/aram/aramRating';
+import type { CardRank, SiteRecord } from './afterGame';
 import type { MeState } from './me';
 
 const rank = (tier: number, division: number | null, points: number): Rank => ({
@@ -65,6 +68,8 @@ export const MOCK_STATE: MeState = {
         gain: 6,
       },
     ],
+    siteId: null,
+    history: [],
   },
   ladder: [
     { place: 1, name: 'Example#EUW', rank: rank(5, 1, 88), me: true },
@@ -234,3 +239,148 @@ export const MOCK_TIERS = {
     },
   },
 };
+
+/** The card after a game in the browser preview: "Preview card" on the Rank page, or the address
+ * `mayhem.html?card=legend` (also `top`, `loss`, `unlisted`, `waiting`). */
+export const CARD_PREVIEWS = ['legend', 'top', 'loss', 'unlisted', 'waiting'] as const;
+export type CardPreview = (typeof CARD_PREVIEWS)[number];
+
+const mate = (name: string, champion: string, damage: number, sameTeam: boolean) => ({
+  puuid: name,
+  name,
+  champion,
+  championName: champion,
+  damage,
+  kills: Math.round(damage / 6000),
+  deaths: 5,
+  assists: 18,
+  sameTeam,
+});
+
+const CARD_ENTRY: AramEntry = {
+  gameId: 9_000_000_001,
+  at: Date.now() - 23 * 60_000,
+  seconds: 21 * 60 + 34,
+  patch: '16.20',
+  puuid: 'example',
+  name: 'Example#EUW',
+  championId: 63,
+  champion: 'Brand',
+  championName: 'Brand',
+  win: true,
+  kills: 24,
+  deaths: 3,
+  assists: 31,
+  damage: 96_480,
+  taken: 31_200,
+  healed: 4_100,
+  shielded: 0,
+  gold: 19_850,
+  level: 18,
+  items: [],
+  augments: [1002, 1004, 1005, 1001],
+  damageRank: 1,
+  teamShare: 0.34,
+  multikill: 5,
+  pentas: 1,
+  details: {
+    magic: 88_900,
+    physical: 4_100,
+    trueDamage: 3_480,
+    mitigated: 18_000,
+    doubles: 4,
+    triples: 2,
+    quadras: 1,
+    largestCrit: 0,
+    ccSeconds: 41,
+    largestSpree: 14,
+    turretDamage: 2_300,
+  },
+  with: [
+    mate('Second Pick#NA1', 'Lux', 71_300, true),
+    mate('Sona Main#EUW', 'Sona', 28_900, true),
+    mate('Bridge Troll#EUNE', 'Garen', 44_700, false),
+  ],
+  provisional: true,
+  skin: 1,
+};
+
+const CARD_AUGMENTS: GameCard['augments'] = {
+  '1001': { name: 'Goliath', rarity: 'prismatic', icon: null },
+  '1002': { name: 'Archmage', rarity: 'prismatic', icon: null },
+  '1004': { name: 'Dive Bomber', rarity: 'silver', icon: null },
+  '1005': { name: 'Bread And Butter', rarity: 'gold', icon: null },
+};
+
+const best = (id: string, title: string, hue: SiteRecord['hue'], first: number, step: number) => ({
+  id,
+  title,
+  hue,
+  places: Array.from({ length: 10 }, (_, i) => ({
+    siteId: `a${i + 1}`,
+    value: Math.round(first - i * step),
+    gameId: 8_000_000_000 + i,
+  })),
+});
+
+const CARD_RECORDS: SiteRecord[] = [
+  best('damage', 'Highest damage', 'fire', 90_210, 2_400),
+  best('dpm', 'Damage per minute', 'fire', 5_200, 160),
+  best('ap', 'AP damage', 'magic', 92_000, 2_000),
+  best('kills', 'Most kills', 'physical', 31, 1),
+  best('heal', 'Most healing', 'guard', 41_000, 2_500),
+];
+
+/** One preview of the card: the game, the records it is compared with and the rank line. */
+export function mockCard(kind: CardPreview): {
+  card: GameCard;
+  records: SiteRecord[];
+  rank: CardRank;
+} {
+  const card = (entry: Partial<AramEntry>) => ({
+    card: { entry: { ...CARD_ENTRY, ...entry }, augments: CARD_AUGMENTS },
+    records: CARD_RECORDS,
+  });
+  const result = (before: Rank, after: Rank, gain: number, grade: 'SSS' | 'S' | 'D'): CardRank => ({
+    state: 'ready',
+    rank: {
+      grade,
+      pct: 0.5,
+      gain,
+      before,
+      after,
+      change: after.tier !== before.tier ? (gain > 0 ? 'promoted' : 'demoted') : null,
+      games: 0,
+    },
+  });
+  const less = (damage: number) => ({
+    pentas: 0,
+    multikill: 2,
+    damage,
+    details: { ...CARD_ENTRY.details!, magic: Math.round(damage * 0.9) },
+  });
+  // No Pentakill, less damage: the most of all ten and a new #1 in healing only.
+  const topGame = { ...less(74_200), kills: 14, healed: 44_800 };
+  switch (kind) {
+    case 'legend':
+      return { ...card({}), rank: result(rank(3, 1, 88), rank(4, 4, 12), 24, 'SSS') };
+    case 'top':
+      return { ...card(topGame), rank: result(rank(4, 4, 12), rank(4, 4, 31), 19, 'S') };
+    case 'loss':
+      return {
+        ...card({
+          ...less(23_400),
+          win: false,
+          kills: 4,
+          deaths: 9,
+          damageRank: 6,
+          teamShare: 0.16,
+        }),
+        rank: result(rank(4, 4, 8), rank(3, 1, 84), -24, 'D'),
+      };
+    case 'unlisted':
+      return { ...card(topGame), rank: { state: 'unlisted' } };
+    case 'waiting':
+      return { ...card(topGame), rank: { state: 'waiting' } };
+  }
+}

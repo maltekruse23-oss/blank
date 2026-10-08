@@ -2,6 +2,7 @@
 // aram_site_ranks) only while the website upload is allowed; the browser preview has none.
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import type { AramAugment, AramEntry } from './aram';
 
 /** The website's answers as JSON text, or nothing (upload not allowed, no profile yet). */
 export type SiteAnswer = { enabled: boolean; board: string | null; me: string | null };
@@ -58,3 +59,22 @@ export function onRankUploaded(handler: () => void) {
   const stop = listen('mayhem-uploaded', () => handler());
   return () => void stop.then((unlisten) => unlisten());
 }
+
+/** The card after an ARAM Mayhem game (aram/game_card.rs): the player's own result with the League
+ * friends and listed players of the game in `with`, and the augments' names, rarities and icons. */
+export type GameCard = { entry: AramEntry; augments: Record<string, AramAugment> };
+
+/** A card arrives once per game, right after it (also while the window is minimized). */
+export function onGameCard(handler: (card: GameCard) => void) {
+  if (!isTauri()) return () => undefined;
+  const stop = listen<GameCard>('mayhem-card', ({ payload }) => handler(payload));
+  return () => void stop.then((unlisten) => unlisten());
+}
+
+/** mayhemstats.lol's records (GET /api/rekorde) as JSON text, or null when it has none. */
+export const readRecords = (): Promise<string | null> =>
+  isTauri() ? invoke<string | null>('mayhem_records') : Promise.resolve(null);
+
+/** Opens a game's page on mayhemstats.lol in the browser. */
+export const openGame = (gameId: number) =>
+  isTauri() ? invoke<void>('mayhem_open_game', { gameId }) : Promise.resolve();

@@ -35,6 +35,7 @@ pub mod website;
 
 mod after_game;
 mod client;
+pub mod game_card;
 mod games;
 pub mod ladder;
 pub mod offers;
@@ -442,18 +443,24 @@ async fn add_augments(lcu: &Lcu, stored: &mut Stored) {
         .flat_map(|e| e.augments.iter().copied())
         .filter(|id| !stored.augments.contains_key(id))
         .collect();
-    if new.is_empty() {
-        return;
+    stored.augments.extend(augment_info(lcu, &new).await);
+}
+
+/// Name, rarity and icon of these augments from the client (also the Mayhem app's card).
+async fn augment_info(lcu: &Lcu, ids: &HashSet<u32>) -> HashMap<u32, Augment> {
+    let mut found = HashMap::new();
+    if ids.is_empty() {
+        return found;
     }
     let Ok(list) = lcu
         .get::<Vec<CherryAugment>>("/lol-game-data/assets/v1/cherry-augments.json")
         .await
     else {
-        return;
+        return found;
     };
-    for augment in list.into_iter().filter(|a| new.contains(&a.id)) {
+    for augment in list.into_iter().filter(|a| ids.contains(&a.id)) {
         let icon = lcu.icon(&augment.icon).await;
-        stored.augments.insert(
+        found.insert(
             augment.id,
             Augment {
                 name: augment.name.chars().take(80).collect(),
@@ -462,6 +469,7 @@ async fn add_augments(lcu: &Lcu, stored: &mut Stored) {
             },
         );
     }
+    found
 }
 
 fn data(stored: Stored, client: bool, missing: Vec<String>) -> AramData {

@@ -1,6 +1,7 @@
 // Small building blocks for the rule "Übersicht vor Vollständigkeit" (MAYHEM-DESIGN.md): lists
 // show their first entries and the rest behind "Show more", pages use tabs instead of length.
-import { useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 /** Rows shown before "Show more". */
 export const FIRST = 5;
@@ -82,3 +83,22 @@ export function Tabs<T extends string>({
 
 /** Marks the best entry of a list, so nobody has to compare (gold, "Top"). */
 export const Top = () => <span className="mayhem-top">Top</span>;
+
+/** The dimmed layer under a dialog: Esc and a click beside the dialog close it. Into the body: the
+ * sidebar's backdrop-filter would hold a fixed overlay inside the sidebar. */
+export function Overlay({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const key = (event: globalThis.KeyboardEvent) => event.key === 'Escape' && onClose();
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [onClose]);
+  return createPortal(
+    <div
+      className="mayhem-dialog"
+      onClick={(event) => event.target === event.currentTarget && onClose()}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}

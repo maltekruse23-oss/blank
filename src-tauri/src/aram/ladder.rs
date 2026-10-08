@@ -25,8 +25,12 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
 use super::{
-    after_game::await_mayhem_game, archive, client::Lcu, games::History, website, Summoner,
-    AFTER_GAME, GAME_EXE, HISTORY, MAYHEM_QUEUE, SUMMONER,
+    after_game::{game_ended, started_mayhem_game},
+    archive,
+    client::Lcu,
+    game_card,
+    games::History,
+    website, Summoner, AFTER_GAME, GAME_EXE, HISTORY, MAYHEM_QUEUE, SUMMONER,
 };
 
 const SITE: &str = "https://mayhemstats.lol";
@@ -116,15 +120,23 @@ pub fn game_seen(app: &AppHandle, client_open: bool) {
     }
 }
 
-/// A Mayhem game ended (Windows reports the end of the game's process, no polling): once the
-/// client's history has it, the games the site does not count yet go up – only while the site
-/// lists the player.
+/// A Mayhem game ended (Windows reports the end of the game's process, no polling): its card
+/// (game_card.rs), and once the client's history has it, the games the site does not count yet go
+/// up – only while the site lists the player.
 async fn after_game(app: AppHandle) {
-    // ponytail: a game whose end cannot be awaited (or that ends while the client is closed) goes
-    // up with the next game or the next click, which send everything the site does not count.
-    let Some(game_id) = await_mayhem_game().await else {
+    let Some(game_id) = started_mayhem_game().await else {
         return;
     };
+    // The card names the players of the game the leaderboard lists: read while the game runs.
+    let listed = tauri::async_runtime::spawn(game_card::listed_names());
+    // ponytail: a game whose end cannot be awaited (or that ends while the client is closed) goes
+    // up with the next game or the next click, which send everything the site does not count; it
+    // gets no card.
+    if !game_ended().await {
+        return;
+    }
+    let listed = listed.await.unwrap_or_default();
+    tauri::async_runtime::spawn(game_card::after_game(app.clone(), game_id, listed));
     // The history has the game a little later (as in blank.: about two minutes in all). A client
     // that is away or does not answer yet (e.g. "Close client during game") gets the next look.
     for wait in AFTER_GAME {
