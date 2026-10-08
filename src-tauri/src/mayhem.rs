@@ -6,9 +6,10 @@
 //! with champion details, items and patch changes (arammeta.com, all from its one public list,
 //! `mayhem_tiers`), the signed-in player's rank with the leaderboard (mayhemstats.lol,
 //! `mayhem_ranks` in aram_website.rs), "Find my Mayhem rank" (aram/ladder.rs: the player's own
-//! Mayhem games to mayhemstats.lol on click, then after each game while the site lists them) and
-//! "Update" (update.rs, the same verified flow as blank., for mayhem.exe); nothing else of blank.:
-//! no tray, popouts, settings or stored data (only ladder.rs's upload key in the Windows Credential
+//! Mayhem games to mayhemstats.lol on click, then after each game while the site lists them), the
+//! records of every category (mayhemstats.lol, read-only, `mayhem_records`) and "Update"
+//! (update.rs, the same verified flow as blank., for mayhem.exe); nothing else of blank.: no tray,
+//! popouts, settings or stored data (only ladder.rs's upload key in the Windows Credential
 //! Manager), and it never writes into the client. blank. is paused: its update installs this app
 //! as blank.exe, which then cleans up after blank. once (from_blank.rs).
 //!
@@ -55,6 +56,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::aram_open_guide,
             crate::aram::live::mayhem_tiers,
             crate::aram::website::mayhem_ranks,
+            crate::aram::website::mayhem_records,
             crate::aram::ladder::mayhem_find_rank,
             crate::update::update_check,
             crate::update::update_install,
@@ -183,6 +185,7 @@ mod tests {
         assert_eq!(capability["windows"], serde_json::json!([WINDOW]));
         let permissions = capability["permissions"].as_array().expect("permissions");
         assert!(permissions.contains(&Value::from("allow-mayhem-ranks")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-records")));
         assert!(permissions.contains(&Value::from("allow-mayhem-find-rank")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
         for update in [

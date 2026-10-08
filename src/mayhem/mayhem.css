@@ -43,6 +43,7 @@
   --accent-soft: #fff3d6;
   --accent-ink: #1b1406;
   --silver: #dfe5ec;
+  --bronze: #d99a66;
   --prisma: #6fd6ff;
   --up: #7ee0a1;
   --down: #ff8070;
@@ -928,17 +929,24 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   box-shadow: 0 0 8px var(--accent);
 }
 
-/* Short windows (the allowed 660 px, a maximized laptop at 150 %): the sidebar needs about 700 px
-   (770 px with the zoom from 1700 px width), tighter entries about 620 px. */
-@media (max-height: 780px) {
+/* Short windows (the allowed 660 px, a maximized laptop at 150 %): the sidebar needs about 760 px,
+   tighter entries about 600 px (measured with eight sections); the zoom from 1700 and 2200 px
+   width (above) makes both taller, so wide windows switch earlier. */
+@media (max-height: 780px),
+  (min-width: 1700px) and (max-height: 860px),
+  (min-width: 2200px) and (max-height: 960px) {
   .mayhem-logo {
     margin-bottom: 10px;
+  }
+
+  .mayhem-nav {
+    gap: 2px;
   }
 
   .mayhem-nav button,
   .mayhem-soon,
   .mayhem-update {
-    padding: 5px 0;
+    padding: 3px 0;
   }
 }
 
@@ -1635,7 +1643,7 @@ li[data-place='2'] .mayhem-place {
 }
 
 li[data-place='3'] .mayhem-place {
-  color: #d99a66;
+  color: var(--bronze);
 }
 
 .mayhem-ladder .mayhem-aug-name {
@@ -2497,4 +2505,208 @@ li[data-place='3'] .mayhem-place {
   align-items: center;
   gap: 8px;
   font: 800 17px var(--font-title);
+}
+
+/* --- Records (RecordsPage.tsx): one card per category, the holder big, places 2 and 3 small;
+   places in gold, silver and bronze; no color per kind (one accent), only a record the player
+   holds is lit from below in gold -------------------------------------------------------------- */
+
+.mayhem-crowns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.mayhem-crowns ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-crowns li {
+  --place: var(--faint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+}
+
+.mayhem-crowns li[data-place='1'] {
+  --place: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+.mayhem-crowns li[data-place='2'] {
+  --place: var(--silver);
+}
+
+.mayhem-crowns li[data-place='3'] {
+  --place: var(--bronze);
+}
+
+.mayhem-crowns li[data-me='true'] {
+  border-color: var(--accent);
+}
+
+.mayhem-crowns svg {
+  flex: none;
+  color: var(--place);
+}
+
+.mayhem-rec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+  gap: 14px;
+  align-items: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-rec-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.mayhem-rec-card[data-mine='true'] {
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+.mayhem-rec-card[data-mine='true']::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -20%;
+  right: 30%;
+  bottom: -75%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--accent) 45%, transparent),
+    transparent
+  );
+  filter: blur(26px);
+  opacity: 0.55;
+}
+
+.mayhem-rec-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mayhem-rec-card h2 {
+  font: 800 15px var(--font-title);
+  letter-spacing: -0.005em;
+}
+
+.mayhem-rec-card header small {
+  color: var(--faint);
+  font: 400 11.5px var(--font-mono);
+}
+
+.mayhem-rec-card header .mayhem-pill {
+  flex: none;
+}
+
+.mayhem-rec-holder {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mayhem-rec-holder > div {
+  display: grid;
+  min-width: 0;
+}
+
+.mayhem-rec-holder strong {
+  font: 500 30px/1.15 var(--font-mono);
+}
+
+.mayhem-rec-holder small {
+  color: var(--muted);
+  font: 400 12px var(--font-mono);
+}
+
+.mayhem-rec-holder svg {
+  flex: none;
+  align-self: center;
+  color: var(--accent);
+}
+
+.mayhem-rec-holder[data-me='true'] .mayhem-rec-name b {
+  color: var(--accent);
+}
+
+.mayhem-rec-name {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.mayhem-rec-name b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mayhem-rec-name small {
+  color: var(--faint);
+  font: 400 12px var(--font);
+}
+
+.mayhem-rec-value {
+  flex: none;
+  font: 500 13px var(--font-mono);
+  color: var(--muted);
+}
+
+.mayhem-rec-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-rec-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  font-size: 13.5px;
+}
+
+.mayhem-rec-list li[data-me='true'] {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.mayhem-rec-list .mayhem-place {
+  text-align: center;
+  color: var(--muted);
+}
+
+.mayhem-rec-list .mayhem-rec-name {
+  flex: 1;
 }

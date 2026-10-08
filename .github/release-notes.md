@@ -13,6 +13,7 @@
 - **Tier lists:** Augments, champions, items and patch changes from arammeta.com.
 - **Combos and offmeta builds:** Augments and items that work well together, for every champion.
 - **Your rank:** Your rank and the leaderboard from mayhemstats.lol.
+- **Records:** Who holds the records on mayhemstats.lol, all time or this season, with your own place.
 
 ## Download
 
