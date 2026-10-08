@@ -1,8 +1,10 @@
 import { championSquare } from '../../adapters/aram';
+import { writeItemSet } from '../../adapters/aramChamp';
 import { DDRAGON_VERSION } from '../../data/proStreamers';
 import { useState } from 'react';
 import {
   DIRECTION_LABEL,
+  itemSetOf,
   planNote,
   PLAN_AUGMENTS_SHOWN,
   sourceLabel,
@@ -96,6 +98,7 @@ export function ChampCard({ view, onDismiss }: { view: ChampView; onDismiss: () 
                   onClick={(event) => {
                     event.stopPropagation();
                     setChosen(p.direction);
+                    void writeItemSet(view.championId, p.direction, itemSetOf(p));
                   }}
                 >
                   {DIRECTION_LABEL[p.direction]}

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "flyout",
-  "description": "Popout window (flyout.rs): receives notices from the app, shows and hides itself without taking the focus, controls play/pause, skipping and the position in the app that plays (media.rs) or asks the app window to do so for its own mix, opens a stream or the app, may close the program named in an overload warning and writes its errors to the error log (errors.rs). Nothing else; no window, filesystem, shell or HTTP permissions.",
+  "description": "Popout window (flyout.rs): receives notices from the app, shows and hides itself without taking the focus, controls play/pause, skipping and the position in the app that plays (media.rs) or asks the app window to do so for its own mix, opens a stream or the app, writes the item set of the build chosen on the Champ-Karte (aram_live.rs, only with its switch on), may close the program named in an overload warning and writes its errors to the error log (errors.rs). Nothing else; no window, filesystem, shell or HTTP permissions.",
   "windows": ["flyout-*"],
   "permissions": [
     "core:event:allow-listen",
@@ -19,6 +19,7 @@
     "allow-media-seek",
     "allow-media-open-player",
     "allow-flyout-mix",
+    "allow-aram-item-set",
     "allow-twitch-open-channel",
     "allow-close-program",
     "allow-program-running",

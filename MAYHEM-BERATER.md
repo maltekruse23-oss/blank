@@ -228,6 +228,9 @@ und Lord Dominik's als „Anti-Tank“.
 
 ## 6a. In den Client schreiben: Item-Set und Beschwörerzauber (Benutzerentscheidung, 06.10.2026)
 
+Stand 08.10.2026: gebaut in blank. (Etappe 2c, `aram_live.rs`), auf Windows mit echtem Client noch
+nicht geprüft. Die Mayhem-App schreibt nichts (keine Einstellungen dort).
+
 Die Regel „blank. schreibt nie in den Client“ gilt dafür nicht mehr. Beides hat einen eigenen
 Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Mayhem-Auswahl.
 

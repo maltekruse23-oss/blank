@@ -93,6 +93,10 @@ export type Preferences = {
   popoutAram: boolean;
   /** Champ-Karte: best augments and builds for the champion held in an ARAM Mayhem champion select. */
   popoutChamp: boolean;
+  /** Champ-Karte writes the item set "blank. <direction>" of the chosen build into the client. */
+  champItemSet: boolean;
+  /** Champ-Karte sets the summoner spells (Snowball and Flash, exceptions in aram_live.rs). */
+  champSpells: boolean;
   /** Seconds a live notice, warning or note stays (1–30), unless it always stays. */
   popoutNoticeSeconds: number;
   popoutNoticeAlways: boolean;
@@ -165,6 +169,8 @@ export const defaultPreferences: Preferences = {
   popoutWarnings: true,
   popoutAram: true,
   popoutChamp: true,
+  champItemSet: false,
+  champSpells: false,
   popoutNoticeSeconds: 10,
   popoutNoticeAlways: false,
   popoutTheme: 'app',
@@ -281,6 +287,8 @@ export function readPreferences(raw: unknown): Preferences | null {
     popoutWarnings: flag('popoutWarnings'),
     popoutAram: flag('popoutAram'),
     popoutChamp: flag('popoutChamp'),
+    champItemSet: flag('champItemSet'),
+    champSpells: flag('champSpells'),
     popoutNoticeSeconds: seconds('popoutNoticeSeconds'),
     popoutNoticeAlways: always('popoutNoticeAlways'),
     popoutTheme: pick(data.popoutTheme, isPopoutTheme, d.popoutTheme),

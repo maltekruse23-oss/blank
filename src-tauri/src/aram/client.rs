@@ -130,6 +130,31 @@ impl Lcu {
             .map_err(|_| "Unerwartete Antwort des League-Clients.".to_string())
     }
 
+    /// The only writes (user's decision 06.10.2026, aram_live.rs): the "blank. …" item sets and
+    /// the own summoner spells in the champion select. Only the caller's fixed paths.
+    pub(super) async fn send(
+        &self,
+        method: reqwest::Method,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<(), String> {
+        let response = self
+            .http
+            .request(method, format!("{}{path}", self.base))
+            .basic_auth("riot", Some(&self.password))
+            .json(body)
+            .send()
+            .await
+            .map_err(|_| "Der League-Client antwortet nicht.".to_string())?;
+        if !response.status().is_success() {
+            return Err(format!(
+                "Der League-Client lehnte ab ({}).",
+                response.status().as_u16()
+            ));
+        }
+        Ok(())
+    }
+
     /// A small PNG of the client's game data (augment icons), as data URL.
     pub(super) async fn icon(&self, path: &str) -> Option<String> {
         if !icon_path(path) {

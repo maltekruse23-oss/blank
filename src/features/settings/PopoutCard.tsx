@@ -467,6 +467,18 @@ export function PopoutCard({
                 {champNote}
               </p>
             )}
+            {toggle(
+              'champItemSet',
+              'Item-Set schreiben',
+              'Build als Item-Set „blank. …“ in den Client, eigene bleiben',
+              false,
+            )}
+            {toggle(
+              'champSpells',
+              'Beschwörerzauber setzen',
+              'Schneeball und Blitz, bis du selbst änderst',
+              false,
+            )}
             {toggle('popoutNoticeAlways', 'Immer anzeigen', 'Bleibt, bis du schließt')}
             {slider(
               'popoutNoticeSeconds',

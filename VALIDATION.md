@@ -6,6 +6,11 @@
 - Neue Tests: `settingsFile.test.ts` (Export → Import, Ablehnung fremder/neuerer/leerer Dateien, Musik, Twitch, Programme, Rückfall auf Standardwerte), `mayhemCard.test.ts` (Spielezahl, Item-Bild), Rust `mayhem::tests` (Kennung, Fenster-Label und -Titel, Capability, Befehl und Ereignis im Adapter).
 - Geprüft auf Windows: `pnpm format:check` (geänderte Dateien), Lint, Tests, Build, `extension:build`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 
+## Nachtrag 08.10.2026: Item-Set und Beschwörerzauber (Etappe 2c)
+
+- Settings → Popouts → Meldungen: „Item-Set schreiben“ und „Beschwörerzauber setzen“ (Standard aus, wirken auch ohne Popouts). Geprüft: Rust-Tests `spells_keep_flash_on_its_key` (Blitz bleibt auf seiner Taste, Singed Geist, nie Erschöpfung/Barriere) und `item_sets_replace_only_blanks_own_for_the_champion` (eigene Sets und „blank.“-Sets anderer Champs bleiben), Vitest `Item-Set der Champ-Karte`, build/lint/test/clippy.
+- Nicht geprüft (braucht ARAM-Mayhem-Lobby): ob der Client das geschriebene Set annimmt und im Shop zeigt, ob `PATCH …/my-selection` in Mayhem die Zauber setzt und ob Schneeball dort die ID 32 hat. Vor dem Release einmal in einer echten Auswahl: beide Schalter an, Set „blank. …“ im Shop, Zauber gesetzt, eigene Sets unverändert, danach Zauber selbst ändern → blank. setzt nichts mehr.
+
 ## Nachtrag 07.10.2026: Mayhem-App auf Windows getestet, Funde behoben
 
 - Windows (malte's PC, `main` 678bad1): `pnpm mayhem:build` läuft, `mayhem.exe` startet ohne blank., „League-Client zu“, „Beispiel: Alistar“ mit „arammeta.com, Patch 16.19“, Bilder laden, AP/AD/Tank wechseln die Liste. Noch nicht geprüft: echte Champ-Auswahl.
