@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Crown,
   House,
   LayoutGrid,
   Package,
@@ -22,10 +23,12 @@ import { MayhemCard } from './MayhemCard';
 import { AugmentDetail, ChampionDetail, ItemsPage, PatchPage } from './metaPages';
 import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
 import { loadMe, type MeState } from './me';
+import { RecordsPage } from './RecordsPage';
 import { loadTiers } from './tiers';
 import { UpdateButton } from './UpdateButton';
 
-export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'items' | 'patch' | 'rank';
+export type Page =
+  'home' | 'champ' | 'augments' | 'champions' | 'items' | 'patch' | 'rank' | 'records';
 
 /** The sidebar (user, 08.10.2026: dashboard like the canvas "App · Home"; the app grows by
  * entries like these, the dashed "Soon" marks the room for the next ones). English only. */
@@ -37,6 +40,7 @@ const PAGES: { id: Page; label: string; Icon: typeof Swords }[] = [
   { id: 'items', label: 'Items', Icon: Package },
   { id: 'patch', label: 'Patch', Icon: TrendingUp },
   { id: 'rank', label: 'Rank', Icon: Trophy },
+  { id: 'records', label: 'Records', Icon: Crown },
 ];
 
 /** The tier lists from arammeta.com into `set` (loading, then ready or failed). Rust's reasons are
@@ -49,7 +53,8 @@ function requestTiers(set: (tiers: TierState) => void) {
   );
 }
 
-/** Home and Rank ask mayhemstats.lol again when opened after this long (ranks change per game). */
+/** Home, Rank and Records ask mayhemstats.lol again for the player when opened after this long
+ * (ranks change per game). */
 const ME_FRESH_MS = 2 * 60_000;
 
 /** Swaps and rerolls come in quick turns: the card waits for the pick to settle this long. */
@@ -99,7 +104,7 @@ export function MayhemApp() {
     setDetail({});
     if (next !== 'champ' && next !== 'rank' && (!tiers || tiers.state === 'failed')) fetchTiers();
     const stale = me.state !== 'ready' || Date.now() - meAsked.current.at > ME_FRESH_MS;
-    if ((next === 'home' || next === 'rank') && stale) fetchMe();
+    if ((next === 'home' || next === 'rank' || next === 'records') && stale) fetchMe();
   };
 
   const show = (champ: HeldChamp, sample: boolean) => {
@@ -238,6 +243,8 @@ export function MayhemApp() {
             />
           ) : page === 'rank' ? (
             <RankPage me={me} onRetry={fetchMe} />
+          ) : page === 'records' ? (
+            <RecordsPage me={me} champions={lists?.champions ?? []} />
           ) : shown.state === 'ready' ? (
             <MayhemCard
               key={`${shown.view.championId}-${shown.sample}`}

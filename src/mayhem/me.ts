@@ -47,8 +47,16 @@ export type MeState =
   /** The League client is closed or nobody is signed in. */
   | { state: 'closed' }
   | { state: 'failed'; message: string }
-  /** `me` null: mayhemstats.lol has no profile of the player ("no games yet"). */
-  | { state: 'ready'; name: string; me: MeView | null; ladder: LadderRow[]; mock: boolean };
+  /** `me` null: mayhemstats.lol has no profile of the player ("no games yet"). `siteId`: the
+   * player's public id there (`a123`), how the records name them. */
+  | {
+      state: 'ready';
+      name: string;
+      siteId: string | null;
+      me: MeView | null;
+      ladder: LadderRow[];
+      mock: boolean;
+    };
 
 const RECENT = 6;
 const CURVE = 20;
@@ -168,6 +176,7 @@ export function ownState(answer: OwnRanks | null): MeState {
     return {
       state: 'ready',
       name: answer.name || profile?.name || '–',
+      siteId: profile?.siteId ?? null,
       me: profile && meView(profile, board),
       ladder: ladderOf(board, profile?.siteId),
       mock: false,

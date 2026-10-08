@@ -1,7 +1,8 @@
-// Invented values for the browser preview only (no League client, no Tauri there): the player and
-// the leaderboard that the app reads from mayhemstats.lol (me.ts) and arammeta's list in the shape
-// Rust's `mayhem_tiers` sends (tiers.ts). The pages say "Mock" with them; nothing here is sent
+// Invented values for the browser preview only (no League client, no Tauri there): the player, the
+// leaderboard and the records that the app reads from mayhemstats.lol (me.ts, records.ts) and
+// arammeta's list in the shape Rust's `mayhem_tiers` sends (tiers.ts). The pages say "Mock" with them; nothing here is sent
 // anywhere.
+import { RECORDS } from '../../apps/mayhem-site/src/records';
 import { TIERS, type Rank } from '../features/aram/aramRating';
 import type { MeState } from './me';
 
@@ -18,6 +19,7 @@ const at = (hours: number) => Date.now() - hours * HOUR;
 export const MOCK_STATE: MeState = {
   state: 'ready',
   name: 'Example#EUW',
+  siteId: 'a1',
   mock: true,
   me: {
     rank: rank(5, 1, 88),
@@ -231,3 +233,73 @@ export const MOCK_TIERS = {
     },
   },
 };
+
+const RECORD_PLAYERS = [
+  'Example#EUW',
+  'Second Pick#NA1',
+  'Third Wheel#KR1',
+  'Bridge Troll#EUNE',
+  'Snowball King#EUW',
+  'Poro Snack#NA1',
+  'Late Flash#KR1',
+  'Mid Or Feed#EUW',
+  'Shield Bot#OCE',
+  'Last Hit#BR1',
+];
+/** An invented place 1 per category (the others follow below it); turret damage has none yet. */
+const RECORD_TOP: Record<string, number> = {
+  damage: 190_000,
+  dpm: 8_700,
+  pentas: 4,
+  ap: 150_000,
+  ad: 130_000,
+  kills: 41,
+  tank: 300_000,
+  heal: 130_000,
+  true: 70_000,
+  mitigated: 560_000,
+  crit: 2_900,
+  cc: 230,
+  spree: 10,
+  gold: 48_000,
+};
+
+/** The records as the website answers GET /api/rekorde (records.ts reads them like the real one).
+ * The mock player (`a1`, Example#EUW) holds some and is further down in others. */
+export const mockRecords = (season: boolean) => ({
+  scope: season ? 'season' : 'all',
+  season: { id: '2026-3', year: 2026, number: 3, start: 0 },
+  games: season ? 412 : 1_380,
+  players: season ? 96 : 241,
+  categories: RECORDS.map((c, n) => {
+    const top = RECORD_TOP[c.id] ?? 0;
+    const values = RECORD_PLAYERS.map((_, i) =>
+      Math.max(1, Math.round(top * (1 - i * 0.07) * (season ? 0.85 : 1))),
+    );
+    return {
+      id: c.id,
+      places: top
+        ? values.map((value, i) => {
+            const who = (i + n * 3) % RECORD_PLAYERS.length;
+            return {
+              place: values.filter((v) => v > value).length + 1,
+              puuid: `a${who + 1}`,
+              name: RECORD_PLAYERS[who],
+              icon: 1,
+              value,
+              fresh: false,
+              game: {
+                gameId: 7_000_000_000 + n * 10 + i,
+                at: at((i + n) * 7),
+                seconds: 1_260,
+                championId: CHAMPS[(i + n) % CHAMPS.length]![0],
+                champion: '',
+                championName: '',
+                skin: null,
+              },
+            };
+          })
+        : [],
+    };
+  }),
+});

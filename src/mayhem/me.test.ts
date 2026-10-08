@@ -75,7 +75,13 @@ describe('Mayhem app player', () => {
 
   it('shows a player the website does not know, with the leaderboard', () => {
     const state = ownState({ name: 'Neu#EUW', board, me: null });
-    expect(state).toMatchObject({ state: 'ready', name: 'Neu#EUW', me: null, mock: false });
+    expect(state).toMatchObject({
+      state: 'ready',
+      name: 'Neu#EUW',
+      siteId: null,
+      me: null,
+      mock: false,
+    });
     expect(state.state === 'ready' && state.ladder.every((r) => !r.me)).toBe(true);
   });
 
@@ -83,6 +89,8 @@ describe('Mayhem app player', () => {
     const state = ownState({ name: 'Me#EUW', board, me: profile('me') });
     if (state.state !== 'ready' || !state.me) throw new Error(state.state);
     const me = state.me;
+    // The public id the records name the player by (records.ts, "You: #7").
+    expect(state.siteId).toBe('me');
     const local = all.find((s) => s.puuid === 'me')!;
     expect(me.rank).toEqual(local.rank);
     expect([me.games, me.wins]).toEqual([8, local.wins]);

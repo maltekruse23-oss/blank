@@ -5,7 +5,8 @@
 //! Champ-Karte of the ARAM Mayhem champion select (aram_live.rs), augment and champion tier lists
 //! with champion details, items and patch changes (arammeta.com, all from its one public list,
 //! `mayhem_tiers`) and the signed-in player's rank with the leaderboard
-//! (mayhemstats.lol, read-only, `mayhem_ranks` in aram_website.rs) and "Update" (update.rs, the
+//! (mayhemstats.lol, read-only, `mayhem_ranks` in aram_website.rs), the records of every category
+//! (mayhemstats.lol, read-only, `mayhem_records`) and "Update" (update.rs, the
 //! same verified flow as blank., for mayhem.exe); nothing else of blank.: no tray, popouts,
 //! settings or stored data, and it never writes into the client.
 //!
@@ -49,6 +50,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::aram_open_guide,
             crate::aram::live::mayhem_tiers,
             crate::aram::website::mayhem_ranks,
+            crate::aram::website::mayhem_records,
             crate::update::update_check,
             crate::update::update_install,
             crate::update::update_news,
@@ -172,6 +174,7 @@ mod tests {
         assert_eq!(capability["windows"], serde_json::json!([WINDOW]));
         let permissions = capability["permissions"].as_array().expect("permissions");
         assert!(permissions.contains(&Value::from("allow-mayhem-ranks")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-records")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
         for update in [
             "allow-update-check",
