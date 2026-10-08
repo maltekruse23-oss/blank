@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Offmeta-Builds — 08.10.2026
+
+- Benutzerwunsch („meine App soll Offmeta-Builds haben, z. B. AP-Alistar mit passenden Mayhem-Augments“; dann „Offbuilds gibt es auch in normalem League, Items sind gleich“, Vorlagen u.gg/mobafire/mobalytics/aramonly). Entscheidung: keine Guide-Seiten auslesen (Scraping, fremde Arbeit; mobafire antwortet ohnehin 403). Stattdessen `offmetaBuild` (champCard.ts): Richtung ohne arammeta-Kern → die drei besten Einzel-Items dieser Richtung (`singleItems` top/bot/popularBad, `kind` aus Data Dragon) mit ≥ 40 Spielen, Siegquote zur Mitte gezogen, Mana zählt dagegen, höchstens 1,5 Punkte unter dem Haupt-Build. Gemessen 08.10.2026: 36 Offmeta-Builds über 173 Champions, AP-Alistar = Rabadon, Shadowflame, Riftmaker (Ø 53,7 % gegen 54,1 % Tank). Karte: Abzeichen „Offmeta“ auf dem Reiter, Zahlen je Item (Tooltip), Hinweis „jedes einzeln gemessen“ (`planNote`). Website-Spiele derselben Richtung bleiben davor (Benutzerwahl 07.10.2026), nicht addiert. Item-Set nimmt den Offmeta-Kern, wenn diese Richtung gewählt ist.
+- Link „Guides auf aramonly.com“ (`aram_open_guide`, Slug aus `name_en` von arammeta; aramonly hat rund 1 480 ARAM-Build-Seiten für 172 Champions, alle Namen außer Locke passen).
+- Offen: Handliste für Sonderfälle (Full Magic Pen, Spin to Win …) mit Quelle, Seite „Offmeta“ in der Mayhem-App (alle 173 Champion-Dateien, höchstens alle 6 h), danach „Build folgt den genommenen Augments“ (ROADMAP).
+
 ## Champ-Karte: alle Champion-Daten von arammeta — 08.10.2026
 
 - Benutzerauftrag „alle Daten von arammeta in mein System und App gut einbauen, so viele Daten wie möglich“; dieser Teil: alles je Champion. Ein anderer Agent macht die Tier-Listen-/Detailseiten der Mayhem-App (`pages.tsx`, `mayhem_tiers`).

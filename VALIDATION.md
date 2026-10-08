@@ -1,5 +1,10 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Offmeta-Builds
+
+- Geprüft: Vitest „Offmeta-Build“ (AP-Alistar mit den echten Zahlen vom 08.10.2026, Mana nur später, zu wenig Spiele/zu schwach → keiner, Item-Set nimmt den Kern), Rust-Test `guides_are_found_by_the_english_name`, build/lint/test/clippy. Über alle 173 Champion-Dateien einmal nachgerechnet: 36 Offmeta-Builds.
+- Nicht geprüft: Anzeige im echten Popout und in `mayhem.exe`, Knopf „Guides auf aramonly.com“ (öffnet den Browser), Locke hat dort noch keine Seite.
+
 ## Nachtrag 08.10.2026: Alle Champion-Daten von arammeta auf der Champ-Karte
 
 - Formen geprüft an echten Dateien (`/api/champions/<id>.json`, über 150 Champions am 08.10.2026): `boots`/`singleItems`/`items`/`spells` haben `top` (höchstens 4/24/8/5 Zeilen, nach arammetas Wertung sortiert), `singleItems.popularBad` (≤ 6), `bot` je Seltenheit ≤ 12 Augments mit `slots` (4 Einträge, `null` bei keinen Spielen), `augTypes.top/bot` je 4. Die `bot`-Listen von Items, Stiefeln und Paaren überschneiden sich stark mit `top` (gleiche Zeilen) und werden nur bei Einzel-Items gelesen (ohne Doppel). `sets` war bei allen Champions leer und wird nicht gelesen. `itemClusters.groups[].tail` = weitere Items der Gruppe ohne eigene Zahlen.

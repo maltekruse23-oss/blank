@@ -2101,3 +2101,18 @@ li[data-place='3'] .mayhem-place {
   -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
 }
+
+/* The champion's guides on aramonly.com (offmeta builds), opened in the browser. */
+.mayhem-guide {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mayhem-guide:hover {
+  text-decoration: underline;
+}

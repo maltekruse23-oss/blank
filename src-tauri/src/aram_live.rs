@@ -503,6 +503,39 @@ fn with_item_set(mut sets: Value, champion: i64, set: Value) -> Option<Value> {
     Some(sets)
 }
 
+/// aramonly.com, whose ARAM guides list many offmeta builds (user's wish 08.10.2026, AP-Alistar).
+const GUIDES: &str = "https://www.aramonly.com";
+
+/// The address of a champion's guides there, from its English name ("Nunu & Willump" →
+/// "nunu-and-willump"); the start page when the name is unknown or odd.
+fn guide_url(name: Option<&str>) -> String {
+    let slug = name
+        .unwrap_or_default()
+        .to_lowercase()
+        .replace('&', "and")
+        .replace(['\x27', '.'], "")
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+    if slug.is_empty() || slug.len() > 40 {
+        format!("{GUIDES}/")
+    } else {
+        format!("{GUIDES}/guide/{slug}/")
+    }
+}
+
+/// Opens the champion's guides on aramonly.com in the browser (a link only; nothing is read).
+#[tauri::command]
+pub fn aram_open_guide(champion_id: u32) {
+    let name = META_LIST.lock().ok().and_then(|kept| {
+        kept.as_ref()
+            .and_then(|(_, list)| list.champs.get(&champion_id.to_string()))
+            .map(|c| c.name_en.clone())
+    });
+    crate::twitch::open_url(&guide_url(name.as_deref()));
+}
+
 /// The champion picked last and the build chosen for it (offers.rs).
 pub(super) fn chosen() -> (i64, Option<String>) {
     CHOSEN.lock().unwrap_or_else(|p| p.into_inner()).clone()
@@ -1272,6 +1305,24 @@ pub async fn aram_champ_info(champion_id: u32, version: String) -> Result<ChampI
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn guides_are_found_by_the_english_name() {
+        let url = |n: &str| guide_url(Some(n));
+        assert_eq!(url("Alistar"), "https://www.aramonly.com/guide/alistar/");
+        assert_eq!(
+            url("Nunu & Willump"),
+            "https://www.aramonly.com/guide/nunu-and-willump/"
+        );
+        assert_eq!(url("Cho'Gath"), "https://www.aramonly.com/guide/chogath/");
+        assert_eq!(url("Dr. Mundo"), "https://www.aramonly.com/guide/dr-mundo/");
+        assert_eq!(
+            url("Aurelion Sol"),
+            "https://www.aramonly.com/guide/aurelion-sol/"
+        );
+        assert_eq!(guide_url(None), "https://www.aramonly.com/");
+        assert_eq!(url("../../x?y"), "https://www.aramonly.com/guide/x-y/");
+    }
 
     #[test]
     fn spells_keep_flash_on_its_key() {

@@ -209,3 +209,17 @@
   border-radius: calc(8px * var(--radius-scale));
   font-size: 12px;
 }
+
+/* A link to the champion's guides on aramonly.com (offmeta builds), opened in the browser. */
+.champ-card-guide {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+.champ-card-guide:hover {
+  text-decoration: underline;
+}
