@@ -1,11 +1,12 @@
 // The Mayhem app's records (user's wish 08.10.2026: "die Rekorde von der Website und der blank. App
 // auch noch als Tab in der Mayhem-App"): mayhemstats.lol's records, every category's best ten, all
 // time or this season (GET /api/rekorde, read in Rust by `mayhem_records`). Categories, their order,
-// English names and colors come from the website's own list (apps/mayhem-site/src/records.ts, the
+// English names and units come from the website's own list (apps/mayhem-site/src/records.ts, the
 // same as blank.'s recordCategories, siteRecords.test.ts); from the answer only the places are
-// taken, each value checked. Nothing estimated: a category without places stays empty.
+// taken, each value checked. Nothing estimated: a category without places stays empty. The kinds
+// of records get no color of their own (MAYHEM-DESIGN.md: one accent).
 import { invoke, isTauri } from '@tauri-apps/api/core';
-import { PLACES, RECORDS, type RecordHue } from '../../apps/mayhem-site/src/records';
+import { PLACES, RECORDS } from '../../apps/mayhem-site/src/records';
 import { number } from './format';
 import { mockRecords } from './mock';
 
@@ -27,7 +28,6 @@ export type RecordPlace = {
 
 export type RecordCard = {
   id: string;
-  hue: RecordHue;
   title: string;
   note: string;
   /** Summed up over all games (Pentakills), not one best game. */
@@ -97,7 +97,6 @@ export function parseRecords(answerText: string): Records {
       const found = given.get(c.id);
       return {
         id: c.id,
-        hue: c.hue,
         title: c.titleEn,
         note: c.noteEn,
         total: c.kind === 'total',
@@ -108,7 +107,8 @@ export function parseRecords(answerText: string): Records {
   };
 }
 
-/** Who holds the most records: everyone with a place 1 (a tie counts for each), most first. */
+/** Who holds the most records: everyone with a place 1 (a tie counts for each), most first; the
+ * same number of records shares the place. */
 export function crowns(cards: RecordCard[]) {
   const held = new Map<string, { id: string; name: string; crowns: number }>();
   for (const card of cards)
@@ -117,7 +117,10 @@ export function crowns(cards: RecordCard[]) {
       own.crowns += 1;
       held.set(p.id, own);
     }
-  return [...held.values()].sort((a, b) => b.crowns - a.crowns || a.name.localeCompare(b.name));
+  const most = [...held.values()].sort(
+    (a, b) => b.crowns - a.crowns || a.name.localeCompare(b.name),
+  );
+  return most.map((p) => ({ ...p, place: most.filter((x) => x.crowns > p.crowns).length + 1 }));
 }
 
 /** "190,928" or "231 s" (crowd control). */

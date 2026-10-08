@@ -58,12 +58,6 @@
   --grade-ss: #8f80f2;
   --grade-sss: #e46ddb;
   --grade-mayhem: #ff4f9e;
-  /* The kinds of records (as blank.'s tokens.css): damage, magic, physical, gold, protection. */
-  --game-fire: #ff7a45;
-  --game-magic: #b085ff;
-  --game-physical: #ff5d6c;
-  --game-gold: #f5c84c;
-  --game-guard: #4fc9d9;
   --radius-tile: 24px;
   --radius-card: 18px;
   --radius-row: 14px;
@@ -2500,8 +2494,9 @@ li[data-place='3'] .mayhem-place {
   font: 800 17px var(--font-title);
 }
 
-/* --- Records (RecordsPage.tsx): one card per category, lit from below in the color of its kind,
-   the holder big, places 2 and 3 small; places in gold, silver and bronze ---------------------- */
+/* --- Records (RecordsPage.tsx): one card per category, the holder big, places 2 and 3 small;
+   places in gold, silver and bronze; no color per kind (one accent), only a record the player
+   holds is lit from below in gold -------------------------------------------------------------- */
 
 .mayhem-crowns {
   display: flex;
@@ -2558,10 +2553,12 @@ li[data-place='3'] .mayhem-place {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
   gap: 14px;
   align-items: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .mayhem-rec-card {
-  --hue: var(--accent);
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -2573,27 +2570,11 @@ li[data-place='3'] .mayhem-place {
   background: var(--surface);
 }
 
-.mayhem-rec-card[data-hue='fire'] {
-  --hue: var(--game-fire);
+.mayhem-rec-card[data-mine='true'] {
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
 }
 
-.mayhem-rec-card[data-hue='magic'] {
-  --hue: var(--game-magic);
-}
-
-.mayhem-rec-card[data-hue='physical'] {
-  --hue: var(--game-physical);
-}
-
-.mayhem-rec-card[data-hue='gold'] {
-  --hue: var(--game-gold);
-}
-
-.mayhem-rec-card[data-hue='guard'] {
-  --hue: var(--game-guard);
-}
-
-.mayhem-rec-card::before {
+.mayhem-rec-card[data-mine='true']::before {
   content: '';
   position: absolute;
   z-index: -1;
@@ -2604,7 +2585,7 @@ li[data-place='3'] .mayhem-place {
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    color-mix(in oklab, var(--hue) 45%, transparent),
+    color-mix(in oklab, var(--accent) 45%, transparent),
     transparent
   );
   filter: blur(26px);
@@ -2619,21 +2600,8 @@ li[data-place='3'] .mayhem-place {
 }
 
 .mayhem-rec-card h2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font: 800 15px var(--font-title);
   letter-spacing: -0.005em;
-}
-
-.mayhem-rec-card h2::before {
-  content: '';
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--hue);
-  box-shadow: 0 0 8px var(--hue);
 }
 
 .mayhem-rec-card header small {

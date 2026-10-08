@@ -3,7 +3,7 @@ import type { AramEntry } from '../adapters/aram';
 import { RECORDS, recordsView } from '../../apps/mayhem-site/src/records';
 import { recordCategories } from '../features/aram/aramCategories';
 import { mockRecords } from './mock';
-import { crowns, parseRecords, recordValue } from './records';
+import { crowns, parseRecords, recordValue, type RecordCard } from './records';
 
 // The Mayhem app's records (records.ts): the website's answer to GET /api/rekorde, made here by the
 // website's own code (apps/mayhem-site/src/records.ts), becomes one card per category.
@@ -61,7 +61,7 @@ describe('Mayhem app records', () => {
     expect(RECORDS.map((c) => c.id)).toEqual(recordCategories.map((c) => c.id));
     const records = parseRecords(answer([game('a1', 1, 50_000)]));
     expect(records.cards.map((c) => c.id)).toEqual(RECORDS.map((c) => c.id));
-    expect(records.cards[0]).toMatchObject({ title: 'Highest damage', hue: 'fire', total: false });
+    expect(records.cards[0]).toMatchObject({ title: 'Highest damage', total: false });
     expect(records.season).toBe('Season 3 · 2026');
   });
 
@@ -135,9 +135,29 @@ describe('Mayhem app records', () => {
     expect(most.map((p) => p.crowns)).toEqual([...most.map((p) => p.crowns)].sort((a, b) => b - a));
     const tie = parseRecords(answer([game('a1', 1, 50_000), game('a2', 2, 50_000)]));
     const damage = crowns(tie.cards.filter((c) => c.id === 'damage'));
-    expect(damage.map((p) => [p.id, p.crowns])).toEqual([
-      ['a1', 1],
-      ['a2', 1],
+    expect(damage.map((p) => [p.id, p.crowns, p.place])).toEqual([
+      ['a1', 1, 1],
+      ['a2', 1, 1],
+    ]);
+    // As mayhemstats.lol on 08.10.2026: one with three records, then four with two each, all on
+    // place 2 (the page shows places 1 to 3, so none of the four is cut off).
+    const held = (id: string, ...holders: string[]): RecordCard => ({
+      ...records.cards[0]!,
+      id,
+      places: holders.map((h) => ({ ...records.cards[0]!.places[0]!, id: h, name: h, place: 1 })),
+    });
+    const many = crowns([
+      held('a', 'lee'),
+      held('b', 'lee', 'out', 'pinda'),
+      held('c', 'lee', 'michel', 'swag'),
+      held('d', 'out', 'michel', 'pinda', 'swag'),
+    ]);
+    expect(many.map((p) => [p.id, p.crowns, p.place])).toEqual([
+      ['lee', 3, 1],
+      ['michel', 2, 2],
+      ['out', 2, 2],
+      ['pinda', 2, 2],
+      ['swag', 2, 2],
     ]);
   });
 
