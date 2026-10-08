@@ -53,6 +53,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* In the game an offered name is a button: a click marks the augment taken (Etappe 3a). */
+.champ-card-take {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.champ-card-take[aria-pressed='true'] {
+  color: var(--accent);
+}
+.champ-card-take:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .champ-card-augment {
   display: grid;
   flex: none;

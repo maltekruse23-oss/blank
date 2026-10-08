@@ -198,6 +198,7 @@ pub fn run() {
             aram::live::aram_champ_watch,
             aram::live::aram_champ_info,
             aram::live::aram_champ_build,
+            aram::offers::aram_offer_taken,
             #[cfg(windows)]
             aram::aram_friends,
             #[cfg(windows)]

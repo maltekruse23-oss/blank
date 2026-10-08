@@ -203,7 +203,7 @@ und Lord Dominik's als „Anti-Tank“.
 Stand 08.10.2026: gebaut in blank. (`aram/offers.rs`, Schalter „Augments im Spiel“), auf Windows
 noch nicht geprüft. Abweichungen vom Plan: gelesen wird nach jedem Stufenaufstieg (die
 Angebots-Stufen sind nicht fest eingetragen), Anzeige nur als Popout; „welches genommen wurde“
-folgt mit Etappe 3.
+ist seit Etappe 3a gebaut (nur Anzeige, siehe unten).
 
 - **Champion:** wie Etappe 1 aus der Champ-Auswahl, im Spiel aus der Gameflow-Sitzung.
 - **Gewählter Build:** Die Wahl auf der Champ-Karte geht wie die Knöpfe des Mix-Popouts an die App
@@ -218,7 +218,9 @@ folgt mit Etappe 3.
   Reroll, und die neue Karte bekommt sofort ihre Stufe. Sind die Karten weg (gewählt), endet das
   Lesen; spätestens nach 60 s.
 - **Welches Augment genommen wurde:** Zuerst das, dessen Karte als letzte allein übrig war;
-  sonst ein Klick in der App. Riot gibt die Wahl nicht über eine Schnittstelle heraus.
+  sonst ein Klick auf die Zeile der Champ-Karte (`aram_offer_taken`). Riot gibt die Wahl nicht über
+  eine Schnittstelle heraus. Gebaut 08.10.2026 (Etappe 3a); nach dem Spiel landet nur eine
+  Abweichung von den echten Augments als Zeile `Augment-Erkennung` im lokalen Fehlerlog.
 - **Anzeige:** in der App bzw. als Popout auf dem anderen Bildschirm (Benutzerwunsch „in der App in
   Echtzeit“). Ein Overlay über dem Spiel ist nicht nötig; auf dem Bildschirm des Spiels bleibt
   das Popout wie immer aus.
@@ -272,14 +274,15 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
 
 ## 8. Etappen
 
-| Etappe | Inhalt                                                                                                                                            | Stand                  |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| 1      | Champ-Karte in der Champ-Auswahl                                                                                                                  | PR #41                 |
-| 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler                                                | PR #41                 |
-| 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                                                                       | nach dem Test von #41  |
-| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen                                                          | nach dem Test von #41  |
-| 3      | Situations-Tags gegen das Gegnerteam (3.8), Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge             |
-| 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                                                                 | wenn der Test es trägt |
+| Etappe | Inhalt                                                                                                                                            | Stand                       |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| 1      | Champ-Karte in der Champ-Auswahl                                                                                                                  | PR #41                      |
+| 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler                                                | PR #41                      |
+| 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                                                                       | nach dem Test von #41       |
+| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen                                                          | nach dem Test von #41       |
+| 3a     | Genommenes Augment erkennen (übrige Karte oder Klick), nur Anzeige, Abweichungen ins lokale Log                                                   | 08.10.2026, Spieltest offen |
+| 3      | Situations-Tags gegen das Gegnerteam (3.8), Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge                  |
+| 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                                                                 | wenn der Test es trägt      |
 
 ## 8a. Eigene Mayhem-App (Benutzerwunsch, 06.10.2026)
 

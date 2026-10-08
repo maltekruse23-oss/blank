@@ -7,10 +7,16 @@
 //! memory. The game's level comes from its Live Client Data (127.0.0.1:2999, read-only) once a
 //! second; after each level-up (and at the start) the screen is read every 250 ms until the cards
 //! are gone, at most 60 s. The app hears `aram-offers` (an empty list: the offer closed).
+//! Which card was taken (Etappe 3a, user's order 08.10.2026, display only): when the others vanish
+//! before it, or a click on its row on the card (`aram_offer_taken`); checked against the game's
+//! real augments afterwards, a mismatch goes into the local error log.
 //! Only borderless or windowed: a capture of an exclusive full-screen game is black.
 
 use std::{
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex, MutexGuard,
+    },
     time::{Duration, Instant},
 };
 
@@ -21,6 +27,33 @@ use super::{client::Lcu, games::CherryAugment, live, GAME_EXE};
 
 static WANTED: AtomicBool = AtomicBool::new(false);
 static RUNNING: AtomicBool = AtomicBool::new(false);
+static GAME: Mutex<Game> = Mutex::new(Game::new(0));
+
+/// The followed game's offers, only in memory.
+struct Game {
+    id: u64,
+    /// Every card of the offer open now or last (rerolls included).
+    round: Vec<Offer>,
+    /// The cards on screen now (empty: no offer open).
+    showing: Vec<Offer>,
+    /// The cards taken so far, in order.
+    taken: Vec<Offer>,
+}
+
+impl Game {
+    const fn new(id: u64) -> Self {
+        Game {
+            id,
+            round: Vec::new(),
+            showing: Vec::new(),
+            taken: Vec::new(),
+        }
+    }
+}
+
+fn game() -> MutexGuard<'static, Game> {
+    GAME.lock().unwrap_or_else(|p| p.into_inner())
+}
 
 const LIVE: &str = "https://127.0.0.1:2999/liveclientdata/activeplayer";
 const EVENT: &str = "aram-offers";
@@ -57,13 +90,16 @@ struct Offers {
     /// The build chosen on the Champ-Karte, if any ("ap", "ad", "tank").
     direction: Option<String>,
     offers: Vec<Offer>,
+    /// The cards taken so far in this game, as far as known.
+    taken: Vec<Offer>,
 }
 
 /// A Mayhem game started (after_game.rs): follow its offers until it ends.
-pub(super) fn follow(app: &AppHandle) {
+pub(super) fn follow(app: &AppHandle, game_id: u64) {
     if !wanted() || RUNNING.swap(true, Ordering::Relaxed) {
         return;
     }
+    *game() = Game::new(game_id);
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(error) = run(&app).await {
@@ -130,6 +166,8 @@ async fn look(app: &AppHandle, names: &[(u32, String, String)]) {
     let started = Instant::now();
     let mut seen = None::<Instant>;
     let mut told: Vec<Offer> = Vec::new();
+    // Each different set of cards read in this round, in order.
+    let mut readings: Vec<Vec<Offer>> = Vec::new();
     while started.elapsed() < LOOK_AT_MOST && wanted() {
         let columns = tauri::async_runtime::spawn_blocking(screen::read_columns)
             .await
@@ -140,7 +178,11 @@ async fn look(app: &AppHandle, names: &[(u32, String, String)]) {
         if !found.is_empty() {
             seen = Some(Instant::now());
             if found != told {
+                if told.is_empty() {
+                    game().round.clear();
+                }
                 told = found;
+                readings.push(told.clone());
                 tell(app, told.clone());
             }
         } else if seen.map_or(started.elapsed() > NONE_WITHIN, |t| {
@@ -151,11 +193,81 @@ async fn look(app: &AppHandle, names: &[(u32, String, String)]) {
         tokio::time::sleep(LOOK_EVERY).await;
     }
     if !told.is_empty() {
+        if let Some(card) = taken_of(&readings) {
+            let mut game = game();
+            // A card of this round marked by a click stays the user's word.
+            if !game.round.iter().any(|o| game.taken.contains(o)) {
+                game.taken.push(card.clone());
+            }
+        }
         tell(app, Vec::new());
     }
 }
 
+/// The card taken in a round: the last reading shows only it, after a reading with it among
+/// others (the other cards vanished first). Anything else is unknown.
+fn taken_of(readings: &[Vec<Offer>]) -> Option<&Offer> {
+    let (last, before) = readings.split_last()?;
+    let [card] = last.as_slice() else {
+        return None;
+    };
+    before
+        .iter()
+        .any(|r| r.len() > 1 && r.contains(card))
+        .then_some(card)
+}
+
+/// A click on an offered row of the card (fallback when the screen did not tell): that card is
+/// taken, a second click undoes it. Only cards of the offer open now or last count.
+#[tauri::command]
+pub fn aram_offer_taken(app: AppHandle, id: u32) {
+    let showing = {
+        let mut game = game();
+        let Some(card) = game.round.iter().find(|o| o.id == id).cloned() else {
+            return;
+        };
+        match game.taken.iter().position(|o| o.id == id) {
+            Some(at) => drop(game.taken.remove(at)),
+            None => game.taken.push(card),
+        }
+        game.showing.clone()
+    };
+    tell(&app, showing);
+}
+
+/// The game ended (after_game.rs, with its real augments): a recognised list that differs is
+/// noted in the local error log, so a test shows whether the recognition works. Once per game.
+pub(super) fn check_taken(game_id: u64, real: &[u32]) {
+    let taken: Vec<u32> = {
+        let mut game = game();
+        if game_id == 0 || game.id != game_id {
+            return;
+        }
+        game.id = 0;
+        game.taken.iter().map(|o| o.id).collect()
+    };
+    if let Some(line) = mismatch(&taken, real) {
+        crate::errors::record("Augment-Erkennung", &format!("Spiel {game_id}: {line}"));
+    }
+}
+
+/// Recognised and real augments compared as sets; None when they agree.
+fn mismatch(taken: &[u32], real: &[u32]) -> Option<String> {
+    let same = taken.len() == real.len() && taken.iter().all(|id| real.contains(id));
+    (!same).then(|| format!("erkannt {taken:?}, tatsächlich {real:?}"))
+}
+
 fn tell(app: &AppHandle, offers: Vec<Offer>) {
+    let taken = {
+        let mut game = game();
+        for card in &offers {
+            if !game.round.contains(card) {
+                game.round.push(card.clone());
+            }
+        }
+        game.showing.clone_from(&offers);
+        game.taken.clone()
+    };
     let (champion_id, direction) = live::chosen();
     let _ = app.emit_to(
         "main",
@@ -164,6 +276,7 @@ fn tell(app: &AppHandle, offers: Vec<Offer>) {
             champion_id,
             direction,
             offers,
+            taken,
         },
     );
 }
@@ -398,6 +511,36 @@ mod tests {
         // The longest name wins ("Tank It Or Leave It" over a shorter one inside it); one wrong
         // letter in eight is forgiven.
         assert_eq!(ids, [1, 4, 3]);
+    }
+
+    fn cards(ids: &[u32]) -> Vec<Offer> {
+        ids.iter()
+            .map(|&id| Offer {
+                id,
+                name: format!("A{id}"),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_card_left_last_was_taken() {
+        // Three cards, a reroll of one, then the two others vanish first.
+        let readings = [cards(&[1, 2, 3]), cards(&[1, 4, 3]), cards(&[4])];
+        assert_eq!(taken_of(&readings).map(|o| o.id), Some(4));
+        // All vanished at once, or only ever one card read: unknown.
+        assert!(taken_of(&[cards(&[1, 2, 3])]).is_none());
+        assert!(taken_of(&[cards(&[5])]).is_none());
+        // A single card that was never among the others (a misread): unknown.
+        assert!(taken_of(&[cards(&[1, 2, 3]), cards(&[6])]).is_none());
+        assert!(taken_of(&[]).is_none());
+    }
+
+    #[test]
+    fn only_a_difference_is_noted() {
+        assert_eq!(mismatch(&[3, 1], &[1, 3]), None);
+        assert!(mismatch(&[1], &[1, 3]).is_some());
+        assert!(mismatch(&[2, 3], &[1, 3]).is_some());
+        assert_eq!(mismatch(&[], &[]), None);
     }
 
     #[test]

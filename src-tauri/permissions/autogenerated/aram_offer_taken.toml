@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-aram-offer-taken"
+description = "Enables the aram_offer_taken command without any pre-configured scope."
+commands.allow = ["aram_offer_taken"]
+
+[[permission]]
+identifier = "deny-aram-offer-taken"
+description = "Denies the aram_offer_taken command without any pre-configured scope."
+commands.deny = ["aram_offer_taken"]

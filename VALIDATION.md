@@ -6,6 +6,12 @@
 - Neue Tests: `settingsFile.test.ts` (Export → Import, Ablehnung fremder/neuerer/leerer Dateien, Musik, Twitch, Programme, Rückfall auf Standardwerte), `mayhemCard.test.ts` (Spielezahl, Item-Bild), Rust `mayhem::tests` (Kennung, Fenster-Label und -Titel, Capability, Befehl und Ereignis im Adapter).
 - Geprüft auf Windows: `pnpm format:check` (geänderte Dateien), Lint, Tests, Build, `extension:build`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 
+## Nachtrag 08.10.2026: Genommenes Augment erkennen (Etappe 3a)
+
+- Nur Anzeige: Champ-Karte zeigt „Bisher: …“ und „genommen“ an der Zeile; Klick auf einen angebotenen Namen markiert ihn (zweiter Klick nimmt es zurück, `aram_offer_taken`, nur Karten des offenen bzw. letzten Angebots dieses Spiels). Empfehlungen und Stufen unverändert.
+- Geprüft: Rust-Tests `the_card_left_last_was_taken` (Reroll, alle zugleich weg, nur eine Karte gelesen, Fehllesung), `only_a_difference_is_noted`, Vitest (Angebot mit `taken`), build/lint/test, `cargo fmt --check`, clippy `-D warnings`, `cargo test --lib`.
+- Nicht geprüft (braucht ein Mayhem-Spiel): ob beim Wählen die anderen Karten wirklich zuerst verschwinden und die Texterkennung die übrige Karte noch einmal allein liest (sonst bleibt es „unbekannt“, dann hilft der Klick). Nach dem Spiel steht bei Abweichung eine Zeile `Augment-Erkennung` in `errors.log` (erkannt vs. tatsächlich); verglichen wird nur, wenn der Endbildschirm brauchbar ist und die Rangliste (`aram.json`) existiert.
+
 ## Nachtrag 08.10.2026: Augments im Spiel (Etappe 2b)
 
 - Settings → Popouts → Meldungen: „Augments im Spiel“ (Standard aus). Geprüft: Rust-Tests `cards_are_read_in_columns_left_to_right` (Spalten, umbrochene Namen, ein falscher Buchstabe von acht), `no_text_no_offer`, Vitest `Angebot im Spiel`, build/lint/test/clippy.

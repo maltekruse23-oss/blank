@@ -165,7 +165,7 @@ async fn game_started(app: AppHandle) {
     if queue != MAYHEM_QUEUE {
         return;
     }
-    offers::follow(&app);
+    offers::follow(&app, game_id);
     if !cards {
         return;
     }
@@ -292,6 +292,9 @@ async fn record_eog(app: &AppHandle, lcu: &Lcu, eog: &Eog) -> Result<Recorded, S
         || !summary.players.iter().any(|p| p.puuid == me.puuid)
     {
         return Err("Endbildschirm ohne brauchbare Werte".into());
+    }
+    if let Some(mine) = summary.players.iter().find(|p| p.puuid == me.puuid) {
+        offers::check_taken(summary.game_id, &mine.augments);
     }
     let friends = friend_set(lcu).await;
     let champions = champion_names(lcu).await;
