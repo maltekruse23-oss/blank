@@ -1,5 +1,11 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Update-Knopf der Mayhem-App
+
+- Geprüft: `pnpm build`, `pnpm lint`, `pnpm test` (Vitest neu: `updateView.test.ts` mit allen Zuständen, offline, englischer Abschnitt im Release-Text), `pnpm mayhem:web` (Bundle ohne `motion`), Prettier auf den geänderten Dateien, in `src-tauri` `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --lib` (98, neu: `each_app_takes_only_its_own_file` – Identifier → Datei, nur GitHub-Download-Ordner, Größenlimit, ohne/mit falschem Digest nichts –, `reads_only_the_english_notes` mit feindlichem Text: CRLF, HTML, Steuerzeichen, leere Zeilen, 10 000 Zeichen, 100 Zeilen, nur der richtige Abschnitt; `compares_versions` erweitert; `capability_covers_only_the_mayhem_window` mit den drei Update-Rechten).
+- Browser-Vorschau (Vite, Headless-Chrome, reduzierte Bewegung) bei 1280 × 820 und 1920 × 1080: reine Mock-Vorschau zeigt „Updates work in the desktop app only.“; mit nachgestelltem Tauri-Aufruf (temporäre Seite, nicht eingecheckt) „Version 0.9.3 is available“ mit 5 Notizen und „Show 1 more“, ein `<script>`-Eintrag bleibt Text, „You're up to date“, „Update failed“ mit „Try again“, ohne Notizen „No notes for this version.“, Download mit Balken, Punkt am Knopf nach der stillen Prüfung, „What's new in …“ nach `--after-update`. Fokus liegt auf dem Hauptknopf, Esc und Klick daneben schließen.
+- Nicht geprüft: echte `mayhem.exe` mit Update (braucht ein Release, das `mayhem.exe` mit GitHub-Digest enthält – v0.9.2 hat keine – und ein späteres zum Aktualisieren; die erste `mayhem.exe` mit Updater muss von Hand geladen werden), Übergabe des Einzel-Start-Mutex und `.old`-Aufräumen unter Windows, blank.-Update nach der Umstellung (Meldungen und Ablauf unverändert, nur per Test und Code-Durchsicht).
+
 ## Nachtrag 08.10.2026: Mayhem-App englisch und übersichtlich, auch maximiert
 
 - Geprüft: `pnpm build`, `pnpm lint`, `pnpm test` (270, darunter neu: englische `planNote`/`assembledFacts`/`itemTitle`/`slotsText`/`comboNote`, jedes Thema mit englischer Fassung und deutsche bleibt, `spellName`, englische Zahlen und `games`, `ago` englisch, Kategorien mit arammetas Bezeichnung), `pnpm mayhem:web`, Prettier auf allen geänderten Dateien, `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --lib` (neu `item_names_are_english_only_when_asked`).
@@ -145,7 +151,7 @@ Mit der neuen `blank.exe` (`pnpm desktop:build` oder das Artefakt eines manuelle
 4. Popouts: blank. in den Hintergrund, in einem Player Musik starten → Popout an seiner Stelle (kompakt mit Balken); Video ins Vollbild → Popout weg; zurück aus dem Vollbild → es kommt nicht von selbst wieder.
 5. X → Animation, blank. im Infobereich; Klick aufs Symbol → zurück.
 6. Zahnrad → System → Fehlerbericht → Kopieren und einfügen: „Keine Fehler aufgezeichnet“ oder nur Erklärbares.
-7. Update aus der vorigen Version: „Nach Updates suchen“ → „Jetzt aktualisieren“ → Neustart mit „Neu in Version …“.
+7. Update aus der vorigen Version: „Nach Updates suchen“ → „Jetzt aktualisieren“ → Neustart mit „Neu in Version …“. Mayhem-App (sobald die vorige Version schon `mayhem.exe` mit Updater hatte): „Update“ → englische Notizen → „Install and restart“ → Neustart mit „What's new in …“, nur ein Fenster, keine `mayhem.exe.old` mehr.
 8. Wenn vorhanden, Windows 10: Popouts „In der Taskleiste“ → rechts neben dem Infobereich, nicht über „Start“.
 
 ## ARAM: Rangsystem neu mit versteckter Wertung (Benutzerauftrag, 04.10.2026)

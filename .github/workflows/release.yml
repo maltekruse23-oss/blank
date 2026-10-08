@@ -61,7 +61,8 @@ jobs:
       - run: pnpm extension:build
 
       # Always the same file names, so the README links .../releases/latest/download/blank.exe,
-      # mayhem.exe and blank-extension.zip work (the updater only takes blank.exe).
+      # mayhem.exe and blank-extension.zip work, and so do the updaters (update.rs: blank. takes
+      # only blank.exe, the Mayhem app only mayhem.exe, each with GitHub's SHA-256 digest).
       - name: Collect the download
         shell: pwsh
         run: |
