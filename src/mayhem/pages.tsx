@@ -4,7 +4,7 @@
 // from mayhemstats.lol, me.ts). Numbers of the tier lists from arammeta.com (tiers.ts). Design
 // "Arena" (mayhem.css). English only; each page answers one question on top, one main number per
 // row, lists show their first entries (MAYHEM-DESIGN.md "Übersicht vor Vollständigkeit").
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { championSplash, championSquare } from '../adapters/aram';
 import type { Grade } from '../features/aram/aramPerformance';
 import { PLACEMENT, rankName, seasonOf, type Rank } from '../features/aram/aramRating';
@@ -24,15 +24,31 @@ import { More, Tabs, Top } from './ui';
 
 export const step = (i: number) => ({ ['--i' as string]: Math.min(i, 16) }) as CSSProperties;
 
-/** Header of a page: title, a short line and, for invented values, the "Mock" badge. */
-export function PageHead({ title, line, badge }: { title: string; line: string; badge?: string }) {
+/** Header of a page: title, a short line and, for invented values, the "Mock" badge (with an action
+ * of the preview next to it). */
+export function PageHead({
+  title,
+  line,
+  badge,
+  action,
+}: {
+  title: string;
+  line: string;
+  badge?: string;
+  action?: ReactNode;
+}) {
   return (
     <header className="mayhem-page-head mayhem-in">
       <div>
         <h1>{title}</h1>
         <p className="mayhem-note">{line}</p>
       </div>
-      {badge && <span className="mayhem-pill mock">{badge}</span>}
+      {(badge || action) && (
+        <span className="mayhem-page-head-side">
+          {action}
+          {badge && <span className="mayhem-pill mock">{badge}</span>}
+        </span>
+      )}
     </header>
   );
 }
@@ -360,9 +376,9 @@ const GRADE_IMAGE = import.meta.glob<string>('../../apps/mayhem-site/public/grad
   eager: true,
   import: 'default',
 });
-const rankImage = (rank: Rank) =>
+export const rankImage = (rank: Rank) =>
   RANK_IMAGE[`../../apps/mayhem-site/public/ranks/${rank.tier.id}.png`];
-const gradeImage = (grade: Grade) =>
+export const gradeImage = (grade: Grade) =>
   GRADE_IMAGE[`../../apps/mayhem-site/public/grades/${grade.toLowerCase()}.png`];
 
 const winLoss = (me: MeView) => `${me.wins}W ${me.games - me.wins}L`;
@@ -441,7 +457,13 @@ export function RankPage({
   onRetry,
   find,
   onFind,
-}: { me: MeState; onRetry: () => void } & Finding) {
+  onPreviewCard,
+}: {
+  me: MeState;
+  onRetry: () => void;
+  /** The browser preview's look at the card after a game (mock.ts). */
+  onPreviewCard: () => void;
+} & Finding) {
   const got = ready(me);
   const own = got?.me ?? null;
   const rank = own?.rank ?? null;
@@ -451,6 +473,13 @@ export function RankPage({
         title="Rank"
         line={`Your rank on mayhemstats.lol, ${season()}.`}
         badge={got?.mock ? 'Mock' : undefined}
+        action={
+          got?.mock && (
+            <button type="button" className="mayhem-button small" onClick={onPreviewCard}>
+              Preview card
+            </button>
+          )
+        }
       />
       <div className="mayhem-columns">
         <div className="mayhem-column-side">

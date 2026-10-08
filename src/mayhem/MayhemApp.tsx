@@ -18,13 +18,25 @@ import {
   watchChamp,
   type HeldChamp,
 } from '../adapters/aramChamp';
-import { findRank, onRankUpload, onRankUploaded } from '../adapters/aramSite';
+import { isTauri } from '@tauri-apps/api/core';
+import {
+  findRank,
+  onGameCard,
+  onRankUpload,
+  onRankUploaded,
+  type GameCard,
+} from '../adapters/aramSite';
+import { Guard } from '../components/Guard';
 import { champView, SAMPLE_CHAMP, type ChampView } from '../features/aram/champCard';
+import { AfterGame } from './AfterGameView';
+import { cardRank, inEnglish, RANK_ASKS, RANK_GIVE_UP, type CardRank } from './afterGame';
 import { found, type FindState } from './findRank';
+import { CARD_PREVIEWS, mockCard, type CardPreview } from './mock';
 import { MayhemCard } from './MayhemCard';
 import { AugmentDetail, ChampionDetail, ItemsPage, PatchPage } from './metaPages';
 import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
 import { loadMe, withChampions, type MeState } from './me';
+import { loadRecords, type RecordCard } from './records';
 import { RecordsPage } from './RecordsPage';
 import { loadTiers } from './tiers';
 import { UpdateButton } from './UpdateButton';
@@ -61,6 +73,20 @@ const ME_FRESH_MS = 2 * 60_000;
 
 /** Swaps and rerolls come in quick turns: the card waits for the pick to settle this long. */
 const SETTLE_MS = 600;
+
+/** The card after a game (afterGame.ts): from Rust, or invented in the browser preview (then with
+ * its rank line). `gaveUp`: the game did not arrive on mayhemstats.lol while the card waited. */
+type After = { card: GameCard; records: RecordCard[]; rank?: CardRank; gaveUp: boolean };
+
+const preview = (kind: CardPreview): After => ({ ...mockCard(kind), gaveUp: false });
+
+/** `mayhem.html?card=legend` opens that card in the browser preview (mock.ts). */
+function previewFromAddress(): After | null {
+  const kind = new URLSearchParams(window.location.search).get('card');
+  return !isTauri() && CARD_PREVIEWS.includes(kind as CardPreview)
+    ? preview(kind as CardPreview)
+    : null;
+}
 
 type Shown =
   | { state: 'none' }
@@ -160,14 +186,39 @@ export function MayhemApp() {
   }, [client]);
   useEffect(() => onRankUploaded(() => fetchMeRef.current()), []);
 
+  const [after, setAfter] = useState<After | null>(previewFromAddress);
+  /** A champion select runs: the card stays hidden until it ends (the Champ card comes first). */
+  const [selecting, setSelecting] = useState(false);
+  // The card after each Mayhem game (aram/game_card.rs), compared with the site's all-time records
+  // as they are now (the Records page's `mayhem_records`, one answer per card; without them no
+  // chips).
+  useEffect(
+    () =>
+      onGameCard((card) => {
+        setAfter({ card, records: [], gaveUp: false });
+        void loadRecords(false).then((got) => {
+          if (got.state === 'ready')
+            setAfter((old) => (old?.card === card ? { ...old, records: got.records.cards } : old));
+        });
+      }),
+    [],
+  );
+
   useEffect(() => {
     void leagueClientOpen().then(setClient);
     const stopClient = onLeagueClient(setClient);
     void watchChamp(true);
     let timer = 0;
+    let select = false;
     const stopChamp = onChamp((champ) => {
       window.clearTimeout(timer);
-      if (champ.championId <= 0) return;
+      const now = champ.championId > 0;
+      // A new champion select closes the card of the game before; a card that comes during the
+      // select (from the history, minutes after the game) shows once it ends.
+      if (now && !select) setAfter(null);
+      select = now;
+      setSelecting(now);
+      if (!now) return;
       timer = window.setTimeout(() => {
         // A champion select: the card comes to the front.
         setPage('champ');
@@ -189,6 +240,20 @@ export function MayhemApp() {
   const toChampion = (id: number) => openDetail('champions', { champion: id });
   const toAugment = (id: number) => openDetail('augments', { augment: id });
   const meShown = withChampions(me, lists?.champions ?? []);
+
+  const afterRank = after && (after.rank ?? cardRank(meShown, after.card.entry, after.gaveUp));
+  // Only while a card waits for its game on mayhemstats.lol: the player is asked again a few times
+  // (the upload after a game also asks, onRankUploaded), about two minutes at most.
+  const waiting = !after?.rank && afterRank?.state === 'waiting';
+  const afterGame = after?.card.entry.gameId;
+  useEffect(() => {
+    if (!waiting) return;
+    const timers = RANK_ASKS.map((ms) => window.setTimeout(() => fetchMeRef.current(), ms));
+    timers.push(
+      window.setTimeout(() => setAfter((old) => old && { ...old, gaveUp: true }), RANK_GIVE_UP),
+    );
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [waiting, afterGame]);
 
   return (
     <div className="mayhem">
@@ -275,7 +340,13 @@ export function MayhemApp() {
               onAugment={toAugment}
             />
           ) : page === 'rank' ? (
-            <RankPage me={meShown} onRetry={fetchMe} find={find} onFind={findMine} />
+            <RankPage
+              me={meShown}
+              onRetry={fetchMe}
+              find={find}
+              onFind={findMine}
+              onPreviewCard={() => setAfter(preview('legend'))}
+            />
           ) : page === 'records' ? (
             <RecordsPage me={me} champions={lists?.champions ?? []} />
           ) : shown.state === 'ready' ? (
@@ -319,6 +390,24 @@ export function MayhemApp() {
           )}
         </div>
       </main>
+      {after && afterRank && !selecting && (
+        // By game: a card that failed to draw does not keep the next one away.
+        <Guard key={after.card.entry.gameId} name="Mayhem card" fallback={() => null}>
+          <AfterGame
+            card={inEnglish(after.card, lists)}
+            records={after.records}
+            siteId={meShown.state === 'ready' ? meShown.siteId : null}
+            rank={afterRank}
+            mock={!!after.rank}
+            onClose={() => setAfter(null)}
+            onFindRank={() => {
+              setAfter(null);
+              open('rank');
+            }}
+            onRetry={fetchMe}
+          />
+        </Guard>
+      )}
     </div>
   );
 }

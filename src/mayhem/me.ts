@@ -5,7 +5,7 @@
 import { isTauri } from '@tauri-apps/api/core';
 import { readOwnRanks, type OwnRanks } from '../adapters/aramSite';
 import { gradeOf, type Grade } from '../features/aram/aramPerformance';
-import type { Rank } from '../features/aram/aramRating';
+import type { Rank, Step } from '../features/aram/aramRating';
 import { parseBoard, parseProfile, type Ranked } from '../features/aram/aramSite';
 import { ladderPlace } from '../features/aram/RankHistory';
 import { MOCK_STATE } from './mock';
@@ -43,6 +43,8 @@ export type MeView = {
   curve: number[];
   /** The last games, newest first. */
   recent: MeGame[];
+  /** Every counted game on the ladder, oldest first (the card after a game finds its step). */
+  history: Step[];
 };
 
 export type LadderRow = { place: number; name: string; rank: Rank | null; me: boolean };
@@ -132,6 +134,7 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
         grade: s.mark.grade,
         gain: s.gain,
       })),
+    history,
   };
 }
 

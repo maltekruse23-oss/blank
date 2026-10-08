@@ -31,6 +31,7 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 0. **Karte nach dem Spiel in der Mayhem-App** (malte 08.10.2026: „eine After-Game-Card auch mit einbauen wie bei blank“; startet, sobald „Find my Mayhem rank“ gemergt ist, weil beide dieselbe Spielende-Erkennung nutzen)
    Ziel: Direkt nach jedem ARAM-Mayhem-Spiel zeigt die Mayhem-App eine Karte wie blank.s `AramResult` (in der App, kein Popout): Ergebnis, Skin-Splash, Schaden zählt hoch, K/D/A, Schaden/Min, Team-Anteil, Augments, Freunde im Spiel; neue Rekorde gegen die Rekorde der Website; Rang-Band mit MP von der Website, wenn man eingetragen ist.
    Fertig, wenn: Nach einem echten Spiel erscheint die Karte einmal, Zahlen stimmen mit der Website überein, ohne Animationen steht sofort der Endstand da.
+   Stand 08.10.2026: gebaut im PR `claude/mayhem-karte` (Rust `aram/game_card.rs` an der Spielende-Erkennung von `ladder.rs`, Dialog `AfterGameView.tsx`, Rekorde gegen `/api/rekorde`, Rang aus dem Spiel-Schritt des eigenen Profils, Vorschau `mayhem.html?card=legend`). Offen: Test mit einem echten Spiel auf malte's PC (VALIDATION).
 
 1. **Englische Version der Website mit Server-Kürzel und Server-Filter**
    Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.

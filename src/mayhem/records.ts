@@ -24,6 +24,8 @@ export type RecordPlace = {
   championName: string | null;
   /** When the game of the value began (for a total, the last game that added to it). */
   at: number;
+  /** That game (the card after a game leaves out the player's own row of it, afterGame.ts). */
+  gameId: number;
 };
 
 export type RecordCard = {
@@ -77,6 +79,7 @@ function place(v: unknown): RecordPlace {
     champion: ALIAS.test(champion) ? champion : null,
     championName: text(game.championName, 'champion', 40) || null,
     at: int(game.at, 'time'),
+    gameId: int(game.gameId, 'game'),
   };
 }
 

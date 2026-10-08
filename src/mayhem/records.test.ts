@@ -88,6 +88,9 @@ describe('Mayhem app records', () => {
       champion: 'Ahri',
       at: NOW - 2 * 60_000,
     });
+    // The game of each place (the card after a game leaves out the player's own row of it).
+    expect(card('damage').places.map((p) => p.gameId)).toEqual([2, 1]);
+    expect(card('pentas').places.map((p) => p.gameId)).toEqual([2, 1]);
     // No game has the details: AP damage has no places, never a 0.
     expect(card('ap').places).toEqual([]);
   });
@@ -118,6 +121,7 @@ describe('Mayhem app records', () => {
     expect(broken((t) => (t.categories[0].places[0].value = '5'))).toThrow();
     expect(broken((t) => (t.categories[0].places[0].place = 0))).toThrow();
     expect(broken((t) => delete t.categories[0].places[0].game)).toThrow();
+    expect(broken((t) => (t.categories[0].places[0].game.gameId = '7'))).toThrow();
     expect(broken((t) => (t.season.number = 9))).toThrow();
     expect(broken((t) => (t.games = -1))).toThrow();
     // A champion name that is no Data Dragon alias is not used for a picture.

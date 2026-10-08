@@ -3,16 +3,15 @@ import { animate } from 'motion';
 import { motion } from 'motion/react';
 import { spring } from '../../design/motion';
 import type { ResultMotion } from './AramResult';
-import { PLACEMENT, rankName, type Rank, type RankResult } from './aramRating';
+import { PLACEMENT, rankName, type RankResult } from './aramRating';
 import { GradeBadge } from './GradeBadge';
+import { rankRun } from './rankRun';
 import { TierEmblem } from './TierEmblem';
 
 /** Height of the strip on the card (CSS px). */
 export const RANK_STRIP = 54;
 /** How long the bar runs (s); a promotion or demotion lands halfway. */
 const RUN = 1.3;
-
-const fill = (rank: Rank | null) => (!rank ? 0 : rank.division === null ? 1 : rank.points / 100);
 
 /**
  * The game on the ladder, on the card after the game (user's wish: MP gain and promotion with an
@@ -40,12 +39,7 @@ export function RankStrip({
 
   const placing = rank.after === null;
   const shown = landed ? (rank.after ?? rank.before) : (rank.before ?? null);
-  const up = rank.change === 'promoted' || rank.change === 'placed';
-  const down = rank.change === 'demoted';
-  const from = fill(rank.before);
-  const to = fill(rank.after);
-  const widths = up && rank.before ? [from, 1, 0, to] : down ? [from, 0, 1, to] : [from, to];
-  const times = widths.length === 4 ? [0, 0.5, 0.501, 1] : [0, 1];
+  const { up, down, from, widths, times } = rankRun(rank);
   const label =
     rank.change === 'promoted'
       ? 'Aufstieg!'

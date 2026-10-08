@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { Download } from 'lucide-react';
 import { version } from '../../package.json';
 import notes from '../../.github/release-notes.md?raw';
 import { inline, MAYHEM_NEWS, newsItems } from '../app/releaseNotes';
 import { useUpdate } from '../app/useUpdate';
 import { mayhemMoved, updateNews } from '../platform/system';
-import { More } from './ui';
+import { More, Overlay } from './ui';
 import { updateView } from './updateView';
 
 /**
@@ -155,17 +154,8 @@ function Dialog({
   onClose: () => void;
   children: ReactNode;
 }) {
-  useEffect(() => {
-    const key = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
-  }, [onClose]);
-  // Into the body: the sidebar's backdrop-filter would hold a fixed overlay inside the sidebar.
-  return createPortal(
-    <div
-      className="mayhem-dialog"
-      onClick={(event) => event.target === event.currentTarget && onClose()}
-    >
+  return (
+    <Overlay onClose={onClose}>
       <div
         className="mayhem-glow mayhem-in"
         role="dialog"
@@ -175,7 +165,6 @@ function Dialog({
         <h2 id="mayhem-dialog-title">{title}</h2>
         {children}
       </div>
-    </div>,
-    document.body,
+    </Overlay>
   );
 }
