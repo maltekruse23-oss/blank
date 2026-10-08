@@ -19,12 +19,18 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 1. **blank. wird zur Mayhem-App** (malte 08.10.2026: „bestehende App von blank auf anderen PCs soll mit Patch zu Mayhem umgewandelt werden“, Daten: „Aufräumen“)
    Ziel: Wer blank. installiert hat, bekommt mit dem nächsten Update die Mayhem-App an derselben Stelle (Release-Asset `blank.exe` = Mayhem-Build). Beim ersten Start räumt sie blank. auf: zuerst die Gaming-Optimierung zurücknehmen, dann Autostart, Twitch-Anmeldung, Einstellungen und ARAM-Spiele von blank. löschen.
    Fertig, wenn: Ein blank. v0.9.2 wird per Update-Klick zur Mayhem-App, die Optimierungen sind exakt zurückgesetzt, nichts von blank. bleibt außer dem Ordner, Verknüpfungen starten die Mayhem-App; auf Windows geprüft.
+   Stand 08.10.2026: gebaut im PR `claude/blank-wird-mayhem` (Release hängt den Mayhem-Build auch als `blank.exe` an, Aufräumen in `from_blank.rs`, README oben englisch). Offen: der echte Durchlauf v0.9.2 → nächstes Release auf Windows (geht erst nach dem Release, VALIDATION).
 
 2. **Eine öffentliche Rangliste: „Find my Mayhem rank“** (malte 08.10.2026: „keine Gruppen, nur eine Rangliste, auf ‚Mayhem-Rang herausfinden‘ klicken und automatisch in die öffentliche Rangliste“)
    Ziel: Ein Klick in der Mayhem-App lädt die letzten Mayhem-Spiele hoch und trägt einen in die öffentliche Rangliste ein; danach geht jedes neue Spiel nach Spielende von selbst hoch. Ob man eingetragen ist, weiß der Server (die App speichert nichts).
    Fertig, wenn: Nach dem Klick steht man mit Rang auf mayhemstats.lol und in der App, neue Spiele erscheinen ohne weiteren Klick, Austragen über „Daten entfernen“ der Website; Website und App zeigen dieselben Zahlen.
+   Stand 08.10.2026: gebaut im PR `claude/find-my-rank` (Knopf auf Home und Rang, Upload über die Archiv-Endpunkte des Collectors, automatisch nach jedem Spiel nur nach dem eigenen Klick und solange die Website einen listet; keine API-Änderung, nur Texte auf `/privacy` und `/privacy/remove` für Codex). Offen zur Entscheidung: wer schon über Mitspieler gelistet ist, sieht seinen Rang, aber keinen Knopf, und lädt deshalb nie von selbst hoch. Offen: Test mit echtem Client auf malte's PC (VALIDATION), Veröffentlichung der Website-Texte.
 
 ## Als Nächstes
+
+0. **Karte nach dem Spiel in der Mayhem-App** (malte 08.10.2026: „eine After-Game-Card auch mit einbauen wie bei blank“; startet, sobald „Find my Mayhem rank“ gemergt ist, weil beide dieselbe Spielende-Erkennung nutzen)
+   Ziel: Direkt nach jedem ARAM-Mayhem-Spiel zeigt die Mayhem-App eine Karte wie blank.s `AramResult` (in der App, kein Popout): Ergebnis, Skin-Splash, Schaden zählt hoch, K/D/A, Schaden/Min, Team-Anteil, Augments, Freunde im Spiel; neue Rekorde gegen die Rekorde der Website; Rang-Band mit MP von der Website, wenn man eingetragen ist.
+   Fertig, wenn: Nach einem echten Spiel erscheint die Karte einmal, Zahlen stimmen mit der Website überein, ohne Animationen steht sofort der Endstand da.
 
 1. **Englische Version der Website mit Server-Kürzel und Server-Filter**
    Ziel: Spieler von allen Servern können mayhemstats.lol auf Englisch lesen und nach ihrem Server filtern.

@@ -29,12 +29,13 @@ export const MOCK_STATE: MeState = {
     average: 'S',
     place: 1,
     top: null,
-    main: { alias: 'Alistar', name: 'Alistar', games: 28, wins: 19, grade: 'SS' },
+    main: { championId: 12, alias: 'Alistar', name: 'Alistar', games: 28, wins: 19, grade: 'SS' },
     best: { damage: 112_000, kills: 31 },
     curve: [2010, 2032, 2025, 2051, 2070, 2064, 2091, 2110, 2132, 2160, 2188],
     recent: [
       {
         gameId: 3,
+        championId: 12,
         alias: 'Alistar',
         name: 'Alistar',
         win: true,
@@ -45,6 +46,7 @@ export const MOCK_STATE: MeState = {
       },
       {
         gameId: 2,
+        championId: 16,
         alias: 'Soraka',
         name: 'Soraka',
         win: true,
@@ -55,6 +57,7 @@ export const MOCK_STATE: MeState = {
       },
       {
         gameId: 1,
+        championId: 63,
         alias: 'Brand',
         name: 'Brand',
         win: false,

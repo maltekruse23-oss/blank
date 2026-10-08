@@ -4,11 +4,14 @@
 //! desktop dashboard in the look "Arena" (user's wish 07.10.2026, MAYHEM-DESIGN.md): Home, the
 //! Champ-Karte of the ARAM Mayhem champion select (aram_live.rs), augment and champion tier lists
 //! with champion details, items and patch changes (arammeta.com, all from its one public list,
-//! `mayhem_tiers`) and the signed-in player's rank with the leaderboard
-//! (mayhemstats.lol, read-only, `mayhem_ranks` in aram_website.rs), the records of every category
-//! (mayhemstats.lol, read-only, `mayhem_records`) and "Update" (update.rs, the
-//! same verified flow as blank., for mayhem.exe); nothing else of blank.: no tray, popouts,
-//! settings or stored data, and it never writes into the client.
+//! `mayhem_tiers`), the signed-in player's rank with the leaderboard (mayhemstats.lol,
+//! `mayhem_ranks` in aram_website.rs), "Find my Mayhem rank" (aram/ladder.rs: the player's own
+//! Mayhem games to mayhemstats.lol on click, then after each game while the site lists them), the
+//! records of every category (mayhemstats.lol, read-only, `mayhem_records`) and "Update"
+//! (update.rs, the same verified flow as blank., for mayhem.exe); nothing else of blank.: no tray,
+//! popouts, settings or stored data (only ladder.rs's upload key in the Windows Credential
+//! Manager), and it never writes into the client. blank. is paused: its update installs this app
+//! as blank.exe, which then cleans up after blank. once (from_blank.rs).
 //!
 //! The client is looked for every few seconds (the lockfile next to `LeagueClientUx.exe`, as blank.
 //! does via pc.rs); while it runs, the card follows its champion select. Read-only, as in blank.
@@ -39,6 +42,9 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
         .setup(|app| {
             crate::errors::init(app.handle());
             app.manage(crate::update::UpdateState::default());
+            // Only when this start replaced blank. (blank. becomes the Mayhem app); reads the
+            // replaced `.old` before clean_up removes it.
+            crate::from_blank::start(app.handle());
             crate::update::clean_up();
             look_for_client(app.handle().clone());
             Ok(())
@@ -51,9 +57,11 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::mayhem_tiers,
             crate::aram::website::mayhem_ranks,
             crate::aram::website::mayhem_records,
+            crate::aram::ladder::mayhem_find_rank,
             crate::update::update_check,
             crate::update::update_install,
             crate::update::update_news,
+            crate::from_blank::mayhem_moved,
             league_client_open,
         ])
         .run(context)
@@ -81,6 +89,9 @@ fn look_for_client(app: AppHandle) {
                 // Does nothing while it already listens or the window does not want the card.
                 crate::aram::live::listen(&app);
             }
+            // A Mayhem game's end uploads it after the player's own click on "Find my Mayhem rank",
+            // while mayhemstats.lol lists them (ladder.rs).
+            crate::aram::ladder::game_seen(&app, open);
             thread::sleep(LOOK_EVERY);
         }
     });
@@ -175,11 +186,13 @@ mod tests {
         let permissions = capability["permissions"].as_array().expect("permissions");
         assert!(permissions.contains(&Value::from("allow-mayhem-ranks")));
         assert!(permissions.contains(&Value::from("allow-mayhem-records")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-find-rank")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
         for update in [
             "allow-update-check",
             "allow-update-install",
             "allow-update-news",
+            "allow-mayhem-moved",
         ] {
             assert!(permissions.contains(&Value::from(update)), "{update}");
         }
@@ -190,5 +203,13 @@ mod tests {
         let adapter = read("../src/adapters/aramChamp.ts");
         assert!(adapter.contains("'league_client_open'"));
         assert!(adapter.contains(&format!("'{CLIENT_EVENT}'")));
+        // "Find my Mayhem rank" (aram/ladder.rs).
+        let ladder = read("src/aram/ladder.rs");
+        let site = read("../src/adapters/aramSite.ts");
+        assert!(site.contains("'mayhem_find_rank'"));
+        for event in ["mayhem-upload", "mayhem-uploaded"] {
+            assert!(ladder.contains(&format!("\"{event}\"")), "{event}");
+            assert!(site.contains(&format!("'{event}'")), "{event}");
+        }
     }
 }

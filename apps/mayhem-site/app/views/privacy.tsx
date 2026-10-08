@@ -1,5 +1,6 @@
 // The privacy page (/privacy). English only since 08.10.2026; the text says the same as the earlier
-// German original (/de/datenschutz, now a redirect here), nothing more and nothing less.
+// German original (/de/datenschutz, now a redirect here), nothing more and nothing less – plus the
+// Mayhem app as a source of uploads ("Find my Mayhem rank", 08.10.2026).
 export default function Privacy() {
   return (
     <article className="prose">
@@ -22,7 +23,7 @@ export default function Privacy() {
 
       <h2>Who appears on the website</h2>
       <p>
-        The website is a public stats and ranking site for ARAM Mayhem. Every player from an uploaded or archived game appears with Riot ID, profile icon, game values, grades and rank: in the leaderboard, in search, in records and champions and on their own player page. The games come from the League client of people who use blank. or the Collector; the other nine players of a game are recorded along with them. Every player, including those who upload themselves, has a player page under their Riot ID (
+        The website is a public stats and ranking site for ARAM Mayhem. Every player from an uploaded or archived game appears with Riot ID, profile icon, game values, grades and rank: in the leaderboard, in search, in records and champions and on their own player page. The games come from the League client of people who use blank., the Mayhem app or the Collector; the other nine players of a game are recorded along with them. Every player, including those who upload themselves, has a player page under their Riot ID (
         <code>/players/Name-TAG</code>
         ), like on op.gg, and under a neutral number (
         <code>/players/a123</code>
@@ -33,7 +34,7 @@ export default function Privacy() {
       <p>
         {'Anyone who does not want to appear can remove themselves under '}
         <a href="/privacy/remove">Hide name</a>
-        : with a game they played in and their own Riot ID. Name and player page then disappear from all pages and from the API, in all games; the values stay without a name in the games of the others. Only the PUUID is stored for this. Unhiding is only possible through the operator or by uploading yourself. Players with their own profile delete as described below.
+        : with a game they played in and their own Riot ID. Name and player page then disappear from all pages and from the API, in all games; the values stay without a name in the games of the others. Only the PUUID is stored for this. Unhiding is only possible through the operator or by uploading yourself with blank. Uploading with the Mayhem app does not unhide you. Players with their own profile delete as described below.
       </p>
 
       <h2>Delete or export data</h2>

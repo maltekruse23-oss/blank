@@ -1,7 +1,7 @@
 //! Twitch access for the frontend adapter (`src/adapters/twitchHelix.ts`).
 //! Client ID and channel selection live in `<app config dir>/twitch.json`, the OAuth token only
 //! in the Windows Credential Manager. The frontend never receives a token, only public data.
-mod auth;
+pub(crate) mod auth;
 mod eventsub;
 mod helix;
 

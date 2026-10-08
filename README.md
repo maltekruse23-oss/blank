@@ -1,41 +1,25 @@
-# blank.
+# Mayhem
 
-Kleine Windows-App für nebenbei: zeigt, wer auf Twitch live ist (mit Sofort-Meldung), welche League-Pros gerade streamen, spielt SoundCloud-Mixes, zeigt die Akkustände von Maus und Headset und die Auslastung deines PCs, räumt auf Wunsch den RAM auf und stellt Windows für Spiele ein (jederzeit rückgängig). Eine ARAM-Mayhem-Rangliste für dich und bis zu neun Freunde mit den besten Spielen. Mit Freunden Twitch zusammen schauen: ein Raum per Code, wer umschaltet, schaltet für alle um. Ein Design in dunklem Grün/Schwarz mit sechs Farbschemata; ist blank. im Hintergrund, zeigen kleine Popouts über der Taskleiste, was gerade läuft, wer live geht und Warnungen.
+Stats and builds for League of Legends' ARAM Mayhem.
+
+- **[mayhemstats.lol](https://mayhemstats.lol):** leaderboard, records and tier lists in your browser.
+- **Mayhem app** for Windows: in champion select it shows your champion's best builds and every augment in tiers S to D. Also tier lists, combos and offmeta builds, and your rank from mayhemstats.lol. It only reads from the League client and never touches your game.
 
 ## Download
 
-### ➜ [blank.exe herunterladen](https://github.com/maltekruse23-oss/blank/releases/latest/download/blank.exe)
+### ➜ [Download mayhem.exe](https://github.com/maltekruse23-oss/blank/releases/latest/download/mayhem.exe)
 
-1. Auf den Link oben klicken. `blank.exe` landet in deinem Downloads-Ordner.
-2. `blank.exe` doppelklicken. Keine Installation nötig.
-3. Erscheint „Der Computer wurde durch Windows geschützt“: auf **Weitere Informationen** und dann auf **Trotzdem ausführen** klicken. (Die App ist nicht signiert; das kommt nur beim ersten Start.)
+1. Double-click `mayhem.exe`. No installation needed.
+2. If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. The app is not signed; this only comes up the first time.
+3. **Find my Mayhem rank** (Home or Rank): uploads your recent Mayhem games to mayhemstats.lol and shows your rank; after that each new game uploads by itself while the app runs. Remove yourself anytime at mayhemstats.lol/privacy/remove.
 
-**Mayhem-App:** [mayhem.exe herunterladen](https://github.com/maltekruse23-oss/blank/releases/latest/download/mayhem.exe) (ab der nächsten Version). Kleine eigene App nur für ARAM Mayhem: In der Champ-Auswahl zeigt sie deinen Champion mit Build und allen Augments in Stufen S–D. Läuft unabhängig von blank. Neue Versionen holt sie über **Update** unten links in der Seitenleiste (mit Patchnotes).
+New versions: click **Update** at the bottom left of the app. It shows what's new and installs with one click.
 
-Mehr brauchst du nicht. Die Ordner auf dieser Seite und die „Source code“-Dateien im Release sind nur der Quellcode.
+Windows 10 or 11 (64-bit). The folders on this page and the "Source code" files are only the source code. All versions: [Releases](https://github.com/maltekruse23-oss/blank/releases).
 
-**Gut zu wissen**
+## blank. (paused)
 
-- **Einstellungen:** Zahnrad oben in der Titelleiste (neben „Bearbeiten“). Aussehen, Home und den Platz der Popouts änderst du direkt über „Bearbeiten“.
-- **Schließen:** Das X versteckt blank. nur im Infobereich (Pfeil unten rechts in der Taskleiste), damit Meldungen und Popouts weiterlaufen. Ganz beenden: Rechtsklick auf das Symbol → **Beenden**. Zurück holst du blank. mit einem Klick aufs Symbol oder indem du es einfach noch mal startest.
-- **Neue Version:** blank. meldet sich selbst („Update“ oben in der Titelleiste). Settings → System → **Jetzt aktualisieren** lädt die neue Version, prüft sie und startet neu; Einstellungen bleiben erhalten. Danach zeigt blank. einmal, was neu ist (jederzeit wieder unter Settings → System → Neuigkeiten). Von Hand geht es auch: blank. über das Symbol unten rechts beenden (Rechtsklick → Beenden), den Link oben erneut benutzen und die alte `blank.exe` ersetzen.
-- **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumente\blank`), bevor du in den Settings „Mit Windows starten“ einschaltest.
-- **Gaming-Optimierung:** Settings → Gaming-Optimierung ändert ein paar Windows-Einstellungen für Spiele, nur auf Klick. Vorher merkt sich blank. die alten Werte; „Rückgängig“ oder „Alles zurücksetzen“ stellt genau diese wieder her. Keine Adminrechte, kein Neustart, nichts an Virenschutz oder Updates.
-- **PC neu aufsetzen:** Vorher in blank. auf der Seite **Apps** „Online sichern“ klicken und den Umzugs-Code abfotografieren, aufschreiben oder dir selbst schicken. Nach dem Zurücksetzen blank. über den Link oben herunterladen und starten: blank. fragt nach dem Code, holt alle Einstellungen zurück und zeigt „Programme installieren“ – ein Klick, fertig.
-- **Anderer PC:** Einstellungen dort unter Settings → Übertragen → Exportieren speichern, hier unter Settings → Übertragen → Importieren übernehmen. Twitch danach einmal neu verbinden.
-- **Twitch:** Zahnrad → Twitch → **Mit Twitch verbinden** und den Code im Browser bestätigen. Fragt blank. vorher nach einer „Client-ID“, steht die Anleitung unten unter „Twitch einrichten“.
-- **Etwas geht nicht?** Zahnrad → System → **Fehlerbericht** → **Kopieren**, dann in eine Nachricht einfügen und schicken. blank. schreibt Fehler nur auf deinem PC auf und schickt nichts von selbst. Geht einmal ein Teil kaputt, zeigt nur dieser Teil einen Hinweis mit „Neu laden“, der Rest läuft weiter.
-- **Fenster:** blank. startet dort, wo du es zuletzt hattest, in derselben Größe (ist der Bildschirm nicht mehr da, mittig auf dem zweiten bzw. dem einzigen).
-- **Anpassen:** oben auf **Bearbeiten** klicken – dann lassen sich die Karten auf Home ziehen, vergrößern, umbenennen, entfernen und hinzufügen, die Seitenleiste sortieren und ausblenden, Farben, Stil und Rundung direkt ändern und das Popout auf einem kleinen Bildschirm an seinen Platz ziehen. **Rückgängig** und alle übrigen **Einstellungen** unten im Dock, **Fertig** oben (wo vorher „Bearbeiten“ stand); **Esc** schließt, was gerade offen ist.
-- **ARAM-Gruppe (damit bei allen dieselbe Rangliste steht):** Seite **ARAM** → **Spieler** → **Gruppe erstellen**, den Code an deine Freunde schicken; die treten unter **ARAM** → **Spieler** mit dem Code bei. Eure Apps tauschen die Spiele verschlüsselt aus – auch Spiele, die ihr getrennt spielt –, alle zählen ab demselben Start und sehen dieselbe Rangliste. Nach jedem neuen Spiel zählt die Rangliste die neuen Werte langsam hoch, Plätze überholen sich live, oben steht, wer die meisten Kronen (Platz 1) hat.
-- **ARAM-Rangliste ohne Gruppe:** Seite **ARAM** → **Spieler**: bis zu neun Freunde aus deiner League-Freundesliste hinzufügen (der League-Client muss dafür offen sein). blank. holt eure ARAM-Mayhem-Spiele aus dem League-Client auf deinem PC und behält sie für immer: Rangliste mit allen Rekorden als Kategorien mit Balken (Höchster Schaden, Schaden pro Minute, Pentakills, AP- und AD-Schaden, Meiste Kills, Größter Tank, Heilung, CC, Gold …; eine Kategorie erscheint, sobald jemand einen Wert hat) und die besten Spiele. **Klick auf einen Spieler** zeigt seine Übersicht: Medaillen, Siege, KDA, Durchschnitte, seine Rekorde, besten Spiele und Lieblings-Champions. Deine Freunde brauchen dafür nichts. Plätze in Gold, Silber und Bronze; **Spieler** → **Rangliste neu starten** fängt von vorn an (nur Spiele ab dann zählen). Nach jedem Spiel holt blank. es von selbst (der League-Client merkt sich nur die letzten 20 Spiele je Spieler, also am besten blank. laufen lassen) und zeigt direkt nach jedem Spielende dein Ergebnis als Karte (lief blank. gerade nicht, kommt sie beim nächsten Öffnen, wenn das Spiel frisch ist), mit dem Splash-Art des Skins, den du gespielt hast, und einem Vergleich mit den Freunden, die mit dir im Spiel waren: Schaden, neue Rekorde, K/D/A, Schaden pro Minute, Team-Anteil und Augments bauen sich animiert auf, bei Top-Schaden, Bestleistung, Rekord oder Platz 1 mit Extra-Effekt. Abschaltbar unter Settings → Popouts → Meldungen → ARAM-Ergebnis; „Ansehen“ bei „Beste Spiele“ zeigt jedes Spiel so. Live-Schaden während des Spiels gibt Riot nicht heraus.
-- **Champ-Karte:** In der Champ-Auswahl von ARAM Mayhem zeigt blank. für deinen Champion die Build-Richtungen (AP, AD, Tank) mit den besten Item-Kernen aus den Spielen auf mayhemstats.lol. Du wählst eine, und alle Augments bekommen für diesen Build eine Stufe S–D (nach jedem Tausch neu; Mana-Items zählen in ARAM gegen einen Build). Abschaltbar unter Settings → Popouts → Meldungen → Champ-Karte.
-- **Zusammen schauen:** Twitch → **Zusammen** → **Raum starten**, den Code an deine Freunde schicken; sie tippen ihn bei sich unter **Beitreten** ein. Klick auf einen Live-Kanal (oder Kanal eintippen) schaltet für alle um, jeder sieht den Stream im eigenen Player-Fenster. Deine Freunde brauchen blank., aber keine eigene Twitch-Einrichtung.
-- **Zusammen schauen im eigenen Browser (Erweiterung):** Für Chrome, Edge, Brave oder Opera GX. Du schaust ganz normal auf twitch.tv, eingeloggt mit Chat und allem; nur wenn du den Kanal wechselst, wechseln alle im Raum mit. Gleiche Räume und Codes wie in blank.: Freunde können in blank. oder im Browser sein. Einrichten (einmalig, auch für Freunde ohne blank.):
-  1. [blank-extension.zip herunterladen](https://github.com/maltekruse23-oss/blank/releases/latest/download/blank-extension.zip) und in einen festen Ordner entpacken (z. B. `Dokumente\blank-extension`; nicht löschen, der Browser lädt sie von dort).
-  2. Im Browser `chrome://extensions` öffnen (Edge: `edge://extensions`), **Entwicklermodus** einschalten, **Entpackte Erweiterung laden** und den entpackten Ordner wählen.
-  3. Das blank.-Symbol oben im Browser anheften (Puzzle-Symbol → Pin). Im Twitch-Tab draufklicken → **Raum starten** oder Code eingeben → **Beitreten**. Dieser Tab folgt ab dann dem Raum.
-- Voraussetzung: Windows 10 oder 11 (64 Bit). Alle Versionen: [Releases](https://github.com/maltekruse23-oss/blank/releases).
+blank. was the Windows app before (Twitch, ARAM rankings with friends, PC status and more). It is paused. If you have blank., its next update turns it into the Mayhem app: same file, same shortcuts. On its first start the Mayhem app sets blank.'s gaming tweaks back and removes blank.'s autostart, Twitch sign-in, settings and saved games. The code of blank. stays here.
 
 ---
 
@@ -43,7 +27,7 @@ Mehr brauchst du nicht. Die Ordner auf dieser Seite und die „Source code“-Da
 
 Tauri 2, React, TypeScript und Vite. In der Desktop-App sind alle angezeigten Daten echt: **Twitch** über die offizielle Helix-API (Login nötig), Akkustände direkt von den Geräten (nur lesend), PC-Werte von Windows, Musik über SoundClouds offiziellen Player. Die Browser-Vorschau zeigt für Twitch fiktive Mock-Daten; Akkus und PC-Werte gibt es dort nicht. Kein Scraping.
 
-**Neue Version veröffentlichen:** Versionsnummer in `package.json`, `src-tauri/Cargo.toml` und `src-tauri/tauri.conf.json` anheben, committen, Tag `vX.Y.Z` pushen. GitHub Actions (`.github/workflows/release.yml`) prüft Formatierung, Lint und Rust-Tests, baut mit `pnpm desktop:build` und hängt `blank.exe` an das Release (Text aus `.github/release-notes.md`); der Download-Link oben zeigt immer auf das neueste Release. Vorher die Klick-Prüfung aus VALIDATION („Vor jedem Release“) auf Windows durchgehen.
+**Neue Version veröffentlichen:** Versionsnummer in `package.json`, `src-tauri/Cargo.toml` und `src-tauri/tauri.conf.json` anheben, committen, Tag `vX.Y.Z` pushen. GitHub Actions (`.github/workflows/release.yml`) prüft Formatierung, Lint und Rust-Tests, baut blank. nur zur Prüfung (`pnpm desktop:build`, wird nicht ausgeliefert, blank. ist pausiert), baut die Mayhem-App (`pnpm mayhem:build`) und hängt sie als `mayhem.exe` und – dieselbe Datei – als `blank.exe` an das Release (Text aus `.github/release-notes.md`): So wird jedes blank. per Update zur Mayhem-App, die beim ersten Start blank. aufräumt (`src-tauri/src/from_blank.rs`). Der Download-Link oben zeigt immer auf das neueste Release. Vorher die Klick-Prüfung aus VALIDATION („Vor jedem Release“) auf Windows durchgehen.
 
 **Prüfung bei jeder Änderung:** `.github/workflows/check.yml` läuft bei jedem Pull Request und Push auf `main`: Format, Lint (`pnpm lint`, React-Hooks-Regeln), Build, Tests, Browser-Erweiterung sowie Rust-Tests und Clippy unter Windows.
 

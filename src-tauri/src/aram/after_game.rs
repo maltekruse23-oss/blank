@@ -146,20 +146,7 @@ async fn game_started(app: AppHandle) {
     if !cards && !offers::wanted() {
         return;
     }
-    let mut info = None;
-    for _ in 0..10 {
-        if let Ok(Some(lcu)) = Lcu::connect() {
-            if let Ok(session) = lcu.get::<Session>(SESSION).await {
-                if session.game_data.game_id != 0 {
-                    note_skins(&session.game_data);
-                    info = Some((session.game_data.queue.id, session.game_data.game_id));
-                    break;
-                }
-            }
-        }
-        tokio::time::sleep(Duration::from_secs(3)).await;
-    }
-    let Some((queue, game_id)) = info else {
+    let Some((queue, game_id)) = started_game().await else {
         return;
     };
     if queue != MAYHEM_QUEUE {
@@ -178,6 +165,36 @@ async fn game_started(app: AppHandle) {
         after_game(app, game_id).await;
     }
     WATCHING.store(false, Ordering::Relaxed);
+}
+
+/// Queue and id of the game that just started (the client knows them while it runs; asked for
+/// about half a minute), with its skins noted.
+async fn started_game() -> Option<(i64, u64)> {
+    for _ in 0..10 {
+        if let Ok(Some(lcu)) = Lcu::connect() {
+            if let Ok(session) = lcu.get::<Session>(SESSION).await {
+                if session.game_data.game_id != 0 {
+                    note_skins(&session.game_data);
+                    return Some((session.game_data.queue.id, session.game_data.game_id));
+                }
+            }
+        }
+        tokio::time::sleep(Duration::from_secs(3)).await;
+    }
+    None
+}
+
+/// For the Mayhem app (ladder.rs, which keeps no aram.json): the id of the game that just started,
+/// once its process has ended – only for ARAM Mayhem and only when Windows can report the end.
+pub(super) async fn await_mayhem_game() -> Option<u64> {
+    let (queue, game_id) = started_game().await?;
+    if queue != MAYHEM_QUEUE {
+        return None;
+    }
+    tauri::async_runtime::spawn_blocking(wait_for_game_exit)
+        .await
+        .unwrap_or(false)
+        .then_some(game_id)
 }
 
 /// Blocks until the game's process ends; false if it cannot be awaited (the process list then

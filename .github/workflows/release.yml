@@ -1,8 +1,10 @@
 name: Release
 
-# Builds blank.exe on Windows for every version tag (v0.1.0, v0.2.0, …) and attaches it to a
-# GitHub release. The tag must match the version in package.json. A manual run (Actions tab)
-# only builds and keeps the EXE as a workflow artifact.
+# Builds the Mayhem app on Windows for every version tag (v0.1.0, v0.2.0, …) and attaches it to a
+# GitHub release, as mayhem.exe and – the same file – as blank.exe: blank. is paused and becomes the
+# Mayhem app through its own update (user's decision 08.10.2026; from_blank.rs cleans up after it).
+# blank. itself is still built as a check, but not shipped. The tag must match the version in
+# package.json. A manual run (Actions tab) only builds and keeps the files as a workflow artifact.
 on:
   push:
     tags: ['v*']
@@ -43,47 +45,44 @@ jobs:
       - name: Rust tests
         working-directory: src-tauri
         run: cargo test --locked
-      # Release EXE only via the Tauri CLI (custom-protocol), never plain cargo build --release.
-      # The app's own Twitch client ID (a repository variable, no secret: twitch/mod.rs), so friends
-      # only sign in; without the variable everyone enters their own, as before.
+      # Release EXEs only via the Tauri CLI (custom-protocol), never plain cargo build --release.
+      # blank. (paused) is built only as a check and not shipped. Its Twitch client ID (a repository
+      # variable, no secret: twitch/mod.rs) stays here for when blank. ships again.
       - run: pnpm desktop:build
         env:
           BLANK_TWITCH_CLIENT_ID: ${{ vars.TWITCH_CLIENT_ID }}
-      # blank.exe aside before the Mayhem app is built from the same crate (same target folder).
-      - name: Keep blank.exe
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force download | Out-Null
-          Copy-Item src-tauri/target/release/blank.exe download/blank.exe
       # The Mayhem app (mayhem.rs, its own config): src-tauri/target/release/mayhem.exe.
       - run: pnpm mayhem:build
       # The browser extension for watching together, as a zip to unpack and load.
       - run: pnpm extension:build
 
-      # Always the same file names, so the README links .../releases/latest/download/blank.exe,
-      # mayhem.exe and blank-extension.zip work, and so do the updaters (update.rs: blank. takes
-      # only blank.exe, the Mayhem app only mayhem.exe, each with GitHub's SHA-256 digest).
+      # Always the same file names, so the README links .../releases/latest/download/mayhem.exe and
+      # blank-extension.zip work, and so do the updaters (update.rs, each with GitHub's SHA-256
+      # digest): blank. takes only blank.exe – here the Mayhem app, which takes its place –, the
+      # Mayhem app takes mayhem.exe, also when it runs as blank.exe.
       - name: Collect the download
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force download | Out-Null
           Copy-Item src-tauri/target/release/mayhem.exe download/mayhem.exe
+          Copy-Item src-tauri/target/release/mayhem.exe download/blank.exe
           Compress-Archive -Path extension/dist/* -DestinationPath download/blank-extension.zip
 
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: blank. ${{ github.ref_name }}
+          name: Mayhem ${{ github.ref_name }}
           files: |
-            download/blank.exe
             download/mayhem.exe
+            download/blank.exe
             download/blank-extension.zip
           body_path: .github/release-notes.md
 
       - uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
-          name: blank-windows-x64
+          name: mayhem-windows-x64
           path: |
-            download/blank.exe
             download/mayhem.exe
+            download/blank.exe
             download/blank-extension.zip

@@ -10,11 +10,16 @@ import { parseBoard, parseProfile, type Ranked } from '../features/aram/aramSite
 import { ladderPlace } from '../features/aram/RankHistory';
 import { MOCK_STATE } from './mock';
 
-export type MeGame = {
-  gameId: number;
+/** A champion as the pages show it. */
+type Champ = {
+  championId: number;
   /** Data Dragon alias for the picture; null when the website gave none. */
   alias: string | null;
   name: string;
+};
+
+export type MeGame = Champ & {
+  gameId: number;
   win: boolean;
   kda: string;
   at: number;
@@ -32,7 +37,7 @@ export type MeView = {
   place: number | null;
   top: number | null;
   /** The most played champion. */
-  main: { alias: string | null; name: string; games: number; wins: number; grade: Grade } | null;
+  main: (Champ & { games: number; wins: number; grade: Grade }) | null;
   best: { damage: number | null; kills: number | null };
   /** The ladder after each of the last games, oldest first (the MP curve). */
   curve: number[];
@@ -72,19 +77,24 @@ const max = (values: unknown[]) => {
 export function meView(profile: Ranked, board: Ranked[]): MeView {
   const history = profile.history;
   const alias = (v: unknown) => (typeof v === 'string' && ALIAS.test(v) ? v : null);
-  const byChamp = new Map<string, typeof history>();
+  const champ = (e: (typeof history)[number]['entry']): Champ => ({
+    championId: e.championId,
+    alias: alias(e.champion),
+    name: e.championName,
+  });
+  // By id: games of the archive come without champion names (withChampions names them).
+  const byChamp = new Map<number, typeof history>();
   for (const s of history) {
-    const games = byChamp.get(s.entry.championName) ?? [];
-    byChamp.set(s.entry.championName, [...games, s]);
+    const games = byChamp.get(s.entry.championId) ?? [];
+    byChamp.set(s.entry.championId, [...games, s]);
   }
   // Most games; a tie goes to the champion played last (later in the history).
   let main: MeView['main'] = null;
-  for (const [name, games] of byChamp) {
+  for (const games of byChamp.values()) {
     if (main && games.length < main.games) continue;
     const pct = games.reduce((t, s) => t + s.mark.pct, 0) / games.length;
     main = {
-      alias: alias(games[games.length - 1]!.entry.champion),
-      name,
+      ...champ(games[games.length - 1]!.entry),
       games: games.length,
       wins: games.filter((s) => s.entry.win).length,
       grade: gradeOf(pct),
@@ -114,9 +124,8 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
       .slice(-RECENT)
       .reverse()
       .map((s) => ({
+        ...champ(s.entry),
         gameId: s.entry.gameId,
-        alias: alias(s.entry.champion),
-        name: s.entry.championName,
         win: s.entry.win,
         kda: `${s.entry.kills}/${s.entry.deaths}/${s.entry.assists}`,
         at: s.entry.at,
@@ -124,6 +133,22 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
         gain: s.gain,
       })),
   };
+}
+
+/** Games of the archive (Collector, "Find my Mayhem rank") name no champion: the app's champion list
+ * (arammeta, tiers.ts) names them by id; without it "–". */
+export function withChampions(
+  me: MeState,
+  champions: readonly { id: number; name: string; alias: string }[],
+): MeState {
+  if (me.state !== 'ready' || !me.me) return me;
+  const named = <T extends Champ>(c: T): T => {
+    if (c.name) return c;
+    const known = champions.find((k) => k.id === c.championId);
+    return { ...c, name: known?.name ?? '–', alias: c.alias ?? known?.alias ?? null };
+  };
+  const { main, recent } = me.me;
+  return { ...me, me: { ...me.me, main: main && named(main), recent: recent.map(named) } };
 }
 
 /** The top of the leaderboard in the website's order, and the player below it when further down. */

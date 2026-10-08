@@ -17,6 +17,8 @@ const COMMANDS: &[&str] = &[
     "mayhem_tiers",
     "mayhem_ranks",
     "mayhem_records",
+    "mayhem_find_rank",
+    "mayhem_moved",
     "league_client_open",
     "aram_friends",
     "aram_reset",

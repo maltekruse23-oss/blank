@@ -10,8 +10,8 @@ const DEVICE_URL: &str = "https://id.twitch.tv/oauth2/device";
 const TOKEN_URL: &str = "https://id.twitch.tv/oauth2/token";
 const VALIDATE_URL: &str = "https://id.twitch.tv/oauth2/validate";
 const REVOKE_URL: &str = "https://id.twitch.tv/oauth2/revoke";
-const CREDENTIAL_SERVICE: &str = "blank.twitch";
-const CREDENTIAL_USER: &str = "oauth";
+pub(crate) const CREDENTIAL_SERVICE: &str = "blank.twitch";
+pub(crate) const CREDENTIAL_USER: &str = "oauth";
 // Only public stream data is read, so no scopes are requested.
 const SCOPES: &str = "";
 

@@ -13,6 +13,8 @@ mod cloud;
 mod errors;
 #[cfg(windows)]
 mod flyout;
+#[cfg(windows)]
+mod from_blank;
 mod fullscreen;
 #[cfg(windows)]
 mod gpu;
