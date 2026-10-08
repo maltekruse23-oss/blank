@@ -31,6 +31,7 @@ import { champView, SAMPLE_CHAMP, type ChampView } from '../features/aram/champC
 import { AfterGame } from './AfterGameView';
 import {
   cardRank,
+  inEnglish,
   parseRecords,
   RANK_ASKS,
   RANK_GIVE_UP,
@@ -189,6 +190,8 @@ export function MayhemApp() {
   useEffect(() => onRankUploaded(() => fetchMeRef.current()), []);
 
   const [after, setAfter] = useState<After | null>(previewFromAddress);
+  /** A champion select runs: the card stays hidden until it ends (the Champ card comes first). */
+  const [selecting, setSelecting] = useState(false);
   // The card after each Mayhem game (aram/game_card.rs), compared with the site's records as they
   // are now (one answer per card; without them no chips).
   useEffect(
@@ -213,9 +216,16 @@ export function MayhemApp() {
     const stopClient = onLeagueClient(setClient);
     void watchChamp(true);
     let timer = 0;
+    let select = false;
     const stopChamp = onChamp((champ) => {
       window.clearTimeout(timer);
-      if (champ.championId <= 0) return;
+      const now = champ.championId > 0;
+      // A new champion select closes the card of the game before; a card that comes during the
+      // select (from the history, minutes after the game) shows once it ends.
+      if (now && !select) setAfter(null);
+      select = now;
+      setSelecting(now);
+      if (!now) return;
       timer = window.setTimeout(() => {
         // A champion select: the card comes to the front.
         setPage('champ');
@@ -385,11 +395,11 @@ export function MayhemApp() {
           )}
         </div>
       </main>
-      {after && afterRank && (
-        <Guard name="Mayhem card" fallback={() => null}>
+      {after && afterRank && !selecting && (
+        // By game: a card that failed to draw does not keep the next one away.
+        <Guard key={after.card.entry.gameId} name="Mayhem card" fallback={() => null}>
           <AfterGame
-            key={after.card.entry.gameId}
-            card={after.card}
+            card={inEnglish(after.card, lists)}
             records={after.records}
             siteId={meShown.state === 'ready' ? (meShown.me?.siteId ?? null) : null}
             rank={afterRank}
@@ -399,6 +409,7 @@ export function MayhemApp() {
               setAfter(null);
               open('rank');
             }}
+            onRetry={fetchMe}
           />
         </Guard>
       )}

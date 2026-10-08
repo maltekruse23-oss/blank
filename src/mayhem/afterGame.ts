@@ -4,6 +4,7 @@
 // aramHighlight.ts, nothing made up): new records against mayhemstats.lol's, how special the game
 // is, and the game on the site's ladder. English only.
 import type { AramEntry } from '../adapters/aram';
+import type { GameCard } from '../adapters/aramSite';
 import { categories } from '../features/aram/aramCategories';
 import { MIN_SECONDS } from '../features/aram/aramPerformance';
 import type { RankResult, Step } from '../features/aram/aramRating';
@@ -58,8 +59,9 @@ export function parseRecords(text: string): SiteRecord[] {
   });
 }
 
-/** A chip on the card: a new #1 of the site (`place` 1) or a game that enters the top ten. */
-export type Chip = { id: string; title: string; hue: Hue; place: number };
+/** A chip on the card: a new #1 of the site (`record`) or a game that enters the top ten; `place`
+ * as the site would show it (ties share a place, its records.ts). */
+export type Chip = { id: string; title: string; hue: Hue; place: number; record: boolean };
 
 /** Places a record list shows (the site's records page). */
 const TOP = 10;
@@ -67,8 +69,9 @@ const TOP = 10;
 /**
  * The player's game against the site's records: a new #1 when it beats the current one, else a
  * place in the top ten when it enters it (not when the player's own row there is better). The site
- * may have this very game already (a lobby mate uploaded it): that row is left out. New #1s first
- * in the site's order, then by place. `siteId`: the player's public id, null when not listed.
+ * may have this very game already (uploaded right after it): only the player's own row of it is left
+ * out, the others of the game still count. New #1s first in the site's order, then by place.
+ * `siteId`: the player's public id, null when not listed (then the row of this game with the value).
  */
 export function recordChips(
   entry: AramEntry,
@@ -78,18 +81,29 @@ export function recordChips(
   const chips = records.flatMap((record): Chip[] => {
     const value = categories.find((c) => c.id === record.id)?.value(entry);
     if (typeof value !== 'number' || !(value > 0)) return [];
-    const rows = record.places.filter((p) => p.gameId !== entry.gameId);
+    const self = record.places.find(
+      (p) =>
+        p.gameId === entry.gameId && (siteId === null ? p.value === value : p.siteId === siteId),
+    );
+    const rows = record.places.filter((p) => p !== self);
     const own = siteId === null ? undefined : rows.find((p) => p.siteId === siteId);
     if (own && own.value >= value) return [];
-    // A tie does not beat a place (the earlier game keeps it).
-    const place = 1 + rows.filter((p) => p !== own && p.value >= value).length;
-    return place <= TOP ? [{ id: record.id, title: record.title, hue: record.hue, place }] : [];
+    const others = rows.filter((p) => p !== own);
+    // The site lists ten rows, a tie behind the earlier game, and gives a tie the same place.
+    const ahead = others.filter((p) => p.value >= value).length;
+    if (ahead >= TOP) return [];
+    const place = 1 + others.filter((p) => p.value > value).length;
+    return [{ id: record.id, title: record.title, hue: record.hue, place, record: ahead === 0 }];
   });
-  return chips.sort((a, b) => (a.place === 1 ? 0 : a.place) - (b.place === 1 ? 0 : b.place));
+  return chips.sort((a, b) => (a.record ? 0 : a.place) - (b.record ? 0 : b.place));
 }
 
 export const chipText = (chip: Chip) =>
-  chip.place === 1 ? `New record: ${chip.title}` : `Top 10: ${chip.title}`;
+  chip.record
+    ? `New record: ${chip.title}`
+    : chip.place === 1
+      ? `Ties the record: ${chip.title}`
+      : `Top 10: ${chip.title}`;
 
 /**
  * "legend": a Pentakill or a new #1 in Highest damage; "top": the most damage of all ten players or
@@ -98,7 +112,7 @@ export const chipText = (chip: Chip) =>
 export type Level = 'normal' | 'top' | 'legend';
 
 export function cardLevel(entry: AramEntry, chips: Chip[]): { level: Level; badge: string | null } {
-  const records = chips.filter((c) => c.place === 1);
+  const records = chips.filter((c) => c.record);
   const damage = records.some((c) => c.id === 'damage');
   const topDamage = entry.damageRank === 1;
   const level: Level =
@@ -147,17 +161,63 @@ export type CardRank =
   | { state: 'remake' }
   /** Not on mayhemstats.lol: the way onto it. */
   | { state: 'unlisted' }
-  /** The player is not known (client closed, no answer): nothing. */
+  /** mayhemstats.lol did not answer (or not usably): says so, with "Try again". */
+  | { state: 'failed'; message: string }
+  /** The player is not known (client closed, still asking): nothing. */
   | { state: 'none' };
 
 /** The rank line of the card from the player as the app knows them (me.ts). */
 export function cardRank(me: MeState, entry: AramEntry, gaveUp: boolean): CardRank {
+  if (me.state === 'failed') return { state: 'failed', message: me.message };
   if (me.state !== 'ready') return { state: 'none' };
   if (!me.me) return { state: 'unlisted' };
   const rank = gameRank(me.me.history, entry.gameId);
   if (rank) return { state: 'ready', rank };
   if (entry.seconds < MIN_SECONDS) return { state: 'remake' };
   return { state: gaveUp ? 'late' : 'waiting' };
+}
+
+/** The client names champions and augments in its own language: the card takes the English names of
+ * arammeta's lists (tiers.ts, the same ids and Data Dragon aliases), the client's only where the
+ * lists have none (or are not there). */
+export function inEnglish(
+  card: GameCard,
+  lists: {
+    champions: readonly { id: number; name: string; alias: string }[];
+    augments: readonly { id: number; name: string }[];
+  } | null,
+): GameCard {
+  if (!lists) return card;
+  const { entry, augments } = card;
+  const named = (found: { name: string } | undefined, name: string) => found?.name || name;
+  return {
+    entry: {
+      ...entry,
+      championName: named(
+        lists.champions.find((c) => c.id === entry.championId),
+        entry.championName,
+      ),
+      with: entry.with.map((m) => ({
+        ...m,
+        championName: named(
+          lists.champions.find((c) => c.alias === m.champion),
+          m.championName,
+        ),
+      })),
+    },
+    augments: Object.fromEntries(
+      Object.entries(augments).map(([id, a]) => [
+        id,
+        {
+          ...a,
+          name: named(
+            lists.augments.find((x) => String(x.id) === id),
+            a.name,
+          ),
+        },
+      ]),
+    ),
+  };
 }
 
 /** While a card waits for its game on mayhemstats.lol, the player is asked again at these times

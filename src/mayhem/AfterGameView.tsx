@@ -169,9 +169,28 @@ function Strip({ rank, run }: { rank: RankResult; run: Run }) {
 }
 
 /** The rank line: the strip, or why there is none yet. */
-function RankLine({ rank, run, onFindRank }: { rank: CardRank; run: Run; onFindRank: () => void }) {
+function RankLine({
+  rank,
+  run,
+  onFindRank,
+  onRetry,
+}: {
+  rank: CardRank;
+  run: Run;
+  onFindRank: () => void;
+  onRetry: () => void;
+}) {
   if (rank.state === 'none') return null;
   if (rank.state === 'ready') return <Strip rank={rank.rank} run={run} />;
+  if (rank.state === 'failed')
+    return (
+      <div className="mayhem-result-hint" role="status">
+        <span>{rank.message}</span>
+        <button type="button" className="mayhem-button small" onClick={onRetry}>
+          Try again
+        </button>
+      </div>
+    );
   if (rank.state === 'unlisted')
     return (
       <div className="mayhem-result-hint">
@@ -247,6 +266,7 @@ export function AfterGame({
   mock,
   onClose,
   onFindRank,
+  onRetry,
 }: {
   card: GameCard;
   /** mayhemstats.lol's records (empty until they came, or without them: no chips). */
@@ -258,6 +278,8 @@ export function AfterGame({
   mock: boolean;
   onClose: () => void;
   onFindRank: () => void;
+  /** Asks mayhemstats.lol for the player again. */
+  onRetry: () => void;
 }) {
   const run = useRun();
   const { entry, augments } = card;
@@ -321,7 +343,7 @@ export function AfterGame({
                   key={chip.id}
                   data-hue={chip.hue}
                   title={
-                    chip.place === 1
+                    chip.record
                       ? 'Beats the #1 on mayhemstats.lol'
                       : `#${chip.place} on mayhemstats.lol`
                   }
@@ -365,7 +387,7 @@ export function AfterGame({
             </ul>
           )}
           <div className="mayhem-in" style={step(6)}>
-            <RankLine rank={rank} run={run} onFindRank={onFindRank} />
+            <RankLine rank={rank} run={run} onFindRank={onFindRank} onRetry={onRetry} />
           </div>
         </div>
         {entry.with.length > 0 && <Mates card={card} />}

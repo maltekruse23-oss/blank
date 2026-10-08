@@ -8,6 +8,7 @@ import {
   cardRank,
   chipText,
   gameRank,
+  inEnglish,
   parseRecords,
   recordChips,
   type SiteRecord,
@@ -119,9 +120,23 @@ describe('records on the card', () => {
   it('a new #1 beats the current one, a tie does not', () => {
     const records = [record('damage', TEN)];
     expect(recordChips(game(1, 100_001), records, null)).toEqual([
-      { id: 'damage', title: 'damage', hue: 'fire', place: 1 },
+      { id: 'damage', title: 'damage', hue: 'fire', place: 1, record: true },
     ]);
-    expect(recordChips(game(1, 100_000), records, null)).toMatchObject([{ place: 2 }]);
+    // A tie shares the place as on the site (records.ts), but is no new record.
+    const tie = recordChips(game(1, 100_000), records, null);
+    expect(tie).toMatchObject([{ place: 1, record: false }]);
+    expect(tie.map(chipText)).toEqual(['Ties the record: damage']);
+    expect(cardLevel(game(1, 100_000), tie).level).toBe('normal');
+  });
+
+  it('counts places like the site: ties share one, the tenth row is the last', () => {
+    // "Most kills" on the site: 41, 37, 36, 35, …: 35 is fourth there, not fifth.
+    const kills = [record('kills', [41, 37, 36, 35, 30])];
+    expect(recordChips(game(1, 1, { kills: 35 }), kills, null)).toMatchObject([
+      { place: 4, record: false },
+    ]);
+    // Equal to the tenth row: the site puts it eleventh (the earlier game first), no chip.
+    expect(recordChips(game(1, 55_000), [record('damage', TEN)], null)).toEqual([]);
   });
 
   it('enters the top ten only past the tenth place and never with less than the own row', () => {
@@ -139,7 +154,25 @@ describe('records on the card', () => {
   it('leaves out the site row of this very game (a lobby mate uploaded it first)', () => {
     const records = [record('damage', TEN)];
     records[0]!.places[0]!.gameId = 1;
-    expect(recordChips(game(1, 100_000), records, null)).toMatchObject([{ place: 1 }]);
+    expect(recordChips(game(1, 100_000), records, null)).toMatchObject([
+      { place: 1, record: true },
+    ]);
+  });
+
+  it('only the own row of this game goes, a better lobby mate in it still counts', () => {
+    // The site lists every player of the game: the mate (a1, 120,000) and the player (a2).
+    const mate = { siteId: 'a1', value: 120_000, gameId: 1 };
+    const self = { siteId: 'a2', value: 100_000, gameId: 1 };
+    const records = [{ ...record('damage', []), places: [mate, self, ...places(TEN, 3)] }];
+    expect(recordChips(game(1, 100_000), records, 'a2')).toMatchObject([
+      { place: 2, record: false },
+    ]);
+    // Not listed: the row of this game with exactly the value is the own one.
+    expect(recordChips(game(1, 100_000), records, null)).toMatchObject([
+      { place: 2, record: false },
+    ]);
+    const chips = recordChips(game(1, 100_000), records, null);
+    expect(cardLevel(game(1, 100_000), chips)).toEqual({ level: 'normal', badge: null });
   });
 
   it('missing values and 0 make no chip; new #1s come first', () => {
@@ -155,8 +188,54 @@ describe('records on the card', () => {
   });
 });
 
+describe('names on the card', () => {
+  it('takes the English names of the lists, the client language only where they have none', () => {
+    const mate = {
+      puuid: 'm',
+      name: 'Mate#EUW',
+      champion: 'MonkeyKing',
+      championName: 'Wukong (de)',
+      damage: 1,
+      kills: 0,
+      deaths: 0,
+      assists: 0,
+      sameTeam: true,
+    };
+    const card = {
+      entry: game(1, 1, {
+        championName: 'Brand (de)',
+        with: [mate, { ...mate, champion: 'Nobody' }],
+      }),
+      augments: {
+        '1001': { name: 'Riese', rarity: 'prismatic' as const, icon: null },
+        '1003': { name: 'Unbekannt', rarity: 'gold' as const, icon: null },
+      },
+    };
+    const lists = {
+      champions: [
+        { id: 63, name: 'Brand', alias: 'Brand' },
+        { id: 62, name: 'Wukong', alias: 'MonkeyKing' },
+      ],
+      augments: [{ id: 1001, name: 'Goliath' }],
+    };
+    const named = inEnglish(card, lists);
+    expect(named.entry.championName).toBe('Brand');
+    expect(named.entry.with.map((m) => m.championName)).toEqual(['Wukong', 'Wukong (de)']);
+    expect(named.augments['1001']).toEqual({ name: 'Goliath', rarity: 'prismatic', icon: null });
+    expect(named.augments['1003']!.name).toBe('Unbekannt');
+    // Without the lists (arammeta did not answer) the client's names stay.
+    expect(inEnglish(card, null)).toBe(card);
+  });
+});
+
 describe('how special the game is', () => {
-  const chip = (id: string, place: number) => ({ id, title: id, hue: 'fire' as const, place });
+  const chip = (id: string, place: number) => ({
+    id,
+    title: id,
+    hue: 'fire' as const,
+    place,
+    record: place === 1,
+  });
 
   it('legend: a Pentakill or a new #1 in Highest damage', () => {
     expect(cardLevel(game(1, 1, { pentas: 1 }), [])).toEqual({
@@ -225,6 +304,14 @@ describe('the game on the ladder', () => {
     expect(cardRank(unlisted, games[0]!, false)).toEqual({ state: 'unlisted' });
     expect(cardRank({ state: 'closed' }, games[0]!, false)).toEqual({ state: 'none' });
     expect(cardRank({ state: 'loading' }, games[0]!, false)).toEqual({ state: 'none' });
+  });
+
+  it('no answer from the site: says so (with "Try again"), the line does not just go', () => {
+    const failed: MeState = { state: 'failed', message: 'mayhemstats.lol did not answer.' };
+    expect(cardRank(failed, games[0]!, false)).toEqual({
+      state: 'failed',
+      message: 'mayhemstats.lol did not answer.',
+    });
   });
 
   it('runs the bar from before to after, through a promotion or a demotion', () => {
