@@ -23,6 +23,7 @@ import { AugmentDetail, ChampionDetail, ItemsPage, PatchPage } from './metaPages
 import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
 import { loadMe, type MeState } from './me';
 import { loadTiers } from './tiers';
+import { UpdateButton } from './UpdateButton';
 
 export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'items' | 'patch' | 'rank';
 
@@ -176,6 +177,7 @@ export function MayhemApp() {
             <span>Soon</span>
           </span>
         </nav>
+        <UpdateButton />
         <span
           className="mayhem-client"
           data-open={client === true}

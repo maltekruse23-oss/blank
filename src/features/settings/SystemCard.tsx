@@ -26,6 +26,11 @@ function updateText(updates: Updates) {
             : `Lädt v${state.latest} … ${state.percent} %`,
         action: null,
       };
+    case 'installed':
+      return {
+        text: `v${state.latest} installiert – blank. beenden und neu starten`,
+        action: null,
+      };
     case 'ready':
       return state.info.available
         ? { text: `Version ${state.info.latest} verfügbar`, action: 'install' as const }

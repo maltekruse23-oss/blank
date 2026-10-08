@@ -5,13 +5,19 @@
 //! Champ-Karte of the ARAM Mayhem champion select (aram_live.rs), augment and champion tier lists
 //! with champion details, items and patch changes (arammeta.com, all from its one public list,
 //! `mayhem_tiers`) and the signed-in player's rank with the leaderboard
-//! (mayhemstats.lol, read-only, `mayhem_ranks` in aram_website.rs); nothing else of blank.: no
-//! tray, popouts, settings or stored data, and it never writes into the client.
+//! (mayhemstats.lol, read-only, `mayhem_ranks` in aram_website.rs) and "Update" (update.rs, the
+//! same verified flow as blank., for mayhem.exe); nothing else of blank.: no tray, popouts,
+//! settings or stored data, and it never writes into the client. blank. is paused: its update
+//! installs this app as blank.exe, which then cleans up after blank. once (from_blank.rs).
 //!
 //! The client is looked for every few seconds (the lockfile next to `LeagueClientUx.exe`, as blank.
 //! does via pc.rs); while it runs, the card follows its champion select. Read-only, as in blank.
-use std::{thread, time::Duration};
-use tauri::{AppHandle, Emitter};
+use std::{
+    sync::atomic::{AtomicIsize, Ordering},
+    thread,
+    time::Duration,
+};
+use tauri::{AppHandle, Emitter, Manager};
 
 /// The config's identifier: lib.rs starts this app instead of blank. when it is built with it.
 pub const IDENTIFIER: &str = "lol.mayhemstats.desktop";
@@ -22,6 +28,8 @@ const TITLE: &str = "Mayhem";
 /// Tells the window whether the League client runs (true/false), on every change.
 const CLIENT_EVENT: &str = "league-client";
 const LOOK_EVERY: Duration = Duration::from_secs(5);
+/// The single-instance mutex while this process owns it (0 otherwise), for `release`.
+static OWNED: AtomicIsize = AtomicIsize::new(0);
 
 pub fn run(context: tauri::Context<tauri::Wry>) {
     if !only_one() {
@@ -30,6 +38,11 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
     tauri::Builder::default()
         .setup(|app| {
             crate::errors::init(app.handle());
+            app.manage(crate::update::UpdateState::default());
+            // Only when this start replaced blank. (blank. becomes the Mayhem app); reads the
+            // replaced `.old` before clean_up removes it.
+            crate::from_blank::start(app.handle());
+            crate::update::clean_up();
             look_for_client(app.handle().clone());
             Ok(())
         })
@@ -40,6 +53,10 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::aram_open_guide,
             crate::aram::live::mayhem_tiers,
             crate::aram::website::mayhem_ranks,
+            crate::update::update_check,
+            crate::update::update_install,
+            crate::update::update_news,
+            crate::from_blank::mayhem_moved,
             league_client_open,
         ])
         .run(context)
@@ -75,7 +92,8 @@ fn look_for_client(app: AppHandle) {
 /// Only one Mayhem app at a time (found in the Windows test 07.10.2026: a second start opened a
 /// second window). A second start brings the running window to the front and exits. Its own mutex,
 /// not blank.'s (single_instance.rs): both apps may run side by side. Nothing is hidden in the
-/// notification area here, so finding the window by its title is enough.
+/// notification area here, so finding the window by its title is enough. After an update the new
+/// EXE gets here once the old one has ended or let go of the mutex (`release`; main.rs waits).
 fn only_one() -> bool {
     use windows_sys::Win32::{
         Foundation::{GetLastError, ERROR_ALREADY_EXISTS},
@@ -91,6 +109,7 @@ fn only_one() -> bool {
     let handle = unsafe { CreateMutexW(std::ptr::null(), 0, name.as_ptr()) };
     // SAFETY: reads the error of the call above.
     if handle.is_null() || unsafe { GetLastError() } != ERROR_ALREADY_EXISTS {
+        OWNED.store(handle as isize, Ordering::Relaxed);
         // Also when the mutex cannot be created: better a second window than none.
         return true;
     }
@@ -107,6 +126,16 @@ fn only_one() -> bool {
         }
     }
     false
+}
+
+/// Lets the updated mayhem.exe become the one instance while this process is shutting down
+/// (update.rs; does nothing in blank., which never owns this mutex).
+pub fn release() {
+    let handle = OWNED.swap(0, Ordering::Relaxed);
+    if handle != 0 {
+        // SAFETY: the handle came from CreateMutexW in only_one and is closed once.
+        unsafe { windows_sys::Win32::Foundation::CloseHandle(handle as _) };
+    }
 }
 
 // The Mayhem app's names are spread over Rust, the config, the capability and the adapter; a typo
@@ -149,6 +178,14 @@ mod tests {
         let permissions = capability["permissions"].as_array().expect("permissions");
         assert!(permissions.contains(&Value::from("allow-mayhem-ranks")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
+        for update in [
+            "allow-update-check",
+            "allow-update-install",
+            "allow-update-news",
+            "allow-mayhem-moved",
+        ] {
+            assert!(permissions.contains(&Value::from(update)), "{update}");
+        }
     }
 
     #[test]

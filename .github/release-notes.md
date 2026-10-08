@@ -1,27 +1,23 @@
 ## Neu in dieser Version
 
-- **Ränge von mayhemstats.lol:** Mit „Automatisch hochladen“ (oben auf den Seiten Rang und Rekorde) zeigt blank. die Ränge, die die Website für dich und deine Freunde berechnet. So sehen alle denselben Stand.
-- **Karte nach dem Spiel:** Der Rang-Schritt auf der Karte ist genau der, den die Website danach zeigt.
-- **Neue Rang-Wappen:** in der App und auf der Website.
-- **Fairer:** Kein Spiel bringt oder kostet mehr als 30 MP.
-- **Datenschutz:** Die Website nennt niemanden mehr per PUUID, auch keine Hochladenden. blank. findet deine Freunde dort über ihre Riot-ID.
+- **blank. wird zur Mayhem-App:** Mit diesem Update wird aus blank. die Mayhem-App (auf Englisch): Builds und Augments in der Champ-Auswahl von ARAM Mayhem, Tier-Listen, Combos und dein Rang von mayhemstats.lol.
+- **So kommst du hin:** in blank. oben auf **Update** und dann auf **Jetzt aktualisieren** klicken (oder Settings → System). blank. startet als Mayhem-App neu.
+- **Aufräumen:** Beim ersten Start stellt sie deine Windows-Einstellungen aus der Gaming-Optimierung genau wie vorher wieder her und entfernt dann Autostart, Twitch-Anmeldung, Einstellungen und gespeicherte Spiele von blank. Was entfernt wurde, zeigt sie einmal an.
+- **Verknüpfungen bleiben:** Die Datei heißt weiter `blank.exe`; Verknüpfungen und angeheftete Symbole starten jetzt die Mayhem-App. Neue Versionen holt sie über **Update** unten links.
+- **blank. pausiert:** Der Code bleibt auf GitHub, blank. geht später weiter.
 
-## So geht's
+## New in the Mayhem app
 
-1. Unten bei **Assets** auf **`blank.exe`** klicken. Die Datei landet in deinem Downloads-Ordner.
-2. `blank.exe` doppelklicken. Keine Installation nötig.
-3. Erscheint „Der Computer wurde durch Windows geschützt“: auf **Weitere Informationen** und dann auf **Trotzdem ausführen** klicken. (Die App ist nicht signiert; das kommt nur beim ersten Start.)
+- **Update button:** Bottom left in the sidebar. It shows what a new version brings and installs it with one click.
+- **Champion select:** Hold a champion in ARAM Mayhem and the app shows its best builds and every augment in tiers S to D.
+- **Tier lists:** Augments, champions, items and patch changes from arammeta.com.
+- **Combos and offmeta builds:** Augments and items that work well together, for every champion.
+- **Your rank:** Your rank and the leaderboard from mayhemstats.lol.
 
-Für „Zusammen schauen“ im Browser zusätzlich **`blank-extension.zip`** herunterladen (siehe oben).
+## Download
 
-Die beiden Dateien **„Source code“** brauchst du nicht, das ist nur der Quellcode.
+1. Under **Assets**, click **`mayhem.exe`**. (`blank.exe` is the same app, for blank.'s update.)
+2. Double-click it. No installation needed.
+3. If Windows says "Windows protected your PC": click **More info**, then **Run anyway**. The app is not signed; this only comes up the first time.
 
-## Gut zu wissen
-
-- **Von Version 0.3.0 oder neuer:** oben in der Titelleiste auf **Update** und dann auf **Jetzt aktualisieren** klicken (oder Settings → System). blank. startet neu und zeigt, was neu ist.
-- **Von Version 0.2.0 oder älter:** dieses eine Mal noch von Hand – blank. über das Symbol unten rechts in der Taskleiste beenden (Rechtsklick → Beenden), die alte `blank.exe` durch die neue ersetzen. Einstellungen bleiben erhalten. Ab jetzt geht es über Settings → System.
-- **ARAM:** Der League-Client muss ab und zu offen sein, am besten läuft blank. im Hintergrund mit (der Client merkt sich nur die letzten 20 Spiele je Spieler). blank. liest nur, ändert nichts und fasst das Spiel nie an. Für die Gruppe brauchen alle Freunde Version 0.6.0; die Rangliste der Gruppe zählt ab ihrer Erstellung. **Für den Rang brauchen alle Version 0.9.0:** gezählt werden Spiele ab dieser Version (und die letzten 20, die der Client noch hat).
-- **Fester Platz:** Leg `blank.exe` am besten in einen eigenen Ordner (z. B. `Dokumente\blank`), bevor du in den Settings „Mit Windows starten“ einschaltest.
-- **Anderer PC:** am einfachsten mit „Online sichern“ (Seite Apps); oder Settings → Übertragen → Exportieren und auf dem anderen PC Importieren. Twitch danach einmal neu verbinden.
-- **Twitch:** Settings → Twitch → „Mit Twitch verbinden“ und den Code im Browser bestätigen.
-- Voraussetzung: Windows 10 oder 11 (64 Bit).
+New versions: **Update** at the bottom left of the app. You don't need `blank-extension.zip` or the "Source code" files. Windows 10 or 11 (64-bit).
