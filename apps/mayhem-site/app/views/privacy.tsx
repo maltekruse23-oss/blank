@@ -34,7 +34,7 @@ export default function Privacy() {
       <p>
         {'Anyone who does not want to appear can remove themselves under '}
         <a href="/privacy/remove">Hide name</a>
-        : with a game they played in and their own Riot ID. Name and player page then disappear from all pages and from the API, in all games; the values stay without a name in the games of the others. Only the PUUID is stored for this. Unhiding is only possible through the operator or by uploading yourself. Players with their own profile delete as described below.
+        : with a game they played in and their own Riot ID. Name and player page then disappear from all pages and from the API, in all games; the values stay without a name in the games of the others. Only the PUUID is stored for this. Unhiding is only possible through the operator or by uploading yourself with blank. Uploading with the Mayhem app does not unhide you. Players with their own profile delete as described below.
       </p>
 
       <h2>Delete or export data</h2>

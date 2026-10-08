@@ -82,7 +82,8 @@ fn look_for_client(app: AppHandle) {
                 // Does nothing while it already listens or the window does not want the card.
                 crate::aram::live::listen(&app);
             }
-            // A Mayhem game's end uploads it, while mayhemstats.lol lists the player (ladder.rs).
+            // A Mayhem game's end uploads it after the player's own click on "Find my Mayhem rank",
+            // while mayhemstats.lol lists them (ladder.rs).
             crate::aram::ladder::game_seen(&app, open);
             thread::sleep(LOOK_EVERY);
         }

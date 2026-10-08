@@ -28,7 +28,7 @@ describe('Find my Mayhem rank', () => {
   it('says why the player is still not listed', () => {
     const none = { name: 'Me#EUW', board, me: null };
     expect(found({ games: 0, sent: 0, ranks: none }).find).toEqual({ state: 'empty' });
-    // Games went up (or were there already), but the site does not list the player: hidden.
+    // Games went up (or were there already), but the site does not list the player (renamed, hidden).
     expect(found({ games: 4, sent: 0, ranks: none }).find).toEqual({ state: 'unlisted' });
     expect(found({ games: 4, sent: 0, ranks: none }).me).toMatchObject({ me: null });
   });
@@ -42,13 +42,16 @@ describe('Find my Mayhem rank', () => {
   it('offers the button with the consent, and again after a failure', () => {
     expect(findView({ state: 'idle' }, true)).toMatchObject({ action: 'find', busy: false });
     expect(CONSENT).toContain('mayhemstats.lol/privacy/remove');
+    // The click starts lasting uploads: the line says so.
+    expect(CONSENT).toContain('each new Mayhem game uploads by itself');
     expect(findView({ state: 'empty' }, true).action).toBe('retry');
     expect(findView({ state: 'failed', message: 'HTTP 500' }, true)).toMatchObject({
       text: 'HTTP 500',
       action: 'retry',
     });
-    // Hidden on the site: another click would not change it.
-    expect(findView({ state: 'unlisted' }, true).action).toBeNull();
+    // Not found under the current Riot ID: the app cannot tell a new name from a hidden one.
+    expect(findView({ state: 'unlisted' }, true)).toMatchObject({ action: 'retry' });
+    expect(findView({ state: 'unlisted' }, true).text).toContain('current Riot ID');
   });
 
   it('counts the games while uploading and says when it is offline', () => {

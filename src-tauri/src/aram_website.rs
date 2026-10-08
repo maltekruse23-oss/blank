@@ -141,6 +141,13 @@ pub(super) fn stored_key(service: &str, user: &str) -> Result<String, String> {
     }
 }
 
+/// Whether `stored_key` made this key already; only reads, never makes one.
+pub(super) fn has_key(service: &str, user: &str) -> bool {
+    keyring::Entry::new(service, user)
+        .and_then(|entry| entry.get_password())
+        .is_ok()
+}
+
 fn fingerprint(entry: &Entry) -> Result<String, String> {
     let bytes = serde_json::to_vec(entry).map_err(|_| "Spiel nicht lesbar.")?;
     bytes_hash(&bytes)
@@ -641,19 +648,58 @@ fn riot_slug(riot_id: &str) -> Option<String> {
 
 /// The player's profile on the Site, or None when it does not list them (never there, removed or
 /// hidden). By PUUID (players who upload with blank.), else by Riot ID: players of the archive
-/// (Collector, the Mayhem app's "Find my Mayhem rank") have no profile under their PUUID.
+/// (Collector, the Mayhem app's "Find my Mayhem rank") have no profile under their PUUID. A Riot ID
+/// may have been someone else's (given up, taken again): such a profile counts only if its newest
+/// game, as the client has it, shows the player on the profile's champion.
 pub(super) async fn own_profile(
     http: &reqwest::Client,
+    lcu: &super::Lcu,
     puuid: &str,
     name: &str,
 ) -> Result<Option<String>, String> {
     if let Some(profile) = read_json(http, &format!("/api/players/{puuid}")).await? {
         return Ok(Some(profile));
     }
-    match riot_slug(name) {
-        Some(slug) => read_json(http, &format!("/api/players/{slug}")).await,
-        None => Ok(None),
-    }
+    let Some(slug) = riot_slug(name) else {
+        return Ok(None);
+    };
+    let Some(profile) = read_json(http, &format!("/api/players/{slug}")).await? else {
+        return Ok(None);
+    };
+    let Some((game, champion)) = newest_game(&profile) else {
+        return Ok(None);
+    };
+    let theirs = match lcu
+        .get_bytes(&format!("/lol-match-history/v1/games/{game}"))
+        .await
+    {
+        Ok(raw) => champion_of(&raw, puuid) == Some(champion),
+        Err(_) => false,
+    };
+    Ok(theirs.then_some(profile))
+}
+
+/// The newest game of a Site profile (its history runs oldest first): id and champion.
+fn newest_game(profile: &str) -> Option<(u64, u64)> {
+    let value: serde_json::Value = serde_json::from_str(profile).ok()?;
+    let entry = &value["history"].as_array()?.last()?["entry"];
+    Some((entry["gameId"].as_u64()?, entry["championId"].as_u64()?))
+}
+
+/// The champion the player (PUUID) played in a game as the client answers it (in ARAM a champion
+/// is in a game only once).
+fn champion_of(raw: &[u8], puuid: &str) -> Option<u64> {
+    let game: serde_json::Value = serde_json::from_slice(raw).ok()?;
+    let seat = game["participantIdentities"]
+        .as_array()?
+        .iter()
+        .find(|p| p["player"]["puuid"] == puuid)?["participantId"]
+        .as_u64()?;
+    game["participants"]
+        .as_array()?
+        .iter()
+        .find(|p| p["participantId"].as_u64() == Some(seat))?["championId"]
+        .as_u64()
 }
 
 /// None while the client is closed or nobody is signed in.
@@ -667,7 +713,7 @@ pub async fn mayhem_ranks() -> Result<Option<OwnRanks>, String> {
         return Ok(None);
     };
     let http = site_client()?;
-    let me = own_profile(&http, &puuid, &name).await?;
+    let me = own_profile(&http, &lcu, &puuid, &name).await?;
     let board = read_json(&http, "/api/leaderboard").await?;
     Ok(Some(OwnRanks { name, board, me }))
 }
@@ -718,6 +764,27 @@ mod tests {
         assert_eq!(riot_slug("Name"), None);
         assert_eq!(riot_slug("#EUW"), None);
         assert_eq!(riot_slug("Name#"), None);
+    }
+
+    #[test]
+    fn a_profile_found_by_riot_id_is_checked_against_the_players_game() {
+        let profile = r#"{"history":[{"entry":{"gameId":7,"championId":1}},
+            {"entry":{"gameId":9,"championId":103}}]}"#;
+        assert_eq!(newest_game(profile), Some((9, 103)));
+        assert_eq!(newest_game(r#"{"rank":null,"history":[]}"#), None);
+        assert_eq!(newest_game("<html>"), None);
+        let me = "0123abcd-0123-abcd-0123-0123456789ab";
+        let game = serde_json::json!({
+            "participants": [{"participantId": 1, "championId": 1},
+                {"participantId": 2, "championId": 103}],
+            "participantIdentities": [{"participantId": 1, "player": {"puuid": "other"}},
+                {"participantId": 2, "player": {"puuid": me}}],
+        })
+        .to_string();
+        // The player's champion; another player's profile from the same game (champion 1) differs.
+        assert_eq!(champion_of(game.as_bytes(), me), Some(103));
+        assert_eq!(champion_of(game.as_bytes(), "nobody"), None);
+        assert_eq!(champion_of(b"<html>", me), None);
     }
 
     #[test]

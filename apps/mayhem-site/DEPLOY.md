@@ -22,10 +22,14 @@ neue Migration** (`drizzle/` unverändert seit 0006). Neu ist nur:
 - Die API ist unverändert (Felder und deutsche Fehlermeldungen wie bisher, die App braucht sie).
 - `/api/leaderboard` und `/api/players/<id>` haben je Spieler `server` (EUW, NA …).
 - Nur Text (PR „Find my Mayhem rank“, `claude/find-my-rank`): `/privacy` nennt die Mayhem-App als
-  Quelle neben blank. und dem Collector, `/privacy/remove` hat unter „Good to know“ die Zeile „The
-  Mayhem app then no longer uploads your games by itself.“ Keine API-Änderung: die Mayhem-App lädt
-  über die bestehenden Archiv-Endpunkte des Collectors hoch (`/api/archive/enroll`,
-  `/api/archive/contribute`) und liest `/api/players/<Name-TAG>`.
+  Quelle neben blank. und dem Collector; Wieder-sichtbar-Machen nur über den Betreiber oder ein
+  eigenes Hochladen mit blank. („Uploading with the Mayhem app does not unhide you.“ – Uploads über
+  `/api/archive/contribute` löschen `hidden_players` nicht, nur `/api/games`). `/privacy/remove`
+  sagt unter „Good to know“ „If you upload with blank. later, you will be named again.“ und „Once
+  hidden, the Mayhem app no longer uploads your games by itself, and uploading with it does not
+  unhide you.“ Keine API-Änderung: die Mayhem-App lädt über die bestehenden Archiv-Endpunkte des
+  Collectors hoch (`/api/archive/enroll`, `/api/archive/contribute`) und liest
+  `/api/players/<Name-TAG>`.
 
 Zusätzlich zu „Danach prüfen“ live prüfen und dem Benutzer melden:
 

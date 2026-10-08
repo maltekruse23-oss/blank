@@ -23,7 +23,7 @@ import { found, type FindState } from './findRank';
 import { MayhemCard } from './MayhemCard';
 import { AugmentDetail, ChampionDetail, ItemsPage, PatchPage } from './metaPages';
 import { AugmentsPage, ChampionsPage, HomePage, RankPage, type TierState } from './pages';
-import { loadMe, type MeState } from './me';
+import { loadMe, withChampions, type MeState } from './me';
 import { loadTiers } from './tiers';
 import { UpdateButton } from './UpdateButton';
 
@@ -147,9 +147,11 @@ export function MayhemApp() {
   useEffect(() => requestTiers(setTiers), []);
 
   // The player is asked for when the client opens or closes (also at the start), and after games
-  // went up by themselves (aram/ladder.rs).
+  // went up by themselves (aram/ladder.rs). An earlier click's answer may be another account's.
   useEffect(() => {
-    if (client !== null) fetchMeRef.current();
+    if (client === null) return;
+    fetchMeRef.current();
+    setFind((old) => (old.state === 'uploading' ? old : { state: 'idle' }));
   }, [client]);
   useEffect(() => onRankUploaded(() => fetchMeRef.current()), []);
 
@@ -181,6 +183,7 @@ export function MayhemApp() {
   const augment = lists?.augments.find((a) => a.id === detail.augment);
   const toChampion = (id: number) => openDetail('champions', { champion: id });
   const toAugment = (id: number) => openDetail('augments', { augment: id });
+  const meShown = withChampions(me, lists?.champions ?? []);
 
   return (
     <div className="mayhem">
@@ -219,7 +222,7 @@ export function MayhemApp() {
           {page === 'home' ? (
             <HomePage
               tiers={tierState}
-              me={me}
+              me={meShown}
               onOpen={open}
               onAugment={toAugment}
               onRetry={fetchMe}
@@ -267,7 +270,7 @@ export function MayhemApp() {
               onAugment={toAugment}
             />
           ) : page === 'rank' ? (
-            <RankPage me={me} onRetry={fetchMe} find={find} onFind={findMine} />
+            <RankPage me={meShown} onRetry={fetchMe} find={find} onFind={findMine} />
           ) : shown.state === 'ready' ? (
             <MayhemCard
               key={`${shown.view.championId}-${shown.sample}`}

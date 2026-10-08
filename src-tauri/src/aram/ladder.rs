@@ -5,11 +5,12 @@
 //! The way in is the Collector's (apps/mayhem-collector): the client's full answer for each of the
 //! player's own Mayhem games goes to the site's archive (POST /api/archive/contribute with this
 //! installation's upload key, POST /api/archive/enroll), and the site lists every player of an
-//! archived game; "Hide name" (/privacy/remove) takes them off again. Whether the player is listed
-//! only the site knows (their profile, website::own_profile): listed → after each Mayhem game the
-//! games it does not count yet go up; not listed (never entered, removed or hidden) → nothing goes
-//! up by itself. Read-only on the client, only games from the player's own history that name them.
-//! Kept on this PC is only the random upload key in the Windows Credential Manager, as the
+//! archived game; "Hide name" (/privacy/remove) takes them off again. By itself after a Mayhem game
+//! only once this installation's own click made its upload key (players of others' archived games
+//! are listed without ever clicking) and only while the site lists the player (their profile,
+//! website::own_profile): then the games it does not count yet go up; removed or hidden → nothing
+//! goes up by itself. Read-only on the client, only games from the player's own history that name
+//! them. Kept on this PC is only the random upload key in the Windows Credential Manager, as the
 //! Collector does (without it every start would enroll anew; the site allows three a day).
 //! Messages are English: only the Mayhem app uses this.
 
@@ -42,6 +43,7 @@ const UPLOADED: &str = "mayhem-uploaded";
 const CLIENT: &str = "The League client did not answer. Try again.";
 const SITE_DOWN: &str = "mayhemstats.lol did not answer. Check your connection.";
 const UNCONFIRMED: &str = "mayhemstats.lol did not confirm a game. Try again.";
+const NO_KEY: &str = "Windows could not keep the upload key.";
 
 /// What a click on "Find my Mayhem rank" did.
 #[derive(Serialize)]
@@ -68,8 +70,12 @@ pub async fn mayhem_find_rank(app: AppHandle) -> Result<Option<Found>, String> {
     let Some((lcu, puuid, name)) = player().await? else {
         return Ok(None);
     };
+    // The click itself: from now on this installation uploads after each game (upload_after).
+    // ponytail: one key per installation, so another account signed in on this PC later counts as
+    // entered too; per-account consent would need a marker per PUUID.
+    website::stored_key(KEY_SERVICE, KEY_USER).map_err(|_| NO_KEY)?;
     let http = website::site_client().map_err(|_| SITE_DOWN)?;
-    let before = website::own_profile(&http, &puuid, &name)
+    let before = website::own_profile(&http, &lcu, &puuid, &name)
         .await
         .map_err(|_| SITE_DOWN)?;
     let games = mayhem_games(&lcu, &puuid).await?;
@@ -78,7 +84,7 @@ pub async fn mayhem_find_rank(app: AppHandle) -> Result<Option<Found>, String> {
     let me = if sent == 0 {
         before
     } else {
-        website::own_profile(&http, &puuid, &name)
+        website::own_profile(&http, &lcu, &puuid, &name)
             .await
             .map_err(|_| SITE_DOWN)?
     };
@@ -92,15 +98,21 @@ pub async fn mayhem_find_rank(app: AppHandle) -> Result<Option<Found>, String> {
     }))
 }
 
-/// From the Mayhem app's look for the client (mayhem.rs, every few seconds): a game that starts
-/// while the client runs is followed to its end. Nothing while the client is closed.
+/// From the Mayhem app's look for the client (mayhem.rs, every few seconds): a game seen while the
+/// client runs is followed to its end, once – also when the client closes or restarts meanwhile.
+/// The process list is only read while the client runs or a game is followed.
 pub fn game_seen(app: &AppHandle, client_open: bool) {
-    static RUNNING: AtomicBool = AtomicBool::new(false);
-    let running = client_open && !crate::pc::program_pids(GAME_EXE).is_empty();
-    if running && !RUNNING.swap(true, Ordering::Relaxed) {
+    static FOLLOWED: AtomicBool = AtomicBool::new(false);
+    let followed = FOLLOWED.load(Ordering::Relaxed);
+    if !client_open && !followed {
+        return;
+    }
+    let game = !crate::pc::program_pids(GAME_EXE).is_empty();
+    if game && client_open && !followed {
+        FOLLOWED.store(true, Ordering::Relaxed);
         tauri::async_runtime::spawn(after_game(app.clone()));
-    } else if !running {
-        RUNNING.store(false, Ordering::Relaxed);
+    } else if !game {
+        FOLLOWED.store(false, Ordering::Relaxed);
     }
 }
 
@@ -113,12 +125,14 @@ async fn after_game(app: AppHandle) {
     let Some(game_id) = await_mayhem_game().await else {
         return;
     };
-    // The history has the game a little later (as in blank.: about two minutes in all).
+    // The history has the game a little later (as in blank.: about two minutes in all). A client
+    // that is away or does not answer yet (e.g. "Close client during game") gets the next look.
     for wait in AFTER_GAME {
         tokio::time::sleep(wait).await;
         match upload_after(&app, game_id).await {
             Ok(true) => return,
             Ok(false) => {}
+            Err(error) if error == CLIENT => {}
             Err(error) => {
                 crate::errors::record("Mayhem upload", &error);
                 return;
@@ -127,11 +141,16 @@ async fn after_game(app: AppHandle) {
     }
 }
 
-/// true when done (sent, nothing new, client closed or the player not listed); false while the
-/// client's history does not have the game yet.
+/// true when done (sent, nothing new, never clicked here or the player not listed); false while the
+/// client is away or its history does not have the game yet.
 async fn upload_after(app: &AppHandle, game_id: u64) -> Result<bool, String> {
-    let Some((lcu, puuid, name)) = player().await? else {
+    // Only after this installation's own click (it made the key), never because others' uploads list
+    // the player; only read, never made here.
+    if !website::has_key(KEY_SERVICE, KEY_USER) {
         return Ok(true);
+    }
+    let Some((lcu, puuid, name)) = player().await? else {
+        return Ok(false);
     };
     let games = mayhem_games(&lcu, &puuid).await?;
     if !games.contains(&game_id) {
@@ -139,7 +158,7 @@ async fn upload_after(app: &AppHandle, game_id: u64) -> Result<bool, String> {
     }
     let http = website::site_client().map_err(|_| SITE_DOWN)?;
     // Asked every time, nothing kept: removed or hidden on the site means never again by itself.
-    let Some(profile) = website::own_profile(&http, &puuid, &name)
+    let Some(profile) = website::own_profile(&http, &lcu, &puuid, &name)
         .await
         .map_err(|_| SITE_DOWN)?
     else {
@@ -207,8 +226,7 @@ async fn send_new(
     if new.is_empty() {
         return Ok(0);
     }
-    let key = website::stored_key(KEY_SERVICE, KEY_USER)
-        .map_err(|_| "Windows could not keep the upload key.")?;
+    let key = website::stored_key(KEY_SERVICE, KEY_USER).map_err(|_| NO_KEY)?;
     enroll(http, &key).await?;
     let progress = |done| {
         let total = new.len();

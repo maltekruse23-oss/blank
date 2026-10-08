@@ -23,7 +23,7 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 2. **Eine öffentliche Rangliste: „Find my Mayhem rank“** (malte 08.10.2026: „keine Gruppen, nur eine Rangliste, auf ‚Mayhem-Rang herausfinden‘ klicken und automatisch in die öffentliche Rangliste“)
    Ziel: Ein Klick in der Mayhem-App lädt die letzten Mayhem-Spiele hoch und trägt einen in die öffentliche Rangliste ein; danach geht jedes neue Spiel nach Spielende von selbst hoch. Ob man eingetragen ist, weiß der Server (die App speichert nichts).
    Fertig, wenn: Nach dem Klick steht man mit Rang auf mayhemstats.lol und in der App, neue Spiele erscheinen ohne weiteren Klick, Austragen über „Daten entfernen“ der Website; Website und App zeigen dieselben Zahlen.
-   Stand 08.10.2026: gebaut im PR `claude/find-my-rank` (Knopf auf Home und Rang, Upload über die Archiv-Endpunkte des Collectors, automatisch nach jedem Spiel, solange die Website einen listet; keine API-Änderung, nur zwei Sätze auf `/privacy` und `/privacy/remove` für Codex). Offen: Test mit echtem Client auf malte's PC (VALIDATION), Veröffentlichung der Website-Texte.
+   Stand 08.10.2026: gebaut im PR `claude/find-my-rank` (Knopf auf Home und Rang, Upload über die Archiv-Endpunkte des Collectors, automatisch nach jedem Spiel nur nach dem eigenen Klick und solange die Website einen listet; keine API-Änderung, nur Texte auf `/privacy` und `/privacy/remove` für Codex). Offen zur Entscheidung: wer schon über Mitspieler gelistet ist, sieht seinen Rang, aber keinen Knopf, und lädt deshalb nie von selbst hoch. Offen: Test mit echtem Client auf malte's PC (VALIDATION), Veröffentlichung der Website-Texte.
 
 ## Als Nächstes
 

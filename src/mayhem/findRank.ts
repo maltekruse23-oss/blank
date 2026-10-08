@@ -1,7 +1,7 @@
 // "Find my Mayhem rank" (ROADMAP "Jetzt 2", user's decisions 08.10.2026; Rust aram/ladder.rs): the
 // button on Home and Rank while mayhemstats.lol does not list the player. A click uploads their
 // recent Mayhem games and shows the rank; after that every game goes up by itself, as long as the
-// site lists them (the site knows, the app keeps nothing). English only.
+// site lists them (the site knows; the app keeps only the upload key the click made). English only.
 import type { FoundRank } from '../adapters/aramSite';
 import { ownState, type MeState } from './me';
 
@@ -11,13 +11,15 @@ export type FindState =
   | { state: 'uploading'; done: number; total: number }
   /** No ARAM Mayhem game in the client's history (its last 20 games). */
   | { state: 'empty' }
-  /** The games went up, but mayhemstats.lol does not list the player (e.g. their name is hidden). */
+  /** The games went up, but mayhemstats.lol does not list the player under their current Riot ID
+   * (renamed since, or hidden there – the app cannot tell). */
   | { state: 'unlisted' }
   | { state: 'failed'; message: string };
 
-/** Next to the button, before the click: what becomes public and the way out. */
+/** Next to the button, before the click: what becomes public, that later games follow by
+ * themselves, and the way out. */
 export const CONSENT =
-  'Your Riot ID, Mayhem games and rank will be public on mayhemstats.lol. Remove anytime at mayhemstats.lol/privacy/remove.';
+  'Your Riot ID, Mayhem games and rank will be public on mayhemstats.lol, and each new Mayhem game uploads by itself while this app runs. Remove anytime at mayhemstats.lol/privacy/remove.';
 
 /** The click's answer: the button's next state and the player as Home and Rank show them. A closed
  * client ends as the pages' own "Start League". */
@@ -63,8 +65,8 @@ export function findView(find: FindState, online: boolean): FindView {
     case 'unlisted':
       return view(
         'Not listed',
-        'Your games are on mayhemstats.lol, but it does not list you. If you hid your name there, it stays hidden.',
-        null,
+        'Your games went up, but mayhemstats.lol does not list you under your current Riot ID (for example after a name change, or if you hid your name there).',
+        'retry',
       );
     case 'failed':
       return online
