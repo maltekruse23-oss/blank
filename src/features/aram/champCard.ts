@@ -502,9 +502,10 @@ export function planNote(
  * best build, arammeta's top boots as their own block, then the further items of its other builds
  * and arammeta's best single items of that direction; mana items only when the core has them.
  * Useless items never come here (`bestBuilds` and `metaExtra` leave them out). Null without a build.
+ * Without a direction (a combo in the Mayhem app, src/mayhem/builds.ts): no single items.
  */
 export function itemSetOf(
-  plan: BuildPlan,
+  plan: { direction?: Direction; builds: Pick<BuildPick, 'items' | 'mana'>[] },
   extra?: Pick<ChampExtra, 'boots' | 'items'>,
 ): ItemSet | null {
   const [best, ...rest] = plan.builds;

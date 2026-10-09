@@ -79,6 +79,46 @@ export function onChamp(handler: (champ: HeldChamp) => void) {
   return () => void stop.then((unlisten) => unlisten());
 }
 
+/** Mayhem app only (aram_live.rs): the champions the client deals in ARAM Mayhem's card phase, left
+ * to right; an empty list when the phase ended. */
+export function onChampOffer(handler: (offered: HeldChamp[]) => void) {
+  if (!isTauri()) return () => undefined;
+  const stop = listen<{ offered?: HeldChamp[] }>('mayhem-champ-offer', ({ payload }) =>
+    handler(Array.isArray(payload?.offered) ? payload.offered : []),
+  );
+  return () => void stop.then((unlisten) => unlisten());
+}
+
+/** true, or the error as text (Rust has logged it; the page shows its own words). */
+const done = (call: Promise<unknown>): Promise<true | string> =>
+  call.then(
+    () => true as const,
+    (e: unknown) => (e instanceof Error ? e.message : String(e)),
+  );
+
+/** Mayhem app only, on the user's click: picks one of the dealt champions in the client. Outside
+ * the app nothing is sent ('Mock'). */
+export const pickChampion = (championId: number) =>
+  isTauri() ? done(invoke('mayhem_pick_champion', { championId })) : Promise.resolve('Mock');
+
+/** Mayhem app only, on the user's click: writes the build as the app's one item set for the
+ * champion ("Mayhem: <name>"); the user's own sets and blank.'s stay. Outside the app: 'Mock'. */
+export const pushItemSet = (
+  championId: number,
+  set: { name: string; core: number[]; boots: number[]; more: number[] },
+) =>
+  isTauri()
+    ? done(
+        invoke('mayhem_item_set', {
+          championId,
+          name: set.name,
+          core: set.core,
+          boots: set.boots,
+          more: set.more,
+        }),
+      )
+    : Promise.resolve('Mock');
+
 /** `english`: item names in English (the Mayhem app); blank. keeps German. */
 export const readChampInfo = (championId: number, english = false): Promise<ChampInfo> =>
   invoke<ChampInfo>('aram_champ_info', { championId, version: DDRAGON_VERSION, english });

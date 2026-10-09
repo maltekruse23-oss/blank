@@ -4,7 +4,7 @@
 // from mayhemstats.lol, me.ts). Numbers of the tier lists from arammeta.com (tiers.ts). Design
 // "Arena" (mayhem.css). English only; each page answers one question on top, one main number per
 // row, lists show their first entries (MAYHEM-DESIGN.md "Übersicht vor Vollständigkeit").
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { championSplash, championSquare, profileIcon } from '../adapters/aram';
 import { openGame } from '../adapters/aramSite';
 import { PLACEMENT, rankName, seasonOf, type Rank } from '../features/aram/aramRating';
@@ -14,14 +14,18 @@ import { CONSENT, findView, type FindState } from './findRank';
 import {
   ago,
   type BoardRow,
+  type ChampStat,
   CURVE_SIZE,
   curvePath,
   distributionOf,
+  rankChart,
   type LadderRow,
   type MeGame,
   type MeState,
   type MeView,
+  type Versus,
 } from './me';
+import { loadRecords, mineFirst, recordValue, type RecordCard } from './records';
 import type { Page } from './MayhemApp';
 import {
   categoryName,
@@ -395,11 +399,20 @@ const ordinal = (n: number) => {
 
 /** Ladder rank (like op.gg: "1,024,759th (27.86%)") and the peak, on the Rank page and the player
  * card; nothing without a place or a rank. */
-export function RankFacts({ me }: { me: MeView }) {
+export function RankFacts({ me, record = false }: { me: MeView; record?: boolean }) {
   const share = me.place && me.ranked ? (me.place / me.ranked) * 100 : null;
-  if (!me.place && !me.peak) return null;
+  if (!record && !me.place && !me.peak) return null;
   return (
     <dl className="mayhem-rank-more">
+      {record && (
+        <div>
+          <dt>Record</dt>
+          <dd>
+            <b>{winLoss(me)}</b>
+            {me.games > 0 && <small> ({percent(me.wins / me.games)})</small>}
+          </dd>
+        </div>
+      )}
       {me.place && (
         <div>
           <dt>Ladder rank</dt>
@@ -422,28 +435,25 @@ export function RankFacts({ me }: { me: MeView }) {
   );
 }
 
-/** How many players stand in each tier, highest first; the player's own tier is marked. */
+/** How many players stand in each tier as columns, lowest left like the usual rank charts;
+ * neutral columns, the player's own tier in the accent. */
 function Distribution({ board, own }: { board: BoardRow[]; own: Rank | null }) {
-  const tiers = distributionOf(board).reverse();
+  const tiers = distributionOf(board);
   const total = tiers.reduce((t, c) => t + c.players, 0);
   if (!total) return null;
   const most = Math.max(...tiers.map((c) => c.players));
   return (
-    <ul className="mayhem-distribution" aria-label="Players per rank">
+    <ul className="mayhem-distribution mayhem-in" style={step(3)} aria-label="Players per rank">
       {tiers.map((c, i) => (
         <li
           key={c.tier.id}
-          className="mayhem-in"
           data-me={own?.tier.id === c.tier.id}
-          style={step(i + 3)}
-          title={`${number(c.players)} ${c.players === 1 ? 'player' : 'players'}`}
+          style={step(i)}
+          title={`${c.tier.name}: ${number(c.players)} ${c.players === 1 ? 'player' : 'players'}`}
         >
-          <img src={tierImage(c.tier.id)} alt="" width={26} height={26} />
-          <b>{c.tier.name}</b>
-          <span className="mayhem-bar">
-            <span style={{ width: `${(c.players / most) * 100}%` }} />
-          </span>
           <small>{percent(c.players / total)}</small>
+          <span className="mayhem-column" style={{ height: `${(c.players / most) * 100}%` }} />
+          <img src={tierImage(c.tier.id)} alt={c.tier.name} width={26} height={26} />
         </li>
       ))}
     </ul>
@@ -604,6 +614,66 @@ export function MpCurve({ values }: { values: number[] }) {
   );
 }
 
+/** The Rank card's chart (like the client's): the tiers the last games passed through as bands
+ * with their emblems small on the left, the line in the accent like the MP curve. */
+function RankCurve({ values }: { values: number[] }) {
+  const id = useId();
+  const chart = rankChart(values);
+  if (!chart) return null;
+  const y = (v: number) => (1 - v) * 100;
+  const line = chart.points.map(([px, py], i) => `${i ? 'L' : 'M'}${px * 100} ${y(py)}`).join(' ');
+  const [endX, endY] = chart.points.at(-1)!;
+  return (
+    <div className="mayhem-rank-chart">
+      <div className="mayhem-rank-chart-body" role="img" aria-label="Rank over the last games">
+        <div className="mayhem-rank-axis">
+          {chart.bands.map((b) => (
+            <img
+              key={b.tier.id}
+              src={tierImage(b.tier.id)}
+              alt=""
+              width={22}
+              height={22}
+              title={b.tier.name}
+              style={{ bottom: `${((b.from + b.to) / 2) * 100}%` }}
+            />
+          ))}
+        </div>
+        <div className="mayhem-rank-plot">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" style={{ stopColor: 'var(--accent)', stopOpacity: 0.35 }} />
+                <stop offset="1" style={{ stopColor: 'var(--accent)', stopOpacity: 0 }} />
+              </linearGradient>
+            </defs>
+            {chart.bands.slice(1).map((b) => (
+              <line
+                key={b.tier.id}
+                className="mayhem-rank-chart-grid"
+                x1="0"
+                x2="100"
+                y1={y(b.from)}
+                y2={y(b.from)}
+              />
+            ))}
+            <path d={`${line} L100 100 L0 100 Z`} fill={`url(#${id})`} />
+            <path className="mayhem-rank-chart-line" d={line} />
+          </svg>
+          <span
+            className="mayhem-rank-chart-end"
+            style={{ left: `${endX * 100}%`, bottom: `${endY * 100}%` }}
+          />
+        </div>
+      </div>
+      <div className="mayhem-curve-scale">
+        <span>{values.length} games ago</span>
+        <span>now</span>
+      </div>
+    </div>
+  );
+}
+
 /** The last games on the Rank page (the whole list is its own page, Match history). */
 const RANK_GAMES = 5;
 /** Leaderboard rows before "Show more" (the player's own row always shows). */
@@ -697,36 +767,32 @@ export function RankPage({
           )}
         </section>
         <div className="mayhem-column-side">
-          <section className="mayhem-glass mayhem-rank mayhem-in" style={step(1)}>
-            {own && rank && <img src={rankImage(rank)} alt="" width={88} height={88} />}
-            <div>
-              {own ? (
-                <>
-                  <div className="mayhem-note">
-                    <PlayerName id={got!.siteId} name={got!.name} />
+          <section className="mayhem-glass mayhem-rank-card mayhem-in" style={step(1)}>
+            {own ? (
+              <>
+                <div className="mayhem-rank-top">
+                  {rank && <img src={rankImage(rank)} alt="" width={76} height={76} />}
+                  <div>
+                    <div className="mayhem-note">
+                      <PlayerName id={got!.siteId} name={got!.name} />
+                    </div>
+                    <div className="mayhem-rank-name">{rank ? rankName(rank) : '–'}</div>
+                    <div className="mayhem-note">
+                      {rank ? `${rank.points} MP` : `Placement ${own.placed}/${PLACEMENT}`}
+                    </div>
                   </div>
-                  <div className="mayhem-rank-name">{rank ? rankName(rank) : '–'}</div>
-                  <div className="mayhem-note">
-                    {rank ? `${rank.points} MP` : `Placement ${own.placed}/${PLACEMENT}`}
-                  </div>
+                </div>
+                {/* The chart shows the way to the rank; before it, the bar shows the placement. */}
+                {!rank && (
                   <div className="mayhem-bar">
-                    <span
-                      style={{
-                        width: `${rank ? (rank.division === null ? 100 : rank.points) : (own.placed / PLACEMENT) * 100}%`,
-                      }}
-                    />
+                    <span style={{ width: `${(own.placed / PLACEMENT) * 100}%` }} />
                   </div>
-                  <div className="mayhem-rank-facts">{winLoss(own)}</div>
-                  <RankFacts me={own} />
-                </>
-              ) : (
-                <MeNotice me={me} onRetry={onRetry} find={find} onFind={onFind} />
-              )}
-            </div>
-            {own && own.curve.length > 1 && (
-              <div className="mayhem-rank-curve">
-                <MpCurve values={own.curve} />
-              </div>
+                )}
+                <RankCurve values={own.curve} />
+                <RankFacts me={own} record />
+              </>
+            ) : (
+              <MeNotice me={me} onRetry={onRetry} find={find} onFind={onFind} />
             )}
           </section>
           {got && got.board.some((p) => p.rank) && (
@@ -841,6 +907,135 @@ const ladderRow = (p: LadderRow, style: CSSProperties) => (
  * games, with the rank, numbers and records in a bento column. The player comes from
  * mayhemstats.lol (me.ts); without one a small notice says why.
  */
+/** The player's two best places in the records of mayhemstats.lol (all time), read once per
+ * player; empty while loading, offline or without a place in any top ten. */
+function useOwnRecords(siteId: string | null) {
+  const [cards, setCards] = useState<RecordCard[]>([]);
+  useEffect(() => {
+    if (!siteId) return;
+    let current = true;
+    void loadRecords(false).then(
+      (r) => current && r.state === 'ready' && setCards(r.records.cards),
+    );
+    return () => {
+      current = false;
+    };
+  }, [siteId]);
+  return mineFirst(cards, siteId)
+    .flatMap((card) => {
+      const place = card.places.find((p) => p.id === siteId);
+      return place ? [{ card, place }] : [];
+    })
+    .slice(0, 2);
+}
+
+const FORM_GAMES = 20;
+
+/** The last games as a strip, oldest left: a win stands tall and green, a loss short and red. */
+function Form({ games }: { games: MeGame[] }) {
+  const last = games.slice(0, FORM_GAMES).reverse();
+  const wins = last.filter((g) => g.win).length;
+  return (
+    <div className="mayhem-form" role="img" aria-label={`Last ${last.length} games: ${wins} wins`}>
+      {last.map((g, i) => (
+        <span
+          key={g.gameId}
+          data-win={g.win}
+          style={step(i)}
+          title={`${g.win ? 'Win' : 'Loss'} · ${g.name} · ${ago(g.at, Date.now())}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** The player's champions by average grade, one row like the game cards; a click opens the build. */
+function BestChampions({
+  champions,
+  onChampion,
+}: {
+  champions: ChampStat[];
+  onChampion: (id: number) => void;
+}) {
+  return (
+    <section className="mayhem-row">
+      <div className="mayhem-row-head mayhem-in" style={step(9)}>
+        <h2>Best champions</h2>
+      </div>
+      <div className="mayhem-game-cards">
+        {champions.slice(0, HOME_GAMES).map((c, i) => (
+          <button
+            key={c.championId}
+            type="button"
+            className="mayhem-best-champ mayhem-in"
+            style={step(i + 10)}
+            title={`${c.name}: ${c.wins}W ${c.games - c.wins}L`}
+            onClick={() => onChampion(c.championId)}
+          >
+            <span>
+              <img
+                src={(c.alias && championSquare(c.alias)) || undefined}
+                alt=""
+                width={44}
+                height={44}
+              />
+              <span>
+                <b>{c.name}</b>
+                <small>
+                  {games(c.games)} · {percent(c.wins / c.games)}
+                </small>
+              </span>
+              <GradeMark grade={c.grade} size={30} />
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** The player against everyone in their games; a value the website did not give stays out. */
+function VersusRow({ versus }: { versus: Versus }) {
+  const tiles = [
+    versus.better !== null && {
+      value: percent(versus.better),
+      label: 'of all Mayhem games beaten',
+      hint: 'Your average grade as a percentile of every game on mayhemstats.lol',
+    },
+    versus.damagePlace !== null && {
+      value: `#${versus.damagePlace.toFixed(1)}`,
+      label: 'average damage place of 10',
+      hint: 'Where your damage lands among all ten players, on average',
+    },
+    versus.counted > 0 && {
+      value: number(versus.topDamage),
+      label: 'games with the most damage',
+      hint: `Top damage of all ten in ${percent(versus.topDamage / versus.counted)} of ${games(versus.counted)}`,
+    },
+    versus.share !== null && {
+      value: percent(versus.share),
+      label: "of your team's damage",
+      hint: "Your average share of your team's damage to champions",
+    },
+  ].filter((t) => t !== false);
+  if (!tiles.length) return null;
+  return (
+    <section className="mayhem-row">
+      <div className="mayhem-row-head mayhem-in" style={step(12)}>
+        <h2>You vs. everyone</h2>
+      </div>
+      <div className="mayhem-versus">
+        {tiles.map((t, i) => (
+          <div key={t.label} className="mayhem-in" style={step(i + 13)} title={t.hint}>
+            <strong>{t.value}</strong>
+            <small>{t.label}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function HomePage({
   me,
   onOpen,
@@ -857,6 +1052,7 @@ export function HomePage({
   const got = ready(me);
   const own = got?.me ?? null;
   const main = own?.main ?? null;
+  const records = useOwnRecords(got?.siteId ?? null);
   const splash = main?.alias ? championSplash(main.alias) : null;
   return (
     <div className="mayhem-home">
@@ -941,6 +1137,11 @@ export function HomePage({
             </p>
           )}
         </section>
+
+        {own && own.champions.length > 0 && (
+          <BestChampions champions={own.champions} onChampion={onChampion} />
+        )}
+        {own && <VersusRow versus={own.versus} />}
       </div>
 
       <aside className="mayhem-bento">
@@ -965,7 +1166,13 @@ export function HomePage({
           <section className="mayhem-tile mayhem-in" style={step(2)}>
             <span className="mayhem-note">Games</span>
             <strong>{own ? number(own.games) : '–'}</strong>
-            {own && <small>{winLoss(own)}</small>}
+            {own && (
+              <small>
+                {winLoss(own)}
+                {own.games > 0 && ` · ${percent(own.wins / own.games)}`}
+              </small>
+            )}
+            {own && own.recent.length > 1 && <Form games={own.recent} />}
           </section>
           <section className="mayhem-tile mayhem-in" style={step(3)}>
             <span className="mayhem-note">Avg grade</span>
@@ -975,17 +1182,37 @@ export function HomePage({
           </section>
         </div>
         <section className="mayhem-tile mayhem-in" style={step(4)}>
-          <span className="mayhem-note">Records</span>
-          <div className="mayhem-records">
-            <span data-best="true">
-              <strong>{own?.best.damage != null ? number(own.best.damage) : '–'}</strong>
-              <small>Most damage</small>
-            </span>
-            <span data-best="false">
-              <strong>{own?.best.kills != null ? own.best.kills : '–'}</strong>
-              <small>Most kills</small>
-            </span>
+          <div className="mayhem-row-head">
+            <span className="mayhem-note">Records</span>
+            {records.length > 0 && (
+              <button type="button" className="mayhem-link" onClick={() => onOpen('records')}>
+                See all
+              </button>
+            )}
           </div>
+          {records.length > 0 ? (
+            <div className="mayhem-records">
+              {records.map(({ card, place }) => (
+                <span key={card.id} data-best={place.place === 1} title={card.note}>
+                  <strong>{recordValue(card, place.value)}</strong>
+                  <small>
+                    <b>#{place.place}</b> {card.title}
+                  </small>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="mayhem-records">
+              <span data-best="true">
+                <strong>{own?.best.damage != null ? number(own.best.damage) : '–'}</strong>
+                <small>Most damage</small>
+              </span>
+              <span data-best="false">
+                <strong>{own?.best.kills != null ? own.best.kills : '–'}</strong>
+                <small>Most kills</small>
+              </span>
+            </div>
+          )}
         </section>
         {own && !own.rank && (
           <section className="mayhem-goal mayhem-in" style={step(5)}>

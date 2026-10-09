@@ -45,12 +45,31 @@ export type MeView = {
   main: (Champ & { games: number; wins: number; grade: Grade; skin?: number }) | null;
   /** `game`: the one with the highest grade (the player card's best performance). */
   best: { damage: number | null; kills: number | null; game: (MeGame & { damage: number }) | null };
+  /** The player's champions by average performance, best first (Home "Best champions"); with
+   * two games or more when any champion has that many, so one lucky game does not lead. */
+  champions: ChampStat[];
+  /** The player against everyone in their games (Home "You vs. everyone"); null without values. */
+  versus: Versus;
   /** The ladder after each of the last games, oldest first (the MP curve). */
   curve: number[];
   /** Every rated game, newest first (Match history; Home and Rank show the first few). */
   recent: MeGame[];
   /** Every counted game on the ladder, oldest first (the card after a game finds its step). */
   history: Step[];
+};
+
+export type ChampStat = Champ & { games: number; wins: number; grade: Grade };
+
+export type Versus = {
+  /** Average share of all Mayhem games this player's games beat (the grade's percentile), 0–1. */
+  better: number | null;
+  /** Average place in damage among the ten (1 = most). */
+  damagePlace: number | null;
+  /** Games with the most damage of all ten, and of how many games that is known. */
+  topDamage: number;
+  counted: number;
+  /** Average share of the team's damage, 0–1. */
+  share: number | null;
 };
 
 export type LadderRow = {
@@ -135,6 +154,15 @@ export function meView(profile: Ranked, board: BoardRow[]): MeView {
       skin: games[games.length - 1]!.entry.skin,
     };
   }
+  const champions = [...byChamp.values()]
+    .map((games) => ({
+      ...champ(games[games.length - 1]!.entry),
+      games: games.length,
+      wins: games.filter((s) => s.entry.win).length,
+      pct: games.reduce((t, s) => t + s.mark.pct, 0) / games.length,
+    }))
+    .sort((a, b) => b.pct - a.pct || b.games - a.games);
+  const often = champions.some((c) => c.games > 1);
   const place = profile.siteId
     ? ladderPlace(
         board.map((p) => ({ puuid: p.siteId ?? '', rank: p.rank })),
@@ -162,9 +190,33 @@ export function meView(profile: Ranked, board: BoardRow[]): MeView {
       kills: max(history.map((s) => s.entry.kills)),
       game: top && { ...game(top), damage: top.entry.damage },
     },
+    champions: champions
+      .filter((c) => !often || c.games > 1)
+      .map(({ pct, ...c }) => ({ ...c, grade: gradeOf(pct) })),
+    versus: versusOf(history),
     curve: history.slice(-CURVE).flatMap((s) => (s.after ? [s.after.ladder] : [])),
     recent: [...history].reverse().map(game),
     history,
+  };
+}
+
+const mean = (values: number[]) =>
+  values.length ? values.reduce((t, v) => t + v, 0) / values.length : null;
+
+/** The website's values of each game, checked here (aramSite.ts checks only what it shows):
+ * a value out of range counts as unknown, never as 0. */
+export function versusOf(history: Step[]): Versus {
+  const places = history
+    .map((s) => s.entry.damageRank as unknown)
+    .filter((v): v is number => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 10);
+  const share = (v: unknown): v is number =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+  return {
+    better: mean(history.map((s) => s.mark.pct).filter(share)),
+    damagePlace: mean(places),
+    topDamage: places.filter((p) => p === 1).length,
+    counted: places.length,
+    share: mean(history.map((s) => s.entry.teamShare as unknown).filter(share)),
   };
 }
 
@@ -191,6 +243,7 @@ function namedView(
     ...view,
     main: view.main && named(view.main),
     best: { ...view.best, game: view.best.game && named(view.best.game) },
+    champions: view.champions.map(named),
     recent: view.recent.map(named),
   };
 }
@@ -275,6 +328,31 @@ export function distributionOf(board: BoardRow[]) {
   for (const p of board)
     if (p.rank) counts.find((c) => c.tier.id === p.rank!.tier.id)!.players += 1;
   return counts;
+}
+
+/** Where each tier begins on the ladder, in TIERS order (aramRating's zones: D–S 400 each, SS up
+ * to SSS at 2800, MAYHEM from 3200). */
+const TIER_STARTS = [0, 400, 800, 1200, 1600, 2000, 2800, 3200];
+
+/** The Rank card's chart: zoomed to the last games' MP (a quarter of their range, at least 25 MP,
+ * as room above and below, never below 0); the tiers visible in it as bands (0 = bottom, 1 = top,
+ * lowest first, cut to the chart) and each game's place; null below two games. */
+export function rankChart(values: number[]) {
+  if (values.length < 2) return null;
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const room = Math.max(25, (high - low) / 4);
+  const bottom = Math.max(0, low - room);
+  const top = high + room;
+  const at = (v: number) => Math.min(1, Math.max(0, (v - bottom) / (top - bottom)));
+  return {
+    bands: TIERS.flatMap((tier, i) => {
+      const from = TIER_STARTS[i]!;
+      const to = TIER_STARTS[i + 1] ?? Infinity;
+      return to > bottom && from < top ? [{ tier, from: at(from), to: at(to) }] : [];
+    }),
+    points: values.map((v, i) => [i / (values.length - 1), at(v)] as const),
+  };
 }
 
 /** The MP curve's box (an SVG viewBox). */

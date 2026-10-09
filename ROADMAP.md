@@ -52,15 +52,16 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 
 - **Mayhem-App ausbauen** (Benutzerwunsch 07.10.2026, „machen wir später“)
   Ziel: Die App kann mehr als die Champ-Karte.
-  Fertig, wenn: malte hat entschieden, welche Teile dazukommen (z. B. Karte nach dem Spiel, Angebote im Spiel, Item-Sets und Zauber – dafür bräuchte sie Einstellungen), und sie sind gebaut und getestet. Home, Tier-Listen und Rang-Seite kamen mit #63.
+  Fertig, wenn: malte hat entschieden, welche Teile dazukommen (z. B. Karte nach dem Spiel, Angebote im Spiel, Item-Sets und Zauber – dafür bräuchte sie Einstellungen), und sie sind gebaut und getestet. Home, Tier-Listen und Rang-Seite kamen mit #63. Seit 09.10.2026 gebaut (ohne Einstellungen, nur auf Klick): Champion-Wahl aus den ausgeteilten Karten und „Push build“ als Item-Set.
 
 - **Mayhem-Teile mit echtem Client bestätigen** (malte, wenn er testen will)
-  Ziel: Es ist belegt, dass Champ-Karte, Item-Set und Zauber (2c), Angebote im Spiel (2b) und genommene Augments (3a) im echten Client bzw. Spiel funktionieren.
-  Fertig, wenn: Die Prüfschritte der Nachträge vom 06.–08.10.2026 in VALIDATION.md sind auf Windows durchgegangen und die Ergebnisse stehen dort. Dazu gehören jetzt auch: Mayhem-App im Design „Arena“ (`pnpm mayhem:build` auf malte's PC, Vollbild) und echter Spieler und Rang (#62–#74).
+  Ziel: Es ist belegt, dass Champ-Karte, Item-Set und Zauber (2c), Angebote im Spiel (2b), genommene Augments (3a) sowie Champion-Wahl aus den Karten und „Push build“ der Mayhem-App im echten Client bzw. Spiel funktionieren.
+  Fertig, wenn: Die Prüfschritte der Nachträge vom 06.–09.10.2026 in VALIDATION.md sind auf Windows durchgegangen und die Ergebnisse stehen dort. Dazu gehören jetzt auch: Mayhem-App im Design „Arena“ (`pnpm mayhem:build` auf malte's PC, Vollbild) und echter Spieler und Rang (#62–#74).
 
 - **Riot fragen** (malte schickt, Claude schreibt den Text)
-  Ziel: Riot hat eigene Rangliste, Live-Hinweise im Spiel, das Lesen der Angebote per Bildschirmausschnitt und das Schreiben von Item-Sets und Zaubern bewertet, bevor wir öffentlich werben oder etwas davon öffentlich machen.
+  Ziel: Riot hat eigene Rangliste, Live-Hinweise im Spiel, das Lesen der Angebote per Bildschirmausschnitt, das Schreiben von Item-Sets und Zaubern und die Champion-Wahl aus den Karten über den Client (LCU, `PATCH …/session/actions/<id>`, Mayhem-App) bewertet, bevor wir öffentlich werben oder etwas davon öffentlich machen.
   Fertig, wenn: Die Anfrage ist im Developer Portal (App 887776) gestellt und Riots Antwort steht in AI-NOTES.md.
+  Stand 09.10.2026: malte sagt, die App ist bei Riot registriert (die Registrierung von blank. deckt die Mayhem-App ab); deshalb werden Champion-Wahl und „Push build“ ausgeliefert, beide schreiben nur auf Klick. Eine Bewertung durch Riot (Ziel oben) liegt damit noch nicht vor.
 
 - **Reddit-Post** (malte postet, Claude überarbeitet den Entwurf)
   Ziel: Mehr Leute kennen mayhemstats.lol und laden den Collector.

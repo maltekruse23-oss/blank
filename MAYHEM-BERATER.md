@@ -261,7 +261,8 @@ ist seit Etappe 3a gebaut (nur Anzeige, siehe unten).
 ## 6a. In den Client schreiben: Item-Set und Beschwörerzauber (Benutzerentscheidung, 06.10.2026)
 
 Stand 08.10.2026: gebaut in blank. (Etappe 2c, `aram_live.rs`), auf Windows mit echtem Client noch
-nicht geprüft. Die Mayhem-App schreibt nichts (keine Einstellungen dort).
+nicht geprüft. Seit 09.10.2026 schreibt auch die Mayhem-App, aber nur auf Klick, ohne Schalter
+und ohne Zauber (Punkt „Mayhem-App“ unten).
 
 Die Regel „blank. schreibt nie in den Client“ gilt dafür nicht mehr. Beides hat einen eigenen
 Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Mayhem-Auswahl.
@@ -285,6 +286,21 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
   (`spells.top[0]`) gilt, wenn sie Schneeball enthält, mindestens 100 Spiele hat und weder
   Erschöpfung noch Barriere (z. B. Singed, Hecarim: Geist + Schneeball). Sonst die feste Regel
   mit `SPELL_EXCEPTIONS`. Gelesen einmal pro Lauf und Champ (`meta_spell_of`).
+- **Mayhem-App** (Benutzerentscheidungen 09.10.2026, Vorbild Blitz; noch nie mit echtem Client
+  gesehen):
+  - **Champion aus den Karten:** In der Kartenphase (Sitzung mit `allowSubsetChampionPicks`,
+    `timer.phase` „BAN_PICK“, eigene Wahl offen) zeigt die App die ausgeteilten Champions
+    (`/lol-lobby-team-builder/champ-select/v1/subset-champion-list`, über das Präfix-Ereignis
+    `OnJsonApiEvent_lol-lobby-team-builder_champ-select_v1`, einmal per GET, solange noch keine
+    Liste da ist; kein Polling) als große Karten mit Stufe und Siegquote, nichts vorgewählt. Erst
+    ein Klick wählt (`mayhem_pick_champion`): `PATCH /lol-champ-select/v1/session/actions/<id>`
+    mit `{"type":"pick","championId":…,"completed":true}`, nur für eine angebotene Karte, die der
+    Client in diesem Moment noch austeilt, nur in Mayhem und in der Kartenphase, eine Wahl
+    gleichzeitig.
+  - **„Push build“** (`mayhem_item_set`): ein Set je Champion „Mayhem: <Build-Name>“ (Blöcke Core,
+    Boots, Later), erkannt an `startedFrom` „mayhem“ plus fester uid des Champions, nie am Titel.
+    Jeder Klick ersetzt nur dieses eigene Set; Sets des Benutzers und „blank. …“-Sets bleiben
+    unverändert. Schreiben nacheinander, nie automatisch.
 - Abstimmung: Der Thread „Konkurrenz-Analyse“ plant den Lobby-Check; beide nutzen dieselbe
   Verbindung zur Champ-Auswahl (`aram_live.rs`).
 
@@ -309,6 +325,7 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
 | 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                                                                       | PR #64, nur blank., ungeprüft |
 | 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen                                                          | PR #65, nur blank., ungeprüft |
 | 3a     | Genommenes Augment erkennen (übrige Karte oder Klick), nur Anzeige, Abweichungen ins lokale Log                                                   | PR #67, nur blank., ungeprüft |
+| 2d     | Mayhem-App: Champion aus den Karten per Klick wählen, „Push build“ als Item-Set (6a)                                                              | Mayhem-App, ungeprüft         |
 | 3      | Situations-Tags gegen das Gegnerteam (3.8), Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge                    |
 | 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                                                                 | wenn der Test es trägt        |
 
@@ -330,8 +347,14 @@ Spiel, Item-Sets und Zauber) nur, wenn malte sie für die Mayhem-App will.
 
 Stand 08.10.2026 (Benutzerwunsch 07.10.2026 „wie Blitz“, Design „Arena“, #62/#63): Desktop-Dashboard
 mit Seitenleiste, Home, Champ-Karte, Augment- und Champion-Tier-Liste, Rang (bisher Beispieldaten,
-echter Spieler in Arbeit). Weiterhin ohne Einstellungen, Popouts und gespeicherte Daten; Item-Sets,
-Zauber und Angebote im Spiel gibt es nur in blank.
+echter Spieler in Arbeit). Weiterhin ohne Einstellungen, Popouts und gespeicherte Daten; Zauber und
+Angebote im Spiel gibt es nur in blank.
+
+Stand 09.10.2026 (Benutzerentscheidungen nach dem Blitz-Clip): Die Mayhem-App wählt auf Klick den
+Champion aus den ausgeteilten Karten und schreibt per „Push build“ ein Item-Set (6a, Punkt
+„Mayhem-App“). Die Champ-Seite hat keine Richtungs-Wahl AP/AD/Tank mehr: kompakte Augment-Reihe,
+eine Build-Liste (Meta, dann Offmeta nach Qualität, ohne Stufe je Build), Details des gewählten
+Builds links.
 
 arammetas ganze Liste (Benutzerauftrag 08.10.2026: „ich will alle Daten von arammeta in mein System
 und App gut einbauen, so viele Daten wie möglich“): `tier-list.json` liefert mehr als Siegquote und

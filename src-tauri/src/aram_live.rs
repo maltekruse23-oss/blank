@@ -18,6 +18,13 @@
 //! arammeta's best pair for the champion when that pair has Snowball and enough games, else Flash
 //! or the exception with a reason in `SPELL_EXCEPTIONS`; once the user changes them, nothing more
 //! in that select).
+//!
+//! The Mayhem app (user's decision 09.10.2026, Riot registration of blank. covers it): in ARAM
+//! Mayhem's card phase the same stream also hears the champion cards the client deals (event
+//! `mayhem-champ-offer`, only to the Mayhem window), and only on the user's click
+//! `mayhem_pick_champion` picks one of them and `mayhem_item_set` writes the chosen build as the
+//! item set "Mayhem: <build>" (only the app's own set for that champion is replaced). Nothing
+//! automatic, nothing preselected.
 use super::{champion_names, lockfile, mayhem_game, parse_lockfile, Lcu, SESSION};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -39,6 +46,14 @@ use tokio_tungstenite::{
 
 /// The client's event for the champion select (WAMP over its local WebSocket).
 const CHAMP_SELECT: &str = "OnJsonApiEvent_lol-champ-select_v1_session";
+/// The dealt champion cards have no event of their own: their API's prefix event, filtered on
+/// `CARDS` (LeagueAkari does the same).
+const CARDS_TOPIC: &str = "OnJsonApiEvent_lol-lobby-team-builder_champ-select_v1";
+const CARDS: &str = "/lol-lobby-team-builder/champ-select/v1/subset-champion-list";
+/// ARAM Mayhem deals 2–3 cards; more is not expected and read as none.
+const MAX_CARDS: usize = 5;
+const SELECT: &str = "/lol-champ-select/v1/session";
+const OFFER_EVENT: &str = "mayhem-champ-offer";
 /// WAMP message types the client uses: subscribe, event.
 const SUBSCRIBE: u8 = 5;
 const EVENT: u8 = 8;
@@ -69,6 +84,8 @@ static SPELLS_WANTED: AtomicBool = AtomicBool::new(false);
 /// The last champion picked (kept after the select ends) and the build chosen for it on the card;
 /// the augment offers in the game are ranked for it (offers.rs).
 static CHOSEN: Mutex<(i64, Option<String>)> = Mutex::new((0, None));
+/// The champion cards last told to the Mayhem window; only these can be picked.
+static OFFERED: Mutex<Vec<i64>> = Mutex::new(Vec::new());
 
 const MY_SELECTION: &str = "/lol-champ-select/v1/session/my-selection";
 const FLASH: i64 = 4;
@@ -101,6 +118,117 @@ struct Champ {
 struct SelectSession {
     local_player_cell_id: i64,
     my_team: Vec<Cell>,
+    // Only for the card phase; a changed shape there must not lose the held champion.
+    #[serde(deserialize_with = "lenient")]
+    allow_subset_champion_picks: bool,
+    #[serde(deserialize_with = "lenient")]
+    timer: Timer,
+    #[serde(deserialize_with = "lenient")]
+    actions: Vec<Vec<Action>>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+struct Timer {
+    phase: String,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct Action {
+    id: i64,
+    actor_cell_id: i64,
+    #[serde(rename = "type")]
+    kind: String,
+    completed: bool,
+    is_in_progress: bool,
+}
+
+impl SelectSession {
+    /// The user's own open pick (in progress, not completed), as action id.
+    fn pick_action(&self) -> Option<i64> {
+        self.actions
+            .iter()
+            .flatten()
+            .find(|a| {
+                a.actor_cell_id == self.local_player_cell_id
+                    && a.kind == "pick"
+                    && a.is_in_progress
+                    && !a.completed
+            })
+            .map(|a| a.id)
+            .filter(|id| (0..1_000_000).contains(id))
+    }
+
+    /// ARAM Mayhem's card phase: the client deals champions and the user's pick is open
+    /// (FINALIZATION, after the pick, is not).
+    fn card_phase(&self) -> bool {
+        self.allow_subset_champion_picks
+            && self.timer.phase == "BAN_PICK"
+            && self.pick_action().is_some()
+    }
+}
+
+/// The dealt cards (`subset-champion-list`, left to right): 1 to `MAX_CARDS` distinct champion
+/// ids; anything else counts as no cards.
+fn card_list(data: &Value) -> Vec<i64> {
+    let Some(list) = data.as_array() else {
+        return Vec::new();
+    };
+    let ids: Vec<i64> = list
+        .iter()
+        .filter_map(Value::as_i64)
+        .filter(|id| (1..100_000).contains(id))
+        .collect();
+    let distinct = ids.iter().enumerate().all(|(i, id)| !ids[..i].contains(id));
+    if ids.len() == list.len() && ids.len() <= MAX_CARDS && distinct {
+        ids
+    } else {
+        Vec::new()
+    }
+}
+
+/// The same cards stay in the order first seen (the client may reorder them later).
+fn keep_order(seen: &[i64], new: Vec<i64>) -> Vec<i64> {
+    if seen.len() == new.len() && new.iter().all(|id| seen.contains(id)) {
+        seen.to_vec()
+    } else {
+        new
+    }
+}
+
+/// The card phase as the stream hears it (Mayhem app only): the dealt cards in the order first seen
+/// and whether they can be picked right now. What it offers is the gate of `mayhem_pick_champion`.
+#[derive(Default, Debug, PartialEq)]
+struct Deal {
+    cards: Vec<i64>,
+    open: bool,
+}
+
+impl Deal {
+    /// One event; `mayhem`: this select is ARAM Mayhem.
+    fn hear(&mut self, topic: &Topic, kind: &str, data: &Value, mayhem: bool) {
+        match topic {
+            Topic::Cards if kind == "Delete" => self.cards.clear(),
+            Topic::Cards => self.cards = keep_order(&self.cards, card_list(data)),
+            Topic::Session if kind == "Delete" => *self = Self::default(),
+            // A champion held means the pick is done.
+            Topic::Session => {
+                self.open = mayhem
+                    && my_champion(data).is_none()
+                    && SelectSession::deserialize(data).is_ok_and(|s| s.card_phase());
+            }
+        }
+    }
+
+    /// The cards to tell the window: none outside the open card phase.
+    fn offered(&self) -> Vec<i64> {
+        if self.open {
+            self.cards.clone()
+        } else {
+            Vec::new()
+        }
+    }
 }
 
 #[derive(Deserialize, Default)]
@@ -256,20 +384,64 @@ async fn set_spells(champion: i64, data: &Value, state: &mut Spells) {
     }
 }
 
-/// One message of the client's stream: `[8, "<event>", {"eventType", "data", …}]` for the
-/// champion select; anything else is None.
-fn select_event(text: &str) -> Option<(String, Value)> {
+/// Which of the two subscriptions a message belongs to.
+#[derive(Debug, PartialEq)]
+enum Topic {
+    Session,
+    Cards,
+}
+
+/// One message of the client's stream: `[8, "<event>", {"eventType", "uri", "data", …}]` for the
+/// champion select or the dealt cards (only their uri of the prefix event); anything else is None.
+fn select_event(text: &str) -> Option<(Topic, String, Value)> {
     if text.len() > MAX_EVENT_BYTES {
         return None;
     }
     let message: Value = serde_json::from_str(text).ok()?;
     let parts = message.as_array()?;
-    if parts.first()?.as_u64()? != u64::from(EVENT) || parts.get(1)?.as_str()? != CHAMP_SELECT {
+    if parts.first()?.as_u64()? != u64::from(EVENT) {
         return None;
     }
+    let name = parts.get(1)?.as_str()?;
     let body = parts.get(2)?;
+    let topic = if name == CHAMP_SELECT {
+        Topic::Session
+    } else if name.starts_with(CARDS_TOPIC) && body.get("uri")?.as_str()? == CARDS {
+        Topic::Cards
+    } else {
+        return None;
+    };
     let kind = body.get("eventType")?.as_str()?.to_string();
-    Some((kind, body.get("data").cloned().unwrap_or(Value::Null)))
+    Some((
+        topic,
+        kind,
+        body.get("data").cloned().unwrap_or(Value::Null),
+    ))
+}
+
+/// Tells the Mayhem window the dealt cards when they change (empty: none to pick).
+fn offer(app: &AppHandle, ids: Vec<i64>, names: &HashMap<i64, (String, String)>) {
+    #[derive(Serialize, Clone)]
+    struct Offer {
+        offered: Vec<Champ>,
+    }
+    let mut told = OFFERED.lock().unwrap_or_else(|p| p.into_inner());
+    if *told == ids {
+        return;
+    }
+    let offered = ids
+        .iter()
+        .map(|&champion_id| {
+            let (alias, name) = names.get(&champion_id).cloned().unwrap_or_default();
+            Champ {
+                champion_id,
+                alias,
+                name,
+            }
+        })
+        .collect();
+    *told = ids;
+    let _ = app.emit_to(crate::mayhem::WINDOW, OFFER_EVENT, Offer { offered });
 }
 
 fn tell(app: &AppHandle, champion_id: i64, names: &HashMap<i64, (String, String)>) {
@@ -304,6 +476,7 @@ pub fn listen(app: &AppHandle) {
             }
         }
         tell(&app, 0, &HashMap::new());
+        offer(&app, Vec::new(), &HashMap::new());
         LISTENING.store(false, Ordering::Relaxed);
     });
 }
@@ -337,16 +510,28 @@ async fn stream(app: &AppHandle) -> Result<(), String> {
         .await
         .map_err(|_| "Client antwortet nicht".to_string())?
         .map_err(|e| e.to_string())?;
-    let subscribe = format!("[{SUBSCRIBE},\"{CHAMP_SELECT}\"]");
-    socket
-        .send(Message::Text(subscribe.into()))
-        .await
-        .map_err(|e| e.to_string())?;
+    // The dealt cards only in the Mayhem app; blank. never hears them.
+    let deals = app.config().identifier == crate::mayhem::IDENTIFIER;
+    let topics: &[&str] = if deals {
+        &[CHAMP_SELECT, CARDS_TOPIC]
+    } else {
+        &[CHAMP_SELECT]
+    };
+    for topic in topics {
+        let subscribe = format!("[{SUBSCRIBE},\"{topic}\"]");
+        socket
+            .send(Message::Text(subscribe.into()))
+            .await
+            .map_err(|e| e.to_string())?;
+    }
     // Whether this champion select is ARAM Mayhem: asked once per select.
     let mut mayhem: Option<bool> = None;
     // Keys and names of the champions, read once when needed.
     let mut names = HashMap::new();
     let mut spells = Spells::default();
+    let mut deal = Deal::default();
+    // The fallback GET of the cards: once per select (their prefix event brings any later change).
+    let mut cards_asked = false;
     while let Some(message) = socket.next().await {
         if !WANTED.load(Ordering::Relaxed) {
             break;
@@ -356,31 +541,54 @@ async fn stream(app: &AppHandle) -> Result<(), String> {
             Ok(Message::Close(_)) | Err(_) => break,
             Ok(_) => continue,
         };
-        let Some((kind, data)) = select_event(&text) else {
+        let Some((topic, kind, data)) = select_event(&text) else {
             continue;
         };
-        if kind == "Delete" {
-            mayhem = None;
-            spells = Spells::default();
-            tell(app, 0, &names);
-            continue;
-        }
-        if mayhem.is_none() {
-            mayhem = Some(is_mayhem().await);
-        }
-        if mayhem == Some(true) {
-            if let Some(champion) = my_champion(&data) {
-                if names.is_empty() {
-                    if let Ok(Some(lcu)) = Lcu::connect() {
-                        names = champion_names(&lcu).await;
-                    }
+        match topic {
+            Topic::Cards => {}
+            Topic::Session if kind == "Delete" => {
+                mayhem = None;
+                spells = Spells::default();
+                cards_asked = false;
+                tell(app, 0, &names);
+            }
+            Topic::Session => {
+                if mayhem.is_none() {
+                    mayhem = Some(is_mayhem().await);
                 }
-                tell(app, champion, &names);
-                if SPELLS_WANTED.load(Ordering::Relaxed) {
-                    set_spells(champion, &data, &mut spells).await;
+                if mayhem == Some(true) {
+                    if let Some(champion) = my_champion(&data) {
+                        if names.is_empty() {
+                            if let Ok(Some(lcu)) = Lcu::connect() {
+                                names = champion_names(&lcu).await;
+                            }
+                        }
+                        tell(app, champion, &names);
+                        if SPELLS_WANTED.load(Ordering::Relaxed) {
+                            set_spells(champion, &data, &mut spells).await;
+                        }
+                    }
                 }
             }
         }
+        if !deals {
+            continue;
+        }
+        deal.hear(&topic, &kind, &data, mayhem == Some(true));
+        if topic == Topic::Session && deal.open && deal.cards.is_empty() && !cards_asked {
+            // The cards' event may come before the subscription took hold: asked once per select.
+            cards_asked = true;
+            if let Ok(Some(lcu)) = Lcu::connect() {
+                deal.cards = card_list(&lcu.get::<Value>(CARDS).await.unwrap_or_default());
+            }
+        }
+        let offered = deal.offered();
+        if !offered.is_empty() && names.is_empty() {
+            if let Ok(Some(lcu)) = Lcu::connect() {
+                names = champion_names(&lcu).await;
+            }
+        }
+        offer(app, offered, &names);
     }
     let _ = socket.close(None).await;
     Ok(())
@@ -455,7 +663,34 @@ fn item_set(
         "tank" => "Tank",
         _ => return None,
     };
-    let item = |id: &u32| (1..1_000_000).contains(id);
+    let wide = |ids: &[u32]| ids.iter().map(|&id| i64::from(id)).collect::<Vec<_>>();
+    let core_name = format!("Kern {label}");
+    let set = SetText {
+        title: format!("{ITEM_SET_TITLE}{label}"),
+        blocks: [&core_name, "Stiefel", "Danach"],
+        from: "blank",
+        uid: format!(
+            "{:08x}-0000-4000-8000-{:012x}",
+            champion,
+            stamp & 0xffff_ffff_ffff
+        ),
+    };
+    set_of(champion, set, [&wide(core), &wide(boots), &wide(more)])
+}
+
+/// What differs between blank.'s sets and the Mayhem app's.
+struct SetText<'a> {
+    title: String,
+    /// Names of the blocks core, boots, later.
+    blocks: [&'a str; 3],
+    /// `startedFrom`, the mark of whose set it is.
+    from: &'a str,
+    uid: String,
+}
+
+/// An item set for the client: core (required), boots and later items; empty blocks left out.
+fn set_of(champion: i64, text: SetText, [core, boots, more]: [&[i64]; 3]) -> Option<Value> {
+    let item = |id: &i64| (1..1_000_000).contains(id);
     if core.is_empty()
         || core.len() > 6
         || boots.len() > 4
@@ -464,22 +699,21 @@ fn item_set(
     {
         return None;
     }
-    let block = |kind: String, ids: &[u32]| {
-        let items: Vec<Value> = ids
-            .iter()
-            .map(|id| serde_json::json!({ "id": id.to_string(), "count": 1 }))
-            .collect();
-        serde_json::json!({ "type": kind, "items": items })
-    };
-    let mut blocks = vec![block(format!("Kern {label}"), core)];
-    if !boots.is_empty() {
-        blocks.push(block("Stiefel".into(), boots));
-    }
-    if !more.is_empty() {
-        blocks.push(block("Danach".into(), more));
-    }
+    let blocks: Vec<Value> = text
+        .blocks
+        .iter()
+        .zip([core, boots, more])
+        .filter(|(_, ids)| !ids.is_empty())
+        .map(|(kind, ids)| {
+            let items: Vec<Value> = ids
+                .iter()
+                .map(|id| serde_json::json!({ "id": id.to_string(), "count": 1 }))
+                .collect();
+            serde_json::json!({ "type": kind, "items": items })
+        })
+        .collect();
     Some(serde_json::json!({
-        "title": format!("{ITEM_SET_TITLE}{label}"),
+        "title": text.title,
         "type": "custom",
         "map": "any",
         "mode": "any",
@@ -488,28 +722,168 @@ fn item_set(
         "blocks": blocks,
         "preferredItemSlots": [],
         "sortrank": 0,
-        "startedFrom": "blank",
-        "uid": format!("{:08x}-0000-4000-8000-{:012x}", champion, stamp & 0xffff_ffff_ffff),
+        "startedFrom": text.from,
+        "uid": text.uid,
     }))
 }
 
-/// The list as the client gave it, with blank.'s earlier sets for this champion replaced by `set`;
-/// every other set stays exactly as it was.
-fn with_item_set(mut sets: Value, champion: i64, set: Value) -> Option<Value> {
+/// The list as the client gave it, with the earlier sets that are `ours` replaced by `set`; every
+/// other set stays exactly as it was.
+fn with_item_set(mut sets: Value, set: Value, ours: impl Fn(&Value) -> bool) -> Option<Value> {
     let list = sets.get_mut("itemSets")?.as_array_mut()?;
-    list.retain(|s| {
-        let ours = s
+    list.retain(|s| !ours(s));
+    list.push(set);
+    Some(sets)
+}
+
+/// blank.'s sets for the champion: matched on their title.
+fn blanks(champion: i64) -> impl Fn(&Value) -> bool {
+    move |set| {
+        let titled = set
             .get("title")
             .and_then(Value::as_str)
             .is_some_and(|t| t.starts_with(ITEM_SET_TITLE));
-        let this = s
-            .get("associatedChampions")
-            .and_then(Value::as_array)
-            .is_some_and(|c| c.iter().any(|id| id.as_i64() == Some(champion)));
-        !(ours && this)
-    });
-    list.push(set);
-    Some(sets)
+        titled
+            && set
+                .get("associatedChampions")
+                .and_then(Value::as_array)
+                .is_some_and(|c| c.iter().any(|id| id.as_i64() == Some(champion)))
+    }
+}
+
+/// The Mayhem app's set for the champion: its mark and its uid (one per champion), never the title
+/// (the user may name a set "Mayhem: …" too) nor the champions (the user may change them).
+fn mayhems(champion: i64) -> impl Fn(&Value) -> bool {
+    let uid = Value::from(mayhem_uid(champion));
+    move |set| {
+        set.get("startedFrom").and_then(Value::as_str) == Some(MAYHEM_FROM)
+            && set.get("uid") == Some(&uid)
+    }
+}
+
+const MAYHEM_FROM: &str = "mayhem";
+const MAYHEM_TITLE: &str = "Mayhem: ";
+
+/// "mayhem" in hex after the champion.
+fn mayhem_uid(champion: i64) -> String {
+    format!("{champion:08x}-0000-4000-8000-6d617968656d")
+}
+
+/// The Mayhem app's set "Mayhem: <name>" with English blocks; one per champion (stable uid).
+fn mayhem_set(
+    champion: i64,
+    name: &str,
+    core: &[i64],
+    boots: &[i64],
+    more: &[i64],
+) -> Option<Value> {
+    let named = (1..=60).contains(&name.chars().count())
+        && !name.trim().is_empty()
+        && !name.chars().any(char::is_control);
+    if !(1..100_000).contains(&champion) || !named {
+        return None;
+    }
+    let set = SetText {
+        title: format!("{MAYHEM_TITLE}{name}"),
+        blocks: ["Core", "Boots", "Later"],
+        from: MAYHEM_FROM,
+        uid: mayhem_uid(champion),
+    };
+    set_of(champion, set, [core, boots, more])
+}
+
+/// One read-merge-write of the item sets at a time: two quick pushes end with the later one.
+static WRITING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// Writes `set` into the client's item sets of the signed-in player, replacing the earlier ones
+/// that are `ours`.
+async fn write_item_set(set: Value, ours: impl Fn(&Value) -> bool) -> Result<(), String> {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Me {
+        summoner_id: u64,
+    }
+    let _one = WRITING.lock().await;
+    let lcu = Lcu::connect()?.ok_or(super::NOT_OPEN)?;
+    let me: Me = lcu.get(super::SUMMONER).await?;
+    let path = format!("/lol-item-sets/v1/item-sets/{}/sets", me.summoner_id);
+    let sets: Value = lcu.get(&path).await?;
+    let sets = with_item_set(sets, set, ours).ok_or("Unerwartete Item-Sets")?;
+    lcu.send(reqwest::Method::PUT, &path, &sets).await
+}
+
+/// "Push build" in the Mayhem app: the chosen build as the item set "Mayhem: <name>" for the
+/// champion, replacing only the app's own earlier set for it. Only on that click. The page shows
+/// its own words; the client's real reason goes to the error log.
+#[tauri::command]
+pub async fn mayhem_item_set(
+    champion_id: i64,
+    name: String,
+    core: Vec<i64>,
+    boots: Vec<i64>,
+    more: Vec<i64>,
+) -> Result<(), String> {
+    let result = match mayhem_set(champion_id, &name, &core, &boots, &more) {
+        None => Err("This build cannot be an item set.".to_string()),
+        Some(set) => write_item_set(set, mayhems(champion_id)).await,
+    };
+    if let Err(error) = &result {
+        crate::errors::record("Item set", error);
+    }
+    result
+}
+
+/// One pick at a time; a second click while one is on its way is refused.
+static PICKING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// A click on a dealt card in the Mayhem app picks that champion in the client (subset picks
+/// complete at once; the other cards go to the bench). Only a card told to the window and still
+/// dealt by the client, only in ARAM Mayhem's card phase with the user's own pick open; no retry.
+/// The page shows its own words; the client's real reason goes to the error log.
+#[tauri::command]
+pub async fn mayhem_pick_champion(champion_id: i64) -> Result<(), String> {
+    let result = match PICKING.try_lock() {
+        Ok(_one) => pick(champion_id).await,
+        Err(_) => Err("A pick is already on its way.".into()),
+    };
+    if let Err(error) = &result {
+        crate::errors::record("Champion pick", error);
+    }
+    result
+}
+
+async fn pick(champion_id: i64) -> Result<(), String> {
+    const GONE: &str = "The cards can no longer be picked.";
+    if !OFFERED
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .contains(&champion_id)
+    {
+        return Err("This champion is not one of your cards.".into());
+    }
+    let lcu = Lcu::connect()
+        .ok()
+        .flatten()
+        .ok_or("The League client is not open.")?;
+    if !is_mayhem().await {
+        return Err(GONE.into());
+    }
+    // The stream's cards may lag behind the client: its own list decides.
+    if !card_list(&lcu.get::<Value>(CARDS).await?).contains(&champion_id) {
+        return Err(GONE.into());
+    }
+    let session: SelectSession = lcu.get(SELECT).await?;
+    let action = session
+        .pick_action()
+        .filter(|_| session.card_phase())
+        .ok_or(GONE)?;
+    let body = serde_json::json!({ "type": "pick", "championId": champion_id, "completed": true });
+    lcu.send(
+        reqwest::Method::PATCH,
+        &format!("{SELECT}/actions/{action}"),
+        &body,
+    )
+    .await
 }
 
 /// aramonly.com, whose ARAM guides list many offmeta builds (user's wish 08.10.2026, AP-Alistar).
@@ -577,20 +951,7 @@ pub async fn aram_champ_build(
         .map_or(0, |d| d.as_nanos());
     let set = item_set(champion_id, &direction, &core, &boots, &more, stamp)
         .ok_or("Ungültiges Item-Set")?;
-    let result = async {
-        #[derive(Deserialize)]
-        #[serde(rename_all = "camelCase")]
-        struct Me {
-            summoner_id: u64,
-        }
-        let lcu = Lcu::connect()?.ok_or(super::NOT_OPEN)?;
-        let me: Me = lcu.get(super::SUMMONER).await?;
-        let path = format!("/lol-item-sets/v1/item-sets/{}/sets", me.summoner_id);
-        let sets: Value = lcu.get(&path).await?;
-        let sets = with_item_set(sets, champion_id, set).ok_or("Unerwartete Item-Sets")?;
-        lcu.send(reqwest::Method::PUT, &path, &sets).await
-    }
-    .await;
+    let result = write_item_set(set, blanks(champion_id)).await;
     if let Err(error) = &result {
         crate::errors::record("Item-Set", error);
     }
@@ -1297,7 +1658,7 @@ mod tests {
             { "title": "blank. Tank", "associatedChampions": [12], "uid": "b" },
             { "title": "blank. AD", "associatedChampions": [27], "uid": "c" },
         ], "timestamp": 5 });
-        let out = with_item_set(sets, 12, set).unwrap();
+        let out = with_item_set(sets, set, blanks(12)).unwrap();
         let titles: Vec<&str> = out["itemSets"]
             .as_array()
             .unwrap()
@@ -1306,7 +1667,170 @@ mod tests {
             .collect();
         assert_eq!(titles, ["Mein Alistar", "blank. AD", "blank. AP"]);
         assert_eq!(out["accountId"], 1);
-        assert!(with_item_set(serde_json::json!({}), 12, Value::Null).is_none());
+        assert!(with_item_set(serde_json::json!({}), Value::Null, blanks(12)).is_none());
+    }
+
+    #[test]
+    fn mayhem_sets_replace_only_the_apps_own_for_the_champion() {
+        let set = mayhem_set(12, "Crit Warwick", &[3031, 3046], &[], &[3072]).unwrap();
+        assert_eq!(set["title"], "Mayhem: Crit Warwick");
+        assert_eq!(set["startedFrom"], "mayhem");
+        assert_eq!(set["associatedMaps"], json!([12]));
+        // English blocks, the empty boots left out.
+        assert_eq!(set["blocks"][0]["type"], "Core");
+        assert_eq!(set["blocks"][0]["items"][1]["id"], "3046");
+        assert_eq!(set["blocks"][1]["type"], "Later");
+        assert_eq!(set["blocks"].as_array().unwrap().len(), 2);
+        // One uid per champion, every push the same.
+        let again = mayhem_set(12, "Other", &[3089], &[3020], &[]).unwrap();
+        assert_eq!(again["uid"], set["uid"]);
+        assert_eq!(again["blocks"][1]["type"], "Boots");
+        assert_ne!(
+            mayhem_set(27, "x", &[3089], &[], &[]).unwrap()["uid"],
+            set["uid"]
+        );
+        // Names 1–60 characters, no control characters; champions and items as before.
+        assert!(mayhem_set(12, "", &[3089], &[], &[]).is_none());
+        assert!(mayhem_set(12, "  ", &[3089], &[], &[]).is_none());
+        assert!(mayhem_set(12, "a\nb", &[3089], &[], &[]).is_none());
+        assert!(mayhem_set(12, &"é".repeat(60), &[3089], &[], &[]).is_some());
+        assert!(mayhem_set(12, &"a".repeat(61), &[3089], &[], &[]).is_none());
+        assert!(mayhem_set(0, "x", &[3089], &[], &[]).is_none());
+        assert!(mayhem_set(100_000, "x", &[3089], &[], &[]).is_none());
+        assert!(mayhem_set(12, "x", &[], &[3020], &[]).is_none());
+        assert!(mayhem_set(12, "x", &[-1], &[], &[]).is_none());
+        assert!(mayhem_set(12, "x", &[3089; 7], &[], &[]).is_none());
+
+        let users = json!({ "title": "Mayhem: my build", "startedFrom": "blank",
+            "associatedChampions": [12], "uid": "u", "blocks": [{"type": "x", "items": []}] });
+        // Marked "mayhem" for the champion, but not the app's uid (a copy, another tool): stays.
+        let copy = json!({ "title": "Mayhem: copy", "startedFrom": "mayhem",
+            "associatedChampions": [12], "uid": "c" });
+        let uid = mayhem_uid(12);
+        let sets = json!({ "accountId": 1, "itemSets": [
+            users,
+            { "title": "blank. AP", "startedFrom": "blank", "associatedChampions": [12], "uid": "b" },
+            copy,
+            // The app's own set, its champions changed by the user: still replaced.
+            { "title": "Mayhem: Old", "startedFrom": "mayhem", "associatedChampions": [], "uid": uid },
+            { "title": "Mayhem: Annie", "startedFrom": "mayhem", "associatedChampions": [1], "uid": mayhem_uid(1) },
+        ], "timestamp": 5 });
+        let out = with_item_set(sets, set.clone(), mayhems(12)).unwrap();
+        let list = out["itemSets"].as_array().unwrap();
+        assert_eq!(list.len(), 5);
+        assert_eq!(list[0], users);
+        assert_eq!(list[1]["title"], "blank. AP");
+        assert_eq!(list[2], copy);
+        assert_eq!(list[3]["title"], "Mayhem: Annie");
+        assert_eq!(list[4], set);
+        assert_eq!(list.iter().filter(|s| s["uid"] == uid.as_str()).count(), 1);
+        // blank.'s own replacement never takes the Mayhem app's sets.
+        let out = with_item_set(out, Value::Null, blanks(12)).unwrap();
+        assert!(out["itemSets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s["title"] == "Mayhem: Crit Warwick"));
+    }
+
+    #[test]
+    fn reads_the_dealt_cards() {
+        assert_eq!(card_list(&json!([103, 12, 27])), [103, 12, 27]);
+        assert_eq!(card_list(&json!([5])), [5]);
+        // Anything unexpected counts as no cards.
+        for odd in [
+            json!([]),
+            json!(null),
+            json!({"a": 1}),
+            json!([12, "x"]),
+            json!([12, 0]),
+            json!([12, 100_000]),
+            json!([12, 1.5]),
+            json!([12, 12]),
+            json!([1, 2, 3, 4, 5, 6]),
+        ] {
+            assert!(card_list(&odd).is_empty(), "{odd}");
+        }
+        // The same cards keep the order first seen; other cards replace them.
+        assert_eq!(keep_order(&[103, 12], vec![12, 103]), [103, 12]);
+        assert_eq!(keep_order(&[103, 12], vec![12, 27]), [12, 27]);
+        assert_eq!(keep_order(&[], vec![12, 27]), [12, 27]);
+        assert!(keep_order(&[103, 12], Vec::new()).is_empty());
+    }
+
+    #[test]
+    fn knows_the_card_phase_and_the_own_open_pick() {
+        let session = |subset: bool, phase: &str, actions: Value| {
+            SelectSession::deserialize(json!({
+                "localPlayerCellId": 2,
+                "myTeam": [{"cellId": 2, "championId": 0}],
+                "allowSubsetChampionPicks": subset,
+                "timer": {"phase": phase},
+                "actions": actions,
+            }))
+            .unwrap()
+        };
+        let open = json!([[
+            {"id": 7, "actorCellId": 1, "championId": 0, "type": "pick", "completed": false, "isInProgress": true},
+            {"id": 9, "actorCellId": 2, "championId": 0, "type": "ban", "completed": false, "isInProgress": true},
+            {"id": 8, "actorCellId": 2, "championId": 0, "type": "pick", "completed": false, "isInProgress": true}
+        ]]);
+        let cards = session(true, "BAN_PICK", open.clone());
+        assert_eq!(cards.pick_action(), Some(8));
+        assert!(cards.card_phase());
+        // After the pick, in FINALIZATION, without subset picks: no card phase.
+        assert!(!session(true, "FINALIZATION", open.clone()).card_phase());
+        assert!(!session(false, "BAN_PICK", open).card_phase());
+        let done = json!([[{"id": 8, "actorCellId": 2, "type": "pick", "completed": true, "isInProgress": true}]]);
+        assert_eq!(session(true, "BAN_PICK", done).pick_action(), None);
+        let waiting = json!([[{"id": 8, "actorCellId": 2, "type": "pick", "completed": false, "isInProgress": false}]]);
+        assert!(!session(true, "BAN_PICK", waiting).card_phase());
+        // A changed shape of these fields keeps the held champion and means no cards.
+        let odd = json!({
+            "localPlayerCellId": 2,
+            "myTeam": [{"cellId": 2, "championId": 103}],
+            "allowSubsetChampionPicks": "yes",
+            "timer": [],
+            "actions": {"id": 8},
+        });
+        assert_eq!(my_champion(&odd), Some(103));
+        assert!(!SelectSession::deserialize(&odd).unwrap().card_phase());
+    }
+
+    #[test]
+    fn offers_the_cards_only_while_they_can_be_picked() {
+        let session = |held: i64| {
+            json!({
+                "localPlayerCellId": 2,
+                "myTeam": [{"cellId": 2, "championId": held}],
+                "allowSubsetChampionPicks": true,
+                "timer": {"phase": "BAN_PICK"},
+                "actions": [[{"id": 8, "actorCellId": 2, "type": "pick", "completed": held > 0, "isInProgress": true}]],
+            })
+        };
+        let mut deal = Deal::default();
+        // Cards before the session: kept, not offered yet.
+        deal.hear(&Topic::Cards, "Create", &json!([103, 12]), true);
+        assert!(deal.offered().is_empty());
+        deal.hear(&Topic::Session, "Update", &session(0), true);
+        assert_eq!(deal.offered(), [103, 12]);
+        // Reordered: the order first seen stays.
+        deal.hear(&Topic::Cards, "Update", &json!([12, 103]), true);
+        assert_eq!(deal.offered(), [103, 12]);
+        // The cards' list deleted before the session names the pick: none offered.
+        deal.hear(&Topic::Cards, "Delete", &Value::Null, true);
+        assert!(deal.offered().is_empty());
+        // A pick ends the offer even while the list is still there.
+        deal.hear(&Topic::Cards, "Update", &json!([103, 12]), true);
+        deal.hear(&Topic::Session, "Update", &session(103), true);
+        assert!(deal.offered().is_empty());
+        // The session's end clears everything.
+        deal.hear(&Topic::Session, "Delete", &Value::Null, true);
+        assert_eq!(deal, Deal::default());
+        // Not ARAM Mayhem: never offered.
+        deal.hear(&Topic::Cards, "Update", &json!([103, 12]), false);
+        deal.hear(&Topic::Session, "Update", &session(0), false);
+        assert!(deal.offered().is_empty());
     }
 
     #[test]
@@ -1329,9 +1853,22 @@ mod tests {
         let event = format!(
             r#"[8,"{CHAMP_SELECT}",{{"eventType":"Update","uri":"/lol-champ-select/v1/session","data":{{"localPlayerCellId":1}}}}]"#
         );
-        let (kind, data) = select_event(&event).unwrap();
+        let (topic, kind, data) = select_event(&event).unwrap();
+        assert_eq!(topic, Topic::Session);
         assert_eq!(kind, "Update");
         assert_eq!(data["localPlayerCellId"], 1);
+        // The cards' prefix event: only the uri of the dealt cards.
+        let cards = |uri: &str| {
+            format!(r#"[8,"{CARDS_TOPIC}",{{"eventType":"Update","uri":"{uri}","data":[103,12]}}]"#)
+        };
+        let (topic, kind, data) = select_event(&cards(CARDS)).unwrap();
+        assert_eq!((topic, kind.as_str()), (Topic::Cards, "Update"));
+        assert_eq!(card_list(&data), [103, 12]);
+        assert!(select_event(&cards("/lol-lobby-team-builder/champ-select/v1/session")).is_none());
+        let deleted = format!(r#"[8,"{CARDS_TOPIC}",{{"eventType":"Delete","uri":"{CARDS}"}}]"#);
+        let (_, kind, data) = select_event(&deleted).unwrap();
+        assert_eq!(kind, "Delete");
+        assert!(card_list(&data).is_empty());
         assert!(
             select_event(r#"[8,"OnJsonApiEvent_lol-chat_v1_me",{"eventType":"Update"}]"#).is_none()
         );
