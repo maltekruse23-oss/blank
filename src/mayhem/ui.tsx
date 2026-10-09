@@ -4,6 +4,45 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import { createPortal } from 'react-dom';
 import type { Grade } from '../features/aram/aramPerformance';
 
+/** A failed answer is asked for again after this long, without a click. */
+export const RETRY_MS = 15_000;
+
+/**
+ * Keeps data fresh without a click (user, 09.10.2026: "nichts manuell anklicken"): `refresh` runs
+ * every `ms` while the window is visible, at once when it comes back after that long (minimized),
+ * and when the internet returns. Nothing while hidden. `null`: off.
+ */
+export function useRefresh(refresh: () => void, ms: number | null) {
+  const latest = useRef(refresh);
+  latest.current = refresh;
+  useEffect(() => {
+    if (ms === null) return;
+    let last = Date.now();
+    let timer = 0;
+    const tick = () => {
+      window.clearTimeout(timer);
+      if (document.hidden) return;
+      if (Date.now() - last >= ms) {
+        last = Date.now();
+        latest.current();
+      }
+      timer = window.setTimeout(tick, last + ms - Date.now());
+    };
+    const online = () => {
+      last = 0;
+      tick();
+    };
+    timer = window.setTimeout(tick, ms);
+    document.addEventListener('visibilitychange', tick);
+    window.addEventListener('online', online);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', tick);
+      window.removeEventListener('online', online);
+    };
+  }, [ms]);
+}
+
 /** Rows shown before "Show more". */
 export const FIRST = 5;
 

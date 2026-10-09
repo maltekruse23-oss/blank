@@ -3,6 +3,16 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: Champ-Reiter nur während einer Auswahl — 09.10.2026
+
+- Benutzerwunsch „Wir brauchen keinen Champ-Tab, Waiting for Champion Select ist überflüssig … es soll direkt ein Tab kommen“: „Champ“ steht erst in der Seitenleiste, sobald eine Champ-Auswahl eine Karte geliefert hat (`shown.state !== 'none'` in `MayhemApp.tsx`), die App springt wie bisher sofort dorthin; Warte-Bildschirm samt „Example“-Knopf entfernt. Die Karte bleibt bis zur nächsten Auswahl (Augment-Stufen im Spiel nachschlagen).
+- Geprüft: tsc, lint, test, Browser-Vorschau (Seitenleiste ohne Champ). Nicht geprüft: native EXE mit echter Champ-Auswahl.
+
+## Mayhem-App: alles aktualisiert sich von selbst — 09.10.2026
+
+- Benutzerwunsch „man soll nichts manuell anklicken müssen, es soll sich automatisch aktualisieren … für die ganze App“: ein Hook `useRefresh(refresh, ms)` in `src/mayhem/ui.tsx` (nur bei sichtbarem Fenster, sofort beim Zurückkommen nach Ablauf, bei `online`; `null` = aus). Spieler/Rang (Home, Rank, Matches, Records) alle 60 s (`ME_FRESH_MS`), Rekorde alle 2 min (`RECORDS_FRESH_MS`); jede fehlgeschlagene Antwort (Spieler, Rekorde, Tier-Listen, Champ-Karte, Spielerkarte) wird nach 15 s (`RETRY_MS`) von selbst neu gefragt. Stilles Nachladen behält den gezeigten Stand (auch wenn es scheitert), kein „Loading …“-Flackern. „Try again“ bleibt als Notknopf.
+- Geprüft: build, lint, test, Browser-Vorschau (Rang-Seite, `online`-Ereignis ohne Flackern). Nicht geprüft: native EXE mit echtem Client.
+
 ## Plugins im Projekt — 09.10.2026
 
 - Benutzerauftrag: feature-dev, security-guidance, code-review, explanatory-output-style aus `claude-plugins-official` im Projekt-Scope (`.claude/settings.json`, neben frontend-design und plugin-dev). Arbeitsregeln dazu in CLAUDE.md „Plugins“ (Design-System vor Plugin-Vorschlägen, feature-dev für neue Features, code-review vor jedem Merge mit einfacher Erklärung, security-guidance bei Spielerdaten/Server, Erklärungen ohne Fachjargon).

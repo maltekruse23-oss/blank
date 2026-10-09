@@ -17,7 +17,7 @@ import {
   type GameCard,
 } from '../adapters/aramSite';
 import { Guard } from '../components/Guard';
-import { champView, SAMPLE_CHAMP, type ChampView } from '../features/aram/champCard';
+import { champView, type ChampView } from '../features/aram/champCard';
 import { AfterGame } from './AfterGameView';
 import { cardRank, inEnglish, RANK_ASKS, RANK_GIVE_UP, type CardRank } from './afterGame';
 import { found, type FindState } from './findRank';
@@ -37,6 +37,7 @@ import { loadMe, withChampions, type MeState } from './me';
 import { loadRecords, type RecordCard } from './records';
 import { RecordsPage } from './RecordsPage';
 import { loadTiers, type TierChampion } from './tiers';
+import { RETRY_MS, useRefresh } from './ui';
 import { UpdateButton } from './UpdateButton';
 import { WindowBar } from './WindowBar';
 // The app's own icon (mayhem.ico is made from the same file), so the logo and the EXE match.
@@ -75,9 +76,9 @@ function requestTiers(set: (tiers: TierState) => void) {
   );
 }
 
-/** Home, Rank and Records ask mayhemstats.lol again for the player when opened after this long
- * (ranks change per game). */
-const ME_FRESH_MS = 2 * 60_000;
+/** Home, Rank, Matches and Records ask mayhemstats.lol again for the player after this long, by
+ * themselves while shown and when opened (ranks change per game). */
+const ME_FRESH_MS = 60_000;
 
 /** Swaps and rerolls come in quick turns: the card waits for the pick to settle this long. */
 const SETTLE_MS = 600;
@@ -118,12 +119,17 @@ export function MayhemApp() {
   const meAsked = useRef({ ask: 0, at: 0 });
 
   const fetchTiers = () => requestTiers(setTiers);
-  /** The player from mayhemstats.lol; a shown player stays while it is asked again. */
+  /** The player from mayhemstats.lol; a shown player (or "client closed") stays while it is asked again. */
   const fetchMe = () => {
     const ask = ++meAsked.current.ask;
     meAsked.current.at = Date.now();
-    setMe((old) => (old.state === 'ready' ? old : { state: 'loading' }));
-    void loadMe().then((next) => ask === meAsked.current.ask && setMe(next));
+    setMe((old) => (old.state === 'ready' || old.state === 'closed' ? old : { state: 'loading' }));
+    // A quiet refresh that fails keeps the shown player (it tries again by itself).
+    void loadMe().then(
+      (next) =>
+        ask === meAsked.current.ask &&
+        setMe((old) => (next.state === 'failed' && old.state === 'ready' ? old : next)),
+    );
   };
   const fetchMeRef = useRef(fetchMe);
   fetchMeRef.current = fetchMe;
@@ -196,6 +202,8 @@ export function MayhemApp() {
   useEffect(() => onRankUploaded(() => fetchMeRef.current()), []);
 
   const [after, setAfter] = useState<After | null>(previewFromAddress);
+  /** "Simulate game" on the Rank page: which made-up card comes next. */
+  const simulated = useRef(0);
   /** A champion select runs: the card stays hidden until it ends (the Champ card comes first). */
   const [selecting, setSelecting] = useState(false);
   // The card after each Mayhem game (aram/game_card.rs), compared with the site's all-time records
@@ -242,6 +250,15 @@ export function MayhemApp() {
     };
   }, []);
 
+  // Nothing needs a click: shown data refreshes by itself, failed answers are asked again.
+  const mePage = page === 'home' || page === 'rank' || page === 'history' || page === 'records';
+  useRefresh(fetchMe, mePage ? (me.state === 'failed' ? RETRY_MS : ME_FRESH_MS) : null);
+  useRefresh(fetchTiers, tiers?.state === 'failed' ? RETRY_MS : null);
+  useRefresh(
+    () => shown.state === 'failed' && show(shown.champ, shown.sample),
+    shown.state === 'failed' ? RETRY_MS : null,
+  );
+
   const tierState = tiers ?? { state: 'loading' };
   const lists = tierState.state === 'ready' ? tierState.lists : null;
   /** The player card over everything (a click on any name, PlayerCard.tsx). */
@@ -274,17 +291,20 @@ export function MayhemApp() {
           <nav className="mayhem-nav" aria-label="Sections">
             {PAGES.map((group, g) => [
               g > 0 && <hr key={`line-${g}`} className="mayhem-nav-line" />,
-              ...group.map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-current={page === id ? 'page' : undefined}
-                  onClick={() => open(id)}
-                >
-                  <Icon size={20} strokeWidth={1.9} aria-hidden />
-                  <span>{label}</span>
-                </button>
-              )),
+              // Champ only once a champion select gave it a card (user, 09.10.2026: no waiting tab).
+              ...group
+                .filter(({ id }) => id !== 'champ' || shown.state !== 'none')
+                .map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-current={page === id ? 'page' : undefined}
+                    onClick={() => open(id)}
+                  >
+                    <Icon size={20} strokeWidth={1.9} aria-hidden />
+                    <span>{label}</span>
+                  </button>
+                )),
             ])}
             <span className="mayhem-soon" title="More sections are coming">
               <Plus size={20} strokeWidth={1.9} aria-hidden />
@@ -352,7 +372,10 @@ export function MayhemApp() {
                   onRetry={fetchMe}
                   find={find}
                   onFind={findMine}
-                  onPreviewCard={() => setAfter(preview('legend'))}
+                  onPreviewCard={() => {
+                    setAfter(preview(CARD_PREVIEWS[simulated.current % CARD_PREVIEWS.length]!));
+                    simulated.current += 1;
+                  }}
                   onHistory={() => open('history')}
                 />
               ) : page === 'history' ? (
@@ -383,21 +406,7 @@ export function MayhemApp() {
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="mayhem-wait">
-                  <div className="mayhem-glow mayhem-in">
-                    <h1>{client ? 'Waiting for champion select' : 'Start League'}</h1>
-                    <p>Your build shows up here once you hold a champion in ARAM Mayhem.</p>
-                    <button
-                      type="button"
-                      className="mayhem-button primary"
-                      onClick={() => show(SAMPLE_CHAMP, true)}
-                    >
-                      Example: {SAMPLE_CHAMP.name}
-                    </button>
-                  </div>
-                </div>
-              )}
+              ) : null}
             </div>
           </main>
         </div>

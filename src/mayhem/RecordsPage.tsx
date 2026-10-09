@@ -4,7 +4,7 @@
 // big, places 2 and 3 small, the rest behind "Show more", the player's own place marked
 // ("You: #7"). One accent: only a record the player holds glows. All time or this season. English
 // only, "–" for what is missing (MAYHEM-DESIGN.md "Übersicht vor Vollständigkeit").
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Crown } from 'lucide-react';
 import { championSquare } from '../adapters/aram';
 import { games } from './format';
@@ -21,7 +21,7 @@ import {
 } from './records';
 import type { TierChampion } from './tiers';
 import { PlayerName } from './PlayerCard';
-import { More, Tabs } from './ui';
+import { More, RETRY_MS, Tabs, useRefresh } from './ui';
 
 type Scope = 'all' | 'season';
 const SCOPES: { id: Scope; label: string }[] = [
@@ -30,6 +30,8 @@ const SCOPES: { id: Scope; label: string }[] = [
 ];
 /** Places shown under "Most records" (a tie shows everyone on the place). */
 const CROWNS = 3;
+/** The records shown are asked for again after this long (a new record can come with any game). */
+const RECORDS_FRESH_MS = 2 * 60_000;
 
 type Champions = Map<number, TierChampion>;
 
@@ -156,14 +158,22 @@ export function RecordsPage({ me, champions }: { me: MeState; champions: TierCha
   const [scope, setScope] = useState<Scope>('all');
   const [got, setGot] = useState<RecordsState>({ state: 'loading' });
   const [ask, setAsk] = useState(0);
+  const shownScope = useRef(scope);
   useEffect(() => {
     let current = true;
-    setGot({ state: 'loading' });
-    void loadRecords(scope === 'season').then((next) => current && setGot(next));
+    // Asked again for the same scope: the shown records stay until the new ones are there.
+    const quiet = shownScope.current === scope;
+    shownScope.current = scope;
+    const keep = (old: RecordsState) => quiet && old.state === 'ready';
+    setGot((old) => (keep(old) ? old : { state: 'loading' }));
+    void loadRecords(scope === 'season').then(
+      (next) => current && setGot((old) => (next.state !== 'ready' && keep(old) ? old : next)),
+    );
     return () => {
       current = false;
     };
   }, [scope, ask]);
+  useRefresh(() => setAsk((n) => n + 1), got.state === 'failed' ? RETRY_MS : RECORDS_FRESH_MS);
   const byId = useMemo(() => new Map(champions.map((c) => [c.id, c])), [champions]);
   const siteId = me.state === 'ready' ? me.siteId : null;
   const records = got.state === 'ready' ? got.records : null;

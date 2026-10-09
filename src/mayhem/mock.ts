@@ -254,7 +254,8 @@ export const MOCK_TIERS = {
   ],
 };
 
-/** The card after a game in the browser preview: "Preview card" on the Rank page, or the address
+/** The card after a game with made-up numbers: "Simulate game" on the Rank page (also in the app,
+ * marked Mock, each click the next kind), or in the browser preview the address
  * `mayhem.html?card=legend` (also `top`, `loss`, `unlisted`, `waiting`). */
 export const CARD_PREVIEWS = ['legend', 'top', 'loss', 'unlisted', 'waiting'] as const;
 export type CardPreview = (typeof CARD_PREVIEWS)[number];

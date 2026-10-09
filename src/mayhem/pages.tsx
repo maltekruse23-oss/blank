@@ -536,7 +536,7 @@ export function RankPage({
 }: {
   me: MeState;
   onRetry: () => void;
-  /** The browser preview's look at the card after a game (mock.ts). */
+  /** Test: the card after a game with made-up numbers (mock.ts), each click the next kind. */
   onPreviewCard: () => void;
   /** Opens the page Match history. */
   onHistory: () => void;
@@ -551,11 +551,14 @@ export function RankPage({
         line={`Who leads on mayhemstats.lol, ${season()}?`}
         badge={got?.mock ? 'Mock' : undefined}
         action={
-          got?.mock && (
-            <button type="button" className="mayhem-button small" onClick={onPreviewCard}>
-              Preview card
-            </button>
-          )
+          <button
+            type="button"
+            className="mayhem-button small"
+            onClick={onPreviewCard}
+            title="Shows the card after a game with made-up numbers (marked Mock); nothing is uploaded"
+          >
+            Simulate game
+          </button>
         }
       />
       <div className="mayhem-columns mayhem-columns-end">
