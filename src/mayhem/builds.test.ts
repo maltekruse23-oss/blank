@@ -289,6 +289,14 @@ describe('itemSetFor', () => {
     expect([...name]).toHaveLength(SET_NAME);
     expect(name).not.toMatch(/\p{Cc}/u);
   });
+
+  it('a core the client takes: at most 6 items, the rest goes on after it', () => {
+    const wide = buildList(view({ plans: [plan('tank', [build([1, 2, 3, 4, 5, 6, 7, 8], 0.5)])] }));
+    const set = itemSetFor(wide[0], ALISTAR);
+    expect(set.core).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(set.more.slice(0, 2)).toEqual([7, 8]);
+    expect(set.more.length).toBeLessThanOrEqual(12);
+  });
 });
 
 describe('preview mocks', () => {

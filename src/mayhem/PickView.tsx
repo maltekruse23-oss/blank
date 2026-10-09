@@ -29,7 +29,9 @@ export function PickView({
   sample: boolean;
 }) {
   const [states, setStates] = useState<Record<number, CardState>>({});
-  const busy = Object.values(states).some((s) => s === 'picking' || s === 'picked');
+  // Only while a pick is on its way: "Picked." was never seen live, a second click stays possible
+  // (Rust refuses it once the client took the pick).
+  const busy = Object.values(states).some((s) => s === 'picking');
   const pick = (id: number) => {
     if (sample) return setStates({ [id]: 'example' });
     setStates({ [id]: 'picking' });

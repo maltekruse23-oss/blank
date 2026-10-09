@@ -530,6 +530,8 @@ async fn stream(app: &AppHandle) -> Result<(), String> {
     let mut names = HashMap::new();
     let mut spells = Spells::default();
     let mut deal = Deal::default();
+    // The fallback GET of the cards: once per select (their prefix event brings any later change).
+    let mut cards_asked = false;
     while let Some(message) = socket.next().await {
         if !WANTED.load(Ordering::Relaxed) {
             break;
@@ -547,6 +549,7 @@ async fn stream(app: &AppHandle) -> Result<(), String> {
             Topic::Session if kind == "Delete" => {
                 mayhem = None;
                 spells = Spells::default();
+                cards_asked = false;
                 tell(app, 0, &names);
             }
             Topic::Session => {
@@ -572,8 +575,9 @@ async fn stream(app: &AppHandle) -> Result<(), String> {
             continue;
         }
         deal.hear(&topic, &kind, &data, mayhem == Some(true));
-        if topic == Topic::Session && deal.open && deal.cards.is_empty() {
-            // The cards' event may come late or not at all: asked once per session event.
+        if topic == Topic::Session && deal.open && deal.cards.is_empty() && !cards_asked {
+            // The cards' event may come before the subscription took hold: asked once per select.
+            cards_asked = true;
             if let Ok(Some(lcu)) = Lcu::connect() {
                 deal.cards = card_list(&lcu.get::<Value>(CARDS).await.unwrap_or_default());
             }

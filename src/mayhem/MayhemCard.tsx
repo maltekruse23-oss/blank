@@ -559,7 +559,7 @@ function itemFacts(entry: BuildEntry, n: number, i: Item, label: string, later: 
     const known = own && own.games !== null && own.winRate !== null ? own : null;
     return {
       title: `${i.name}${i.mana ? MANA : ''}: ${known ? winsIn(known.winRate!, known.games!) : `no numbers on ${label}`}`,
-      rate: known ? percent(known.winRate!) : 'by theme',
+      rate: known ? percent(known.winRate!) : '–',
     };
   }
   if (later)
@@ -571,7 +571,9 @@ function itemFacts(entry: BuildEntry, n: number, i: Item, label: string, later: 
   return { title: itemTitle(entry.build, n, i, 'en'), rate: own ? percent(own.winRate) : null };
 }
 
-type PushState = 'idle' | 'saving' | 'done' | 'failed' | 'example';
+type PushState = 'idle' | 'saving' | 'done' | 'failed' | 'refused' | 'example';
+/** Rust's answer when the set itself does not fit (`mayhem_item_set`), not the client. */
+const NOT_A_SET = 'This build cannot be an item set.';
 const DAMAGE: Record<string, string> = { phys: 'Physical', magic: 'Magic', true: 'True' };
 
 /**
@@ -597,13 +599,16 @@ function BuildDetail({
   const save = () => {
     if (sample) return setPush('example');
     setPush('saving');
-    void pushItemSet(view.championId, set).then((ok) => setPush(ok === true ? 'done' : 'failed'));
+    void pushItemSet(view.championId, set).then((ok) =>
+      setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed'),
+    );
   };
   const said: Record<PushState, string> = {
     idle: '',
     saving: 'Saving …',
     done: `Saved as "Mayhem: ${set.name}" in your item sets.`,
     failed: 'Could not save the build. Is the League client open?',
+    refused: 'This build does not fit into an item set.',
     example: 'Mock: nothing is saved in the preview.',
   };
   const theme = entry.kind === 'combo' ? themeOf(entry.combo.theme) : undefined;
@@ -680,11 +685,11 @@ function BuildDetail({
       {entry.kind === 'combo' && (
         <ul className="mayhem-best">
           {entry.combo.augments.map((a) => (
-            <li key={a.id} title={winsIn(a.winRate, a.games)}>
+            // No augment win rates here (Riot: products must not show win rates for Augments).
+            <li key={a.id} title={`${a.name}: ${games(a.games)} with ${label}`}>
               <AugmentIcon rarity={a.rarity} image={a.image} />
               <span className="mayhem-aug-name">{a.name}</span>
               <span className="mayhem-facts">
-                <b>{percent(a.winRate)}</b>
                 <span>{games(a.games)}</span>
               </span>
             </li>

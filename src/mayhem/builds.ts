@@ -7,6 +7,7 @@ import {
   DIRECTION_LABEL,
   isOffmeta,
   itemSetOf,
+  SET_MORE,
   type BuildPick,
   type BuildPlan,
   type ChampView,
@@ -56,6 +57,8 @@ export type BuildEntry =
 
 /** Longest set name (Rust `mayhem_item_set` takes 1–60 characters). */
 export const SET_NAME = 60;
+/** Longest core of an item set (Rust `set_of` takes 1–6 items). */
+const SET_CORE = 6;
 
 const BARE = new Set(Object.values(DIRECTION_LABEL).map((l) => l.toLowerCase()));
 const ids = (items: Item[]) => items.map((i) => i.id).sort((a, b) => a - b);
@@ -205,10 +208,12 @@ export function itemSetFor(
   const allBoots = new Set((view.extra?.boots ?? []).flatMap((b) => b.items.map((i) => i.id)));
   const boots = set.core.some((id) => allBoots.has(id)) ? [] : set.boots;
   const name = [...entry.name.replace(/\p{Cc}/gu, '').trim()].slice(0, SET_NAME).join('');
+  // Rust takes a core of at most SET_CORE items; a longer one goes on in the next block.
+  const more = [...set.core.slice(SET_CORE), ...set.more].filter((id) => !boots.includes(id));
   return {
     name: name || 'Build',
-    core: set.core,
+    core: set.core.slice(0, SET_CORE),
     boots,
-    more: set.more.filter((id) => !boots.includes(id)),
+    more: more.slice(0, SET_MORE),
   };
 }
