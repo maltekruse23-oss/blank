@@ -132,7 +132,7 @@ dependencies = [
 
 [[package]]
 name = "blank"
-version = "0.10.3"
+version = "0.11.0"
 dependencies = [
  "futures-util",
  "hidapi",

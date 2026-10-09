@@ -8,11 +8,12 @@
 
 ## New in the Mayhem app
 
-- **Rank page:** See how all players are spread across the ranks, your ladder rank (with top %), your peak rank and your MP over time.
-- **Player cards:** Now show ladder rank and peak rank too.
-- **Home:** Only shows things about you; the general tier lists live under Augments and Champions.
-- **Always up to date:** Rank, players and records refresh on their own while the window is open, without flickering.
-- **Champ:** The Champ tab only appears when a champ select starts, and the app jumps right to it.
+- **Pick your champion:** In ARAM Mayhem's card phase the app jumps to Champ and shows the champions you were dealt, with their tier and win rate. Click one to pick it in the client.
+- **Builds:** One list of builds for your champion: meta first, then offmeta, the best ones on top. Click a build to see its items, boots, spells and damage.
+- **Push build:** Saves the chosen build as an item set ("Mayhem: …") in the League client, ready in the shop. Your own item sets stay untouched.
+- **Champ page:** No more AP/AD/Tank switch; the best augments are a small row at the top.
+- **Home:** Your last 20 games as a win/loss strip, your places in the records, your best champions and how you compare with everyone.
+- **Rank:** A cleaner rank card with a chart of the ranks you went through, and the rank distribution as a bar chart.
 
 ## Download
 

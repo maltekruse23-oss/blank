@@ -1,6 +1,6 @@
 [package]
 name = "blank"
-version = "0.10.3"
+version = "0.11.0"
 description = "Private desktop workspace"
 authors = ["blank contributors"]
 license = "AGPL-3.0-only"
