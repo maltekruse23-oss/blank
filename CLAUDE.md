@@ -57,6 +57,16 @@ Private Windows-App. Stack: Tauri **2**, React, TypeScript (strict), Vite, pnpm.
 - Lockfile behalten; Cargo.lock bei der ersten erfolgreichen nativen Auflösung erzeugen und für die App versionieren.
 - README/VALIDATION bei geänderter Architektur oder neuem Prüfstand aktualisieren. Blockierte Prüfungen ehrlich benennen.
 
+## Plugins (Projekt-Scope, `.claude/settings.json`)
+
+Aktiv aus `claude-plugins-official`: frontend-design, plugin-dev, feature-dev, security-guidance, code-review, explanatory-output-style. Regeln (Benutzerwunsch 09.10.2026):
+
+1. Das eigene Design-System im Repo (`src/design/`, `MAYHEM-DESIGN.md`, die Regeln oben) hat immer Vorrang vor allgemeinen Design-Vorschlägen aus Plugins.
+2. Neue Features (z. B. After-Game-Karte, englische Website) mit feature-dev angehen: erst Code verstehen, Plan zeigen, dann bauen.
+3. Vor jedem Merge code-review laufen lassen und dem Benutzer das Ergebnis in einfachen Worten erklären.
+4. Bei allem, was Spielerdaten oder den Server betrifft, auf security-guidance achten.
+5. Dem Benutzer kurz und ohne Fachjargon erklären, was gebaut wurde und warum – er programmiert nicht selbst.
+
 ## Noch nicht umgesetzt
 
 League-Client über die ARAM-Rangliste hinaus (umgesetzt: nur lesend in `aram.rs`), Live-Spieldaten, Riots Web-API, Bluetooth und weitere HID-Geräte (umgesetzt: nur lesende Akkuabfrage für Logitech HID++ und HyperX Cloud Alpha Wireless in `battery.rs`, der Leerzustand nennt sie – `SUPPORTED_DEVICES`; nie Einstellungen an Geräten schreiben), PC-Temperaturen und -Sensoren über Zusatztreiber (umgesetzt: Auslastung von CPU, RAM, Grafikkarte und Systemlaufwerk sowie Programme mit der meisten Last in `pc.rs`, nur lesend), Installer, Signierung, weitere Accounts oder Twitch-Scopes und weitere Secret-Speicher. Nicht eigenständig ergänzen.

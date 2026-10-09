@@ -3,6 +3,10 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Plugins im Projekt — 09.10.2026
+
+- Benutzerauftrag: feature-dev, security-guidance, code-review, explanatory-output-style aus `claude-plugins-official` im Projekt-Scope (`.claude/settings.json`, neben frontend-design und plugin-dev). Arbeitsregeln dazu in CLAUDE.md „Plugins“ (Design-System vor Plugin-Vorschlägen, feature-dev für neue Features, code-review vor jedem Merge mit einfacher Erklärung, security-guidance bei Spielerdaten/Server, Erklärungen ohne Fachjargon).
+
 ## Mayhem-App: Karte nach dem Spiel — 08.10.2026
 
 - ROADMAP „Als Nächstes 0“, Benutzerwunsch 08.10.2026 „eine After-Game-Card auch mit einbauen wie bei blank“. Gebaut im PR `claude/mayhem-karte`, nicht gemergt; der Test mit einem echten Spiel fehlt (VALIDATION).
