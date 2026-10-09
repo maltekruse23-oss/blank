@@ -5,7 +5,7 @@
 import { isTauri } from '@tauri-apps/api/core';
 import { readOwnRanks, readPlayer, type OwnRanks } from '../adapters/aramSite';
 import { gradeOf, type Grade } from '../features/aram/aramPerformance';
-import type { Rank, Step } from '../features/aram/aramRating';
+import { TIERS, type Rank, type Step } from '../features/aram/aramRating';
 import { parseBoard, parseProfile, type Ranked } from '../features/aram/aramSite';
 import { ladderPlace } from '../features/aram/RankHistory';
 import { MOCK_STATE } from './mock';
@@ -36,9 +36,15 @@ export type MeView = {
   average: Grade | null;
   place: number | null;
   top: number | null;
+  /** Ranked players on the whole leaderboard (the ladder rank's share); null without a place. */
+  ranked: number | null;
+  /** The highest rank reached: current, after any game or at a season's end. */
+  peak: Rank | null;
   /** The most played champion. */
-  main: (Champ & { games: number; wins: number; grade: Grade }) | null;
-  best: { damage: number | null; kills: number | null };
+  /** `skin`: the one in its latest game (the player card's background), when the website knows it. */
+  main: (Champ & { games: number; wins: number; grade: Grade; skin?: number }) | null;
+  /** `game`: the one with the highest grade (the player card's best performance). */
+  best: { damage: number | null; kills: number | null; game: (MeGame & { damage: number }) | null };
   /** The ladder after each of the last games, oldest first (the MP curve). */
   curve: number[];
   /** Every rated game, newest first (Match history; Home and Rank show the first few). */
@@ -71,6 +77,8 @@ export type MeState =
       siteId: string | null;
       me: MeView | null;
       ladder: LadderRow[];
+      /** Every ranked player's rank (the distribution, the player card's place). */
+      board: BoardRow[];
       /** Two places above and below the player (Home); empty when not on the ladder. */
       around: LadderRow[];
       mock: boolean;
@@ -86,8 +94,11 @@ const max = (values: unknown[]) => {
   return ok.length ? Math.max(...ok) : null;
 };
 
+/** What the distribution and the player card's place need of the whole leaderboard. */
+export type BoardRow = Pick<Ranked, 'siteId' | 'rank'>;
+
 /** The player's numbers from their profile; `board` gives the place among everyone. */
-export function meView(profile: Ranked, board: Ranked[]): MeView {
+export function meView(profile: Ranked, board: BoardRow[]): MeView {
   const history = profile.history;
   const alias = (v: unknown) => (typeof v === 'string' && ALIAS.test(v) ? v : null);
   const champ = (e: (typeof history)[number]['entry']): Champ => ({
@@ -95,6 +106,16 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
     alias: alias(e.champion),
     name: e.championName,
   });
+  const game = (s: Step): MeGame => ({
+    ...champ(s.entry),
+    gameId: s.entry.gameId,
+    win: s.entry.win,
+    kda: `${s.entry.kills}/${s.entry.deaths}/${s.entry.assists}`,
+    at: s.entry.at,
+    grade: s.mark.grade,
+    gain: s.gain,
+  });
+  const top = history.reduce<Step | null>((b, s) => (!b || s.mark.pct > b.mark.pct ? s : b), null);
   // By id: games of the archive come without champion names (withChampions names them).
   const byChamp = new Map<number, typeof history>();
   for (const s of history) {
@@ -111,6 +132,7 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
       games: games.length,
       wins: games.filter((s) => s.entry.win).length,
       grade: gradeOf(pct),
+      skin: games[games.length - 1]!.entry.skin,
     };
   }
   const place = profile.siteId
@@ -119,6 +141,11 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
         profile.siteId,
       )
     : null;
+  const peak = [
+    profile.rank,
+    ...history.map((s) => s.after),
+    ...profile.seasons.map((s) => s.rank),
+  ].reduce<Rank | null>((b, r) => (r && (!b || r.ladder > b.ladder) ? r : b), null);
   return {
     rank: profile.rank,
     placed: profile.placed,
@@ -127,21 +154,16 @@ export function meView(profile: Ranked, board: Ranked[]): MeView {
     average: profile.average?.grade ?? null,
     place: profile.rank ? (place?.place ?? null) : null,
     top: profile.rank ? (place?.top ?? null) : null,
+    ranked: profile.rank && place ? board.filter((p) => p.rank).length : null,
+    peak,
     main,
     best: {
       damage: max(history.map((s) => s.entry.damage)),
       kills: max(history.map((s) => s.entry.kills)),
+      game: top && { ...game(top), damage: top.entry.damage },
     },
     curve: history.slice(-CURVE).flatMap((s) => (s.after ? [s.after.ladder] : [])),
-    recent: [...history].reverse().map((s) => ({
-      ...champ(s.entry),
-      gameId: s.entry.gameId,
-      win: s.entry.win,
-      kda: `${s.entry.kills}/${s.entry.deaths}/${s.entry.assists}`,
-      at: s.entry.at,
-      grade: s.mark.grade,
-      gain: s.gain,
-    })),
+    recent: [...history].reverse().map(game),
     history,
   };
 }
@@ -165,7 +187,12 @@ function namedView(
     const known = champions.find((k) => k.id === c.championId);
     return { ...c, name: known?.name ?? '–', alias: c.alias ?? known?.alias ?? null };
   };
-  return { ...view, main: view.main && named(view.main), recent: view.recent.map(named) };
+  return {
+    ...view,
+    main: view.main && named(view.main),
+    best: { ...view.best, game: view.best.game && named(view.best.game) },
+    recent: view.recent.map(named),
+  };
 }
 
 /** Another player's card (PlayerCard.tsx): their profile on mayhemstats.lol. */
@@ -179,7 +206,7 @@ export type PlayerState =
 /** The answer of mayhem_player; `board` gives the place among everyone (empty: none). */
 export function playerState(
   text: string | null,
-  board: Ranked[],
+  board: BoardRow[],
   champions: readonly { id: number; name: string; alias: string }[],
 ): PlayerState {
   if (!text) return { state: 'missing' };
@@ -201,10 +228,11 @@ export const loadPlayer = (
   id: string,
   name: string,
   champions: readonly { id: number; name: string; alias: string }[],
+  board: BoardRow[],
 ): Promise<PlayerState> =>
   isTauri()
     ? readPlayer(id).then(
-        (text) => playerState(text, [], champions),
+        (text) => playerState(text, board, champions),
         (): PlayerState => ({ state: 'failed' }),
       )
     : Promise.resolve(
@@ -239,6 +267,13 @@ export function aroundOf(board: Ranked[], siteId: string | undefined): LadderRow
     me: p.siteId === siteId,
     icon: p.icon ?? null,
   }));
+}
+
+/** How many ranked players stand in each tier, lowest first (the Rank page's distribution). */
+export function distributionOf(board: BoardRow[]) {
+  const counts = TIERS.map((tier) => ({ tier, players: 0 }));
+  for (const p of board) if (p.rank) counts.find((c) => c.tier.id === p.rank!.tier.id)!.players += 1;
+  return counts;
 }
 
 /** The MP curve's box (an SVG viewBox). */
@@ -282,6 +317,7 @@ export function ownState(answer: OwnRanks | null): MeState {
       siteId: profile?.siteId ?? null,
       me: profile && meView(profile, board),
       ladder: ladderOf(board, profile?.siteId),
+      board: board.map((p) => ({ siteId: p.siteId, rank: p.rank })),
       around: aroundOf(board, profile?.siteId),
       mock: false,
     };

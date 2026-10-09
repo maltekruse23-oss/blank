@@ -3,7 +3,16 @@ import type { AramEntry } from '../adapters/aram';
 import { standings } from '../features/aram/aramRating';
 import { parseBoard } from '../features/aram/aramSite';
 import { open, summary } from '../../apps/mayhem-site/src/summary';
-import { ago, aroundOf, curvePath, ladderOf, ownState, playerState, withChampions } from './me';
+import {
+  ago,
+  aroundOf,
+  curvePath,
+  distributionOf,
+  ladderOf,
+  ownState,
+  playerState,
+  withChampions,
+} from './me';
 
 // The Mayhem app's player (me.ts): the website's answers, in the form it sends them
 // (apps/mayhem-site/src/summary.ts), become what Home and Rang show.
@@ -96,11 +105,28 @@ describe('Mayhem app player', () => {
     expect(me.rank).toEqual(local.rank);
     expect([me.games, me.wins]).toEqual([8, local.wins]);
     expect(me.main).toMatchObject({ name: 'Ahri', alias: 'Ahri', games: 5 });
-    expect(me.best).toEqual({ damage: 37_000, kills: 8 });
+    // The best performance is the game with the highest grade, with its damage.
+    const top = local.history.reduce((b, s) => (s.mark.pct > b.mark.pct ? s : b));
+    expect(me.best).toEqual({
+      damage: 37_000,
+      kills: 8,
+      game: expect.objectContaining({
+        gameId: top.entry.gameId,
+        grade: top.mark.grade,
+        damage: top.entry.damage,
+      }),
+    });
     expect(me.recent.map((g) => g.gameId)).toEqual([107, 106, 105, 104, 103, 102, 101, 100]);
     expect(me.recent[0]).toMatchObject({ name: 'Brand', kda: '8/6/20' });
     expect(me.curve.length).toBeGreaterThan(0);
     expect(state.ladder.find((r) => r.me)).toMatchObject({ name: 'me#EUW', icon: 7 });
+    // Ladder rank out of every ranked player, the peak never below the current rank.
+    expect(me.ranked).toBe(state.board.filter((p) => p.rank).length);
+    expect(me.peak!.ladder).toBeGreaterThanOrEqual(me.rank!.ladder);
+    // The distribution counts every ranked player once.
+    const counts = distributionOf(state.board);
+    expect(counts.map((c) => c.tier.id)).toEqual(['d', 'c', 'b', 'a', 's', 'ss', 'sss', 'mayhem']);
+    expect(counts.reduce((t, c) => t + c.players, 0)).toBe(me.ranked);
   });
 
   it('opens any player card from their profile, not listed and broken as own states', () => {
@@ -146,6 +172,7 @@ describe('Mayhem app player', () => {
     expect(state.state === 'ready' && state.me?.best.damage).toBeNull();
     // Without the leaderboard there is no place.
     expect(state.state === 'ready' && state.me?.place).toBeNull();
+    expect(state.state === 'ready' && state.me?.ranked).toBeNull();
   });
 
   it('turns answers it cannot trust into an error', () => {

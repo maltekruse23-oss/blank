@@ -167,15 +167,20 @@ button {
 /* The frameless window's own bar (WindowBar.tsx): empty space drags the window, the three buttons
    sit top right like Windows' own, close turns red. */
 .mayhem-body {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   min-width: 0;
 }
 
+/* Lies over the content (user 09.10.2026: "oben zu wenig Platz für nix"), so the page title
+   starts at the top, level with the buttons. */
 .mayhem-windowbar {
+  position: absolute;
+  z-index: 5;
+  inset: 0 0 auto;
   display: flex;
-  flex: none;
   justify-content: flex-end;
   height: 34px;
 }
@@ -220,8 +225,7 @@ button {
   max-width: 1680px;
   min-height: 100%;
   margin: 0 auto;
-  /* The window bar above already gives 34 px. */
-  padding: 4px clamp(24px, 2.4vw, 44px) 48px;
+  padding: 14px clamp(24px, 2.4vw, 44px) 48px;
 }
 
 @media (min-width: 1700px) {
@@ -1132,6 +1136,8 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  /* Keeps the side items clear of the window buttons (3 × 46 px) above. */
+  padding-right: 120px;
 }
 
 .mayhem-page-head h1 {
@@ -1591,6 +1597,76 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   color: var(--muted);
 }
 
+/* Rank page and player card: ladder rank and peak (RankFacts), the MP curve under the rank card. */
+.mayhem-rank {
+  flex-wrap: wrap;
+}
+
+.mayhem-rank-curve {
+  flex-basis: 100%;
+}
+
+.mayhem-rank-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 10px 0 0;
+}
+
+.mayhem-rank-more dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.mayhem-rank-more dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+
+.mayhem-rank-more small {
+  font: 400 12px var(--font-mono);
+  color: var(--muted);
+}
+
+/* Rank distribution: one row per tier, highest first, the player's tier marked. */
+.mayhem-distribution {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-distribution li {
+  display: grid;
+  grid-template-columns: 26px 64px 1fr 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.mayhem-distribution li[data-me='true'] {
+  background: rgba(242, 193, 78, 0.12);
+}
+
+.mayhem-distribution .mayhem-bar {
+  margin-top: 0;
+}
+
+.mayhem-distribution li:not([data-me='true']) .mayhem-bar span {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: none;
+}
+
+.mayhem-distribution small {
+  text-align: right;
+  font: 400 12px var(--font-mono);
+  color: var(--muted);
+}
+
 .mayhem-bar {
   height: 6px;
   margin-top: 8px;
@@ -1850,6 +1926,8 @@ li[data-place='3'] .mayhem-place {
   grid-template-columns: minmax(0, 1fr) minmax(320px, 28%);
   gap: 18px;
   align-items: start;
+  /* The rank card top right would sit under the window buttons. */
+  margin-top: 22px;
 }
 
 .mayhem-bento .mayhem-ladder {
@@ -2009,34 +2087,22 @@ li[data-place='3'] .mayhem-place {
   color: var(--accent);
 }
 
-/* Home's rows of cards fill exactly one row: wider windows show more cards, the rest stays out
+/* Home's row of game cards fills exactly one row: wider windows show more cards, the rest stays out
    (display: none, so no hidden card takes keyboard focus). */
-.mayhem-mini-grid,
 .mayhem-game-cards {
-  --n: 4;
+  --n: 3;
   display: grid;
   grid-template-columns: repeat(var(--n), minmax(0, 1fr));
   gap: 12px;
 }
 
-.mayhem-game-cards {
-  --n: 3;
-}
-
-.mayhem-mini-grid > :nth-child(n + 5),
 .mayhem-game-cards > :nth-child(n + 4) {
   display: none;
 }
 
 @container home (min-width: 900px) {
-  .mayhem-mini-grid {
-    --n: 5;
-  }
   .mayhem-game-cards {
     --n: 4;
-  }
-  .mayhem-mini-grid > :nth-child(5) {
-    display: grid;
   }
   .mayhem-game-cards > :nth-child(4) {
     display: block;
@@ -2044,14 +2110,8 @@ li[data-place='3'] .mayhem-place {
 }
 
 @container home (min-width: 1080px) {
-  .mayhem-mini-grid {
-    --n: 6;
-  }
   .mayhem-game-cards {
     --n: 5;
-  }
-  .mayhem-mini-grid > :nth-child(6) {
-    display: grid;
   }
   .mayhem-game-cards > :nth-child(5) {
     display: block;
@@ -2059,101 +2119,12 @@ li[data-place='3'] .mayhem-place {
 }
 
 @container home (min-width: 1260px) {
-  .mayhem-mini-grid {
-    --n: 7;
-  }
   .mayhem-game-cards {
     --n: 6;
-  }
-  .mayhem-mini-grid > :nth-child(7) {
-    display: grid;
   }
   .mayhem-game-cards > :nth-child(6) {
     display: block;
   }
-}
-
-/* A small augment tile lit from below in its rarity. */
-.mayhem-mini {
-  --glow: rgba(255, 200, 90, 0.8);
-  --ring: var(--accent);
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  display: grid;
-  align-content: end;
-  justify-items: start;
-  gap: 2px;
-  height: 168px;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  background: var(--surface);
-  color: var(--text);
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  transition:
-    transform var(--slow) var(--ease),
-    border-color var(--slow) var(--ease);
-}
-
-.mayhem-mini[data-rarity='prismatic'] {
-  --glow: rgba(120, 220, 255, 0.8);
-  --ring: var(--prisma);
-}
-
-.mayhem-mini[data-rarity='silver'] {
-  --glow: rgba(235, 240, 248, 0.6);
-  --ring: var(--silver);
-}
-
-.mayhem-mini::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: -15%;
-  right: -15%;
-  bottom: -70%;
-  height: 110%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, var(--glow), transparent);
-  filter: blur(24px);
-  transition: transform var(--slow) var(--ease);
-}
-
-.mayhem-mini:hover {
-  transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.mayhem-mini:hover::before {
-  transform: scale(1.12);
-}
-
-.mayhem-mini .mayhem-aug-card-icon {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-}
-
-.mayhem-aug-card-icon.small {
-  width: 44px;
-  height: 44px;
-}
-
-.mayhem-aug-card-icon.small img {
-  width: 40px;
-  height: 40px;
-}
-
-.mayhem-mini b {
-  font-weight: 700;
-}
-
-.mayhem-mini small {
-  font: 400 12px var(--font-mono);
-  color: var(--up);
 }
 
 .mayhem-game-card {
@@ -3332,19 +3303,45 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-player {
   position: relative;
+  z-index: 0;
+  isolation: isolate;
   display: grid;
   gap: 16px;
-  width: min(520px, 100%);
+  width: min(720px, 100%);
+  min-height: min(560px, calc(100vh - 32px));
+  align-content: start;
   max-height: calc(100vh - 32px);
   overflow-y: auto;
-  padding: 22px;
+  padding: 28px;
+}
+
+/* The most played champion (in their latest skin) behind the card, fading out to the bottom left. */
+.mayhem-player-splash {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto auto;
+  width: 100%;
+  height: 360px;
+  object-fit: cover;
+  object-position: 70% 20%;
+  opacity: 0.5;
+  mask-image:
+    linear-gradient(to left, #000 30%, transparent), linear-gradient(#000 45%, transparent);
+  mask-composite: intersect;
+  pointer-events: none;
 }
 
 .mayhem-player-head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  display: grid;
+  gap: 6px;
+  min-height: 120px;
+  align-content: end;
   padding-right: 44px;
+}
+
+.mayhem-player-head h2 {
+  margin: 0;
+  font: 800 30px var(--font-title);
 }
 
 .mayhem-player-head h2 small {
@@ -3359,6 +3356,44 @@ li[data-place='3'] .mayhem-place {
   vertical-align: middle;
 }
 
+.mayhem-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Fun tags (tags.ts): the tone's colour as text, a faint fill and border of it. */
+.mayhem-tag {
+  --tag: var(--accent);
+  padding: 3px 10px;
+  border: 1px solid color-mix(in oklab, var(--tag) 35%, transparent);
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--tag) 16%, transparent);
+  color: var(--tag);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: default;
+}
+
+.mayhem-tag[data-tone='green'] {
+  --tag: var(--up);
+}
+.mayhem-tag[data-tone='red'] {
+  --tag: var(--down);
+}
+.mayhem-tag[data-tone='blue'] {
+  --tag: var(--prisma);
+}
+.mayhem-tag[data-tone='purple'] {
+  --tag: var(--grade-ss);
+}
+.mayhem-tag[data-tone='pink'] {
+  --tag: var(--grade-mayhem);
+}
+
 .mayhem-player-head .mayhem-button {
   margin-top: 8px;
 }
@@ -3367,13 +3402,9 @@ li[data-place='3'] .mayhem-place {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-row);
-  background: var(--panel);
 }
 
-.mayhem-player-main > span {
+.mayhem-player-main > span:not(.mayhem-grade-mark) {
   display: grid;
   flex: 1;
 }
@@ -3387,7 +3418,51 @@ li[data-place='3'] .mayhem-place {
   font: 400 12px var(--font-mono);
 }
 
-.mayhem-player-games h3 {
-  margin: 0 0 10px;
-  font: 700 14px var(--font-title);
+.mayhem-player-box {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-row);
+  background: var(--panel);
+}
+
+.mayhem-player-box h3 {
+  margin: 0;
+  font: 700 16px var(--font-title);
+}
+
+.mayhem-player-rank {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.mayhem-player-rank > div {
+  flex: 1;
+}
+
+.mayhem-player-rank .mayhem-bar {
+  display: block;
+  height: 8px;
+  margin: 10px 0 8px;
+}
+
+.mayhem-player-rank-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mayhem-player-rank-line > span:last-child {
+  color: var(--muted);
+  font: 600 14px var(--font-mono);
+}
+
+.mayhem-player-curve {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }

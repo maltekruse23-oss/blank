@@ -33,7 +33,7 @@ import {
   RankPage,
   type TierState,
 } from './pages';
-import { loadMe, withChampions, type MeState } from './me';
+import { loadMe, withChampions, type BoardRow, type MeState } from './me';
 import { loadRecords, type RecordCard } from './records';
 import { RecordsPage } from './RecordsPage';
 import { loadTiers, type TierChampion } from './tiers';
@@ -43,6 +43,8 @@ import { WindowBar } from './WindowBar';
 // The app's own icon (mayhem.ico is made from the same file), so the logo and the EXE match.
 import logo from '../../src-tauri/icons/mayhem.svg';
 
+/** Stable while the leaderboard loads (the player card reloads when it changes). */
+const NO_BOARD: BoardRow[] = [];
 /** Stable while the lists load (the player card reloads when its champions change). */
 const NO_CHAMPIONS: TierChampion[] = [];
 
@@ -326,10 +328,8 @@ export function MayhemApp() {
             <div className="mayhem-wrap">
               {page === 'home' ? (
                 <HomePage
-                  tiers={tierState}
                   me={meShown}
                   onOpen={open}
-                  onAugment={toAugment}
                   onChampion={toChampion}
                   onRetry={fetchMe}
                   find={find}
@@ -433,6 +433,7 @@ export function MayhemApp() {
             <PlayerCard
               who={player}
               champions={lists?.champions ?? NO_CHAMPIONS}
+              board={me.state === 'ready' ? me.board : NO_BOARD}
               onClose={() => setPlayer(null)}
             />
           </Guard>

@@ -104,8 +104,25 @@ export const MOCK_STATE: MeState = {
     average: 'S',
     place: 7,
     top: null,
+    ranked: LADDER.length,
+    peak: rank(6, null, 40),
     main: { championId: 12, alias: 'Alistar', name: 'Alistar', games: 28, wins: 19, grade: 'SS' },
-    best: { damage: 112_000, kills: 31 },
+    best: {
+      damage: 112_000,
+      kills: 31,
+      game: {
+        gameId: 3,
+        championId: 12,
+        alias: 'Alistar',
+        name: 'Alistar',
+        win: true,
+        kda: '8/2/31',
+        at: at(2),
+        grade: 'SSS',
+        gain: 28,
+        damage: 41_800,
+      },
+    },
     curve: [2010, 2032, 2025, 2051, 2070, 2064, 2091, 2110, 2132, 2160, 2188],
     recent: [
       {
@@ -145,6 +162,7 @@ export const MOCK_STATE: MeState = {
     ],
     history: [],
   },
+  board: LADDER.map((p) => ({ siteId: p.siteId, rank: p.rank })),
   ladder: LADDER.map((p, i) => ({ place: i + 1, ...p, me: p.name === 'Example#EUW' })),
   around: LADDER.slice(4, 9).map((p, i) => ({ place: i + 5, ...p, me: p.name === 'Example#EUW' })),
 };

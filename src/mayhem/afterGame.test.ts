@@ -273,6 +273,7 @@ describe('the game on the ladder', () => {
       siteId: null,
       me: null,
       ladder: [],
+      board: [],
       around: [],
       mock: false,
     };
