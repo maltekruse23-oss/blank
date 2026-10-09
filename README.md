@@ -3,7 +3,7 @@
 Stats and builds for League of Legends' ARAM Mayhem.
 
 - **[mayhemstats.lol](https://mayhemstats.lol):** leaderboard, records and tier lists in your browser.
-- **Mayhem app** for Windows: in champion select you click one of the champions you are dealt to pick it, then it shows your champion's best builds and every augment in tiers S to D; **Push build** saves the chosen build as an item set in the client. Also tier lists, combos and offmeta builds, and your rank from mayhemstats.lol. It only changes something in the League client when you click (your pick, the item set) and never touches your game.
+- **Mayhem app** for Windows: in champion select you click one of the champions you are dealt to pick it, then it shows your champion's best builds and every augment in tiers S to D; **Push build** saves the chosen build as an item set in the client and, in champ select, sets its summoner spells. Also tier lists, combos and offmeta builds, and your rank from mayhemstats.lol. It only changes something in the League client when you click (your pick, the item set) and never touches your game.
 
 ## Download
 

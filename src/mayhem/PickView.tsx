@@ -3,7 +3,7 @@
 // champion list, and a click picks that champion in the client (aram_live.rs). Only on a click,
 // nothing preselected, never automatic.
 import { useState } from 'react';
-import { championSplash, championSquare } from '../adapters/aram';
+import { championLoading, championSplash, championSquare } from '../adapters/aram';
 import { pickChampion, type HeldChamp } from '../adapters/aramChamp';
 import { percent, winsIn } from './format';
 import { PageHead, step } from './pages';
@@ -78,8 +78,11 @@ function PickCard({
 }) {
   const alias = champ.alias || entry?.alias || '';
   const name = entry?.name || champ.name || alias || `Champion ${champ.championId}`;
-  // The splash, else the square picture, else just the card.
-  const pictures = [championSplash(alias), championSquare(alias)].filter(Boolean) as string[];
+  // The tall loading art like the client's cards (user: the wide splash cut faces off), else the
+  // splash, else the square picture, else just the card.
+  const pictures = [championLoading(alias), championSplash(alias), championSquare(alias)].filter(
+    Boolean,
+  ) as string[];
   const [picture, setPicture] = useState(0);
   return (
     <li className="mayhem-in" style={step(index)}>
@@ -95,7 +98,7 @@ function PickCard({
         {pictures[picture] && (
           <img
             className="mayhem-pick-splash"
-            data-square={picture > 0 || undefined}
+            data-square={picture === pictures.length - 1 || undefined}
             src={pictures[picture]}
             alt=""
             onError={() => setPicture(picture + 1)}

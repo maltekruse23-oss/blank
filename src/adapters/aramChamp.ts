@@ -119,6 +119,13 @@ export const pushItemSet = (
       )
     : Promise.resolve('Mock');
 
+/** Mayhem app only, with "Push build": sets the build's two summoner spells in the champion select
+ * (Rust keeps a spell on the key it is on). Outside the app: 'Mock'. */
+export const pushSpells = (championId: number, spells: number[]) =>
+  isTauri() ? done(invoke('mayhem_spells', { championId, spells })) : Promise.resolve('Mock');
+/** Rust's answer outside a champion select with the champion held (`NOT_SELECTING`). */
+export const NOT_SELECTING = 'Spells can only be set in champ select.';
+
 /** `english`: item names in English (the Mayhem app); blank. keeps German. */
 export const readChampInfo = (championId: number, english = false): Promise<ChampInfo> =>
   invoke<ChampInfo>('aram_champ_info', { championId, version: DDRAGON_VERSION, english });

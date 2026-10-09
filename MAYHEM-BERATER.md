@@ -261,8 +261,8 @@ ist seit Etappe 3a gebaut (nur Anzeige, siehe unten).
 ## 6a. In den Client schreiben: Item-Set und Beschwörerzauber (Benutzerentscheidung, 06.10.2026)
 
 Stand 08.10.2026: gebaut in blank. (Etappe 2c, `aram_live.rs`), auf Windows mit echtem Client noch
-nicht geprüft. Seit 09.10.2026 schreibt auch die Mayhem-App, aber nur auf Klick, ohne Schalter
-und ohne Zauber (Punkt „Mayhem-App“ unten).
+nicht geprüft. Seit 09.10.2026 schreibt auch die Mayhem-App, aber nur auf Klick und ohne Schalter;
+seit 10.10.2026 setzt „Push build“ dabei auch die Zauber des Builds (Punkt „Mayhem-App“ unten).
 
 Die Regel „blank. schreibt nie in den Client“ gilt dafür nicht mehr. Beides hat einen eigenen
 Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Mayhem-Auswahl.
@@ -300,7 +300,11 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
   - **„Push build“** (`mayhem_item_set`): ein Set je Champion „Mayhem: <Build-Name>“ (Blöcke Core,
     Boots, Later), erkannt an `startedFrom` „mayhem“ plus fester uid des Champions, nie am Titel.
     Jeder Klick ersetzt nur dieses eigene Set; Sets des Benutzers und „blank. …“-Sets bleiben
-    unverändert. Schreiben nacheinander, nie automatisch.
+    unverändert. Schreiben nacheinander, nie automatisch. Mit demselben Klick (Benutzerwunsch
+    10.10.2026 „muss alles pushen auch summoners“, `mayhem_spells`) die beiden Zauber der besten
+    Paarung des Champions (arammeta, wie angezeigt): nur zwei verschiedene ARAM-Zauber, nur in einer
+    ARAM-Mayhem-Auswahl, solange dieser Champion gehalten wird (); ein Zauber,
+    der schon auf einer Taste liegt, bleibt dort (`keyed`). Außerhalb der Auswahl nur das Item-Set.
 - Abstimmung: Der Thread „Konkurrenz-Analyse“ plant den Lobby-Check; beide nutzen dieselbe
   Verbindung zur Champ-Auswahl (`aram_live.rs`).
 

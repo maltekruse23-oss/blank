@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mayhem-spells"
+description = "Enables the mayhem_spells command without any pre-configured scope."
+commands.allow = ["mayhem_spells"]
+
+[[permission]]
+identifier = "deny-mayhem-spells"
+description = "Denies the mayhem_spells command without any pre-configured scope."
+commands.deny = ["mayhem_spells"]
