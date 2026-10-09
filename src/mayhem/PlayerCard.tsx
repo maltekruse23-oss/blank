@@ -11,7 +11,7 @@ import { games, percent } from './format';
 import { loadPlayer, type PlayerState } from './me';
 import { MatchList, mpLine, rankImage, winLoss } from './pages';
 import type { TierChampion } from './tiers';
-import { GradeMark, Overlay } from './ui';
+import { GradeMark, Overlay, RETRY_MS, useRefresh } from './ui';
 
 /** A player as the app names them: the public id on mayhemstats.lol (`a123`) or a PUUID. */
 export type Who = { id: string; name: string };
@@ -67,6 +67,7 @@ export function PlayerCard({
       current = false;
     };
   }, [who.id, who.name, champions, ask]);
+  useRefresh(() => setAsk((n) => n + 1), got.state === 'failed' ? RETRY_MS : null);
   const close = useRef<HTMLButtonElement>(null);
   useEffect(() => close.current?.focus(), []);
   const me = got.state === 'ready' ? got.me : null;
