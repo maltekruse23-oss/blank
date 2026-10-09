@@ -219,6 +219,9 @@ export const championSplash = (alias: string, skin = 0) =>
   ALIAS.test(alias) && Number.isInteger(skin) && skin >= 0 && skin <= 999
     ? `${CDN}/img/champion/splash/${alias}_${skin}.jpg`
     : null;
+/** The tall loading-screen art (the client's champion cards use it): always centred on the champion. */
+export const championLoading = (alias: string) =>
+  ALIAS.test(alias) ? `${CDN}/img/champion/loading/${alias}_0.jpg` : null;
 /** How far below a chroma its skin may be (chromas follow their skin's number). */
 const CHROMA_STEPS = 12;
 

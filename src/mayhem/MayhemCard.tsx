@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { championSplash } from '../adapters/aram';
-import { openGuide, pushItemSet } from '../adapters/aramChamp';
+import { NOT_SELECTING, openGuide, pushItemSet, pushSpells } from '../adapters/aramChamp';
 import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
   assembledFacts,
@@ -596,12 +596,30 @@ function BuildDetail({
 }) {
   const set = useMemo(() => itemSetFor(entry, view), [entry, view]);
   const [push, setPush] = useState<PushState>('idle');
+  // The champion's best spell pair (shown below) goes with the build (user 10.10.2026: "muss alles
+  // pushen auch summoners"); the client takes spells only in its champion select.
+  const pair = view.extra?.spells[0]?.spells ?? [];
+  const [spellsSaid, setSpellsSaid] = useState('');
   const save = () => {
     if (sample) return setPush('example');
     setPush('saving');
+    setSpellsSaid('');
     void pushItemSet(view.championId, set).then((ok) =>
       setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed'),
     );
+    if (pair.length === 2)
+      void pushSpells(
+        view.championId,
+        pair.map((p) => p.id),
+      ).then((ok) =>
+        setSpellsSaid(
+          ok === true
+            ? `Spells set: ${pair.map((p) => p.name).join(' + ')}.`
+            : ok === NOT_SELECTING
+              ? 'Spells are only set in champ select.'
+              : 'Could not set the spells.',
+        ),
+      );
   };
   const said: Record<PushState, string> = {
     idle: '',
@@ -636,13 +654,13 @@ function BuildDetail({
             type="button"
             className="mayhem-button primary"
             disabled={push === 'saving'}
-            title="Saves this build as an item set in the League client. Your own item sets stay."
+            title="Saves this build as an item set in the League client and, in champ select, sets its summoner spells. Your own item sets stay."
             onClick={save}
           >
             Push build
           </button>
           <p className="mayhem-note" role="status">
-            {said[push]}
+            {[said[push], push === 'example' ? '' : spellsSaid].filter(Boolean).join(' ')}
           </p>
         </div>
       </header>

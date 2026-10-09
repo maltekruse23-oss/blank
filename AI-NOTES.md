@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: Karten mit Ladebild, „Push build“ setzt auch die Zauber — 10.10.2026
+
+- Live bestätigt vom Benutzer: die Kartenphase erscheint („Pick your champion“ mit echten Karten) und „Push build“ schreibt das Item-Set.
+- Karten (`PickView.tsx`): zuerst das hochkante Ladebild von Data Dragon (`championLoading`, wie die Karten im Client, immer auf den Champion zentriert; Benutzermeldung „nicht richtig gecentert“ beim breiten Splash), dann Splash, dann Quadrat.
+- „Push build“ setzt mit demselben Klick die Zauber der besten Paarung des Champions (Benutzerwunsch „muss alles pushen auch summoners“; `mayhem_spells` in `aram_live.rs`: nur zwei verschiedene ARAM-Zauber `ARAM_SPELLS`, nur in einer ARAM-Mayhem-Auswahl mit diesem Champion, `PATCH …/my-selection`; ein Zauber bleibt auf seiner Taste, `keyed`; außerhalb der Auswahl „Spells are only set in champ select.“, kein Fehlerlog). Registriert in build.rs, `capabilities/mayhem.json`, `mayhem.rs` (Tests). Nicht live geprüft: das Setzen der Zauber.
+
 ## Release 0.11.0 — 10.10.2026
 
 - Enthält Champion-Wahl aus den Karten, Build-Liste mit „Push build“, Home und Rang überarbeitet (#95). Englischer Abschnitt „New in the Mayhem app“ neu, deutscher Abschnitt unverändert (blank. pausiert, Umwandlungs-Hinweis bleibt).

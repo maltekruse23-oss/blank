@@ -13,7 +13,8 @@
 //! nothing else of blank.: no tray, popouts, settings or stored data (only ladder.rs's upload key
 //! in the Windows Credential Manager). It writes into the client only on the user's click (user's
 //! decision 09.10.2026, aram_live.rs): the pick of one of the dealt champion cards
-//! (`mayhem_pick_champion`) and the item set "Mayhem: <build>" (`mayhem_item_set`). blank. is
+//! (`mayhem_pick_champion`), the item set "Mayhem: <build>" (`mayhem_item_set`) and, with it, the
+//! build's summoner spells in the champion select (`mayhem_spells`, since 10.10.2026). blank. is
 //! paused: its update installs this app as blank.exe, which then cleans up after blank. once
 //! (from_blank.rs).
 //!
@@ -66,6 +67,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::game_card::mayhem_open_game,
             crate::aram::live::mayhem_pick_champion,
             crate::aram::live::mayhem_item_set,
+            crate::aram::live::mayhem_spells,
             crate::update::update_check,
             crate::update::update_install,
             crate::update::update_news,
@@ -205,9 +207,14 @@ mod tests {
         // The only writes into the client, each on the user's click (aram_live.rs).
         assert!(permissions.contains(&Value::from("allow-mayhem-pick-champion")));
         assert!(permissions.contains(&Value::from("allow-mayhem-item-set")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-spells")));
         // blank.'s main window never gets them.
         let blank = read("capabilities/default.json");
-        assert!(!blank.contains("mayhem-pick-champion") && !blank.contains("mayhem-item-set"));
+        assert!(
+            !blank.contains("mayhem-pick-champion")
+                && !blank.contains("mayhem-item-set")
+                && !blank.contains("mayhem-spells")
+        );
         // Exactly what the own window bar needs, nothing broader.
         let window: Vec<_> = permissions
             .iter()
@@ -247,10 +254,15 @@ mod tests {
             "mayhem-champ-offer",
             "mayhem_pick_champion",
             "mayhem_item_set",
+            "mayhem_spells",
         ] {
             assert!(adapter.contains(&format!("'{name}'")), "{name}");
         }
-        for command in ["fn mayhem_pick_champion", "fn mayhem_item_set"] {
+        for command in [
+            "fn mayhem_pick_champion",
+            "fn mayhem_item_set",
+            "fn mayhem_spells",
+        ] {
             assert!(live.contains(command), "{command}");
         }
         // "Find my Mayhem rank" (aram/ladder.rs).

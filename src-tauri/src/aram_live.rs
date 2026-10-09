@@ -833,6 +833,68 @@ pub async fn mayhem_item_set(
     result
 }
 
+/// Summoner spells of ARAM (Data Dragon ids): Cleanse, Exhaust, Flash, Ghost, Heal, Clarity,
+/// Ignite, Barrier, Snowball. Nothing else is set.
+const ARAM_SPELLS: [i64; 9] = [1, 3, 4, 6, 7, 13, 14, 21, 32];
+/// `mayhem_spells` outside a champion select with this champion held; the page says so itself.
+pub const NOT_SELECTING: &str = "Spells can only be set in champ select.";
+
+/// The pair on the user's keys: a spell they already have stays on its key (Flash on D stays on
+/// D), as blank.'s `spells_for` keeps Flash.
+fn keyed((d, f): (i64, i64), [a, b]: [i64; 2]) -> (i64, i64) {
+    if a == f || b == d {
+        (b, a)
+    } else {
+        (a, b)
+    }
+}
+
+/// "Push build" in the Mayhem app also sets the build's summoner spells (user 10.10.2026: "muss
+/// alles pushen auch summoners"): only on that click, only two different ARAM spells, only in an
+/// ARAM Mayhem champion select while the user holds this champion. The page shows its own words;
+/// the client's real reason goes to the error log.
+#[tauri::command]
+pub async fn mayhem_spells(champion_id: i64, spells: Vec<i64>) -> Result<(), String> {
+    let result = set_my_spells(champion_id, &spells).await;
+    if let Err(error) = &result {
+        if error != NOT_SELECTING {
+            crate::errors::record("Summoner spells", error);
+        }
+    }
+    result
+}
+
+/// Two different ARAM spells, else None.
+fn spell_pair(spells: &[i64]) -> Option<[i64; 2]> {
+    let &[a, b] = spells else {
+        return None;
+    };
+    (a != b && ARAM_SPELLS.contains(&a) && ARAM_SPELLS.contains(&b)).then_some([a, b])
+}
+
+async fn set_my_spells(champion_id: i64, spells: &[i64]) -> Result<(), String> {
+    let [a, b] = spell_pair(spells).ok_or("These are not two ARAM spells.")?;
+    let lcu = Lcu::connect()
+        .ok()
+        .flatten()
+        .ok_or("The League client is not open.")?;
+    // No champion select: the client answers 404.
+    let session: Value = lcu.get(SELECT).await.map_err(|_| NOT_SELECTING)?;
+    let cell = my_cell(&session)
+        .filter(|cell| cell.champion_id == champion_id)
+        .ok_or(NOT_SELECTING)?;
+    if !is_mayhem().await {
+        return Err(NOT_SELECTING.into());
+    }
+    let now = (cell.spell1_id, cell.spell2_id);
+    let want = keyed(now, [a, b]);
+    if want == now {
+        return Ok(());
+    }
+    let body = serde_json::json!({ "spell1Id": want.0, "spell2Id": want.1 });
+    lcu.send(reqwest::Method::PATCH, MY_SELECTION, &body).await
+}
+
 /// One pick at a time; a second click while one is on its way is refused.
 static PICKING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
@@ -1731,6 +1793,26 @@ mod tests {
             .unwrap()
             .iter()
             .any(|s| s["title"] == "Mayhem: Crit Warwick"));
+    }
+
+    #[test]
+    fn pushed_spells_keep_the_users_keys() {
+        // Flash on F stays on F, Flash on D stays on D.
+        assert_eq!(keyed((32, 4), [4, 32]), (32, 4));
+        assert_eq!(keyed((4, 32), [32, 4]), (4, 32));
+        assert_eq!(keyed((4, 7), [32, 4]), (4, 32));
+        assert_eq!(keyed((7, 4), [4, 32]), (32, 4));
+        // Neither spell on a key yet: in the build's order.
+        assert_eq!(keyed((7, 14), [32, 4]), (32, 4));
+        assert!(ARAM_SPELLS.contains(&32) && !ARAM_SPELLS.contains(&11));
+    }
+
+    #[test]
+    fn pushed_spells_need_two_different_aram_spells() {
+        assert_eq!(spell_pair(&[32, 4]), Some([32, 4]));
+        for odd in [vec![], vec![32], vec![32, 32], vec![32, 11], vec![32, 4, 7]] {
+            assert_eq!(spell_pair(&odd), None, "{odd:?}");
+        }
     }
 
     #[test]
