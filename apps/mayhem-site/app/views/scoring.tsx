@@ -5,7 +5,7 @@
 import type { Metadata } from 'next';
 import { climbing, gradeShares, RULES, seasonStarts, tiers, weights } from '../../src/explain';
 import { rankOf } from '../../src/features/aram/aramRating';
-import { GradeChip, GradeIcon, TierMark } from '../ui/bits';
+import { GradeChip, GradeMark, TierMark } from '../ui/bits';
 import { LOCALE } from '../ui/format';
 import { SectionTabs } from '../ui/section-tabs';
 
@@ -78,7 +78,7 @@ export default function HowItWorks() {
           <ol className="grade-scale">
             {grades.map((g) => (
               <li key={g.grade} data-g={g.grade}>
-                <GradeIcon grade={g.grade} size={48} />
+                <GradeMark grade={g.grade} size={48} />
                 <b>{g.grade}</b>
                 <span>{pct(g.share)}</span>
               </li>

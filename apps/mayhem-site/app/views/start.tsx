@@ -10,7 +10,7 @@ import { gradeShares } from '../../src/explain';
 import { recordText, type RecordView } from '../../src/records';
 import type { DayGame, StartView } from '../../src/start';
 import type { Placement, PlacesView } from '../../src/places';
-import { GradeChip, GradeIcon, Img, More, Problem, RankCell, TierMark, points, step } from '../ui/bits';
+import { GradeChip, GradeMark, Img, More, Problem, RankCell, TierMark, points, step } from '../ui/bits';
 import { meText, setMe, useMe, type Me } from '../ui/me';
 import { num, season, ago } from '../ui/format';
 import { Search } from '../ui/header';
@@ -235,7 +235,7 @@ function DayGameItem({ game: g, dragon, now, big, index }: { game: DayGame; drag
   return (
     <li className={big ? 'day-game big in' : 'day-game in'} data-g={g.grade} style={style}>
       <Link href={`/game/${g.gameId}?p=${encodeURIComponent(g.puuid)}`} aria-label={`${name}'s game with ${champion}, grade ${g.grade}`} title={`${num(g.damage)} damage`}>
-        <GradeIcon grade={g.grade} size={big ? 84 : 56} />
+        <GradeMark grade={g.grade} size={big ? 84 : 56} />
         <span className="who">
           <b>
             <span>{name}</span>

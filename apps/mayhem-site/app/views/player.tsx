@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import type { AramEntry } from '../../src/adapters/aram';
 import { rankName, seasonOf } from '../../src/features/aram/aramRating';
 import { AXES, badgesOf, championsOf, formLine, lobbyPerformances, mvpOf, radarOf } from '../../src/insights';
-import { Augment, fillOf, GradeChip, GradeIcon, Img, LadderChart, More, points, Problem, Radar, Sparkline, Tabs, TierMark, step } from '../ui/bits';
+import { Augment, fillOf, GradeChip, GradeMark, Img, LadderChart, More, points, Problem, Radar, Sparkline, Tabs, TierMark, step } from '../ui/bits';
 import {
   championImage,
   championKey,
@@ -266,7 +266,7 @@ function Match({ step: s, dragon, name, now, index }: { step: ProfileStep; drago
           </small>
         </span>
         <span className="grade-cell">
-          <GradeIcon grade={s.mark.grade} size={44} />
+          <GradeMark grade={s.mark.grade} size={44} />
           {s.gain === null ? (
             <small className="faint">{s.change === 'placed' ? 'Placed' : 'Placement'}</small>
           ) : (

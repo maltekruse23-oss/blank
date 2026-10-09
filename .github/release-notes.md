@@ -8,12 +8,9 @@
 
 ## New in the Mayhem app
 
-- **Update button:** Bottom left in the sidebar. It shows what a new version brings and installs it with one click.
-- **Champion select:** Hold a champion in ARAM Mayhem and the app shows its best builds and every augment in tiers S to D.
-- **Tier lists:** Augments, champions, items and patch changes from arammeta.com.
-- **Combos and offmeta builds:** Augments and items that work well together, for every champion.
-- **Your rank:** Your rank and the leaderboard from mayhemstats.lol.
-- **Records:** Who holds the records on mayhemstats.lol, all time or this season, with your own place.
+- **Player cards:** Click any player's name to see their rank, most played champion and last games.
+- **Records:** Every category shows right away, each place with a bar against the record.
+- **Home:** Bigger windows show more rows instead of empty space; your rank shows the two players above and below you.
 
 ## Download
 

@@ -1,5 +1,25 @@
 # Prüfstand — 22. September 2026 (native Windows-Prüfung)
 
+## Nachtrag 08.10.2026: Mayhem-App und Website schlanker
+
+- Noten als Buchstaben (App und Website), Items/Patch aus der App entfernt, Website ohne Item-Seiten (`/items…` → 308 `/tier-list`), Rang-Seite mit Rangliste zuerst und Profilsymbolen, Seite Matches, rahmenloses Fenster mit eigener Leiste, eigenes Icon `mayhem.svg`/`mayhem.ico` (auch Logo der App und Favicon der Website), Seitenleiste in drei Gruppen mit Strich.
+- Geprüft auf Windows: `pnpm test` (38 Dateien, 303 Tests), `pnpm lint`, `pnpm build`, `pnpm mayhem:web`, `prettier --check` der geänderten Dateien außerhalb `apps/`; `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` (prüft auch die Capability-Namen), `cargo test --lib`. Website: `npx tsc --noEmit`, `npm run lint` (nur die bekannte Warnung in `src/validation.ts`), `npm run build`, frische lokale D1 (0000–0006) + `node tests/smoke.mjs` grün (inkl. `/items`, `/items/3006`, `/de/items/3006` → 308 `/tier-list`).
+- `pnpm mayhem:build`: `mayhem.exe` trägt das neue Icon (mit `[System.Drawing.Icon]::ExtractAssociatedIcon` gelesen: Mitte Gold `#f2c14e`, Rand `#13151c`). `mayhem.ico` aus `mayhem.svg` mit `pnpm tauri icon src-tauri/icons/mayhem.svg -o <temp>` (enthält 16/24/32/48/64/256, kein 128). Danach `pnpm desktop:build`: `blank.exe` trägt weiter das schwarz-weiße `icon.ico` (gleich gelesen: grau/weiß).
+- Ansicht im Browser-Pane (Mock, 1280 × 820): Home (Noten als Buchstaben, „See all“ zu Matches), Rang (Rangliste mit Symbolen und eigener Zeile 7, rechts Rang-Karte und 5 Spiele), Matches (10, dann „Show 2 more“), Karte nach dem Spiel (`?card=legend`, Note SSS als Buchstabe). Bei 1024 × 660 passt die Seitenleiste mit beiden Strichen ohne Scrollen. Website lokal mit fünf erfundenen Spielern (danach D1 verworfen): `/leaderboard` bei 1280 und 390 px (Podest mit Symbol, am Handy ohne), Spielerseite, Spielseite; Kopfzeile ohne „Items“, neues Logo.
+- Nicht geprüft: das echte rahmenlose Fenster (Ziehen, Doppelklick, Rand-Größenänderung, Schatten/Ecken von Windows 11, Schließen beendet) – braucht einen sichtbaren Start von `mayhem.exe`; die Champ-Karte (braucht den League-Client, in der Vorschau nicht darstellbar); Klick auf ein Spiel in Matches mit echtem Profil; Taskleisten-Icon zur Laufzeit.
+
+## Nachtrag 08.10.2026: Mayhem-Custom-Spiele
+
+- Geprüft: Rust-Test `a_mayhem_custom_game_counts_as_mayhem` (Queue 2400, Custom mit Modus „KIWI“ in Queue oder Map, nie ARAM), clippy, cargo test.
+- Nicht geprüft: ein echtes Custom-Spiel – ob die Gameflow-Sitzung dort `map.gameMode` = „KIWI“ meldet (angenommen; der Spielverlauf nennt Mayhem-Spiele „KIWI“, gemessen 06.10.2026).
+
+## Nachtrag 08.10.2026: Website – Download der Mayhem-App
+
+- Block „Get the Mayhem app“ unter der Rangliste und unten auf `/join` (`apps/mayhem-site/app/ui/get-app.tsx`), Knopf auf `releases/latest/download/mayhem.exe`.
+- Geprüft auf Windows: Website `npx tsc --noEmit`, `npm run lint` (nur die bekannte Warnung in `src/validation.ts`), `npm run build`; frische lokale D1 (0000–0006): `node tests/smoke.mjs` grün. Repo: `pnpm test` (38 Dateien, 303 Tests), `pnpm lint`.
+- Ansicht (Browser-Pane gegen die lokale Vorschau, leere D1): `/leaderboard` und `/join` bei 1280 px (Text links, goldener Knopf rechts) und 390 px (Knopf unter dem Text), kein Querscrollen, Link zeigt auf `…/releases/latest/download/mayhem.exe`.
+- Nicht geprüft: der Download selbst von GitHub (nur der Link; beim Prüfen lief der Release-Ablauf v0.10.0 noch, neuestes Release war v0.9.2 ohne `mayhem.exe`) und die Ansicht mit gefüllter Rangliste.
+
 ## Nachtrag 08.10.2026: Karte nach dem Spiel in der Mayhem-App
 
 - Gebaut (ROADMAP „Als Nächstes 0“): nach jedem ARAM-Mayhem-Spiel ein Dialog in der Mayhem-App (`src-tauri/src/aram/game_card.rs`, `src/mayhem/afterGame.ts`, `src/mayhem/AfterGameView.tsx`), gespeist aus derselben Spielende-Erkennung wie „Find my Mayhem rank“. Ablauf: Spielstart → Rangliste der Website lesen (Riot-IDs) → Ende des Spielprozesses → EoG 60 × 1 s mit genau dieser Spiel-ID, sonst Spielverlauf → einmal `mayhem-card` → Rekorde `/api/rekorde` → Rang aus dem Spiel-Schritt des eigenen Profils, solange er fehlt fünf Nachfragen in etwa 2 min.

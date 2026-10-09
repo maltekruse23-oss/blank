@@ -3,7 +3,7 @@ import type { AramEntry } from '../adapters/aram';
 import { standings } from '../features/aram/aramRating';
 import { parseBoard } from '../features/aram/aramSite';
 import { open, summary } from '../../apps/mayhem-site/src/summary';
-import { ago, curvePath, ladderOf, ownState, withChampions } from './me';
+import { ago, aroundOf, curvePath, ladderOf, ownState, playerState, withChampions } from './me';
 
 // The Mayhem app's player (me.ts): the website's answers, in the form it sends them
 // (apps/mayhem-site/src/summary.ts), become what Home and Rang show.
@@ -97,10 +97,22 @@ describe('Mayhem app player', () => {
     expect([me.games, me.wins]).toEqual([8, local.wins]);
     expect(me.main).toMatchObject({ name: 'Ahri', alias: 'Ahri', games: 5 });
     expect(me.best).toEqual({ damage: 37_000, kills: 8 });
-    expect(me.recent.map((g) => g.gameId)).toEqual([107, 106, 105, 104, 103, 102]);
+    expect(me.recent.map((g) => g.gameId)).toEqual([107, 106, 105, 104, 103, 102, 101, 100]);
     expect(me.recent[0]).toMatchObject({ name: 'Brand', kda: '8/6/20' });
     expect(me.curve.length).toBeGreaterThan(0);
-    expect(state.ladder.find((r) => r.me)?.name).toBe('me#EUW');
+    expect(state.ladder.find((r) => r.me)).toMatchObject({ name: 'me#EUW', icon: 7 });
+  });
+
+  it('opens any player card from their profile, not listed and broken as own states', () => {
+    const card = playerState(profile('other'), [], []);
+    if (card.state !== 'ready') throw new Error(card.state);
+    expect(card).toMatchObject({ name: 'other#EUW', mock: false });
+    expect(card.me.main).toMatchObject({ name: 'Annie', games: 8 });
+    expect(card.me.recent).toHaveLength(8);
+    expect(playerState(null, [], [])).toEqual({ state: 'missing' });
+    expect(playerState('{"nope":1}', [], [])).toEqual({ state: 'failed' });
+    // Ladder rows carry the public id the card opens with.
+    expect(ladderOf(parseBoard(board), undefined)[0]!.siteId).toBeTruthy();
   });
 
   it('names the champions of archive games by id', () => {
@@ -143,8 +155,8 @@ describe('Mayhem app player', () => {
     expect(ownState({ name: 'x', board, me: JSON.stringify(text) }).state).toBe('failed');
   });
 
-  it('lists the top ten and the player below them', () => {
-    const many = Array.from({ length: 14 }, (_, i) => ({
+  it('lists the top hundred and the player below them', () => {
+    const many = Array.from({ length: 140 }, (_, i) => ({
       ...parseBoard(board)[0]!,
       siteId: `a${i + 1}`,
       name: `P${i + 1}`,
@@ -152,10 +164,19 @@ describe('Mayhem app player', () => {
       history: [],
       source: 'site' as const,
     }));
-    const rows = ladderOf(many, 'a13');
-    expect(rows.map((r) => r.place)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13]);
-    expect(rows.at(-1)).toMatchObject({ name: 'P13', me: true });
+    const rows = ladderOf(many, 'a130');
+    expect(rows.map((r) => r.place)).toEqual([
+      ...Array.from({ length: 100 }, (_, i) => i + 1),
+      130,
+    ]);
+    expect(rows.at(-1)).toMatchObject({ name: 'P130', me: true });
     expect(ladderOf(many, 'a2').filter((r) => r.me)).toHaveLength(1);
+    // Home: two places above and below, cut at both ends, nothing when not listed.
+    expect(aroundOf(many, 'a13').map((r) => r.place)).toEqual([11, 12, 13, 14, 15]);
+    expect(aroundOf(many, 'a1').map((r) => r.place)).toEqual([1, 2, 3]);
+    expect(aroundOf(many, 'a13').find((r) => r.me)?.name).toBe('P13');
+    expect(aroundOf(many, 'x9')).toEqual([]);
+    expect(aroundOf(many, undefined)).toEqual([]);
   });
 
   it('draws the MP curve from two games on', () => {

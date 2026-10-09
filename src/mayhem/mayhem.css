@@ -164,6 +164,55 @@ button {
   overflow-y: auto;
 }
 
+/* The frameless window's own bar (WindowBar.tsx): empty space drags the window, the three buttons
+   sit top right like Windows' own, close turns red. */
+.mayhem-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mayhem-windowbar {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  height: 34px;
+}
+
+.mayhem-window-buttons {
+  display: flex;
+}
+
+.mayhem-window-buttons button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: default;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.mayhem-window-buttons button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.mayhem-window-buttons button.close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+
+.mayhem-window-buttons button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 /* Wide windows (user 08.10.2026: maximized "sieht kacke aus"): the content takes the width up to
    about 1680 px and is centered beyond; grids gain columns (auto-fill), never denser rows; type
    and spacing grow a little in steps so 1920+ does not look tiny. */
@@ -171,7 +220,8 @@ button {
   max-width: 1680px;
   min-height: 100%;
   margin: 0 auto;
-  padding: 28px clamp(24px, 2.4vw, 44px) 48px;
+  /* The window bar above already gives 34 px. */
+  padding: 4px clamp(24px, 2.4vw, 44px) 48px;
 }
 
 @media (min-width: 1700px) {
@@ -645,6 +695,31 @@ button {
   --c: var(--grade-mayhem);
 }
 
+/* A grade as a bold letter (GradeMark in ui.tsx): one box per size, longer grades smaller. */
+.mayhem-grade.mayhem-grade-mark {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--size);
+  height: var(--size);
+  font: 800 calc(var(--size) * 0.62) / 1 var(--font-title);
+  letter-spacing: -0.03em;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 calc(var(--size) * 0.3) color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+.mayhem-grade-mark[data-len='2'] {
+  font-size: calc(var(--size) * 0.46);
+}
+
+.mayhem-grade-mark[data-len='3'] {
+  font-size: calc(var(--size) * 0.34);
+}
+
+.mayhem-grade-mark[data-len='4'] {
+  font-size: calc(var(--size) * 0.22);
+}
+
 /* The augment's picture with a ring in its rarity; its row glows in the same color. */
 .mayhem-aug-icon {
   --rarity: var(--line-strong);
@@ -843,23 +918,27 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   flex-shrink: 0;
 }
 
+/* The app icon itself (src-tauri/icons/mayhem.svg, also mayhem.ico). */
 .mayhem-logo {
-  display: grid;
-  place-items: center;
+  display: block;
   width: 40px;
   height: 40px;
   margin-bottom: 18px;
-  border: 1px solid rgba(242, 193, 78, 0.35);
-  border-radius: 12px;
-  background: var(--panel-2);
-  color: var(--accent);
-  font: 800 18px var(--font-title);
 }
 
 .mayhem-nav {
   display: grid;
   justify-items: center;
   gap: 6px;
+}
+
+/* Home, arammeta's data, our own data: apart only by a thin line (user, 08.10.2026). */
+.mayhem-nav-line {
+  width: 36px;
+  height: 0;
+  margin: 6px 0;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
 }
 
 .mayhem-nav button,
@@ -941,6 +1020,10 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
 
   .mayhem-nav {
     gap: 2px;
+  }
+
+  .mayhem-nav-line {
+    margin: 3px 0;
   }
 
   .mayhem-nav button,
@@ -1176,7 +1259,6 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
 }
 
 .mayhem-aug-grid,
-.mayhem-item-grid,
 .mayhem-meta-faces {
   margin: 0;
   padding: 0;
@@ -1578,8 +1660,7 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   border-left-color: var(--down);
 }
 
-.mayhem-games img,
-.mayhem-ladder img:first-of-type {
+.mayhem-games img {
   border-radius: 10px;
 }
 
@@ -1673,13 +1754,107 @@ li[data-place='3'] .mayhem-place {
   font-weight: 700;
 }
 
+/* Rank page (leaderboard first): the profile icon of each player, round, and "You" on the own row. */
+.mayhem-ladder .mayhem-ladder-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--panel-2);
+}
+
+.mayhem-ladder li[data-me='true'] .mayhem-ladder-icon {
+  border-color: var(--accent);
+}
+
+.mayhem-ladder-you {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(242, 193, 78, 0.16);
+  color: var(--accent);
+  font: 700 11px var(--font);
+}
+
+.mayhem-ladder li[data-me='true'] {
+  background: linear-gradient(90deg, rgba(242, 193, 78, 0.12), var(--panel) 60%);
+}
+
+/* Match history: the time of a game, a row as a button (the game on mayhemstats.lol), and the
+   short list beside the leaderboard. */
+.mayhem-game-when {
+  flex: none;
+  font: 400 12px var(--font-mono);
+  color: var(--muted);
+}
+
+.mayhem-games li:has(> .mayhem-game-open) {
+  padding: 0;
+}
+
+.mayhem-game-open {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mayhem-game-open:hover .mayhem-game-main b {
+  text-decoration: underline;
+}
+
+.mayhem-game-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-row);
+}
+
+.mayhem-games.compact {
+  gap: 8px;
+}
+
+.mayhem-games.compact li {
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+.mayhem-games.compact .mayhem-game-main b {
+  font-size: 14px;
+}
+
+.mayhem-games.compact .mayhem-game-main span {
+  font-size: 12px;
+}
+
+.mayhem-games.compact .mayhem-game-grade {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* --- Home: dashboard (canvas "App · Home") ------------------------------------------------- */
 
+/* Wide and tall windows get more rows, never stretched cards (user 08.10.2026: "oben links
+   gebunden, zu viel freie Fläche"; like Steam's and Spotify's home shelves). */
 .mayhem-home {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 28%);
   gap: 18px;
   align-items: start;
+}
+
+.mayhem-bento .mayhem-ladder {
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .mayhem-home-main,
@@ -1721,7 +1896,7 @@ li[data-place='3'] .mayhem-place {
   overflow: hidden;
   display: grid;
   align-content: end;
-  height: 250px;
+  height: 280px;
   padding: 26px 28px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 26px;
@@ -2027,11 +2202,10 @@ li[data-place='3'] .mayhem-place {
   font: 800 18px var(--font-title);
 }
 
-.mayhem-game-card img {
+.mayhem-game-card .mayhem-grade-mark {
   position: absolute;
   right: 12px;
-  bottom: 12px;
-  border-radius: 12px;
+  bottom: 10px;
 }
 
 /* Bento column: rank with the MP curve, two numbers, records, a goal lit in gold. */
@@ -2105,10 +2279,6 @@ li[data-place='3'] .mayhem-place {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.mayhem-tile-grade img {
-  border-radius: 8px;
 }
 
 .mayhem-records {
@@ -2392,17 +2562,6 @@ li[data-place='3'] .mayhem-place {
   box-shadow: none;
 }
 
-.mayhem-meta-split {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
-  align-items: start;
-}
-
-.mayhem-facts b[data-down='true'] {
-  color: var(--down);
-}
-
 .mayhem-meta-tiles {
   display: flex;
   gap: 22px;
@@ -2414,43 +2573,6 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-meta-tiles strong {
   font: 500 20px var(--font-mono);
-}
-
-.mayhem-item-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px;
-}
-
-.mayhem-item {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 8px 12px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--panel);
-}
-
-.mayhem-item img {
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px var(--line-strong);
-}
-
-.mayhem-item h3 {
-  margin: 0;
-  font-size: 15px;
-}
-
-.mayhem-item p {
-  grid-column: 1 / -1;
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 12.5px;
-  white-space: pre-line;
-  -webkit-line-clamp: 5;
-  -webkit-box-orient: vertical;
 }
 
 /* The champion's guides on aramonly.com (offmeta builds), opened in the browser. */
@@ -2813,14 +2935,6 @@ li[data-place='3'] .mayhem-place {
   font-size: 17px;
 }
 
-/* The grade symbols have a black background: blended away, and its corners faded (inside a part
-   that glides in, the blend has nothing to blend with). */
-.mayhem-result-grade {
-  flex: none;
-  mix-blend-mode: screen;
-  mask-image: radial-gradient(closest-side, #000 78%, transparent);
-}
-
 .mayhem-result-hint {
   display: flex;
   flex-wrap: wrap;
@@ -3165,4 +3279,115 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-rec-list .mayhem-rec-name {
   flex: 1;
+}
+
+/* Every place gets a bar against the record: gold for place 1, quieter below. */
+.mayhem-rec-holder > div:has(.mayhem-bar) {
+  flex: 1;
+}
+
+.mayhem-rec-holder .mayhem-bar {
+  margin-top: 6px;
+}
+
+.mayhem-rec-list li {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.mayhem-rec-list .mayhem-bar {
+  /* Under the name: place 16 px + face 26 px + two gaps of 10 px. */
+  flex-basis: calc(100% - 62px);
+  height: 4px;
+  margin: 0 0 0 62px;
+}
+
+.mayhem-rec-list li:not([data-place='1']) .mayhem-bar span {
+  background: var(--muted);
+  box-shadow: none;
+}
+
+.mayhem-rec-list li[data-me='true'] .mayhem-bar span {
+  background: var(--accent);
+}
+
+/* Every player's name opens their card (PlayerCard.tsx): looks like the text around it. */
+.mayhem-name {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.mayhem-name:hover,
+.mayhem-name:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mayhem-player {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  width: min(520px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.mayhem-player-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-right: 44px;
+}
+
+.mayhem-player-head h2 small {
+  margin-left: 2px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.mayhem-player-head h2 .mayhem-pill {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.mayhem-player-head .mayhem-button {
+  margin-top: 8px;
+}
+
+.mayhem-player-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-row);
+  background: var(--panel);
+}
+
+.mayhem-player-main > span {
+  display: grid;
+  flex: 1;
+}
+
+.mayhem-player-main img:first-child {
+  border-radius: 8px;
+}
+
+.mayhem-player-main small {
+  color: var(--muted);
+  font: 400 12px var(--font-mono);
+}
+
+.mayhem-player-games h3 {
+  margin: 0 0 10px;
+  font: 700 14px var(--font-title);
 }

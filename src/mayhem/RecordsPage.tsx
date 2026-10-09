@@ -1,6 +1,6 @@
 // The Mayhem app's records (user's wish 08.10.2026, records.ts). Its question: who holds the
 // records? On top the players with the most records, then one card per category in the website's
-// order (the first six, the rest behind "Show more"): the record holder with champion and value
+// order (all of them, the page scrolls; each place with a bar against the record): the record holder with champion and value
 // big, places 2 and 3 small, the rest behind "Show more", the player's own place marked
 // ("You: #7"). One accent: only a record the player holds glows. All time or this season. English
 // only, "–" for what is missing (MAYHEM-DESIGN.md "Übersicht vor Vollständigkeit").
@@ -13,12 +13,14 @@ import { PageHead, step } from './pages';
 import {
   crowns,
   loadRecords,
+  mineFirst,
   recordValue,
   type RecordCard,
   type RecordPlace,
   type RecordsState,
 } from './records';
 import type { TierChampion } from './tiers';
+import { PlayerName } from './PlayerCard';
 import { More, Tabs } from './ui';
 
 type Scope = 'all' | 'season';
@@ -28,8 +30,6 @@ const SCOPES: { id: Scope; label: string }[] = [
 ];
 /** Places shown under "Most records" (a tie shows everyone on the place). */
 const CROWNS = 3;
-/** Category cards before "Show more": two rows at 1280 px (three columns). */
-const FIRST_CARDS = 6;
 
 type Champions = Map<number, TierChampion>;
 
@@ -57,6 +57,15 @@ const gameLine = (card: RecordCard, p: RecordPlace, champions: Champions) => {
   const when = ago(p.at, Date.now());
   return name ? `${card.total ? 'Last with ' : ''}${name} · ${when}` : when;
 };
+
+/** The value as a bar against the record (place 1 = full), so the gaps read at a glance. */
+function Bar({ value, top }: { value: number; top: number }) {
+  return (
+    <span className="mayhem-bar" aria-hidden>
+      <span style={{ width: `${Math.max(3, (value / top) * 100)}%` }} />
+    </span>
+  );
+}
 
 function Face({ p, champions, size }: { p: RecordPlace; champions: Champions; size: number }) {
   const { alias, name } = championOf(p, champions);
@@ -100,13 +109,16 @@ function Card({
         <div>
           <span className="mayhem-rec-name">
             <Crown size={15} aria-label="Place 1" />
-            <Riot name={top!.name} />
+            <PlayerName id={top!.id} name={top!.name}>
+              <Riot name={top!.name} />
+            </PlayerName>
           </span>
           <strong>{recordValue(card, top!.value)}</strong>
           <small>
             {gameLine(card, top!, champions)}
             {rest[0]?.place === 1 && ' · Tie'}
           </small>
+          <Bar value={top!.value} top={top!.value} />
         </div>
       </div>
       {rest.length > 0 && (
@@ -125,9 +137,12 @@ function Card({
               <b className="mayhem-place">{p.place}</b>
               <Face p={p} champions={champions} size={26} />
               <span className="mayhem-rec-name">
-                <Riot name={p.name} />
+                <PlayerName id={p.id} name={p.name}>
+                  <Riot name={p.name} />
+                </PlayerName>
               </span>
               <span className="mayhem-rec-value">{recordValue(card, p.value)}</span>
+              <Bar value={p.value} top={top!.value} />
             </li>
           )}
         />
@@ -152,7 +167,7 @@ export function RecordsPage({ me, champions }: { me: MeState; champions: TierCha
   const byId = useMemo(() => new Map(champions.map((c) => [c.id, c])), [champions]);
   const siteId = me.state === 'ready' ? me.siteId : null;
   const records = got.state === 'ready' ? got.records : null;
-  const cards = records?.cards.filter((c) => c.places.length) ?? [];
+  const cards = mineFirst(records?.cards.filter((c) => c.places.length) ?? [], siteId);
   const leaders = records
     ? crowns(records.cards).filter((p) => p.place <= CROWNS || p.id === siteId)
     : [];
@@ -196,7 +211,9 @@ export function RecordsPage({ me, champions }: { me: MeState; champions: TierCha
                 <li key={p.id} data-place={p.place} data-me={p.id === siteId}>
                   <Crown size={18} aria-hidden />
                   <span className="mayhem-rec-name">
-                    <Riot name={p.name} />
+                    <PlayerName id={p.id} name={p.name}>
+                      <Riot name={p.name} />
+                    </PlayerName>
                   </span>
                   <span className="mayhem-rec-value">
                     {p.crowns} {p.crowns === 1 ? 'record' : 'records'}
@@ -205,14 +222,11 @@ export function RecordsPage({ me, champions }: { me: MeState; champions: TierCha
               ))}
             </ol>
           </section>
-          <More
-            list={cards}
-            first={FIRST_CARDS}
-            className="mayhem-rec-grid"
-            render={(card, i) => (
+          <ul className="mayhem-rec-grid">
+            {cards.map((card, i) => (
               <Card key={card.id} card={card} index={i} siteId={siteId} champions={byId} />
-            )}
-          />
+            ))}
+          </ul>
         </>
       )}
     </div>

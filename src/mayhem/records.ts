@@ -142,3 +142,10 @@ export async function loadRecords(season: boolean): Promise<RecordsState> {
     return { state: 'failed', offline: !navigator.onLine };
   }
 }
+
+/** The categories where the player has a place come first, best place first (user's wish
+ * 08.10.2026: "You: #2" always on top); the rest keep the site's order. */
+export function mineFirst(cards: RecordCard[], siteId: string | null) {
+  const place = (c: RecordCard) => c.places.find((p) => p.id === siteId)?.place ?? Infinity;
+  return siteId ? [...cards].sort((a, b) => place(a) - place(b)) : cards;
+}

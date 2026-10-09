@@ -14,7 +14,6 @@ const PAGES = [
   { path: '/records', label: 'Records' },
   { path: '/champions', label: 'Champions' },
   { path: '/augments', label: 'Augments' },
-  { path: '/items', label: 'Items' },
   { path: '/tier-list', label: 'Tier list' },
   { path: '/join', label: 'Join', cta: true },
 ];

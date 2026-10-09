@@ -18,9 +18,9 @@ use super::games::{
     champion_names, entries, friend_set, from_eog, riot_id, Eog, Summary, Summoner,
 };
 use super::{
-    add_augments, live, load, now_ms, offers, save, sync, take_card, website, AramState, Entry,
-    Player, AFTER_CLIENT_START, AFTER_GAME, CATCH_UP_MS, EOG, EOG_TRIES, FINISH_AFTER, GAME_EXE,
-    MAX_ENTRIES, MAX_SKIN, MAYHEM_QUEUE, SESSION, SUMMONER,
+    add_augments, live, load, mayhem_game, now_ms, offers, save, sync, take_card, website,
+    AramState, Entry, Player, AFTER_CLIENT_START, AFTER_GAME, CATCH_UP_MS, EOG, EOG_TRIES,
+    FINISH_AFTER, GAME_EXE, MAX_ENTRIES, MAX_SKIN, SESSION, SUMMONER,
 };
 
 /// A Mayhem game's end is being awaited (then the process list does not start a second look).
@@ -71,6 +71,22 @@ struct JustPlayed {
 #[serde(default, rename_all = "camelCase")]
 pub(super) struct Session {
     pub(super) game_data: SessionGame,
+    /// The map's game mode, also set for a custom game (whose queue is empty).
+    map: SessionMap,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+struct SessionMap {
+    game_mode: String,
+}
+
+impl Session {
+    /// ARAM Mayhem, matchmade or a custom game of it.
+    pub(super) fn mayhem(&self) -> bool {
+        let queue = &self.game_data.queue;
+        mayhem_game(queue.id, &queue.game_mode) || mayhem_game(0, &self.map.game_mode)
+    }
 }
 
 #[derive(Deserialize, Default)]
@@ -136,6 +152,8 @@ pub(super) fn add_noted_skins(summary: &mut Summary) {
 #[serde(default)]
 struct SessionQueue {
     id: i64,
+    #[serde(rename = "gameMode")]
+    game_mode: String,
 }
 
 /// A game started: while it runs the client knows its id and queue. A Mayhem game's end is awaited
@@ -146,10 +164,10 @@ async fn game_started(app: AppHandle) {
     if !cards && !offers::wanted() {
         return;
     }
-    let Some((queue, game_id)) = started_game().await else {
+    let Some((mayhem, game_id)) = started_game().await else {
         return;
     };
-    if queue != MAYHEM_QUEUE {
+    if !mayhem {
         return;
     }
     offers::follow(&app, game_id);
@@ -167,15 +185,15 @@ async fn game_started(app: AppHandle) {
     WATCHING.store(false, Ordering::Relaxed);
 }
 
-/// Queue and id of the game that just started (the client knows them while it runs; asked for
+/// Whether the game that just started is Mayhem, and its id (the client knows them while it runs; asked for
 /// about half a minute), with its skins noted.
-async fn started_game() -> Option<(i64, u64)> {
+async fn started_game() -> Option<(bool, u64)> {
     for _ in 0..10 {
         if let Ok(Some(lcu)) = Lcu::connect() {
             if let Ok(session) = lcu.get::<Session>(SESSION).await {
                 if session.game_data.game_id != 0 {
                     note_skins(&session.game_data);
-                    return Some((session.game_data.queue.id, session.game_data.game_id));
+                    return Some((session.mayhem(), session.game_data.game_id));
                 }
             }
         }
@@ -187,8 +205,8 @@ async fn started_game() -> Option<(i64, u64)> {
 /// For the Mayhem app (ladder.rs, which keeps no aram.json): the id of the game that just started,
 /// only for ARAM Mayhem (its skins noted for the card).
 pub(super) async fn started_mayhem_game() -> Option<u64> {
-    let (queue, game_id) = started_game().await?;
-    (queue == MAYHEM_QUEUE).then_some(game_id)
+    let (mayhem, game_id) = started_game().await?;
+    mayhem.then_some(game_id)
 }
 
 /// Waits for the end of the game's process; false when Windows cannot report it.
@@ -241,8 +259,7 @@ async fn after_game(app: AppHandle, expected: u64) {
         // Only from the process list: which queue it was, the client still knows right after.
         if let Ok(Some(lcu)) = Lcu::connect() {
             if let Ok(session) = lcu.get::<Session>(SESSION).await {
-                let queue = session.game_data.queue.id;
-                if queue != 0 && queue != MAYHEM_QUEUE {
+                if session.game_data.queue.id != 0 && !session.mayhem() {
                     return;
                 }
             }

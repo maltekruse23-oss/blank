@@ -17,6 +17,8 @@
         "minWidth": 1024,
         "minHeight": 660,
         "resizable": true,
+        "decorations": false,
+        "shadow": true,
         "center": true,
         "backgroundColor": "#07080b"
       }
@@ -24,5 +26,8 @@
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://ddragon.leagueoflegends.com https://mayhemstats.lol https://arammeta.com; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     }
+  },
+  "bundle": {
+    "icon": ["icons/mayhem.ico"]
   }
 }

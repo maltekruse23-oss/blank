@@ -5,13 +5,21 @@
 // "Arena" (mayhem.css). English only; each page answers one question on top, one main number per
 // row, lists show their first entries (MAYHEM-DESIGN.md "Übersicht vor Vollständigkeit").
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
-import { championSplash, championSquare } from '../adapters/aram';
-import type { Grade } from '../features/aram/aramPerformance';
+import { championSplash, championSquare, profileIcon } from '../adapters/aram';
+import { openGame } from '../adapters/aramSite';
 import { PLACEMENT, rankName, seasonOf, type Rank } from '../features/aram/aramRating';
 import { TIERS, type Tier } from '../features/aram/champCard';
 import { games, number, percent, winsIn } from './format';
 import { CONSENT, findView, type FindState } from './findRank';
-import { ago, CURVE_SIZE, curvePath, type MeState, type MeView } from './me';
+import {
+  ago,
+  CURVE_SIZE,
+  curvePath,
+  type LadderRow,
+  type MeGame,
+  type MeState,
+  type MeView,
+} from './me';
 import type { Page } from './MayhemApp';
 import {
   categoryName,
@@ -20,7 +28,8 @@ import {
   type TierChampion,
   type TierLists,
 } from './tiers';
-import { More, Tabs, Top } from './ui';
+import { PlayerName } from './PlayerCard';
+import { GradeMark, More, Tabs, Top } from './ui';
 
 export const step = (i: number) => ({ ['--i' as string]: Math.min(i, 16) }) as CSSProperties;
 
@@ -372,21 +381,15 @@ const RANK_IMAGE = import.meta.glob<string>('../../apps/mayhem-site/public/ranks
   eager: true,
   import: 'default',
 });
-const GRADE_IMAGE = import.meta.glob<string>('../../apps/mayhem-site/public/grades/*.png', {
-  eager: true,
-  import: 'default',
-});
 export const rankImage = (rank: Rank) =>
   RANK_IMAGE[`../../apps/mayhem-site/public/ranks/${rank.tier.id}.png`];
-export const gradeImage = (grade: Grade) =>
-  GRADE_IMAGE[`../../apps/mayhem-site/public/grades/${grade.toLowerCase()}.png`];
 
-const winLoss = (me: MeView) => `${me.wins}W ${me.games - me.wins}L`;
-const mpLine = (me: MeView, rank: Rank) =>
+export const winLoss = (me: MeView) => `${me.wins}W ${me.games - me.wins}L`;
+export const mpLine = (me: MeView, rank: Rank) =>
   [`${rank.points} MP`, me.top !== null ? `Top ${me.top}%` : me.place ? `#${me.place}` : null]
     .filter(Boolean)
     .join(' · ');
-const gainText = (gain: number | null) =>
+export const gainText = (gain: number | null) =>
   gain === null ? '–' : `${gain > 0 ? '+' : gain < 0 ? '−' : ''}${Math.abs(gain)} MP`;
 /** "Season 3 · 2026" (aramRating's `seasonName` is German and shared word for word with the
  * website, so the English one lives here). */
@@ -451,18 +454,92 @@ function MeNotice({ me, onRetry, find, onFind }: { me: MeState; onRetry: () => v
 
 const ready = (me: MeState) => (me.state === 'ready' ? me : null);
 
-/** What is my rank? The rank card on top, then the leaderboard and the match history. */
+/** One rated game as a row: champion, win or loss with K/D/A, the grade and the MP it brought.
+ * `onOpen` makes the row a button (the game on mayhemstats.lol). */
+function GameRow({
+  game: g,
+  index,
+  size,
+  onOpen,
+}: {
+  game: MeGame;
+  index: number;
+  size: number;
+  onOpen?: (gameId: number) => void;
+}) {
+  const body = (
+    <>
+      <img
+        src={(g.alias && championSquare(g.alias)) || undefined}
+        alt=""
+        width={size}
+        height={size}
+      />
+      <span className="mayhem-game-main">
+        <b>{g.win ? 'Win' : 'Loss'}</b>
+        <span>
+          {g.name} · {g.kda}
+        </span>
+      </span>
+      <span className="mayhem-game-when">{ago(g.at, Date.now())}</span>
+      <span className="mayhem-game-grade">
+        <GradeMark grade={g.grade} size={size - 12} />
+        <span className="mayhem-mp" data-down={(g.gain ?? 0) < 0}>
+          {gainText(g.gain)}
+        </span>
+      </span>
+    </>
+  );
+  return (
+    <li key={g.gameId} className="mayhem-in" data-win={g.win} style={step(index + 3)}>
+      {onOpen ? (
+        <button
+          type="button"
+          className="mayhem-game-open"
+          onClick={() => onOpen(g.gameId)}
+          title="View on mayhemstats.lol"
+        >
+          {body}
+        </button>
+      ) : (
+        body
+      )}
+    </li>
+  );
+}
+
+/** The last games, newest first (the player card). */
+export function MatchList({ games }: { games: MeView['recent'] }) {
+  return (
+    <More
+      list={games}
+      className="mayhem-games"
+      render={(g, i) => <GameRow key={g.gameId} game={g} index={i} size={52} />}
+    />
+  );
+}
+
+/** The last games on the Rank page (the whole list is its own page, Match history). */
+const RANK_GAMES = 5;
+/** Leaderboard rows before "Show more" (the player's own row always shows). */
+const LADDER_FIRST = 25;
+
+/** Who leads, and where am I? The leaderboard with profile icons first (user, 08.10.2026: "mehr auf
+ * Player-Rangliste gehen … Match History sekundär"), the rank card and the last games beside it. */
 export function RankPage({
   me,
   onRetry,
   find,
   onFind,
   onPreviewCard,
+  onHistory,
 }: {
   me: MeState;
   onRetry: () => void;
   /** The browser preview's look at the card after a game (mock.ts). */
   onPreviewCard: () => void;
+  /** Opens the page Match history. */
+  onHistory: () => void;
 } & Finding) {
   const got = ready(me);
   const own = got?.me ?? null;
@@ -471,7 +548,7 @@ export function RankPage({
     <div className="mayhem-page">
       <PageHead
         title="Rank"
-        line={`Your rank on mayhemstats.lol, ${season()}.`}
+        line={`Who leads on mayhemstats.lol, ${season()}?`}
         badge={got?.mock ? 'Mock' : undefined}
         action={
           got?.mock && (
@@ -481,14 +558,65 @@ export function RankPage({
           )
         }
       />
-      <div className="mayhem-columns">
+      <div className="mayhem-columns mayhem-columns-end">
+        <section className="mayhem-section">
+          <h2 className="mayhem-in" style={step(1)}>
+            Leaderboard
+          </h2>
+          {got && got.ladder.length > 0 ? (
+            <More
+              list={got.ladder}
+              first={LADDER_FIRST}
+              className="mayhem-ladder"
+              keep={(p) => p.me}
+              render={(p, i) => (
+                <li
+                  key={p.place}
+                  className="mayhem-in"
+                  data-place={p.place}
+                  data-me={p.me}
+                  style={step(i + 2)}
+                  title={p.rank ? `${p.rank.points} MP` : undefined}
+                >
+                  <b className="mayhem-place">{p.place}</b>
+                  {p.icon === null ? (
+                    <span className="mayhem-ladder-icon" aria-hidden />
+                  ) : (
+                    <img
+                      className="mayhem-ladder-icon"
+                      src={profileIcon(p.icon)}
+                      alt=""
+                      width={36}
+                      height={36}
+                      loading="lazy"
+                    />
+                  )}
+                  <span className="mayhem-aug-name">
+                    <PlayerName id={p.siteId} name={p.name} />
+                    {p.me && <span className="mayhem-ladder-you">You</span>}
+                  </span>
+                  <span className="mayhem-ladder-rank">
+                    {p.rank && <img src={rankImage(p.rank)} alt="" width={30} height={30} />}
+                    {p.rank ? rankName(p.rank) : '–'}
+                  </span>
+                </li>
+              )}
+            />
+          ) : (
+            <p className="mayhem-note mayhem-in">
+              {got ? 'Nobody is ranked yet.' : 'Shows up with the website.'}
+            </p>
+          )}
+        </section>
         <div className="mayhem-column-side">
           <section className="mayhem-glass mayhem-rank mayhem-in" style={step(1)}>
             {own && rank && <img src={rankImage(rank)} alt="" width={88} height={88} />}
             <div>
               {own ? (
                 <>
-                  <div className="mayhem-note">{got!.name}</div>
+                  <div className="mayhem-note">
+                    <PlayerName id={got!.siteId} name={got!.name} />
+                  </div>
                   <div className="mayhem-rank-name">{rank ? rankName(rank) : '–'}</div>
                   <div className="mayhem-note">
                     {rank ? mpLine(own, rank) : `Placement ${own.placed}/${PLACEMENT}`}
@@ -507,89 +635,108 @@ export function RankPage({
               )}
             </div>
           </section>
-          {got && got.ladder.length > 0 && (
+          {own && (
             <section className="mayhem-section">
-              <h2 className="mayhem-in" style={step(2)}>
-                Leaderboard
-              </h2>
-              <More
-                list={got.ladder}
-                className="mayhem-ladder"
-                keep={(p) => p.me}
-                render={(p, i) => (
-                  <li
-                    key={p.place}
-                    className="mayhem-in"
-                    data-place={p.place}
-                    data-me={p.me}
-                    style={step(i + 3)}
-                    title={p.rank ? `${p.rank.points} MP` : undefined}
-                  >
-                    <b className="mayhem-place">{p.place}</b>
-                    {p.rank && <img src={rankImage(p.rank)} alt="" width={34} height={34} />}
-                    <span className="mayhem-aug-name">{p.name}</span>
-                    <span className="mayhem-ladder-rank">{p.rank ? rankName(p.rank) : '–'}</span>
-                  </li>
+              <div className="mayhem-row-head mayhem-in" style={step(2)}>
+                <h2>Last games</h2>
+                {own.recent.length > 0 && (
+                  <button type="button" className="mayhem-link" onClick={onHistory}>
+                    See all
+                  </button>
                 )}
-              />
+              </div>
+              {own.recent.length ? (
+                <ul className="mayhem-games compact">
+                  {own.recent.slice(0, RANK_GAMES).map((g, i) => (
+                    <GameRow key={g.gameId} game={g} index={i} size={40} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="mayhem-note mayhem-in">No rated games yet.</p>
+              )}
             </section>
           )}
         </div>
-        <section className="mayhem-section mayhem-column-main">
-          <h2 className="mayhem-in" style={step(2)}>
-            Match history
-          </h2>
-          {own?.recent.length ? (
-            <More
-              list={own.recent}
-              className="mayhem-games"
-              render={(g, i) => (
-                <li
-                  key={g.gameId}
-                  className="mayhem-in"
-                  data-win={g.win}
-                  style={step(i + 3)}
-                  title={ago(g.at, Date.now())}
-                >
-                  <img
-                    src={(g.alias && championSquare(g.alias)) || undefined}
-                    alt=""
-                    width={52}
-                    height={52}
-                  />
-                  <span className="mayhem-game-main">
-                    <b>{g.win ? 'Win' : 'Loss'}</b>
-                    <span>
-                      {g.name} · {g.kda}
-                    </span>
-                  </span>
-                  <span className="mayhem-game-grade">
-                    <img
-                      src={gradeImage(g.grade)}
-                      alt={`Grade ${g.grade}`}
-                      width={52}
-                      height={52}
-                    />
-                    <span className="mayhem-mp" data-down={(g.gain ?? 0) < 0}>
-                      {gainText(g.gain)}
-                    </span>
-                  </span>
-                </li>
-              )}
-            />
-          ) : (
-            <p className="mayhem-note mayhem-in">
-              {own ? 'No rated games yet.' : 'Shows up with your player.'}
-            </p>
-          )}
-        </section>
       </div>
+    </div>
+  );
+}
+
+/** Rows of the match history before "Show more". */
+const HISTORY_FIRST = 10;
+
+/** How did my games go? Every rated Mayhem game of the player, newest first; a click opens the game
+ * on mayhemstats.lol (user, 08.10.2026: "Match History hinzufügen als Tab"). */
+export function MatchHistoryPage({
+  me,
+  onRetry,
+  find,
+  onFind,
+}: { me: MeState; onRetry: () => void } & Finding) {
+  const got = ready(me);
+  const own = got?.me ?? null;
+  return (
+    <div className="mayhem-page">
+      <PageHead
+        title="Match history"
+        line={
+          own
+            ? `How did your games go? ${games(own.recent.length)} rated on mayhemstats.lol, ${winLoss(own)}.`
+            : 'Your rated Mayhem games on mayhemstats.lol.'
+        }
+        badge={got?.mock ? 'Mock' : undefined}
+      />
+      {own?.recent.length ? (
+        <More
+          list={own.recent}
+          first={HISTORY_FIRST}
+          className="mayhem-games mayhem-history"
+          render={(g, i) => (
+            <GameRow
+              key={g.gameId}
+              game={g}
+              index={i}
+              size={52}
+              onOpen={got?.mock ? undefined : (id) => void openGame(id)}
+            />
+          )}
+        />
+      ) : own ? (
+        <p className="mayhem-note mayhem-in">No rated games yet.</p>
+      ) : (
+        <section className="mayhem-glass mayhem-notice mayhem-in">
+          <MeNotice me={me} onRetry={onRetry} find={find} onFind={onFind} />
+        </section>
+      )}
     </div>
   );
 }
 
 /** Top augments on Home: as many as fit one row (mayhem.css hides the rest). */
 const HOME_AUGMENTS = 8;
+/** Last games on Home (all of them on the page Match history). */
+const HOME_GAMES = 6;
+/** One row of Home's "Around you". */
+const ladderRow = (p: LadderRow, style: CSSProperties) => (
+  <li
+    key={p.place}
+    className="mayhem-in"
+    data-place={p.place}
+    data-me={p.me}
+    style={style}
+    title={p.rank ? `${p.rank.points} MP` : undefined}
+  >
+    <b className="mayhem-place">{p.place}</b>
+    {p.rank && <img src={rankImage(p.rank)} alt="" width={34} height={34} />}
+    <span className="mayhem-aug-name">
+      <PlayerName id={p.siteId} name={p.name} />
+    </span>
+    <span className="mayhem-ladder-rank">{p.rank ? rankName(p.rank) : '–'}</span>
+  </li>
+);
+
+/** Strong champions on Home: the same tiles and row as the augments. */
+const HOME_CHAMPIONS = 8;
 
 /**
  * Home (user, 08.10.2026: the dashboard of the canvas "App · Home"). Its question: how am I doing,
@@ -602,6 +749,7 @@ export function HomePage({
   me,
   onOpen,
   onAugment,
+  onChampion,
   onRetry,
   find,
   onFind,
@@ -610,9 +758,11 @@ export function HomePage({
   me: MeState;
   onOpen: (page: Page) => void;
   onAugment: (id: number) => void;
+  onChampion: (id: number) => void;
   onRetry: () => void;
 } & Finding) {
   const top = tiers.state === 'ready' ? tiers.lists.augments.slice(0, HOME_AUGMENTS) : [];
+  const strong = tiers.state === 'ready' ? tiers.lists.champions.slice(0, HOME_CHAMPIONS) : [];
   const got = ready(me);
   const own = got?.me ?? null;
   const main = own?.main ?? null;
@@ -641,7 +791,7 @@ export function HomePage({
                 >
                   Tier list
                 </button>
-                <button type="button" className="mayhem-button" onClick={() => onOpen('rank')}>
+                <button type="button" className="mayhem-button" onClick={() => onOpen('history')}>
                   Match history
                 </button>
               </div>
@@ -704,10 +854,15 @@ export function HomePage({
         <section className="mayhem-row">
           <div className="mayhem-row-head mayhem-in" style={step(7)}>
             <h2>Last games</h2>
+            {own?.recent.length ? (
+              <button type="button" className="mayhem-link" onClick={() => onOpen('history')}>
+                See all
+              </button>
+            ) : null}
           </div>
           {own?.recent.length ? (
             <div className="mayhem-game-cards">
-              {own.recent.map((g, i) => {
+              {own.recent.slice(0, HOME_GAMES).map((g, i) => {
                 const art = g.alias ? championSplash(g.alias) : null;
                 return (
                   <article
@@ -725,12 +880,7 @@ export function HomePage({
                       <small>{ago(g.at, Date.now())}</small>
                     </div>
                     <strong>{gainText(g.gain)}</strong>
-                    <img
-                      src={gradeImage(g.grade)}
-                      alt={`Grade ${g.grade}`}
-                      width={44}
-                      height={44}
-                    />
+                    <GradeMark grade={g.grade} size={44} />
                   </article>
                 );
               })}
@@ -741,6 +891,38 @@ export function HomePage({
             </p>
           )}
         </section>
+
+        {strong.length > 0 && (
+          <section className="mayhem-row">
+            <div className="mayhem-row-head mayhem-in" style={step(12)}>
+              <h2>Strong champions right now</h2>
+              <button type="button" className="mayhem-link" onClick={() => onOpen('champions')}>
+                See all
+              </button>
+            </div>
+            <div className="mayhem-mini-grid">
+              {strong.map((c, i) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="mayhem-mini mayhem-in"
+                  style={step(i + 13)}
+                  onClick={() => onChampion(c.id)}
+                  title={winsIn(c.winRate, c.games)}
+                >
+                  <span className="mayhem-aug-card-tier" data-tier={c.tier}>
+                    {c.tier}
+                  </span>
+                  <span className="mayhem-aug-card-icon small">
+                    <img src={championSquare(c.alias) ?? undefined} alt="" width={40} height={40} />
+                  </span>
+                  <b>{c.name}</b>
+                  <small>{percent(c.winRate)} wins</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <aside className="mayhem-bento">
@@ -798,8 +980,7 @@ export function HomePage({
           <section className="mayhem-tile mayhem-in" style={step(3)}>
             <span className="mayhem-note">Avg grade</span>
             <span className="mayhem-tile-grade">
-              {own?.average && <img src={gradeImage(own.average)} alt="" width={34} height={34} />}
-              <strong>{own?.average ?? '–'}</strong>
+              {own?.average ? <GradeMark grade={own.average} size={40} /> : <strong>–</strong>}
             </span>
           </section>
         </div>
@@ -824,6 +1005,12 @@ export function HomePage({
             <div className="mayhem-bar">
               <span style={{ width: `${(Math.min(own.placed, PLACEMENT) / PLACEMENT) * 100}%` }} />
             </div>
+          </section>
+        )}
+        {got && got.around.length > 0 && (
+          <section className="mayhem-tile mayhem-in" style={step(6)}>
+            <span className="mayhem-note">Around you</span>
+            <ul className="mayhem-ladder">{got.around.map((p) => ladderRow(p, {}))}</ul>
           </section>
         )}
       </aside>

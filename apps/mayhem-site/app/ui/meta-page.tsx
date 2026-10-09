@@ -1,7 +1,7 @@
 'use client';
-// The pages of augments and items: the lists (/augments, /items), strongest first with the win
-// rate as the one number per entry, a search, one filter (rarity or kind of item) and the period,
-// and the page of one (/augments/<id>, /items/<id>) with the answer on top (win rate and games)
+// The pages of augments (the item pages went on 08.10.2026, items stay on the tier list): the list
+// (/augments), strongest first with the win rate as the one number per entry, a search, one filter
+// (rarity) and the period, and the page of one (/augments/<id>) with the answer on top (win rate and games)
 // and tabs for the champions it was taken on and what was taken with it.
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -208,7 +208,7 @@ export function MetaDetailPage({
   name: string;
   icon: ReactNode;
   facts: ReactNode;
-  paired: { title: string; noun: string; href: (id: number) => string; label: (id: number) => string; picture: (id: number) => ReactNode };
+  paired: { title: string; noun: string; href: ((id: number) => string) | null; label: (id: number) => string; picture: (id: number) => ReactNode };
 }) {
   const filters = useFilters();
   const { data, error, missing } = useLive<Detail>(id ? `/api/stats/${kind}/${id}?${filters.query}` : null);
@@ -296,7 +296,7 @@ function Champions({ rows, dragon, noun }: { rows: MetaChampion[]; dragon: Drago
   );
 }
 
-function Paired({ rows, noun, href, label, picture }: { rows: Row[]; noun: string; href: (id: number) => string; label: (id: number) => string; picture: (id: number) => ReactNode }) {
+function Paired({ rows, noun, href, label, picture }: { rows: Row[]; noun: string; href: ((id: number) => string) | null; label: (id: number) => string; picture: (id: number) => ReactNode }) {
   const list = strongest(rows, (r) => label(r.id));
   if (!list.length) return <p className="empty">{`No ${noun.toLowerCase()} yet.`}</p>;
   return (
@@ -305,7 +305,7 @@ function Paired({ rows, noun, href, label, picture }: { rows: Row[]; noun: strin
       className="rows grid"
       label={noun}
       render={(r, i) => (
-        <MetaRow key={r.id} index={i} href={href(r.id)} picture={picture(r.id)} name={label(r.id)} stat={r} top={isTop(list, i)} pickLabel="Taken in" />
+        <MetaRow key={r.id} index={i} href={href ? href(r.id) : null} picture={picture(r.id)} name={label(r.id)} stat={r} top={isTop(list, i)} pickLabel="Taken in" />
       )}
     />
   );

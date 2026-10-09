@@ -25,7 +25,7 @@ use super::{
     augment_info,
     client::Lcu,
     games::{champion_names, entries, friend_set, from_eog, from_history, Eog, Game, Summary},
-    now_ms, website, Augment, Entry, Summoner, AFTER_GAME, EOG, EOG_TRIES, MAYHEM_QUEUE, SUMMONER,
+    mayhem_game, now_ms, website, Augment, Entry, Summoner, AFTER_GAME, EOG, EOG_TRIES, SUMMONER,
 };
 
 /// The card for the window.
@@ -115,7 +115,7 @@ pub(super) async fn after_game(app: AppHandle, game_id: u64, listed: HashSet<Str
         let Ok(game) = lcu.get::<Game>(&path).await else {
             continue;
         };
-        if game.queue_id != MAYHEM_QUEUE {
+        if !mayhem_game(game.queue_id, &game.game_mode) {
             return;
         }
         if let Some(card) = card(&lcu, from_history(&game), &listed, false).await {

@@ -33,12 +33,20 @@ describe('website: English only, old German addresses', () => {
     expect(follow('/de/players/Name-EUW')).toBe('/players/Name-EUW');
     expect(follow('/de/champions/Ashe')).toBe('/champions/Ashe');
     expect(follow('/de/augments/1')).toBe('/augments/1');
-    expect(follow('/de/items/3006')).toBe('/items/3006');
+    expect(follow('/de/items/3006')).toBe('/tier-list');
     expect(follow('/de/api-guide')).toBe('/api-guide');
     // The German names at the root (before 07.10.2026) go straight to English, not via /de.
     expect(follow('/rangliste')).toBe('/leaderboard');
     expect(follow('/spiel/5')).toBe('/game/5');
     expect(follow('/datenschutz/entfernen')).toBe('/privacy/remove');
+  });
+
+  it('sends the removed item pages to the tier list', () => {
+    expect(follow('/items')).toBe('/tier-list');
+    expect(follow('/items/3006')).toBe('/tier-list');
+    expect(follow('/de/items')).toBe('/tier-list');
+    expect(follow('/api/stats/items')).toBeNull();
+    expect(PAGES.some((p) => p.includes('/items/'))).toBe(false);
   });
 
   it('leaves English addresses alone', () => {

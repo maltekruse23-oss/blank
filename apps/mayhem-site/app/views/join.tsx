@@ -5,6 +5,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { step } from '../ui/bits';
+import GetApp from '../ui/get-app';
 import { num } from '../ui/format';
 import { APP, COLLECTOR, COLLECTOR_INFO } from '../ui/join';
 import { meText } from '../ui/me';
@@ -115,6 +116,8 @@ export default function JoinPage() {
           </p>
         </section>
       </div>
+
+      <GetApp />
     </>
   );
 }

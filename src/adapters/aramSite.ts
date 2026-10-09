@@ -36,6 +36,11 @@ export type OwnRanks = { name: string; board: string | null; me: string | null }
 export const readOwnRanks = (): Promise<OwnRanks | null> =>
   isTauri() ? invoke<OwnRanks | null>('mayhem_ranks') : Promise.resolve(null);
 
+/** Any player's profile on mayhemstats.lol by public id or PUUID (the Mayhem app's player card),
+ * as JSON text; null when the website does not list them. */
+export const readPlayer = (id: string): Promise<string | null> =>
+  invoke<string | null>('mayhem_player', { id });
+
 /** "Find my Mayhem rank" (aram/ladder.rs, mayhem_find_rank): the player's Mayhem games of the
  * client's history (`games`, `sent` of them new) went to mayhemstats.lol; then their rank. Null
  * while the League client is closed or nobody is signed in. Rejects with an English reason. */

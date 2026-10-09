@@ -18,7 +18,8 @@ type Kind = 'champions' | 'augments' | 'items';
 type Head = { scope: Scope; season: { id: string; year: number; number: number; start: number } };
 type Answer = Head & { champions?: ChampionStat[]; rows?: MetaRow[] };
 
-type Tile = { key: string; href: string; label: string; picture: React.ReactNode; games: number; winRate: number | null };
+/** `href` null: items have no page of their own (since 08.10.2026). */
+type Tile = { key: string; href: string | null; label: string; picture: React.ReactNode; games: number; winRate: number | null };
 
 const PATHS: Record<Kind, string> = { champions: '/api/champions', augments: '/api/stats/augments', items: '/api/stats/items' };
 /** Tiers shown before "Show all tiers". */
@@ -64,7 +65,7 @@ export default function TierListPage() {
               .filter((r) => !items.size || (items.get(r.id) && items.get(r.id)!.kind !== 'other'))
               .map((r) => ({
                 key: `i${r.id}`,
-                href: `/items/${r.id}`,
+                href: null,
                 label: itemLabel(items, r.id),
                 picture: <Img className="item" src={itemImage(dragon, r.id)} size={40} />,
                 games: r.games,
@@ -133,6 +134,18 @@ export default function TierListPage() {
 
 const TIER_WORDS: Record<Tier, string> = { S: 'Best', A: 'Strong', B: 'Good', C: 'Weak', D: 'Weakest' };
 
+function TileBody({ tile }: { tile: Tile }) {
+  return (
+    <>
+      {tile.picture}
+      <span>
+        <b>{tile.label}</b>
+        <small>{wholePercent(tile.winRate)} wins</small>
+      </span>
+    </>
+  );
+}
+
 function TierBlock({ tier, tiles, index }: { tier: Tier; tiles: Tile[]; index: number }) {
   return (
     <div className="tier-block in" data-tier={tier} style={step(index)}>
@@ -144,13 +157,15 @@ function TierBlock({ tier, tiles, index }: { tier: Tier; tiles: Tile[]; index: n
         <ul className="tier-grid">
           {tiles.map((tile) => (
             <li key={tile.key}>
-              <Link href={tile.href} title={`${tile.label} · win rate ${percent(tile.winRate)} · ${num(tile.games)} games`}>
-                {tile.picture}
-                <span>
-                  <b>{tile.label}</b>
-                  <small>{wholePercent(tile.winRate)} wins</small>
-                </span>
-              </Link>
+              {tile.href ? (
+                <Link href={tile.href} title={`${tile.label} · win rate ${percent(tile.winRate)} · ${num(tile.games)} games`}>
+                  <TileBody tile={tile} />
+                </Link>
+              ) : (
+                <div title={`${tile.label} · win rate ${percent(tile.winRate)} · ${num(tile.games)} games`}>
+                  <TileBody tile={tile} />
+                </div>
+              )}
             </li>
           ))}
         </ul>
