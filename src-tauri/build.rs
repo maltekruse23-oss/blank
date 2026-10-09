@@ -20,6 +20,8 @@ const COMMANDS: &[&str] = &[
     "mayhem_player",
     "mayhem_find_rank",
     "mayhem_open_game",
+    "mayhem_pick_champion",
+    "mayhem_item_set",
     "mayhem_moved",
     "league_client_open",
     "aram_friends",

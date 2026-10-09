@@ -9,6 +9,8 @@ import { TIERS, type Rank } from '../features/aram/aramRating';
 import type { CardRank } from './afterGame';
 import type { MeState } from './me';
 import type { RecordCard } from './records';
+import type { ChampView, Tier } from '../features/aram/champCard';
+import type { ChampItem, HeldChamp } from '../adapters/aramChamp';
 
 const rank = (tier: number, division: number | null, points: number): Rank => ({
   tier: TIERS[tier]!,
@@ -107,6 +109,15 @@ export const MOCK_STATE: MeState = {
     ranked: LADDER.length,
     peak: rank(6, null, 40),
     main: { championId: 12, alias: 'Alistar', name: 'Alistar', games: 28, wins: 19, grade: 'SS' },
+    champions: [
+      { championId: 16, alias: 'Soraka', name: 'Soraka', games: 9, wins: 7, grade: 'SSS' },
+      { championId: 12, alias: 'Alistar', name: 'Alistar', games: 28, wins: 19, grade: 'SS' },
+      { championId: 99, alias: 'Lux', name: 'Lux', games: 6, wins: 4, grade: 'S' },
+      { championId: 63, alias: 'Brand', name: 'Brand', games: 8, wins: 4, grade: 'A' },
+      { championId: 22, alias: 'Ashe', name: 'Ashe', games: 5, wins: 3, grade: 'A' },
+      { championId: 86, alias: 'Garen', name: 'Garen', games: 4, wins: 1, grade: 'C' },
+    ],
+    versus: { better: 0.74, damagePlace: 3.4, topDamage: 14, counted: 63, share: 0.31 },
     best: {
       damage: 112_000,
       kills: 31,
@@ -499,3 +510,248 @@ export const mockRecords = (season: boolean) => ({
     };
   }),
 });
+
+/** An invented Champ card for the browser preview (`mayhem.html?champ`, shown as "Example"):
+ * Alistar (the user's own example, in MOCK_TIERS) with two options of one core group and a second
+ * group, an assembled offmeta AP build, combos (Meta and Offmeta), boots and spells. All numbers are
+ * made up; rarities as `metaView` gives them (silver, gold, prismatic). */
+export function mockChampView(): ChampView {
+  const ITEM: Record<number, [string, ChampItem['kind']]> = {
+    3084: ['Heartsteel', 'tank'],
+    3068: ['Sunfire Aegis', 'tank'],
+    3075: ['Thornmail', 'tank'],
+    6665: ["Jak'Sho, The Protean", 'tank'],
+    3065: ['Spirit Visage', 'tank'],
+    3143: ["Randuin's Omen", 'tank'],
+    2504: ['Kaenic Rookern', 'tank'],
+    3110: ['Frozen Heart', 'tank'],
+    3083: ["Warmog's Armor", 'tank'],
+    2502: ['Unending Despair', 'tank'],
+    3190: ['Locket of the Iron Solari', 'tank'],
+    3109: ["Knight's Vow", 'tank'],
+    3050: ["Zeke's Convergence", 'tank'],
+    3089: ["Rabadon's Deathcap", 'ap'],
+    4633: ['Riftmaker', 'ap'],
+    6653: ["Liandry's Torment", 'ap'],
+    3116: ["Rylai's Crystal Scepter", 'ap'],
+    3157: ["Zhonya's Hourglass", 'ap'],
+    3047: ['Plated Steelcaps', 'tank'],
+    3111: ["Mercury's Treads", 'tank'],
+    3009: ['Boots of Swiftness', 'other'],
+  };
+  const item = (id: number) => ({ id, name: ITEM[id]![0], mana: false });
+  const row = (id: number, games: number, winRate: number, pick: number) => ({
+    items: [{ ...item(id), kind: ITEM[id]![1] }],
+    games,
+    winRate,
+    pick,
+  });
+  const AUG: Record<number, [string, string]> = {
+    1001: ['Goliath', 'prismatic'],
+    1002: ['Archmage', 'prismatic'],
+    1003: ['Back To Basics', 'prismatic'],
+    1004: ['Dive Bomber', 'silver'],
+    1005: ['Bread And Butter', 'gold'],
+    1006: ['Donation', 'gold'],
+    1007: ['First-Aid Kit', 'silver'],
+    1008: ['Giant Slayer', 'gold'],
+    1009: ['Courage of the Colossus', 'gold'],
+    1010: ['Perseverance', 'silver'],
+    1011: ['Frost Wraith', 'prismatic'],
+    1012: ['Fey Magic', 'gold'],
+    1013: ['Vampirism', 'silver'],
+    1014: ['Goredrink', 'gold'],
+  };
+  const tiers = (list: [number, Tier, number][]) =>
+    list.map(([id, tier, games], n) => ({
+      id,
+      name: AUG[id]![0],
+      rarity: AUG[id]![1],
+      icon: false,
+      image: null,
+      tier,
+      score: Math.round((0.6 - n * 0.01) * 1e4) / 1e4,
+      games,
+      general: false,
+      turns: null,
+    }));
+  const comboAug = (id: number, games: number, winRate: number) => ({
+    id,
+    name: AUG[id]![0],
+    rarity: AUG[id]![1],
+    image: null,
+    games,
+    winRate,
+  });
+  const comboItem = (id: number, games: number | null, winRate: number | null) => ({
+    ...item(id),
+    games,
+    winRate,
+  });
+  const option = (
+    ids: number[],
+    games: number,
+    winRate: number,
+    label: string,
+    later: number[],
+  ) => ({
+    items: ids.map(item),
+    games,
+    winRate,
+    grade: null,
+    mana: 0,
+    label,
+    later: later.map(item),
+  });
+  const heartsteel = [
+    option([3084, 3068, 3075], 1_204, 0.571, 'Tank / Heartsteel', [3065, 3143]),
+    option([3084, 3068, 6665], 868, 0.562, 'Tank / Heartsteel', [2504]),
+  ];
+  const locket = option([3190, 3109, 3050], 640, 0.548, 'Support / Locket', [3110]);
+  const apItems: [number, number, number][] = [
+    [3089, 136, 0.5352],
+    [4633, 64, 0.5468],
+    [6653, 212, 0.531],
+  ];
+  const apBuild = {
+    items: apItems.map(([id]) => item(id)),
+    games: 64,
+    winRate: Math.round((apItems.reduce((t, [, , wr]) => t + wr, 0) / 3) * 1e4) / 1e4,
+    grade: null,
+    mana: 0,
+    label: 'Offmeta',
+    later: [item(3116), item(3157)],
+    assembled: apItems.map(([, games, winRate]) => ({ games, winRate })),
+  };
+  const tankTiers = tiers([
+    [1001, 'S', 1_412],
+    [1005, 'S', 1_220],
+    [1009, 'S', 988],
+    [1007, 'A', 1_051],
+    [1003, 'A', 702],
+    [1010, 'A', 655],
+    [1008, 'B', 540],
+    [1002, 'C', 310],
+    [1004, 'C', 402],
+    [1006, 'D', 377],
+  ]);
+  return {
+    championId: 12,
+    alias: 'Alistar',
+    name: 'Alistar',
+    games: 3_912,
+    source: 'arammeta',
+    patch: '16.20',
+    augments: tankTiers.slice(0, 5).map((a, n) => ({
+      id: a.id,
+      name: a.name,
+      rarity: a.rarity,
+      icon: false,
+      image: null,
+      games: a.games,
+      winRate: Math.round((0.58 - n * 0.007) * 1e4) / 1e4,
+      grade: null,
+    })),
+    builds: heartsteel,
+    plans: [
+      {
+        direction: 'tank',
+        games: 3_740,
+        share: 0.96,
+        source: 'arammeta',
+        builds: [...heartsteel, locket],
+        augments: tankTiers,
+      },
+      {
+        direction: 'ap',
+        games: 0,
+        share: 0,
+        source: 'arammeta',
+        builds: [apBuild],
+        augments: tiers([
+          [1002, 'S', 310],
+          [1005, 'S', 1_220],
+          [1003, 'A', 702],
+          [1004, 'B', 402],
+          [1001, 'C', 1_412],
+          [1006, 'D', 377],
+        ]),
+      },
+    ],
+    combos: [
+      {
+        theme: 'armor',
+        meta: true,
+        augments: [comboAug(1009, 988, 0.571), comboAug(1010, 655, 0.556)],
+        items: [
+          comboItem(3075, 1_430, 0.566),
+          comboItem(6665, 980, 0.559),
+          comboItem(3143, 520, 0.552),
+          comboItem(2504, null, null),
+        ],
+      },
+      {
+        theme: 'cc',
+        meta: false,
+        augments: [comboAug(1011, 128, 0.574), comboAug(1012, 96, 0.559)],
+        items: [
+          comboItem(3143, 520, 0.552),
+          comboItem(3110, 140, 0.547),
+          comboItem(3068, 1_310, 0.551),
+        ],
+      },
+      {
+        theme: 'heal',
+        meta: false,
+        augments: [comboAug(1013, 240, 0.541), comboAug(1014, 175, 0.538)],
+        items: [comboItem(3065, 212, 0.55), comboItem(3083, 95, 0.54), comboItem(2502, null, null)],
+      },
+    ],
+    extra: {
+      boots: [
+        row(3047, 1_890, 0.561, 0.41),
+        row(3111, 1_312, 0.554, 0.29),
+        row(3009, 402, 0.549, 0.09),
+      ],
+      items: [
+        row(3075, 1_430, 0.566, 0.37),
+        row(6665, 980, 0.559, 0.25),
+        row(3143, 520, 0.552, 0.13),
+        row(3089, 136, 0.5352, 0.03),
+        row(4633, 64, 0.5468, 0.02),
+      ],
+      weak: [],
+      pairs: [],
+      spells: [
+        {
+          spells: [
+            { id: 32, name: 'Markieren', key: 'SummonerSnowball' },
+            { id: 4, name: 'Blitz', key: 'SummonerFlash' },
+          ],
+          games: 2_412,
+          winRate: 0.561,
+          pick: 0.62,
+        },
+        {
+          spells: [
+            { id: 32, name: 'Markieren', key: 'SummonerSnowball' },
+            { id: 6, name: 'Geist', key: 'SummonerHaste' },
+          ],
+          games: 803,
+          winRate: 0.552,
+          pick: 0.21,
+        },
+      ],
+      avoid: [],
+      augTypes: [],
+      weakTypes: [],
+    },
+  };
+}
+
+/** The champions dealt in the card phase, for the browser preview's pick screen (`?pick`). */
+export const mockOffer = (): HeldChamp[] =>
+  [12, 99, 63].map((id) => {
+    const [championId, alias] = CHAMPS.find(([c]) => c === id)!;
+    return { championId, alias, name: alias };
+  });

@@ -130,8 +130,10 @@ impl Lcu {
             .map_err(|_| "Unerwartete Antwort des League-Clients.".to_string())
     }
 
-    /// The only writes (user's decision 06.10.2026, aram_live.rs): the "blank. …" item sets and
-    /// the own summoner spells in the champion select. Only the caller's fixed paths.
+    /// The only writes (aram_live.rs): in blank. (user's decision 06.10.2026) the "blank. …" item
+    /// sets and the own summoner spells in the champion select; in the Mayhem app (09.10.2026),
+    /// only on the user's click, the pick of a dealt champion card and the "Mayhem: …" item set.
+    /// Only the caller's fixed paths.
     pub(super) async fn send(
         &self,
         method: reqwest::Method,

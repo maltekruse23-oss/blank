@@ -11,11 +11,14 @@
 //! Mayhem game (aram/game_card.rs, in the window, not a popout; it compares with the same
 //! `mayhem_records`) and "Update" (update.rs, the same verified flow as blank., for mayhem.exe);
 //! nothing else of blank.: no tray, popouts, settings or stored data (only ladder.rs's upload key
-//! in the Windows Credential Manager), and it never writes into the client. blank. is paused: its update installs this app
-//! as blank.exe, which then cleans up after blank. once (from_blank.rs).
+//! in the Windows Credential Manager). It writes into the client only on the user's click (user's
+//! decision 09.10.2026, aram_live.rs): the pick of one of the dealt champion cards
+//! (`mayhem_pick_champion`) and the item set "Mayhem: <build>" (`mayhem_item_set`). blank. is
+//! paused: its update installs this app as blank.exe, which then cleans up after blank. once
+//! (from_blank.rs).
 //!
 //! The client is looked for every few seconds (the lockfile next to `LeagueClientUx.exe`, as blank.
-//! does via pc.rs); while it runs, the card follows its champion select. Read-only, as in blank.
+//! does via pc.rs); while it runs, the card follows its champion select and its dealt cards.
 use std::{
     sync::atomic::{AtomicIsize, Ordering},
     thread,
@@ -61,6 +64,8 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::website::mayhem_player,
             crate::aram::ladder::mayhem_find_rank,
             crate::aram::game_card::mayhem_open_game,
+            crate::aram::live::mayhem_pick_champion,
+            crate::aram::live::mayhem_item_set,
             crate::update::update_check,
             crate::update::update_install,
             crate::update::update_news,
@@ -197,6 +202,12 @@ mod tests {
         assert!(permissions.contains(&Value::from("allow-mayhem-find-rank")));
         assert!(permissions.contains(&Value::from("allow-mayhem-open-game")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
+        // The only writes into the client, each on the user's click (aram_live.rs).
+        assert!(permissions.contains(&Value::from("allow-mayhem-pick-champion")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-item-set")));
+        // blank.'s main window never gets them.
+        let blank = read("capabilities/default.json");
+        assert!(!blank.contains("mayhem-pick-champion") && !blank.contains("mayhem-item-set"));
         // Exactly what the own window bar needs, nothing broader.
         let window: Vec<_> = permissions
             .iter()
@@ -229,6 +240,19 @@ mod tests {
         let adapter = read("../src/adapters/aramChamp.ts");
         assert!(adapter.contains("'league_client_open'"));
         assert!(adapter.contains(&format!("'{CLIENT_EVENT}'")));
+        // The dealt champion cards, the pick and "Push build" (aram_live.rs).
+        let live = read("src/aram_live.rs");
+        assert!(live.contains("\"mayhem-champ-offer\""));
+        for name in [
+            "mayhem-champ-offer",
+            "mayhem_pick_champion",
+            "mayhem_item_set",
+        ] {
+            assert!(adapter.contains(&format!("'{name}'")), "{name}");
+        }
+        for command in ["fn mayhem_pick_champion", "fn mayhem_item_set"] {
+            assert!(live.contains(command), "{command}");
+        }
         // "Find my Mayhem rank" (aram/ladder.rs).
         let ladder = read("src/aram/ladder.rs");
         let site = read("../src/adapters/aramSite.ts");

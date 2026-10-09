@@ -11,6 +11,8 @@ import {
   ladderOf,
   ownState,
   playerState,
+  rankChart,
+  versusOf,
   withChampions,
 } from './me';
 
@@ -129,6 +131,35 @@ describe('Mayhem app player', () => {
     expect(counts.reduce((t, c) => t + c.players, 0)).toBe(me.ranked);
   });
 
+  it('ranks the player’s champions and compares them with everyone in their games', () => {
+    const state = ownState({ name: 'Me#EUW', board, me: profile('me') });
+    if (state.state !== 'ready' || !state.me) throw new Error(state.state);
+    const me = state.me;
+    expect(me.champions.map((c) => [c.name, c.games]).sort()).toEqual([
+      ['Ahri', 5],
+      ['Brand', 3],
+    ]);
+    // Brand's games dealt more damage (higher grades), so he leads.
+    expect(me.champions[0]!.name).toBe('Brand');
+    expect(me.versus).toMatchObject({ damagePlace: 1, topDamage: 8, counted: 8, share: 0.3 });
+    expect(me.versus.better).toBeGreaterThan(0);
+    // A value out of range counts as unknown, never as 0.
+    const odd = all
+      .find((s) => s.puuid === 'me')!
+      .history.map((s, i) => ({
+        ...s,
+        entry: { ...s.entry, damageRank: i ? 11 : 2, teamShare: i ? -1 : 0.5 },
+      }));
+    expect(versusOf(odd)).toMatchObject({ damagePlace: 2, counted: 1, topDamage: 0, share: 0.5 });
+    expect(versusOf([])).toEqual({
+      better: null,
+      damagePlace: null,
+      topDamage: 0,
+      counted: 0,
+      share: null,
+    });
+  });
+
   it('opens any player card from their profile, not listed and broken as own states', () => {
     const card = playerState(profile('other'), [], []);
     if (card.state !== 'ready') throw new Error(card.state);
@@ -219,5 +250,26 @@ describe('Mayhem app player', () => {
     expect(ago(NOW - 3 * HOUR, NOW)).toBe('3 h ago');
     expect(ago(NOW - 30 * HOUR, NOW)).toBe('yesterday');
     expect(ago(NOW - 72 * HOUR, NOW)).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
+  });
+});
+
+describe('Rank card chart', () => {
+  it('zooms to the last games and shows the tiers visible there, lowest first', () => {
+    const chart = rankChart([1550, 1650, 1700])!;
+    // Room of a quarter of the range: 1512.5 to 1737.5; S begins at 1600.
+    expect(chart.bands.map((b) => b.tier.id)).toEqual(['a', 's']);
+    expect(chart.bands[0]!.from).toBe(0);
+    expect(chart.bands[0]!.to).toBeCloseTo(87.5 / 225);
+    expect(chart.bands[1]!.to).toBe(1);
+    expect(chart.points.map(([, y]) => y)).toEqual([37.5 / 225, 137.5 / 225, 187.5 / 225]);
+    // Inside one tier: one band; at least 25 MP of room; never below 0.
+    expect(rankChart([2100, 2100])!.bands.map((b) => b.tier.id)).toEqual(['ss']);
+    expect(rankChart([2100, 2100])!.points).toEqual([
+      [0, 0.5],
+      [1, 0.5],
+    ]);
+    expect(rankChart([0, 10])!.points[0]).toEqual([0, 0]);
+    expect(rankChart([3300, 3700])!.bands.map((b) => b.tier.id)).toEqual(['mayhem']);
+    expect(rankChart([1200])).toBeNull();
   });
 });

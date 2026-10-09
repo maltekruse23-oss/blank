@@ -3,6 +3,7 @@ import { Crown, History, House, LayoutGrid, Plus, Sparkles, Swords, Trophy } fro
 import {
   leagueClientOpen,
   onChamp,
+  onChampOffer,
   onLeagueClient,
   readChampInfo,
   watchChamp,
@@ -21,8 +22,9 @@ import { champView, type ChampView } from '../features/aram/champCard';
 import { AfterGame } from './AfterGameView';
 import { cardRank, inEnglish, RANK_ASKS, RANK_GIVE_UP, type CardRank } from './afterGame';
 import { found, type FindState } from './findRank';
-import { CARD_PREVIEWS, mockCard, type CardPreview } from './mock';
+import { CARD_PREVIEWS, mockCard, mockChampView, mockOffer, type CardPreview } from './mock';
 import { MayhemCard } from './MayhemCard';
+import { PickView } from './PickView';
 import { PlayerCard, PlayerProvider, type Who } from './PlayerCard';
 import { AugmentDetail, ChampionDetail } from './metaPages';
 import {
@@ -99,8 +101,28 @@ function previewFromAddress(): After | null {
     : null;
 }
 
+/** The browser preview's Champ card (`mayhem.html?champ`) or pick screen (`?pick`), invented,
+ * marked "Mock". */
+function champFromAddress(): Shown {
+  const address = new URLSearchParams(window.location.search);
+  if (isTauri()) return { state: 'none' };
+  if (address.has('pick')) return { state: 'pick', offered: mockOffer(), sample: true };
+  if (address.has('champ')) return { state: 'ready', view: mockChampView(), sample: true };
+  return { state: 'none' };
+}
+
+/** One Guard and one fresh card per pick screen and per champion. */
+const champKey = (shown: Shown) =>
+  shown.state === 'pick'
+    ? `pick-${shown.offered.map((c) => c.championId).join('-')}`
+    : shown.state === 'ready'
+      ? `card-${shown.view.championId}-${shown.sample}`
+      : shown.state;
+
 type Shown =
   | { state: 'none' }
+  /** ARAM Mayhem's card phase: the dealt champions, a click picks one (PickView.tsx). */
+  | { state: 'pick'; offered: HeldChamp[]; sample: boolean }
   | { state: 'loading'; champ: HeldChamp }
   | { state: 'failed'; champ: HeldChamp; sample: boolean }
   | { state: 'ready'; view: ChampView; sample: boolean };
@@ -113,9 +135,11 @@ type Shown =
  */
 export function MayhemApp() {
   const [client, setClient] = useState<boolean | null>(null);
-  const [shown, setShown] = useState<Shown>({ state: 'none' });
+  const [shown, setShown] = useState<Shown>(champFromAddress);
   const asked = useRef(0);
-  const [page, setPage] = useState<Page>('home');
+  const [page, setPage] = useState<Page>(() =>
+    champFromAddress().state === 'none' ? 'home' : 'champ',
+  );
   const [tiers, setTiers] = useState<TierState | null>(null);
   const [me, setMe] = useState<MeState>({ state: 'loading' });
   const meAsked = useRef({ ask: 0, at: 0 });
@@ -229,8 +253,41 @@ export function MayhemApp() {
     void watchChamp(true);
     let timer = 0;
     let select = false;
+    // The pick screen shows (cards dealt), and the champion held (0: none yet).
+    let dealt = false;
+    let held = 0;
+    // The pick screen's end, after SETTLE_MS: the cards' list may go before the session names the
+    // pick (the order was never recorded live).
+    let over = 0;
+    const stopOffer = onChampOffer((offered) => {
+      window.clearTimeout(over);
+      if (offered.length) {
+        // At once (the card phase lasts about 12 s); a champion's numbers still coming stay out.
+        window.clearTimeout(timer);
+        ++asked.current;
+        if (!select) setAfter(null);
+        select = true;
+        dealt = true;
+        held = 0;
+        setSelecting(true);
+        setShown({ state: 'pick', offered, sample: false });
+        setPage('champ');
+        return;
+      }
+      if (!dealt) return;
+      dealt = false;
+      // A picked champion goes on to its card (onChamp); without one the select is over.
+      over = window.setTimeout(() => {
+        if (held) return;
+        select = false;
+        setSelecting(false);
+        setShown((old) => (old.state === 'pick' ? { state: 'none' } : old));
+        setPage((old) => (old === 'champ' ? 'home' : old));
+      }, SETTLE_MS);
+    });
     const stopChamp = onChamp((champ) => {
       window.clearTimeout(timer);
+      held = champ.championId;
       const now = champ.championId > 0;
       // A new champion select closes the card of the game before; a card that comes during the
       // select (from the history, minutes after the game) shows once it ends.
@@ -246,6 +303,8 @@ export function MayhemApp() {
     });
     return () => {
       window.clearTimeout(timer);
+      window.clearTimeout(over);
+      stopOffer();
       stopChamp();
       stopClient();
       void watchChamp(false);
@@ -382,31 +441,55 @@ export function MayhemApp() {
                 <MatchHistoryPage me={meShown} onRetry={fetchMe} find={find} onFind={findMine} />
               ) : page === 'records' ? (
                 <RecordsPage me={me} champions={lists?.champions ?? []} />
-              ) : shown.state === 'ready' ? (
-                <MayhemCard
-                  key={`${shown.view.championId}-${shown.sample}`}
-                  view={shown.view}
-                  sample={shown.sample}
-                  onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
-                />
-              ) : shown.state === 'loading' ? (
-                <p className="mayhem-note mayhem-in">
-                  Loading {shown.champ.name || shown.champ.alias} …
-                </p>
-              ) : shown.state === 'failed' ? (
-                <div className="mayhem-wait">
-                  <div className="mayhem-glow mayhem-in">
-                    <p>The numbers did not arrive. Check your connection.</p>
-                    <button
-                      type="button"
-                      className="mayhem-button"
-                      onClick={() => show(shown.champ, shown.sample)}
-                    >
-                      Try again
-                    </button>
-                  </div>
-                </div>
-              ) : null}
+              ) : (
+                // By card: a pick screen or card that failed to draw does not keep the next away.
+                <Guard
+                  key={champKey(shown)}
+                  name="Champ"
+                  fallback={(retry) => (
+                    <div className="mayhem-glow mayhem-in mayhem-narrow">
+                      <p>This card could not be drawn.</p>
+                      <button type="button" className="mayhem-button" onClick={retry}>
+                        Try again
+                      </button>
+                    </div>
+                  )}
+                >
+                  {shown.state === 'pick' ? (
+                    <PickView
+                      offered={shown.offered}
+                      champions={lists?.champions ?? NO_CHAMPIONS}
+                      sample={shown.sample}
+                    />
+                  ) : shown.state === 'ready' ? (
+                    <MayhemCard
+                      view={shown.view}
+                      sample={shown.sample}
+                      champion={
+                        lists?.champions.find((c) => c.id === shown.view.championId) ?? null
+                      }
+                      onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
+                    />
+                  ) : shown.state === 'loading' ? (
+                    <p className="mayhem-note mayhem-in">
+                      Loading {shown.champ.name || shown.champ.alias} …
+                    </p>
+                  ) : shown.state === 'failed' ? (
+                    <div className="mayhem-wait">
+                      <div className="mayhem-glow mayhem-in">
+                        <p>The numbers did not arrive. Check your connection.</p>
+                        <button
+                          type="button"
+                          className="mayhem-button"
+                          onClick={() => show(shown.champ, shown.sample)}
+                        >
+                          Try again
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </Guard>
+              )}
             </div>
           </main>
         </div>
