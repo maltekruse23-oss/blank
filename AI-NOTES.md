@@ -3,6 +3,10 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Plugins im Projekt — 09.10.2026
+
+- Benutzerauftrag: feature-dev, security-guidance, code-review, explanatory-output-style aus `claude-plugins-official` im Projekt-Scope (`.claude/settings.json`, neben frontend-design und plugin-dev). Arbeitsregeln dazu in CLAUDE.md „Plugins“ (Design-System vor Plugin-Vorschlägen, feature-dev für neue Features, code-review vor jedem Merge mit einfacher Erklärung, security-guidance bei Spielerdaten/Server, Erklärungen ohne Fachjargon).
+
 ## Mayhem-App: Spielerkarte, alle Rekorde, Home füllt das Fenster — 08.10.2026
 
 - Benutzerwunsch „jeder Name soll anklickbar sein überall und die Playercard soll sich öffnen“: jeder Spielername (Rangliste, Records, Home, Karte nach dem Spiel) ist ein Knopf `PlayerName` (`src/mayhem/PlayerCard.tsx`), der über der Seite die Karte öffnet: Rang, MP, Siege/Niederlagen, Ø-Note, meistgespielter Champion, letzte Spiele aus dem öffentlichen Profil von mayhemstats.lol. Neuer Rust-Befehl `mayhem_player` (`aram_website.rs`, nur lesend, nur die öffentliche ID `a123` oder eine PUUID geht hinaus, `plain_id` geprüft), freigegeben in `build.rs` und `capabilities/mayhem.json` (Test in `mayhem.rs`); Laden, nicht gelistet und Fehler mit „Try again“ als eigene Zustände (`loadPlayer` in `me.ts`, per Test). Esc schließt nur den obersten Dialog (Karte über der Karte nach dem Spiel).
