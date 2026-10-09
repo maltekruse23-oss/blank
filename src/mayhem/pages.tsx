@@ -13,8 +13,10 @@ import { games, number, percent, winsIn } from './format';
 import { CONSENT, findView, type FindState } from './findRank';
 import {
   ago,
+  type BoardRow,
   CURVE_SIZE,
   curvePath,
+  distributionOf,
   type LadderRow,
   type MeGame,
   type MeState,
@@ -381,8 +383,72 @@ const RANK_IMAGE = import.meta.glob<string>('../../apps/mayhem-site/public/ranks
   eager: true,
   import: 'default',
 });
-export const rankImage = (rank: Rank) =>
-  RANK_IMAGE[`../../apps/mayhem-site/public/ranks/${rank.tier.id}.png`];
+const tierImage = (id: string) => RANK_IMAGE[`../../apps/mayhem-site/public/ranks/${id}.png`];
+export const rankImage = (rank: Rank) => tierImage(rank.tier.id);
+
+/** "1,024,759th" */
+const ordinal = (n: number) => {
+  const tens = n % 100;
+  const end = tens > 10 && tens < 14 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  return `${number(n)}${end}`;
+};
+
+/** Ladder rank (like op.gg: "1,024,759th (27.86%)") and the peak, on the Rank page and the player
+ * card; nothing without a place or a rank. */
+export function RankFacts({ me }: { me: MeView }) {
+  const share = me.place && me.ranked ? (me.place / me.ranked) * 100 : null;
+  if (!me.place && !me.peak) return null;
+  return (
+    <dl className="mayhem-rank-more">
+      {me.place && (
+        <div>
+          <dt>Ladder rank</dt>
+          <dd>
+            <b>{ordinal(me.place)}</b>
+            {share !== null && <small> ({share.toFixed(2)}%)</small>}
+          </dd>
+        </div>
+      )}
+      {me.peak && (
+        <div>
+          <dt>Peak</dt>
+          <dd title={`${me.peak.points} MP`}>
+            <img src={rankImage(me.peak)} alt="" width={22} height={22} />
+            <b>{rankName(me.peak)}</b>
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
+/** How many players stand in each tier, highest first; the player's own tier is marked. */
+function Distribution({ board, own }: { board: BoardRow[]; own: Rank | null }) {
+  const tiers = distributionOf(board).reverse();
+  const total = tiers.reduce((t, c) => t + c.players, 0);
+  if (!total) return null;
+  const most = Math.max(...tiers.map((c) => c.players));
+  return (
+    <ul className="mayhem-distribution" aria-label="Players per rank">
+      {tiers.map((c, i) => (
+        <li
+          key={c.tier.id}
+          className="mayhem-in"
+          data-me={own?.tier.id === c.tier.id}
+          style={step(i + 3)}
+          title={`${number(c.players)} ${c.players === 1 ? 'player' : 'players'}`}
+        >
+          <img src={tierImage(c.tier.id)} alt="" width={26} height={26} />
+          <b>{c.tier.name}</b>
+          <span className="mayhem-bar">
+            <span style={{ width: `${(c.players / most) * 100}%` }} />
+          </span>
+          <small>{percent(c.players / total)}</small>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export const winLoss = (me: MeView) => `${me.wins}W ${me.games - me.wins}L`;
 export const mpLine = (me: MeView, rank: Rank) =>
@@ -508,14 +574,33 @@ function GameRow({
   );
 }
 
-/** The last games, newest first (the player card). */
-export function MatchList({ games }: { games: MeView['recent'] }) {
+/** The ladder over the last games (Home and the player card); nothing below two games. */
+export function MpCurve({ values }: { values: number[] }) {
+  const curve = curvePath(values);
+  if (!curve) return null;
   return (
-    <More
-      list={games}
-      className="mayhem-games"
-      render={(g, i) => <GameRow key={g.gameId} game={g} index={i} size={52} />}
-    />
+    <>
+      <svg
+        viewBox={`0 0 ${CURVE_SIZE.width} ${CURVE_SIZE.height}`}
+        className="mayhem-curve"
+        role="img"
+        aria-label="Rank over the last games"
+      >
+        <defs>
+          <linearGradient id="mayhem-mp" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" style={{ stopColor: 'var(--accent)', stopOpacity: 0.35 }} />
+            <stop offset="1" style={{ stopColor: 'var(--accent)', stopOpacity: 0 }} />
+          </linearGradient>
+        </defs>
+        <path d={curve.area} fill="url(#mayhem-mp)" />
+        <path className="mayhem-curve-line" d={curve.line} />
+        <circle cx={curve.end[0]} cy={curve.end[1]} r="4" style={{ fill: 'var(--accent-soft)' }} />
+      </svg>
+      <div className="mayhem-curve-scale">
+        <span>{values.length} games ago</span>
+        <span>now</span>
+      </div>
+    </>
   );
 }
 
@@ -622,7 +707,7 @@ export function RankPage({
                   </div>
                   <div className="mayhem-rank-name">{rank ? rankName(rank) : '–'}</div>
                   <div className="mayhem-note">
-                    {rank ? mpLine(own, rank) : `Placement ${own.placed}/${PLACEMENT}`}
+                    {rank ? `${rank.points} MP` : `Placement ${own.placed}/${PLACEMENT}`}
                   </div>
                   <div className="mayhem-bar">
                     <span
@@ -632,12 +717,26 @@ export function RankPage({
                     />
                   </div>
                   <div className="mayhem-rank-facts">{winLoss(own)}</div>
+                  <RankFacts me={own} />
                 </>
               ) : (
                 <MeNotice me={me} onRetry={onRetry} find={find} onFind={onFind} />
               )}
             </div>
+            {own && own.curve.length > 1 && (
+              <div className="mayhem-rank-curve">
+                <MpCurve values={own.curve} />
+              </div>
+            )}
           </section>
+          {got && got.board.some((p) => p.rank) && (
+            <section className="mayhem-section">
+              <h2 className="mayhem-in" style={step(2)}>
+                Rank distribution
+              </h2>
+              <Distribution board={got.board} own={rank} />
+            </section>
+          )}
           {own && (
             <section className="mayhem-section">
               <div className="mayhem-row-head mayhem-in" style={step(2)}>
@@ -715,8 +814,6 @@ export function MatchHistoryPage({
   );
 }
 
-/** Top augments on Home: as many as fit one row (mayhem.css hides the rest). */
-const HOME_AUGMENTS = 8;
 /** Last games on Home (all of them on the page Match history). */
 const HOME_GAMES = 6;
 /** One row of Home's "Around you". */
@@ -738,39 +835,29 @@ const ladderRow = (p: LadderRow, style: CSSProperties) => (
   </li>
 );
 
-/** Strong champions on Home: the same tiles and row as the augments. */
-const HOME_CHAMPIONS = 8;
-
 /**
  * Home (user, 08.10.2026: the dashboard of the canvas "App · Home"). Its question: how am I doing,
- * and what is strong right now? The most played champion, the top augments (arammeta.com) and the
- * last games, with the rank, numbers and records in a bento column. The player comes from
+ * Only about the player (user, 09.10.2026: nothing general): the most played champion and the last
+ * games, with the rank, numbers and records in a bento column. The player comes from
  * mayhemstats.lol (me.ts); without one a small notice says why.
  */
 export function HomePage({
-  tiers,
   me,
   onOpen,
-  onAugment,
   onChampion,
   onRetry,
   find,
   onFind,
 }: {
-  tiers: TierState;
   me: MeState;
   onOpen: (page: Page) => void;
-  onAugment: (id: number) => void;
   onChampion: (id: number) => void;
   onRetry: () => void;
 } & Finding) {
-  const top = tiers.state === 'ready' ? tiers.lists.augments.slice(0, HOME_AUGMENTS) : [];
-  const strong = tiers.state === 'ready' ? tiers.lists.champions.slice(0, HOME_CHAMPIONS) : [];
   const got = ready(me);
   const own = got?.me ?? null;
   const main = own?.main ?? null;
   const splash = main?.alias ? championSplash(main.alias) : null;
-  const curve = own ? curvePath(own.curve) : null;
   return (
     <div className="mayhem-home">
       <div className="mayhem-home-main">
@@ -790,9 +877,9 @@ export function HomePage({
                 <button
                   type="button"
                   className="mayhem-button primary"
-                  onClick={() => onOpen('champions')}
+                  onClick={() => onChampion(main.championId)}
                 >
-                  Tier list
+                  Builds
                 </button>
                 <button type="button" className="mayhem-button" onClick={() => onOpen('history')}>
                   Match history
@@ -813,46 +900,6 @@ export function HomePage({
             )}
           </section>
         )}
-
-        <section className="mayhem-row">
-          <div className="mayhem-row-head mayhem-in" style={step(2)}>
-            <h2>Top augments</h2>
-            {tiers.state === 'ready' && tiers.lists.mock && (
-              <span className="mayhem-pill mock">Mock</span>
-            )}
-            <button type="button" className="mayhem-link" onClick={() => onOpen('augments')}>
-              See all
-            </button>
-          </div>
-          {top.length ? (
-            <div className="mayhem-mini-grid">
-              {top.map((a, i) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  className="mayhem-mini mayhem-in"
-                  data-rarity={a.rarity}
-                  style={step(i + 3)}
-                  onClick={() => onAugment(a.id)}
-                  title={`${winsIn(a.winRate, a.games)}\n${a.text}`}
-                >
-                  <span className="mayhem-aug-card-tier" data-tier={a.tier}>
-                    {a.tier}
-                  </span>
-                  <span className="mayhem-aug-card-icon small">
-                    {a.image && <img src={a.image} alt="" width={40} height={40} />}
-                  </span>
-                  <b>{a.name}</b>
-                  <small>{percent(a.winRate)} wins</small>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="mayhem-note">
-              {tiers.state === 'failed' ? tiers.message : 'Loading the list from arammeta.com …'}
-            </p>
-          )}
-        </section>
 
         <section className="mayhem-row">
           <div className="mayhem-row-head mayhem-in" style={step(7)}>
@@ -894,38 +941,6 @@ export function HomePage({
             </p>
           )}
         </section>
-
-        {strong.length > 0 && (
-          <section className="mayhem-row">
-            <div className="mayhem-row-head mayhem-in" style={step(12)}>
-              <h2>Strong champions right now</h2>
-              <button type="button" className="mayhem-link" onClick={() => onOpen('champions')}>
-                See all
-              </button>
-            </div>
-            <div className="mayhem-mini-grid">
-              {strong.map((c, i) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className="mayhem-mini mayhem-in"
-                  style={step(i + 13)}
-                  onClick={() => onChampion(c.id)}
-                  title={winsIn(c.winRate, c.games)}
-                >
-                  <span className="mayhem-aug-card-tier" data-tier={c.tier}>
-                    {c.tier}
-                  </span>
-                  <span className="mayhem-aug-card-icon small">
-                    <img src={championSquare(c.alias) ?? undefined} alt="" width={40} height={40} />
-                  </span>
-                  <b>{c.name}</b>
-                  <small>{percent(c.winRate)} wins</small>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
 
       <aside className="mayhem-bento">
@@ -944,35 +959,7 @@ export function HomePage({
             </div>
             {own?.rank && <img src={rankImage(own.rank)} alt="" width={76} height={76} />}
           </div>
-          {curve && (
-            <>
-              <svg
-                viewBox={`0 0 ${CURVE_SIZE.width} ${CURVE_SIZE.height}`}
-                className="mayhem-curve"
-                role="img"
-                aria-label="Rank over the last games"
-              >
-                <defs>
-                  <linearGradient id="mayhem-mp" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0" style={{ stopColor: 'var(--accent)', stopOpacity: 0.35 }} />
-                    <stop offset="1" style={{ stopColor: 'var(--accent)', stopOpacity: 0 }} />
-                  </linearGradient>
-                </defs>
-                <path d={curve.area} fill="url(#mayhem-mp)" />
-                <path className="mayhem-curve-line" d={curve.line} />
-                <circle
-                  cx={curve.end[0]}
-                  cy={curve.end[1]}
-                  r="4"
-                  style={{ fill: 'var(--accent-soft)' }}
-                />
-              </svg>
-              <div className="mayhem-curve-scale">
-                <span>{own!.curve.length} games ago</span>
-                <span>now</span>
-              </div>
-            </>
-          )}
+          <MpCurve values={own?.curve ?? []} />
         </section>
         <div className="mayhem-bento-pair">
           <section className="mayhem-tile mayhem-in" style={step(2)}>

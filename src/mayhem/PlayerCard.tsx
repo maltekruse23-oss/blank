@@ -1,15 +1,26 @@
 // The player card (user's wish 08.10.2026: "jeder Name soll anklickbar sein überall und die
 // Playercard soll sich öffnen"). Every player's name in the app is a button (PlayerName) that opens
-// their card over the page: rank, games and the last games from their public profile on
+// their card over the page: rank with the MP curve and their best game (user, 09.10.2026: no match
+// history), the most played champion as the background, from their public profile on
 // mayhemstats.lol (mayhem_player, read-only). Its question: how is this player doing? Not listed,
 // loading and failed are their own states; "–" for what is missing, never 0.
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { X } from 'lucide-react';
-import { championSquare } from '../adapters/aram';
+import { championSplash, championSquare, splashFallback } from '../adapters/aram';
 import { PLACEMENT, rankName } from '../features/aram/aramRating';
-import { games, percent } from './format';
-import { loadPlayer, type PlayerState } from './me';
-import { MatchList, mpLine, rankImage, winLoss } from './pages';
+import { rankFill } from '../features/aram/rankRun';
+import { games, number, percent } from './format';
+import { loadPlayer, type BoardRow, type PlayerState } from './me';
+import { MpCurve, RankFacts, rankImage, winLoss } from './pages';
+import { tagsOf } from './tags';
 import type { TierChampion } from './tiers';
 import { GradeMark, Overlay, RETRY_MS, useRefresh } from './ui';
 
@@ -51,18 +62,26 @@ export function PlayerName({
 export function PlayerCard({
   who,
   champions,
+  board,
   onClose,
 }: {
   who: Who;
   champions: TierChampion[];
+  /** The whole leaderboard (the ladder rank); empty while it is not known. */
+  board: BoardRow[];
   onClose: () => void;
 }) {
   const [got, setGot] = useState<PlayerState>({ state: 'loading' });
   const [ask, setAsk] = useState(0);
+  // Read when loading, not a reason to load: the app refreshes the leaderboard by itself.
+  const boardNow = useRef(board);
+  boardNow.current = board;
   useEffect(() => {
     let current = true;
     setGot({ state: 'loading' });
-    void loadPlayer(who.id, who.name, champions).then((next) => current && setGot(next));
+    void loadPlayer(who.id, who.name, champions, boardNow.current).then(
+      (next) => current && setGot(next),
+    );
     return () => {
       current = false;
     };
@@ -74,6 +93,10 @@ export function PlayerCard({
   const rank = me?.rank ?? null;
   const name = got.state === 'ready' ? got.name : who.name;
   const at = name.lastIndexOf('#');
+  const main = me?.main ?? null;
+  const splash = main?.alias ? championSplash(main.alias, main.skin) : null;
+  const bestGame = me?.best.game ?? null;
+  const tags = useMemo(() => tagsOf(me?.history ?? []), [me]);
   return (
     <Overlay onClose={onClose}>
       <article
@@ -82,63 +105,111 @@ export function PlayerCard({
         aria-modal="true"
         aria-label={`Player card: ${name}`}
       >
+        {splash && main?.alias && (
+          <img
+            className="mayhem-player-splash"
+            src={splash}
+            alt=""
+            onError={(event) => splashFallback(event, main.alias!, main.skin)}
+          />
+        )}
         <header className="mayhem-player-head">
-          {rank && <img src={rankImage(rank)} alt="" width={76} height={76} />}
-          <div>
-            <h2>
-              {at > 0 ? name.slice(0, at) : name}
-              {at > 0 && <small>{name.slice(at)}</small>}
-              {got.state === 'ready' && got.mock && <span className="mayhem-pill mock">Mock</span>}
-            </h2>
-            {me ? (
-              <>
-                <div className="mayhem-rank-name">{rank ? rankName(rank) : 'Unranked'}</div>
-                <div className="mayhem-note">
-                  {rank ? mpLine(me, rank) : `Placement ${me.placed}/${PLACEMENT}`}
-                </div>
-                <div className="mayhem-rank-facts">
-                  {winLoss(me)}
-                  {me.average && ` · Avg grade ${me.average}`}
-                </div>
-              </>
-            ) : (
-              <p className="mayhem-note" role="status">
-                {got.state === 'loading'
-                  ? 'Loading from mayhemstats.lol …'
-                  : got.state === 'missing'
-                    ? 'Not on mayhemstats.lol.'
-                    : 'mayhemstats.lol did not answer.'}
-              </p>
-            )}
-            {got.state === 'failed' && (
-              <button type="button" className="mayhem-button small" onClick={() => setAsk(ask + 1)}>
-                Try again
-              </button>
-            )}
-          </div>
-        </header>
-        {me?.main && (
-          <div className="mayhem-player-main">
-            {me.main.alias && (
-              <img src={championSquare(me.main.alias) ?? undefined} alt="" width={40} height={40} />
-            )}
-            <span>
-              <span className="mayhem-note">Most played</span>
-              <b>{me.main.name}</b>
+          <h2>
+            {at > 0 ? name.slice(0, at) : name}
+            {at > 0 && <small>{name.slice(at)}</small>}
+            {got.state === 'ready' && got.mock && <span className="mayhem-pill mock">Mock</span>}
+          </h2>
+          {me && tags.length > 0 && (
+            <ul className="mayhem-tags" aria-label="Tags">
+              {tags.map((tag) => (
+                <li key={tag.label} className="mayhem-tag" data-tone={tag.tone} title={tag.why}>
+                  {tag.label}
+                </li>
+              ))}
+            </ul>
+          )}
+          {main && (
+            <span className="mayhem-note" title={`Grade ${main.grade}`}>
+              Most played: <b>{main.name}</b> · {percent(main.wins / main.games)} wins ·{' '}
+              {games(main.games)}
             </span>
-            <small title={`Grade ${me.main.grade}`}>
-              {percent(me.main.wins / me.main.games)} wins · {games(me.main.games)}
-            </small>
-            <GradeMark grade={me.main.grade} size={34} />
-          </div>
+          )}
+          {!me && (
+            <p className="mayhem-note" role="status">
+              {got.state === 'loading'
+                ? 'Loading from mayhemstats.lol …'
+                : got.state === 'missing'
+                  ? 'Not on mayhemstats.lol.'
+                  : 'mayhemstats.lol did not answer.'}
+            </p>
+          )}
+          {got.state === 'failed' && (
+            <button type="button" className="mayhem-button small" onClick={() => setAsk(ask + 1)}>
+              Try again
+            </button>
+          )}
+        </header>
+        {me && (
+          <section className="mayhem-player-box">
+            <h3>Mayhem rank</h3>
+            <div className="mayhem-player-rank">
+              {rank && <img src={rankImage(rank)} alt="" width={84} height={84} />}
+              <div>
+                <div className="mayhem-player-rank-line">
+                  <span className="mayhem-rank-name">{rank ? rankName(rank) : 'Unranked'}</span>
+                  <span>{rank ? `${rank.points} MP` : `Placement ${me.placed}/${PLACEMENT}`}</span>
+                </div>
+                <span className="mayhem-bar" aria-hidden>
+                  <span
+                    style={{
+                      width: `${(rank ? rankFill(rank) : me.placed / PLACEMENT) * 100}%`,
+                    }}
+                  />
+                </span>
+                <div className="mayhem-player-rank-line mayhem-rank-facts">
+                  <span>{me.games ? `${percent(me.wins / me.games)} WR` : '–'}</span>
+                  <span>{winLoss(me)}</span>
+                </div>
+                <RankFacts me={me} />
+              </div>
+            </div>
+            {me.curve.length > 1 && (
+              <div className="mayhem-player-curve">
+                <h3>MP history</h3>
+                <MpCurve values={me.curve} />
+              </div>
+            )}
+          </section>
         )}
         {me && (
-          <section className="mayhem-player-games">
-            <h3>Last games</h3>
-            {me.recent.length ? (
-              <MatchList games={me.recent} />
+          <section className="mayhem-player-box">
+            <h3>Best performance</h3>
+            {bestGame ? (
+              <div className="mayhem-player-main">
+                {bestGame.alias && (
+                  <img
+                    src={championSquare(bestGame.alias) ?? undefined}
+                    alt=""
+                    width={44}
+                    height={44}
+                  />
+                )}
+                <span>
+                  <b>{bestGame.name}</b>
+                  <small>
+                    {bestGame.kda} · {number(bestGame.damage)} damage
+                  </small>
+                </span>
+                <GradeMark grade={bestGame.grade} size={40} />
+              </div>
             ) : (
               <p className="mayhem-note">No rated games yet.</p>
+            )}
+            {me.average && (
+              <div className="mayhem-player-rank-line mayhem-rank-facts">
+                <span>Avg grade</span>
+                <GradeMark grade={me.average} size={22} />
+              </div>
             )}
           </section>
         )}

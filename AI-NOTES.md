@@ -3,6 +3,21 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: Rang-Verteilung, Ladder-Platz, Peak — 09.10.2026
+
+- Benutzerwunsch „Rank-Tab überarbeiten: Rank Distribution, Graph wie bei Home, Ladder Rank 1,024,759th (27.86%), auch in der Player Card, Peak Rank“: `MeState.board` (alle Spieler der Rangliste, nur `siteId`/`rank`), `distributionOf` (Spieler je Stufe), `MeView.ranked` (Eingestufte gesamt) und `MeView.peak` (höchster Rang aus aktuellem, jedem `after` und den Saison-Endrängen) in `me.ts`; `RankFacts` (Ladder rank als Ordinalzahl mit Anteil auf 2 Stellen, Peak mit Wappen) auf der Rang-Karte und der Spielerkarte, `MpCurve` unter der Rang-Karte, Abschnitt „Rank distribution“ in der rechten Spalte (eigene Stufe markiert). Die Spielerkarte bekommt das Board aus `MayhemApp` (per Ref, damit ein Auffrischen nicht neu lädt). Oberste Zeile dort nur noch „88 MP“ (Platz steht in `RankFacts`); Home behält `mpLine`.
+- Geprüft: tsc, lint, test, Browser-Vorschau mit Mock. Nicht geprüft: echte Website-Daten (Peak aus Profilen anderer Spieler hängt davon ab, ob die Website deren Verlauf mitliefert).
+
+## Mayhem-App: Home nur über dich — 09.10.2026
+
+- Benutzerwunsch „Home soll nichts Allgemeines anzeigen, immer nur Infos in Bezug auf sich selber“: „Top augments“ und „Strong champions right now“ von Home entfernt (stehen unter Augments/Champions), samt ungenutztem CSS `.mayhem-mini*`; „Tier list“ im Hero heißt „Builds“ und öffnet die Champion-Seite des eigenen meistgespielten Champions. Home bekommt keine Tier-Listen mehr (`tiers`/`onAugment` entfernt). „Around you“ bleibt (Plätze um dich).
+- Geprüft: tsc, lint, test, Browser-Vorschau mit Mock.
+
+## Mayhem-App: Spielerkarte neu — 09.10.2026
+
+- Benutzerwunsch (Bild einer „Ranked Solo“-Karte): Spielerkarte ohne Match History; Rang-Kasten (Wappen, Rang, MP, Balken `rankFill`, Siegquote, S/N, MP-Verlauf `MpCurve` – aus Home ausgelagert), „Best performance“ = Spiel mit der höchsten Note (`MeView.best.game`), Splash des meistgespielten Champions im Skin seines letzten Spiels (`main.skin`, Rückfall `splashFallback`) als Hintergrund, Karte 720 px statt 520 px. `MatchList` entfernt (nur hier benutzt). Zweite Vorschau-Config `mayhem-preview` (Port 1431) in `.claude/launch.json`.
+- Geprüft: tsc, lint, test, Browser-Vorschau mit Mock bei 1280 × 820. Nicht geprüft: echter Skin aus dem Website-Profil (kommt nur, wenn die Website `skin` im Eintrag liefert, sonst Standard-Splash).
+
 ## Mayhem-App: Champ-Reiter nur während einer Auswahl — 09.10.2026
 
 - Benutzerwunsch „Wir brauchen keinen Champ-Tab, Waiting for Champion Select ist überflüssig … es soll direkt ein Tab kommen“: „Champ“ steht erst in der Seitenleiste, sobald eine Champ-Auswahl eine Karte geliefert hat (`shown.state !== 'none'` in `MayhemApp.tsx`), die App springt wie bisher sofort dorthin; Warte-Bildschirm samt „Example“-Knopf entfernt. Die Karte bleibt bis zur nächsten Auswahl (Augment-Stufen im Spiel nachschlagen).
