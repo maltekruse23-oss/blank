@@ -941,7 +941,6 @@ export function HomePage({
             </p>
           )}
         </section>
-
       </div>
 
       <aside className="mayhem-bento">

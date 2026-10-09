@@ -79,7 +79,9 @@ export function PlayerCard({
   useEffect(() => {
     let current = true;
     setGot({ state: 'loading' });
-    void loadPlayer(who.id, who.name, champions, boardNow.current).then((next) => current && setGot(next));
+    void loadPlayer(who.id, who.name, champions, boardNow.current).then(
+      (next) => current && setGot(next),
+    );
     return () => {
       current = false;
     };

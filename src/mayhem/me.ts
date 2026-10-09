@@ -272,7 +272,8 @@ export function aroundOf(board: Ranked[], siteId: string | undefined): LadderRow
 /** How many ranked players stand in each tier, lowest first (the Rank page's distribution). */
 export function distributionOf(board: BoardRow[]) {
   const counts = TIERS.map((tier) => ({ tier, players: 0 }));
-  for (const p of board) if (p.rank) counts.find((c) => c.tier.id === p.rank!.tier.id)!.players += 1;
+  for (const p of board)
+    if (p.rank) counts.find((c) => c.tier.id === p.rank!.tier.id)!.players += 1;
   return counts;
 }
 
