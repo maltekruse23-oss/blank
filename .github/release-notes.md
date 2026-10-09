@@ -8,9 +8,11 @@
 
 ## New in the Mayhem app
 
-- **Player cards:** Click any player's name to see their rank, most played champion and last games.
-- **Records:** Every category shows right away, each place with a bar against the record.
-- **Home:** Bigger windows show more rows instead of empty space; your rank shows the two players above and below you.
+- **Rank page:** See how all players are spread across the ranks, your ladder rank (with top %), your peak rank and your MP over time.
+- **Player cards:** Now show ladder rank and peak rank too.
+- **Home:** Only shows things about you; the general tier lists live under Augments and Champions.
+- **Always up to date:** Rank, players and records refresh on their own while the window is open, without flickering.
+- **Champ:** The Champ tab only appears when a champ select starts, and the app jumps right to it.
 
 ## Download
 

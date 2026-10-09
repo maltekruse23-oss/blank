@@ -3,6 +3,10 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Release 0.10.3 — 09.10.2026
+
+- Enthält Auto-Aktualisieren/Champ-Reiter (#92) und Rang-Verteilung/Peak/Home nur über dich (#93). Deutscher Abschnitt der Release-Notes unverändert (blank. pausiert, Umwandlungs-Hinweis bleibt), englischer neu.
+
 ## Mayhem-App: Rang-Verteilung, Ladder-Platz, Peak — 09.10.2026
 
 - Benutzerwunsch „Rank-Tab überarbeiten: Rank Distribution, Graph wie bei Home, Ladder Rank 1,024,759th (27.86%), auch in der Player Card, Peak Rank“: `MeState.board` (alle Spieler der Rangliste, nur `siteId`/`rank`), `distributionOf` (Spieler je Stufe), `MeView.ranked` (Eingestufte gesamt) und `MeView.peak` (höchster Rang aus aktuellem, jedem `after` und den Saison-Endrängen) in `me.ts`; `RankFacts` (Ladder rank als Ordinalzahl mit Anteil auf 2 Stellen, Peak mit Wappen) auf der Rang-Karte und der Spielerkarte, `MpCurve` unter der Rang-Karte, Abschnitt „Rank distribution“ in der rechten Spalte (eigene Stufe markiert). Die Spielerkarte bekommt das Board aus `MayhemApp` (per Ref, damit ein Auffrischen nicht neu lädt). Oberste Zeile dort nur noch „88 MP“ (Platz steht in `RankFacts`); Home behält `mpLine`.
