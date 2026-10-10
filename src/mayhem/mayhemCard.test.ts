@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DDRAGON_VERSION } from '../data/proStreamers';
+import type { ChampView } from '../features/aram/champCard';
 import { number as deNumber, percent as dePercent } from '../features/aram/format';
 import { games, number, percent, winsIn } from './format';
-import { itemImage } from './MayhemCard';
+import { claimAutoPush, itemImage } from './MayhemCard';
 
 // The Mayhem app is English only (format.ts) and takes item pictures from Data Dragon (the only
 // image host besides the websites in tauri.mayhem.conf.json's CSP).
@@ -27,5 +28,16 @@ describe('Mayhem card', () => {
     expect(itemImage(3089)).toBe(
       `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/item/3089.png`,
     );
+  });
+
+  it('auto pushes a build once per card, again in the next champ select', () => {
+    const card = { championId: 1 } as ChampView;
+    const next = { championId: 1 } as ChampView;
+    expect(claimAutoPush(card, 'core-0')).toBe(true);
+    // Opening the page again: the same card, nothing again.
+    expect(claimAutoPush(card, 'core-0')).toBe(false);
+    expect(claimAutoPush(card, 'combo-1')).toBe(true);
+    // A new champ select is a new card: the same champion and build go again.
+    expect(claimAutoPush(next, 'combo-1')).toBe(true);
   });
 });

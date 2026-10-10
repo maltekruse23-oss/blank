@@ -106,8 +106,9 @@ const done = (call: Promise<unknown>): Promise<true | string> =>
 export const pickChampion = (championId: number) =>
   isTauri() ? done(invoke('mayhem_pick_champion', { championId })) : Promise.resolve('Mock');
 
-/** Mayhem app only, on the user's click: writes the build as the app's one item set for the
- * champion ("Mayhem: <name>"); the user's own sets and blank.'s stay. Outside the app: 'Mock'. */
+/** Mayhem app only, on the user's click or by "Auto push" in champ select: writes the build as the
+ * app's one item set for the champion ("Mayhem: <name>"); the user's own sets and blank.'s stay.
+ * Outside the app: 'Mock'. */
 export const pushItemSet = (
   championId: number,
   set: { name: string; core: number[]; boots: number[]; more: number[] },

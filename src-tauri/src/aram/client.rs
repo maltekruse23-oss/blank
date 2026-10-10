@@ -132,7 +132,8 @@ impl Lcu {
 
     /// The only writes (aram_live.rs): in blank. (user's decision 06.10.2026) the "blank. …" item
     /// sets and the own summoner spells in the champion select; in the Mayhem app (09.10.2026),
-    /// only on the user's click, the pick of a dealt champion card and the "Mayhem: …" item set.
+    /// only on the user's click, the pick of a dealt champion card and the "Mayhem: …" item set
+    /// with the build's spells (those two also by "Auto push", only in the champion select).
     /// Only the caller's fixed paths.
     pub(super) async fn send(
         &self,

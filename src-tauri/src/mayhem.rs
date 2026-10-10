@@ -14,7 +14,8 @@
 //! in the Windows Credential Manager). It writes into the client only on the user's click (user's
 //! decision 09.10.2026, aram_live.rs): the pick of one of the dealt champion cards
 //! (`mayhem_pick_champion`), the item set "Mayhem: <build>" (`mayhem_item_set`) and, with it, the
-//! build's summoner spells in the champion select (`mayhem_spells`, since 10.10.2026). In every
+//! build's summoner spells in the champion select (`mayhem_spells`, since 10.10.2026); the user's
+//! switch "Auto push" writes those two by itself, only in the champion select. In every
 //! ARAM Mayhem game it reads the augment cards offered off the game window (aram/offers.rs, user's
 //! decision 10.10.2026: always on, nothing to switch; images never kept or sent, nothing typed into
 //! the game), event `aram-offers`; a click on an offered card marks it taken (`aram_offer_taken`)
@@ -212,7 +213,7 @@ mod tests {
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
         // The augment offers in the game: only marking an offered card as taken (aram/offers.rs).
         assert!(permissions.contains(&Value::from("allow-aram-offer-taken")));
-        // The only writes into the client, each on the user's click (aram_live.rs).
+        // The only writes into the client, on the user's click or by "Auto push" (aram_live.rs).
         assert!(permissions.contains(&Value::from("allow-mayhem-pick-champion")));
         assert!(permissions.contains(&Value::from("allow-mayhem-item-set")));
         assert!(permissions.contains(&Value::from("allow-mayhem-spells")));
