@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Augments nur nach Champion, Augment-Bilder immer — 10.10.2026
+
+- Benutzerentscheidung „auf den Champion geranked, nicht allgemeines Ranking“ (zuerst fürs Angebot im Spiel, dann gewählt: überall): `metaView` stuft arammetas Augments eines Champions nur nach ihrer Siegquote auf ihm, bei wenigen Spielen zur eigenen Siegquote des Champions gezogen (`ownRate` in `combos.ts`, auch von `combosFor` benutzt) statt zu 50 %. `CATEGORY_BONUS` (+0,06 je passender Kategorie) und `fitOf` sind entfernt – der Bonus war größer als die echten Unterschiede, dadurch standen die üblichen AP/AD/Tank-Augments oben (gemessen 10.10.: Soraka AP bekam Witchful Thinking/Magic Missile als S statt Spirit Bomb/Wee Woo Wee Woo; Rangkorrelation mit der Champion-Siegquote vorher nur ~0,4–0,5). Mit arammeta haben damit alle Richtungen dieselbe Liste – auch eine Richtung, deren Kern mangels arammeta-Kern von der Website kommt (`cardOf` behält arammetas Augments; vorher übernahm sie die Stufen aus 3–6 Website-Spielen, z. B. Garen Tank: ~85 % der Angebote „–“). Nur ohne arammeta-Augments bleiben die Website-Zahlen je Richtung. `planNote` sagt nicht mehr „passende Augments stehen höher“; Mock-AP-Plan nutzt dieselben Stufen.
+- Gegengeprüft mit echten arammeta-Daten (alle 173 Champions, Patch 16.20): Rangkorrelation mit der Siegquote auf dem Champion 0,97 (vorher 0,33), mit arammetas eigener Champion-Reihenfolge 0,91 (vorher 0,34); kein S-Augment mehr unter der eigenen Siegquote des Champions (vorher 131); arammetas Top 3 je Seltenheit zu 95 % in S/A (vorher 38 %); jede Seltenheit hat bei jedem Champion S oder A.
+- Augments zeigen immer ein Bild (Benutzermeldung „keine Buchstaben“): `AugmentPicture` in `src/mayhem/ui.tsx`, ohne Bild oder bei Ladefehler das Augment-Symbol (Sparkles), nie Initialen; Mock-Augments mit echten arammeta-Bildern (drei erfundene Namen gegen echte getauscht). blank.s Karten (pausiert) unverändert.
+- Geprüft: tsc, lint, Vitest (neue Tests in `champCard.test.ts`), Vorschau `?offer`/`?card=legend`. Nicht geprüft: echtes Spiel.
+
 ## Mayhem-App: Items kompakt, „More on …“ entfernt — 10.10.2026
 
 - Benutzerwunsch (Vorlagen anderer Apps „Core Build“/„Full Build“): die Items des gewählten Builds als eine kompakte Zeile – „Core“ in Kaufreihenfolge mit Pfeilen (40 px), daneben „Later“ (32 px); Namen und Zahlen im Tooltip, eine Siegquote klein unter dem Bild nur, wo das Item eigene Zahlen hat (zusammengesetzte Builds, Combos).

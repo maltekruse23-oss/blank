@@ -25,7 +25,7 @@ import {
   type TierChampion,
   type TierLists,
 } from './tiers';
-import { More, Tabs, Top } from './ui';
+import { AugmentPicture, More, Tabs, Top } from './ui';
 
 const PROFILE: Record<CompKey, string> = {
   phys: 'Physical',
@@ -57,7 +57,7 @@ const tip = (row: { winRate: number; games: number; lift: number | null; pick?: 
 function AugmentIcon({ augment, rarity }: { augment?: TierAugment; rarity: Rarity }) {
   return (
     <span className="mayhem-aug-icon" data-rarity={rarity}>
-      {augment?.image && <img src={augment.image} alt="" width={34} height={34} loading="lazy" />}
+      <AugmentPicture image={augment?.image ?? null} size={34} />
     </span>
   );
 }
