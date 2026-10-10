@@ -307,7 +307,8 @@ export function MayhemCard({
             plan={plan}
             label={label}
             sample={sample}
-            selecting={selecting}
+            // An offer means the game runs, even if the end of champ select was missed.
+            selecting={selecting && !offer}
           >
             {facts}
           </BuildDetail>
