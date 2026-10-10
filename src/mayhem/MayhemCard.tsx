@@ -37,31 +37,18 @@ import {
 import { games, number, percent, winsIn } from './format';
 import { MOCK_SKILL_ORDER } from './mock';
 import { teamProfile, type TierAugment, type TierChampion } from './tiers';
-import { FIRST, More, Tabs } from './ui';
+import { AugmentPicture, FIRST, More, Tabs } from './ui';
 
 export const itemImage = (id: number) =>
   `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/item/${id}.png`;
 /** Staggers a row's soft entrance (mayhem.css, .mayhem-in). */
 const step = (i: number) => ({ ['--i' as string]: Math.min(i, 16) }) as CSSProperties;
 
-/** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game);
- * without a picture its initials, when a name is given. */
-function AugmentIcon({
-  rarity,
-  image,
-  name,
-}: {
-  rarity: string;
-  image: string | null;
-  name?: string;
-}) {
+/** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game). */
+function AugmentIcon({ rarity, image }: { rarity: string; image: string | null }) {
   return (
     <span className="mayhem-aug-icon" data-rarity={rarity}>
-      {image ? (
-        <img src={image} alt="" width={32} height={32} />
-      ) : (
-        name && <span aria-hidden>{initials(name)}</span>
-      )}
+      <AugmentPicture image={image} size={32} />
     </span>
   );
 }
@@ -489,7 +476,6 @@ function OfferPanel({
                   <AugmentIcon
                     rarity={row?.rarity ?? known?.rarity ?? ''}
                     image={row?.image ?? known?.image ?? null}
-                    name={name}
                   />
                   <span className="mayhem-aug-name">{name}</span>
                   {was && <small>Taken</small>}
@@ -540,13 +526,6 @@ function minis(view: ChampView, plan: BuildPlan | undefined, label: string): Min
   return view.augments.map((a) => ({ ...a, tier: null, title: `${a.name}\n${games(a.games)}` }));
 }
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2);
-
 /** Tier S as icons with their letter, the other tiers behind "+n" (user 09.10.2026: small). */
 function AugmentRow({ augments }: { augments: Mini[] }) {
   const [all, setAll] = useState(false);
@@ -563,11 +542,7 @@ function AugmentRow({ augments }: { augments: Mini[] }) {
             tabIndex={0}
             aria-label={`${a.tier ? `Tier ${a.tier}: ` : ''}${a.title.replace('\n', ', ')}`}
           >
-            {a.image ? (
-              <img src={a.image} alt="" width={36} height={36} />
-            ) : (
-              <span aria-hidden>{initials(a.name)}</span>
-            )}
+            <AugmentPicture image={a.image} size={36} />
           </span>
           {a.tier && (
             <span className="mayhem-aug-row-tier" data-tier={a.tier} aria-hidden>
@@ -640,7 +615,7 @@ function BuildRow({
       {fits && (
         <span className="mayhem-build-row-fits" role="img" aria-label={`Fits ${fitNames}`}>
           {fits.slice(0, 2).map((t) => (
-            <AugmentIcon key={t.id} rarity={t.rarity} image={t.image} name={t.name} />
+            <AugmentIcon key={t.id} rarity={t.rarity} image={t.image} />
           ))}
         </span>
       )}
@@ -705,7 +680,7 @@ function BuildAugments({
           {entry.combo.augments.map((a) => (
             // No augment win rates here (Riot: products must not show win rates for Augments).
             <li key={a.id} title={`${a.name}: ${games(a.games)} with ${label}`}>
-              <AugmentIcon rarity={a.rarity} image={a.image} name={a.name} />
+              <AugmentIcon rarity={a.rarity} image={a.image} />
               <span className="mayhem-aug-name">{a.name}</span>
               <span className="mayhem-facts">
                 <span>{games(a.games)}</span>
@@ -733,6 +708,26 @@ function BuildAugments({
 type PushState = 'idle' | 'saving' | 'done' | 'failed' | 'refused' | 'example';
 /** Rust's answer when the set itself does not fit (`mayhem_item_set`), not the client. */
 const NOT_A_SET = 'This build cannot be an item set.';
+
+/** "Auto push" (user 10.10.2026): remembered on this PC; on, every chosen build goes into the
+ * client by itself (items, and spells in champ select). */
+const AUTO_PUSH = 'mayhem.autoPush.v1';
+const readAuto = () => {
+  try {
+    return localStorage.getItem(AUTO_PUSH) === '1';
+  } catch {
+    return false;
+  }
+};
+const writeAuto = (on: boolean) => {
+  try {
+    localStorage.setItem(AUTO_PUSH, on ? '1' : '0');
+  } catch {
+    // Blocked storage: the switch lasts only this run.
+  }
+};
+/** The build last pushed by itself (champion and build): opening the page again does not repeat it. */
+let autoPushed = '';
 const DAMAGE: Record<string, string> = { phys: 'Physical', magic: 'Magic', true: 'True' };
 
 /**
@@ -760,35 +755,53 @@ function BuildDetail({
   // The champion's best spell pair (shown below) goes with the build (user 10.10.2026: "muss alles
   // pushen auch summoners"); the client takes spells only in its champion select.
   const pair = view.extra?.spells[0]?.spells ?? [];
-  const [spellsSaid, setSpellsSaid] = useState('');
+  /** The spells' outcome: short on the page, in full in the tooltip. */
+  const [spells, setSpells] = useState<{ short: string; long: string }>({ short: '', long: '' });
+  const [auto, setAuto] = useState(readAuto);
   const save = () => {
     if (sample) return setPush('example');
     setPush('saving');
-    setSpellsSaid('');
-    void pushItemSet(view.championId, set).then((ok) =>
-      setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed'),
-    );
+    setSpells({ short: '', long: '' });
+    void pushItemSet(view.championId, set).then((ok) => {
+      // A failed push (client not ready) may go again the next time the build shows.
+      if (ok !== true) autoPushed = '';
+      setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed');
+    });
     if (pair.length === 2)
       void pushSpells(
         view.championId,
         pair.map((p) => p.id),
       ).then((ok) =>
-        setSpellsSaid(
+        setSpells(
           ok === true
-            ? `Spells set: ${pair.map((p) => p.name).join(' + ')}.`
+            ? { short: '', long: `Spells set: ${pair.map((p) => p.name).join(' + ')}.` }
             : ok === NOT_SELECTING
-              ? 'Spells are only set in champ select.'
-              : 'Could not set the spells.',
+              ? { short: '', long: 'Spells are only set in champ select.' }
+              : { short: 'Spells not set', long: 'Could not set the spells.' },
         ),
       );
   };
-  const said: Record<PushState, string> = {
-    idle: '',
-    saving: 'Saving …',
-    done: `Saved as "Mayhem: ${set.name}" in your item sets.`,
-    failed: 'Could not save the build. Is the League client open?',
-    refused: 'This build does not fit into an item set.',
-    example: 'Mock: nothing is saved in the preview.',
+  // Auto push: each build once, when it is shown (the card picks or the user does) or the switch
+  // goes on; never in the preview.
+  useEffect(() => {
+    const id = `${view.championId}:${entry.key}`;
+    if (!auto || sample || autoPushed === id) return;
+    autoPushed = id;
+    save();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per build and switch, not on every render
+  }, [auto]);
+  const toggleAuto = (on: boolean) => {
+    writeAuto(on);
+    setAuto(on);
+  };
+  // Short on the page (user 10.10.2026: "nur saved"), the whole sentence in the tooltip.
+  const said: Record<PushState, [string, string]> = {
+    idle: ['', ''],
+    saving: ['Saving …', ''],
+    done: ['Saved', `Saved as "Mayhem: ${set.name}" in your item sets.`],
+    failed: ['Not saved', 'Could not save the build. Is the League client open?'],
+    refused: ['Not saved', 'This build does not fit into an item set.'],
+    example: ['Mock', 'Mock: nothing is saved in the preview.'],
   };
   const theme = entry.kind === 'combo' ? themeOf(entry.combo.theme) : undefined;
   const line = theme && !theme.direction ? themeText(theme, 'en').line : null;
@@ -820,8 +833,25 @@ function BuildDetail({
           >
             Push build
           </button>
-          <p className="mayhem-note" role="status">
-            {[said[push], push === 'example' ? '' : spellsSaid].filter(Boolean).join(' ')}
+          <label
+            className="mayhem-switch"
+            title="Pushes every build you pick by itself, remembered on this PC."
+          >
+            <input
+              type="checkbox"
+              role="switch"
+              checked={auto}
+              onChange={(e) => toggleAuto(e.target.checked)}
+            />
+            <span aria-hidden />
+            Auto push
+          </label>
+          <p
+            className="mayhem-note"
+            role="status"
+            title={[said[push][1], push === 'example' ? '' : spells.long].filter(Boolean).join(' ')}
+          >
+            {[said[push][0], push === 'example' ? '' : spells.short].filter(Boolean).join(' · ')}
           </p>
         </div>
       </header>

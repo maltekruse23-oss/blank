@@ -2,7 +2,31 @@
 // show their first entries and the rest behind "Show more", pages use tabs instead of length.
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { Sparkles } from 'lucide-react';
 import type { Grade } from '../features/aram/aramPerformance';
+
+/** An augment's picture; without one, or when it does not load, the augments symbol – never
+ * letters (user 10.10.2026). `alt` names it where the picture is all there is. */
+export function AugmentPicture({
+  image,
+  size,
+  alt = '',
+}: {
+  image: string | null;
+  size: number;
+  alt?: string;
+}) {
+  const [failed, setFailed] = useState<string | null>(null);
+  if (image && failed !== image)
+    return (
+      <img src={image} alt={alt} width={size} height={size} onError={() => setFailed(image)} />
+    );
+  return alt ? (
+    <Sparkles size={size / 2} role="img" aria-label={alt} />
+  ) : (
+    <Sparkles size={size / 2} aria-hidden />
+  );
+}
 
 /** A failed answer is asked for again after this long, without a click. */
 export const RETRY_MS = 15_000;
