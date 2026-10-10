@@ -8,10 +8,12 @@
 
 ## New in the Mayhem app
 
-- **Augment tiers for your champion:** In game and on the Champ page, an augment's tier now shows only how it wins on your champion. AP, AD and tank augments no longer get an extra boost.
-- **Same tiers in every build:** Picking another build no longer changes the tiers of the augments offered in game.
-- **Always a picture:** Augments always show their picture, or the augment symbol if it can't load. No more letters.
-- **Compact items:** The chosen build's items now sit in one row: Core in buying order, Later beside it. The "More on <Champion>" part is gone.
+- **Augment tiers in game:** When you get an augment offer in ARAM Mayhem, each card shows its tier for your build right on the screen, plus the first two items of the build it fits. Your clicks go straight to the game. Works in borderless or windowed mode.
+- **Auto push:** A new switch next to Push build. When it's on, every build you look at in champ select goes into the client as an item set, with your spells. Off by default, never during a game.
+- **Everything inside the window:** Pages no longer run past the window's edge. Long lists scroll in their own frame, and on Home whatever doesn't fit is left out.
+- **Your last rank stays:** With League closed, the app still shows your last rank and games. At the bottom it says "Client offline".
+- **New icon:** Three augment cards in a fan.
+- **Buttons at the top work again:** "Simulate game" and Back can be clicked with the mouse again.
 
 ## Download
 
