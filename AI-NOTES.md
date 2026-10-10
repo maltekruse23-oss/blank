@@ -7,6 +7,8 @@ Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Sta
 
 - Auftrag malte („alles updaten“, dann „Release danach“). Enthält Items kompakt / „More on …“ entfernt (#100) und Augments nur nach Champion eingestuft, Augment-Bilder immer (#103). Englischer Abschnitt „New in the Mayhem app“ neu; deutscher Abschnitt wie bei 0.12.0 unverändert (er erklärt blank.-Nutzern die Umstellung auf die Mayhem-App).
 - Nicht enthalten: offene PRs #101 (Auto push) und #102 (Overlay) sowie nicht committete Arbeit anderer Sitzungen im gemeinsamen Ordner (Layout im Rahmen, letzter Stand ohne Client).
+- Klick-Prüfung („Vor jedem Release“) mit `pnpm mayhem:build` aus main + #103 auf Windows: 1. ein Fenster „Mayhem“, ein zweiter Start lässt nur einen Prozess; 2. Home (erster Abruf beim Start „No connection“, „Try again“ lud sofort – die Website antwortete in 1,5 s, Ursache offen), Augments mit Bildern, Champions, Rank, Records, Matches; „Simulate game“ zeigt die Karte mit vier Augment-Bildern (arammeta, keine Buchstaben); 5. „Update“ → „You're up to date, 0.12.0“. Nicht geprüft: 3, 4 (brauchen eine ARAM-Mayhem-Auswahl bzw. ein Spiel), 6, 7 (Update aus der Vorversion – nach dem Release mit der eigenen `mayhem.exe` möglich).
+- Gefunden, alt (nicht von diesem Release): „Simulate game“ auf Rank liegt unter der 34 px hohen Zieh-Leiste (`.mayhem-windowbar`, z-index 5) und ist mit der Maus nicht klickbar, nur per Tastatur.
 
 ## Augments nur nach Champion, Augment-Bilder immer — 10.10.2026
 
