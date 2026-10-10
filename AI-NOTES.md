@@ -3,6 +3,11 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Release 0.12.1 — 10.10.2026
+
+- Auftrag malte („alles updaten“, dann „Release danach“). Enthält Items kompakt / „More on …“ entfernt (#100) und Augments nur nach Champion eingestuft, Augment-Bilder immer (#103). Englischer Abschnitt „New in the Mayhem app“ neu; deutscher Abschnitt wie bei 0.12.0 unverändert (er erklärt blank.-Nutzern die Umstellung auf die Mayhem-App).
+- Nicht enthalten: offene PRs #101 (Auto push) und #102 (Overlay) sowie nicht committete Arbeit anderer Sitzungen im gemeinsamen Ordner (Layout im Rahmen, letzter Stand ohne Client).
+
 ## Augments nur nach Champion, Augment-Bilder immer — 10.10.2026
 
 - Benutzerentscheidung „auf den Champion geranked, nicht allgemeines Ranking“ (zuerst fürs Angebot im Spiel, dann gewählt: überall): `metaView` stuft arammetas Augments eines Champions nur nach ihrer Siegquote auf ihm, bei wenigen Spielen zur eigenen Siegquote des Champions gezogen (`ownRate` in `combos.ts`, auch von `combosFor` benutzt) statt zu 50 %. `CATEGORY_BONUS` (+0,06 je passender Kategorie) und `fitOf` sind entfernt – der Bonus war größer als die echten Unterschiede, dadurch standen die üblichen AP/AD/Tank-Augments oben (gemessen 10.10.: Soraka AP bekam Witchful Thinking/Magic Missile als S statt Spirit Bomb/Wee Woo Wee Woo; Rangkorrelation mit der Champion-Siegquote vorher nur ~0,4–0,5). Mit arammeta haben damit alle Richtungen dieselbe Liste – auch eine Richtung, deren Kern mangels arammeta-Kern von der Website kommt (`cardOf` behält arammetas Augments; vorher übernahm sie die Stufen aus 3–6 Website-Spielen, z. B. Garen Tank: ~85 % der Angebote „–“). Nur ohne arammeta-Augments bleiben die Website-Zahlen je Richtung. `planNote` sagt nicht mehr „passende Augments stehen höher“; Mock-AP-Plan nutzt dieselben Stufen.
