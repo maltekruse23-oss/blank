@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Release 0.12.0 — 10.10.2026
+
+- Enthält Karten mit Ladebild und Push build mit Zaubern (#97) sowie Build-Reiter Meta/Offmeta/Troll, Augments im Spiel in der Mayhem-App und automatisches Hervorheben (#98), ohne aramkit-Zahlen (Entscheidung malte, bis zu deren Erlaubnis). Englischer Abschnitt „New in the Mayhem app“ neu, deutscher Abschnitt unverändert.
+- Hinweis: #98 wurde als normaler Merge zusammengeführt; der erste Commit (9826140) mit den aramkit-Zahlen steht damit in der Git-Geschichte von main, die aktuelle Datei ist leer. Geschichte nicht umgeschrieben (nur mit ausdrücklichem OK von malte).
+- Nicht geprüft: Augment-Erkennung, „Taken“ und Hervorheben in einer echten Runde mit der Mayhem-App; Zauber setzen bei Push build.
+
 ## Mayhem-App: Build-Reiter wie Blitz, Augments im Spiel immer an, Skill-Reihenfolge — 10.10.2026 (Branch `claude/mayhem-build-tabs`, nicht gemergt)
 
 - Benutzerentscheidungen 09./10.10.2026 (Vorlage Blitz-Screenshot), ändern bestehende Regeln in CLAUDE.md; dort nachgetragen (aramkit-Ausnahme zu „kein Scraping“, Angebote in der Mayhem-App ohne Schalter, automatisches Hervorheben, Reiter Meta/Offmeta/Troll).
