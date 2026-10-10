@@ -215,7 +215,10 @@ export function ChampionDetail({
         {lists.mock && <span className="mayhem-pill mock">Mock</span>}
       </section>
       <div className="mayhem-columns mayhem-columns-end">
-        <section className="mayhem-section mayhem-column-main mayhem-in" style={step(2)}>
+        <section
+          className="mayhem-section mayhem-column-main mayhem-scroll mayhem-in"
+          style={step(2)}
+        >
           <Tabs tabs={tabs} value={shown} onChange={setTab} label={`About ${c.name}`} />
           <div role="tabpanel" aria-label={tabs.find((t) => t.id === shown)?.label}>
             {shown === 'augments' && (
@@ -276,7 +279,10 @@ export function ChampionDetail({
             {shown === 'profile' && <TeamProfile c={c} lists={lists} />}
           </div>
         </section>
-        <section className="mayhem-section mayhem-column-side mayhem-in" style={step(3)}>
+        <section
+          className="mayhem-section mayhem-column-side mayhem-scroll mayhem-in"
+          style={step(3)}
+        >
           <h2>Strong with</h2>
           {c.pairs.length ? (
             <More
@@ -369,7 +375,10 @@ export function AugmentDetail({
         {lists.mock && <span className="mayhem-pill mock">Mock</span>}
       </section>
       <div className="mayhem-columns mayhem-columns-end">
-        <section className="mayhem-section mayhem-column-main mayhem-in" style={step(2)}>
+        <section
+          className="mayhem-section mayhem-column-main mayhem-scroll mayhem-in"
+          style={step(2)}
+        >
           <h2>Strong on</h2>
           {best.length ? (
             <More
@@ -397,7 +406,10 @@ export function AugmentDetail({
             <p className="mayhem-note">No champion has it among its best augments.</p>
           )}
         </section>
-        <section className="mayhem-section mayhem-column-side mayhem-in" style={step(3)}>
+        <section
+          className="mayhem-section mayhem-column-side mayhem-scroll mayhem-in"
+          style={step(3)}
+        >
           <h2 title="Champions arammeta.com's search links with this augment">Related champions</h2>
           {linked.length ? (
             <More

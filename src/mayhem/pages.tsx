@@ -179,7 +179,7 @@ export function AugmentsPage({
             )}
           </div>
           {shown.length ? (
-            <section className="mayhem-group" data-rarity={rarity}>
+            <section className="mayhem-group mayhem-scroll" data-rarity={rarity}>
               <More
                 key={`${rarity}-${tier}-${category}-${query}`}
                 list={shown}
@@ -308,30 +308,32 @@ export function ChampionsPage({
               ))}
             </div>
           </div>
-          {TIERS.map((tier, t) => {
-            const inTier = shown.filter((c) => c.tier === tier);
-            if (!inTier.length || (!open && tier !== 'S' && tier !== 'A')) return null;
-            return (
-              <ChampionTier
-                key={tier}
-                tier={tier}
-                list={inTier}
-                index={t + 2}
-                onSelect={onSelect}
-              />
-            );
-          })}
-          {(folded > 0 || (all && role === 'all' && !query.trim())) && (
-            <button
-              type="button"
-              className="mayhem-more"
-              aria-expanded={all}
-              onClick={() => setAll(!all)}
-            >
-              {all ? 'Show tiers S and A only' : `Show all tiers (${folded} more)`}
-            </button>
-          )}
-          {!shown.length && <p className="mayhem-note">Nothing found.</p>}
+          <div className="mayhem-scroll">
+            {TIERS.map((tier, t) => {
+              const inTier = shown.filter((c) => c.tier === tier);
+              if (!inTier.length || (!open && tier !== 'S' && tier !== 'A')) return null;
+              return (
+                <ChampionTier
+                  key={tier}
+                  tier={tier}
+                  list={inTier}
+                  index={t + 2}
+                  onSelect={onSelect}
+                />
+              );
+            })}
+            {(folded > 0 || (all && role === 'all' && !query.trim())) && (
+              <button
+                type="button"
+                className="mayhem-more"
+                aria-expanded={all}
+                onClick={() => setAll(!all)}
+              >
+                {all ? 'Show tiers S and A only' : `Show all tiers (${folded} more)`}
+              </button>
+            )}
+            {!shown.length && <p className="mayhem-note">Nothing found.</p>}
+          </div>
         </>
       )}
     </div>
@@ -717,7 +719,7 @@ export function RankPage({
         }
       />
       <div className="mayhem-columns mayhem-columns-end">
-        <section className="mayhem-section">
+        <section className="mayhem-section mayhem-scroll">
           <h2 className="mayhem-in" style={step(1)}>
             Leaderboard
           </h2>
@@ -766,7 +768,7 @@ export function RankPage({
             </p>
           )}
         </section>
-        <div className="mayhem-column-side">
+        <div className="mayhem-column-side mayhem-scroll">
           <section className="mayhem-glass mayhem-rank-card mayhem-in" style={step(1)}>
             {own ? (
               <>
@@ -855,20 +857,22 @@ export function MatchHistoryPage({
         badge={got?.mock ? 'Mock' : undefined}
       />
       {own?.recent.length ? (
-        <More
-          list={own.recent}
-          first={HISTORY_FIRST}
-          className="mayhem-games mayhem-history"
-          render={(g, i) => (
-            <GameRow
-              key={g.gameId}
-              game={g}
-              index={i}
-              size={52}
-              onOpen={got?.mock ? undefined : (id) => void openGame(id)}
-            />
-          )}
-        />
+        <div className="mayhem-scroll">
+          <More
+            list={own.recent}
+            first={HISTORY_FIRST}
+            className="mayhem-games mayhem-history"
+            render={(g, i) => (
+              <GameRow
+                key={g.gameId}
+                game={g}
+                index={i}
+                size={52}
+                onOpen={got?.mock ? undefined : (id) => void openGame(id)}
+              />
+            )}
+          />
+        </div>
       ) : own ? (
         <p className="mayhem-note mayhem-in">No rated games yet.</p>
       ) : (

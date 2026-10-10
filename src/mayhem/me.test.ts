@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AramEntry } from '../adapters/aram';
 import { standings } from '../features/aram/aramRating';
 import { parseBoard } from '../features/aram/aramSite';
@@ -14,6 +14,7 @@ import {
   rankChart,
   versusOf,
   withChampions,
+  withSaved,
 } from './me';
 
 // The Mayhem app's player (me.ts): the website's answers, in the form it sends them
@@ -83,6 +84,20 @@ const profile = (puuid: string) => {
 describe('Mayhem app player', () => {
   it('shows the client closed or nobody signed in', () => {
     expect(ownState(null)).toEqual({ state: 'closed' });
+  });
+
+  it('keeps the last player while the client is closed', () => {
+    const kept = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => kept.get(k) ?? null,
+      setItem: (k: string, v: string) => void kept.set(k, v),
+    });
+    expect(withSaved(null)).toEqual({ state: 'closed' });
+    withSaved({ name: 'Old#EUW', board: '{', me: null });
+    expect(withSaved(null)).toEqual({ state: 'closed' });
+    const shown = withSaved({ name: 'Neu#EUW', board, me: null });
+    expect(withSaved(null)).toEqual(shown);
+    vi.unstubAllGlobals();
   });
 
   it('shows a player the website does not know, with the leaderboard', () => {
