@@ -22,9 +22,13 @@ export const CONSENT =
   'Your Riot ID, Mayhem games and rank will be public on mayhemstats.lol, and each new Mayhem game uploads by itself while this app runs. Remove anytime at mayhemstats.lol/privacy/remove.';
 
 /** The click's answer: the button's next state and the player as Home and Rank show them. A closed
- * client ends as the pages' own "Start League". */
+ * client says so at the button (the pages may still show the last saved player). */
 export function found(answer: FoundRank | null): { find: FindState; me: MeState } {
-  if (!answer) return { find: { state: 'idle' }, me: withSaved(null) };
+  if (!answer)
+    return {
+      find: { state: 'failed', message: 'Start League and sign in, then try again.' },
+      me: withSaved(null),
+    };
   const me = withSaved(answer.ranks);
   if (me.state === 'failed') return { find: { state: 'failed', message: me.message }, me };
   if (me.state === 'ready' && me.me) return { find: { state: 'idle' }, me };
