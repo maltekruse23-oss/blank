@@ -19,7 +19,7 @@ import { number, percent } from './format';
 import { rankImage, step } from './pages';
 import { PlayerName } from './PlayerCard';
 import type { RecordCard } from './records';
-import { GradeMark, Overlay } from './ui';
+import { AugmentPicture, GradeMark, Overlay } from './ui';
 
 /** "play": moves now; "wait": not seen yet (minimized), everything holds at its start; "off": no
  * motion, everything at its end. */
@@ -375,11 +375,11 @@ export function AfterGame({
                 return (
                   <li key={`${id}-${i}`} title={augment?.name ?? 'Augment'}>
                     <span className="mayhem-aug-icon" data-rarity={augment?.rarity ?? ''}>
-                      {augment?.icon ? (
-                        <img src={augment.icon} alt={augment.name} width={32} height={32} />
-                      ) : (
-                        <span aria-hidden>{(augment?.name ?? '?').slice(0, 2)}</span>
-                      )}
+                      <AugmentPicture
+                        image={augment?.icon ?? null}
+                        size={32}
+                        alt={augment?.name ?? 'Augment'}
+                      />
                     </span>
                   </li>
                 );

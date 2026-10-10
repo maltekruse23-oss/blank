@@ -15,6 +15,7 @@ import {
   CORE_SIZE,
   MANA_PENALTY,
   offmetaBuild,
+  ownRate,
   pulled,
   USELESS_ITEMS,
   type Combo,
@@ -189,9 +190,10 @@ export type TieredAugment = {
   icon: boolean;
   image: string | null;
   tier: Tier;
-  /** Ø percentile in this direction, pulled to the augment's general value when few. */
+  /** Website: Ø percentile in this direction, pulled to the augment's general value when few;
+   * arammeta: win rate on the champion, pulled to the champion's own (every direction alike). */
   score: number;
-  /** Games of the champion with it in this direction. */
+  /** Games of the champion with it in this direction (arammeta: in all its games). */
   games: number;
   /** Too few games in this direction: the tier rests on the augment's general value. */
   general: boolean;
@@ -484,19 +486,19 @@ export function planNote(
   if (lang === 'en') {
     const who = view.name || view.alias;
     if (plan.source !== view.source)
-      return `arammeta.com has few ${dir} games. Core and augments come from mayhemstats.lol (${n} ${plan.games === 1 ? 'game' : 'games'}).`;
+      return `arammeta.com has few ${dir} games. The core comes from mayhemstats.lol (${n} ${plan.games === 1 ? 'game' : 'games'}).`;
     if (plan.source === 'arammeta' && plan.builds.length && plan.builds.every((b) => b.assembled))
       return `Offmeta: arammeta.com has no full ${dir} build on ${who}. The core is the three best ${dir} items on ${who}, each measured on its own.`;
     if (plan.source === 'arammeta' && !plan.builds.length)
-      return `arammeta.com has few ${dir} games on ${who}. The tiers rest on all games, ${dir} augments rank higher.`;
+      return `arammeta.com has few ${dir} games on ${who}. The tiers rest on all ${who} games.`;
     return null;
   }
   if (plan.source !== view.source)
-    return `Für ${dir} hat arammeta.com kaum Spiele. Kern und Augments kommen von mayhemstats.lol (${n} ${plan.games === 1 ? 'Spiel' : 'Spiele'}).`;
+    return `Für ${dir} hat arammeta.com kaum Spiele. Der Kern kommt von mayhemstats.lol (${n} ${plan.games === 1 ? 'Spiel' : 'Spiele'}).`;
   if (plan.source === 'arammeta' && plan.builds.length && plan.builds.every((b) => b.assembled))
     return `Offmeta: arammeta.com hat keinen ganzen ${dir}-Build mit ${view.name || view.alias}. Der Kern sind die drei besten ${dir}-Items auf ihm, jedes einzeln gemessen.`;
   if (plan.source === 'arammeta' && !plan.builds.length)
-    return `arammeta.com hat kaum ${dir}-Spiele mit ${view.name || view.alias}. Die Stufen beruhen auf allen Spielen, passende Augments stehen höher.`;
+    return `arammeta.com hat kaum ${dir}-Spiele mit ${view.name || view.alias}. Die Stufen beruhen auf allen Spielen mit ${view.name || view.alias}.`;
   return null;
 }
 
@@ -578,13 +580,22 @@ function cardOf(
   const parsed = info.champion === null ? null : parseChampion(info.champion);
   if (meta) {
     // A direction without an item core at arammeta (none of its games go there): the website's
-    // games of that direction, if it has enough; arammeta's share stays on the tab.
+    // games of that direction for the core, if it has enough; arammeta's share stays on the tab,
+    // and so do arammeta's augment tiers of the whole champion (user's decision 10.10.2026: ranked
+    // on the champion, not on a few website games of one direction).
     const site = parsed ? buildPlans(parsed.builds, info.items, names) : [];
     // An offmeta build from arammeta's single items stays beside the website's games, never added.
     const plans = meta.plans.map((p) => {
       const measured = p.builds.filter((b) => !b.assembled);
       const own = measured.length ? null : site.find((s) => s.direction === p.direction);
-      return own ? { ...own, share: p.share, builds: [...own.builds, ...p.builds] } : p;
+      return own
+        ? {
+            ...own,
+            share: p.share,
+            builds: [...own.builds, ...p.builds],
+            augments: p.augments.length ? p.augments : own.augments,
+          }
+        : p;
     });
     return { ...meta, plans };
   }
@@ -606,13 +617,6 @@ function cardOf(
 
 /** arammeta's augments of a champion from fewer games than this are left out. */
 export const META_MIN_GAMES = 30;
-/**
- * arammeta does not split augments by build direction; an augment of the direction's category
- * (arammeta's "ap", "ad", "tank") counts this much win rate more, one of another direction this
- * much less (user's rule: AP-Alistar, AP augments first; 07.10.2026: 0.03 left tank augments like
- * Icathia's Fall on top for AP). Augments without a direction (cooldown, amp, mechanic) stay.
- */
-export const CATEGORY_BONUS = 0.06;
 /** Item options per core read from a group. */
 const META_OPTIONS = 4;
 
@@ -772,10 +776,6 @@ export function parseExtra(json: Record<string, unknown>) {
   };
 }
 
-/** How an augment of these categories fits a direction: 1 its own, -1 another one, 0 neither. */
-export const fitOf = (cats: string[], d: Direction) =>
-  cats.includes(d) ? 1 : DIRECTIONS.some((o) => o !== d && cats.includes(o)) ? -1 : 0;
-
 /** The card from arammeta's numbers; null when its champion file is missing or does not fit. */
 export function metaView(
   champ: { championId: number; alias: string; name: string },
@@ -797,7 +797,6 @@ export function metaView(
       name: a?.name ? a.name.slice(0, 80) : `Augment ${id}`,
       rarity: RARITY[a?.rarity ?? ''] ?? '',
       image: a ? metaImage(a.icon) : null,
-      cats: a?.cats ?? [],
     };
   };
   const item = (id: number) => ({
@@ -845,25 +844,32 @@ export function metaView(
   const mainRate = total ? groups.reduce((t, g) => t + g.wr * g.g, 0) / total : null;
   const pool = parsed.pool.filter((a) => a.g >= META_MIN_GAMES);
   const known = pool.length > 0 || groups.length > 0;
+  // Augments only by how they win on this champion, pulled towards its own win rate when few games
+  // (user's decision 10.10.2026: no bonus by category; arammeta does not split them by direction,
+  // so every direction has the same tiers).
+  const base = ownRate(parsed.pool);
+  const ranked = pool
+    .map((a) => ({ ...a, score: pulled(a.wr, a.g, base) }))
+    .sort((a, b) => b.score - a.score || b.g - a.g || a.id - b.id);
+  // Rounded once ranked: the card goes to the popout whole (flyout.rs takes ≤ 64 KB).
+  const augments = tiered(
+    ranked.map((a) => {
+      const shown = info(a.id);
+      return {
+        id: a.id,
+        ...shown,
+        icon: shown.image !== null,
+        score: a.score,
+        games: a.g,
+        general: false,
+        turns: null,
+      };
+    }),
+  ).map((r) => ({ ...r, score: Math.round(r.score * 1e4) / 1e4 }));
   const plans: BuildPlan[] = (known ? DIRECTIONS : [])
     .map((d) => {
       const own = groups.filter((g) => g.direction === d);
       const games = own.reduce((t, g) => t + g.g, 0);
-      const rows = pool
-        .map((a) => {
-          const { cats, ...shown } = info(a.id);
-          const fits = fitOf(cats, d);
-          return {
-            id: a.id,
-            ...shown,
-            icon: shown.image !== null,
-            score: pulled(a.wr, a.g) + CATEGORY_BONUS * fits,
-            games: a.g,
-            general: false,
-            turns: null,
-          };
-        })
-        .sort((a, b) => b.score - a.score || b.games - a.games || a.id - b.id);
       return {
         direction: d,
         games,
@@ -874,26 +880,22 @@ export function metaView(
           : [
               offmetaBuild(d, [...parsed.extra.items, ...parsed.extra.weak], items, mainRate),
             ].filter((b): b is BuildPick => b !== null),
-        // Rounded once ranked: the card goes to the popout whole (flyout.rs takes ≤ 64 KB).
-        augments: tiered(rows).map((r) => ({ ...r, score: Math.round(r.score * 1e4) / 1e4 })),
+        augments,
       };
     })
     .sort((a, b) => b.games - a.games);
 
-  const best: AugmentPick[] = [...pool]
-    .sort((a, b) => pulled(b.wr, b.g) - pulled(a.wr, a.g) || b.g - a.g)
-    .slice(0, AUGMENTS_SHOWN)
-    .map((a) => {
-      const { cats: _cats, ...shown } = info(a.id);
-      return {
-        id: a.id,
-        ...shown,
-        icon: shown.image !== null,
-        games: a.g,
-        winRate: a.wr,
-        grade: null,
-      };
-    });
+  const best: AugmentPick[] = ranked.slice(0, AUGMENTS_SHOWN).map((a) => {
+    const shown = info(a.id);
+    return {
+      id: a.id,
+      ...shown,
+      icon: shown.image !== null,
+      games: a.g,
+      winRate: a.wr,
+      grade: null,
+    };
+  });
   return {
     ...champ,
     games: meta.games ?? 0,

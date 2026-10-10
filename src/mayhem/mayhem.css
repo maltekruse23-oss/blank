@@ -672,8 +672,6 @@ button {
 .mayhem-aug-row .mayhem-aug-icon {
   width: 40px;
   height: 40px;
-  color: var(--muted);
-  font: 800 12px var(--font-title);
 }
 
 .mayhem-aug-row-tier {
@@ -777,10 +775,6 @@ button {
 .mayhem-build-row-fits .mayhem-aug-icon {
   width: 24px;
   height: 24px;
-}
-
-.mayhem-build-row-fits .mayhem-aug-icon > span {
-  font-size: 8.5px;
 }
 
 /* Two lines, not one: twin builds differ only at the end of their names (builds.ts `named`). */
@@ -1347,6 +1341,7 @@ button {
   height: 34px;
   border-radius: 50%;
   background: var(--panel-2);
+  color: var(--muted);
   box-shadow:
     0 0 0 1.5px var(--rarity),
     0 0 12px -2px var(--rarity);
@@ -1380,12 +1375,6 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-}
-
-/* Initials when the augment has no picture. */
-.mayhem-aug-icon > span {
-  color: var(--muted);
-  font: 800 11px var(--font-title);
 }
 
 .mayhem-aug-name {
@@ -3618,11 +3607,6 @@ li[data-place='3'] .mayhem-place {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.mayhem-result-augments .mayhem-aug-icon > span {
-  color: var(--muted);
-  font: 700 11px var(--font);
 }
 
 .mayhem-result-body > div:last-child {
