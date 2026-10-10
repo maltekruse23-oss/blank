@@ -3,7 +3,7 @@
 // recent Mayhem games and shows the rank; after that every game goes up by itself, as long as the
 // site lists them (the site knows; the app keeps only the upload key the click made). English only.
 import type { FoundRank } from '../adapters/aramSite';
-import { ownState, type MeState } from './me';
+import { withSaved, type MeState } from './me';
 
 export type FindState =
   | { state: 'idle' }
@@ -24,8 +24,8 @@ export const CONSENT =
 /** The click's answer: the button's next state and the player as Home and Rank show them. A closed
  * client ends as the pages' own "Start League". */
 export function found(answer: FoundRank | null): { find: FindState; me: MeState } {
-  if (!answer) return { find: { state: 'idle' }, me: { state: 'closed' } };
-  const me = ownState(answer.ranks);
+  if (!answer) return { find: { state: 'idle' }, me: withSaved(null) };
+  const me = withSaved(answer.ranks);
   if (me.state === 'failed') return { find: { state: 'failed', message: me.message }, me };
   if (me.state === 'ready' && me.me) return { find: { state: 'idle' }, me };
   return { find: { state: answer.games ? 'unlisted' : 'empty' }, me };

@@ -3,6 +3,26 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Arbeit aus dem gemeinsamen Ordner übernommen — 10.10.2026
+
+- Auftrag malte („mach das erst“: alles Gebaute, aber nicht Ausgelieferte in die App): die drei nicht committeten Arbeiten anderer Sitzungen aus `C:\Users\malte\mayhem-test` (Icon, Layout im Rahmen, letzter Stand ohne Client) als Patch auf main übernommen (PR `claude/mayhem-hauptordner`); der gemeinsame Ordner selbst blieb unverändert (dort liegen sie weiter als Änderungen auf dem alten Branch `claude/mayhem-compact-items` – vor neuer Arbeit dort auf main wechseln und die Änderungen verwerfen). Danach folgen #101 und #102, dann Release 0.12.2.
+
+## Neues App-Icon „Augment-Angebot“ — 10.10.2026
+
+- Benutzerwahl nach Vorschlägen (Artifact „Mayhem App-Icon“): kein Goldrand, keine Kachel, Bezug zu Augments → drei Augment-Karten im Fächer (Silber links, Prisma rechts, vorn Gold mit dem bisherigen „m“ im runden Symbol), Ausführung „Eng & groß“ (±11°, ×1,14), durchsichtig um die Karten.
+- `src-tauri/icons/mayhem.svg` neu gezeichnet (nur Pfade), Kopie in `apps/mayhem-site/public/favicon.svg`, `mayhem.ico` neu mit `pnpm tauri icon … -o <temp>`, `build.rs` berührt. Logo der Seitenleiste nimmt das SVG direkt. Nach dem Merge Codex-Text für das Favicon der Website liefern.
+
+## Mayhem-App: nichts mehr unter dem Fensterrand — 10.10.2026
+
+- Benutzermeldung (Bildschirmfoto: „Around you“ auf Home vom Fensterrand abgeschnitten) „nichts unter dem Fenster, alles immer innerhalb des Rahmens“; Wahl des Benutzers: Seite fest, nur die Liste scrollt in ihrem eigenen Rahmen.
+- `mayhem.css`: `.mayhem-wrap` ist so hoch wie das Fenster, `.mayhem-page` eine Flex-Spalte; `.mayhem-scroll` = Rahmen mit eigenem Scrollen (Rangliste und Seitenspalte auf Rank, Matches, Records, Augments, Champions, beide Spalten der Detailseiten). Home: beide Spalten umbrechend mit `overflow-x: clip` – was nicht ganz passt, fällt ganz weg (beim kleinsten Fenster „You vs. everyone“ und „Around you“), „Around you“ nimmt den Rest und scrollt in seiner Kachel. Champ-Seite: Details scrollen im eigenen Panel, die Build-Liste nur im kleinen Fenster mit Angebot. Zeilen in Rahmen mit `grid-auto-rows: max-content`, sonst wurden Karten mit `overflow: hidden` gestaucht statt zu scrollen. Regel in `MAYHEM-DESIGN.md` und CLAUDE.md.
+- Geprüft (andere Sitzung) in der Vorschau bei 1024 × 660, 1280 × 820, 1920 × 1040 und 2560 × 1400 (alle Seiten, auch mit „Show more“, `?champ`, `?offer`): kein Seiten-Scrollen mehr, Rahmen enden 18 px über dem Rand.
+
+## Mayhem-App: letzter Stand ohne Client — 10.10.2026
+
+- Benutzerwunsch: Daten der letzten Sitzung bleiben sichtbar, auch wenn der League-Client zu ist; unten nur „Client offline“; beim Öffnen wird alles neu geladen.
+- `me.ts`: jede passende Antwort von `mayhem_ranks` kommt in localStorage `mayhem.me.v1` (`withSaved`), bei geschlossenem Client oder ohne Antwort der Website wird sie gezeigt (`savedMe`, beim Lesen erneut über `ownState` geprüft); die App startet sofort mit dem gespeicherten Stand. `findRank.ts` nutzt dasselbe. Regel in CLAUDE.md nachgetragen.
+
 ## Mayhem-App: Knöpfe unter der Fensterleiste wieder klickbar — 10.10.2026
 
 - Fund aus der Klick-Prüfung vor 0.12.1: „Simulate game“ (Rank) ging nur per Tastatur. Die Fensterleiste (`WindowBar.tsx`, `.mayhem-windowbar`, absolut, `z-index: 5`, 34 px, ganze Breite, `data-tauri-drag-region`) liegt absichtlich über dem Inhalt (Seitentitel oben auf Höhe der Fensterknöpfe); Tauris `drag.js` sieht nur das oberste Element, also traf jeder Klick in den oberen 34 px die Leiste. Ebenso betroffen: „Back“ auf den Champion-/Augment-Seiten (`metaPages.tsx`) und „Back“ der Beispiel-Champ-Karte (nur Vorschau).

@@ -26,7 +26,7 @@ als Geschichte).
   Noten-Bilder mehr), in App (`GradeMark` in `src/mayhem/ui.tsx`) und Website (`GradeMark` in
   `app/ui/bits.tsx`).
 - **Bilder:** Champion-Icons, Splash-Arts, Items und Profilsymbole von Data Dragon, Wappen aus
-  `public/ranks`. Logo der Mayhem-App und der Website: das goldene „m“ auf dunkler Kachel
+  `public/ranks`. Logo der Mayhem-App und der Website: ein Augment-Angebot – drei Karten im Fächer (Silber, Prisma, vorn Gold mit dem „m“), durchsichtig, ohne Kachel und Goldrand (Benutzerwahl 10.10.2026)
   (`src-tauri/icons/mayhem.svg`, eigene Zeichnung; App-Icon `mayhem.ico`, Website `public/favicon.svg`).
 
 - **Glow** (Benutzerwahl nach Pinterest-Vorlagen): dunkle Kacheln, Licht scheint verschwommen von
@@ -155,6 +155,11 @@ jedes Popout der Mayhem-App und für mayhemstats.lol; bei neuen Seiten vorher pr
   nicht selbst vergleichen muss.
 - **Ehrlich bleibt Pflicht:** Weniger zeigen heißt nie verfälschen. Spielzahl bei jeder Quote bleibt
   erreichbar (klein oder im Tooltip), „–“ für fehlende Werte, Quellen weiter benannt.
+- **Nichts unter dem Fenster (nur App):** Benutzerregel 10.10.2026 „nichts unter dem Fenster, alles
+  immer innerhalb des Rahmens“. Eine Seite ist so hoch wie das Fenster, Titel und Filter bleiben
+  stehen, die lange Liste scrollt in ihrem eigenen Rahmen (`.mayhem-scroll`), der mit Abstand über
+  dem Fensterrand endet. Home passt immer ganz hinein: was nicht ganz passt, fällt ganz weg, nie
+  halb abgeschnitten. Neue Seiten bekommen ihren Listen-Rahmen gleich mit.
 
 ## Texte
 
