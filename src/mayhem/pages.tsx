@@ -4,7 +4,17 @@
 // from mayhemstats.lol, me.ts). Numbers of the tier lists from arammeta.com (tiers.ts). Design
 // "Arena" (mayhem.css). English only; each page answers one question on top, one main number per
 // row, lists show their first entries (MAYHEM-DESIGN.md "Übersicht vor Vollständigkeit").
-import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { championSplash, championSquare, profileIcon } from '../adapters/aram';
 import { openGame } from '../adapters/aramSite';
 import { PLACEMENT, rankName, seasonOf, type Rank } from '../features/aram/aramRating';
@@ -1040,6 +1050,32 @@ function VersusRow({ versus }: { versus: Versus }) {
   );
 }
 
+/** Home's columns leave out a tile that does not fit by wrapping it beside the clipped column
+ * (mayhem.css): such a tile is made inert too, so focus and screen readers skip what is not seen.
+ * Checked after each render and whenever a column or tile changes size. */
+function useLeftOut(home: RefObject<HTMLDivElement | null>) {
+  useLayoutEffect(() => {
+    const columns = [...(home.current?.children ?? [])] as HTMLElement[];
+    const check = () => {
+      for (const column of columns) {
+        const tiles = [...column.children] as HTMLElement[];
+        const first = tiles[0];
+        // Every tile of the first (shown) column starts where the first does; a wrapped one sits a
+        // whole column further right.
+        for (const tile of tiles)
+          tile.inert = !!first && tile.offsetLeft - first.offsetLeft >= first.offsetWidth;
+      }
+    };
+    check();
+    const observer = new ResizeObserver(check);
+    for (const column of columns) {
+      observer.observe(column);
+      for (const tile of column.children) observer.observe(tile);
+    }
+    return () => observer.disconnect();
+  });
+}
+
 export function HomePage({
   me,
   onOpen,
@@ -1058,8 +1094,10 @@ export function HomePage({
   const main = own?.main ?? null;
   const records = useOwnRecords(got?.siteId ?? null);
   const splash = main?.alias ? championSplash(main.alias) : null;
+  const home = useRef<HTMLDivElement>(null);
+  useLeftOut(home);
   return (
-    <div className="mayhem-home">
+    <div className="mayhem-home" ref={home}>
       <div className="mayhem-home-main">
         {main ? (
           <section

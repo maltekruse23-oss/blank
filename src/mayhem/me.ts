@@ -101,6 +101,8 @@ export type MeState =
       /** Two places above and below the player (Home); empty when not on the ladder. */
       around: LadderRow[];
       mock: boolean;
+      /** From the last session's copy (savedMe), not asked for now: may be another account. */
+      saved?: true;
     };
 
 const CURVE = 20;
@@ -405,8 +407,8 @@ export function ownState(answer: OwnRanks | null): MeState {
   }
 }
 
-/** The last answer with a player (user's wish 10.10.2026: the last session's data stays while the
- * client is closed or the website does not answer); checked again by ownState when read. */
+/** The last answer with a player (user's wish 10.10.2026: the last session's data shows at the
+ * start and while the client is closed); checked again by ownState when read. */
 const SAVED = 'mayhem.me.v1';
 
 export function savedMe(): MeState | null {
@@ -414,7 +416,7 @@ export function savedMe(): MeState | null {
     const text = localStorage.getItem(SAVED);
     const answer = text ? (JSON.parse(text) as OwnRanks) : null;
     const state = answer && typeof answer.name === 'string' ? ownState(answer) : null;
-    return state?.state === 'ready' ? state : null;
+    return state?.state === 'ready' ? { ...state, saved: true } : null;
   } catch {
     return null;
   }
@@ -433,15 +435,16 @@ export function withSaved(answer: OwnRanks | null): MeState {
 }
 
 /** The player's rank; the browser preview shows invented values (and says "Mock"). Rust's reasons
- * are German (blank.'s), so the Mayhem app says it in English. */
+ * are German (blank.'s), so the Mayhem app says it in English. A failure with the client open is
+ * never the saved copy: it may be another account. */
 export const loadMe = (): Promise<MeState> =>
   isTauri()
-    ? readOwnRanks().then(
-        withSaved,
-        () =>
-          savedMe() ?? {
-            state: 'failed' as const,
-            message: 'mayhemstats.lol did not answer. Check your connection.',
-          },
-      )
+    ? readOwnRanks().then(withSaved, (): MeState => ({
+        state: 'failed',
+        message: 'mayhemstats.lol did not answer. Check your connection.',
+      }))
     : Promise.resolve(MOCK_STATE);
+
+/** A quiet refresh that fails keeps the player asked for in this session, never the saved copy. */
+export const keptMe = (old: MeState, next: MeState): MeState =>
+  next.state === 'failed' && old.state === 'ready' && !old.saved ? old : next;
