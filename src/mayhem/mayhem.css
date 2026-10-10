@@ -185,6 +185,23 @@ button {
   height: 34px;
 }
 
+/* What sits in the bar's strip rises above it, so its controls take the click (Rank's "Simulate
+   game", Back on the detail pages; the bar covered them). The head lets the mouse through
+   everywhere else, so its title and empty space still drag the window. */
+.mayhem-page-head,
+.mayhem-back {
+  position: relative;
+  z-index: 6;
+}
+
+.mayhem-page-head {
+  pointer-events: none;
+}
+
+.mayhem-page-head-side {
+  pointer-events: auto;
+}
+
 .mayhem-window-buttons {
   display: flex;
 }
@@ -1104,9 +1121,10 @@ button {
   font-weight: 700;
 }
 
+/* Below the window bar's strip (34 px, the page starts at 14 px): the hero stays under the bar. */
 .mayhem-hero .mayhem-button {
   position: absolute;
-  top: 12px;
+  top: 24px;
   right: 12px;
   background: rgba(11, 12, 16, 0.5);
   backdrop-filter: blur(12px);
