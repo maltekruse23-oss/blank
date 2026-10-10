@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { championSplash } from '../adapters/aram';
 import { NOT_SELECTING, openGuide, pushItemSet, pushSpells } from '../adapters/aramChamp';
+import { tellOverlay } from '../adapters/overlay';
 import { Guard } from '../components/Guard';
 import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
@@ -26,6 +27,7 @@ import {
   buildList,
   chosenEntry,
   comboName,
+  fitFor,
   itemSetFor,
   takenMatches,
   type BuildEntry,
@@ -232,6 +234,29 @@ export function MayhemCard({
   const fits = useMemo(() => takenMatches(entries, taken), [entries, taken]);
   const entry = chosenEntry(entries, chosen, fits);
   const plan = planOf(view, entry);
+  // The overlay over the game (overlay.rs): per offered card its tier for this build and the first
+  // two items of the build it fits; Rust draws it only while those cards are on screen.
+  useEffect(() => {
+    if (sample || !offer?.open || !offer.augments.length) return;
+    const cards = offer.augments.map((o) => {
+      const a = augments.find((x) => x.id === o.id);
+      const facts = a ? { name: a.name, cats: a.cats, text: a.text } : { ...o, cats: [], text: '' };
+      const fit = fitFor(entries, entry, { ...facts, id: o.id });
+      return {
+        id: o.id,
+        tier: plan?.augments.find((x) => x.id === o.id)?.tier ?? null,
+        items: (fit?.items ?? []).slice(0, 2).map((i) => i.id),
+      };
+    });
+    // arammeta's tiers are the champion's in every direction (cardOf), and a combo of no direction
+    // takes another direction's tiers: then the header names the champion, not the build.
+    const own =
+      view.source !== 'arammeta' &&
+      (entry?.kind === 'combo'
+        ? plan?.direction === entry.combo.theme
+        : !!plan && entry?.plan === plan);
+    void tellOverlay(view.championId, own && entry ? entry.name : label, cards);
+  }, [sample, offer, augments, entries, entry, plan, view.championId, view.source, label]);
   const skills = sample ? MOCK_SKILL_ORDER : skillOrderOf(view.championId);
   const hero = (
     <header

@@ -27,6 +27,8 @@ mod memory;
 #[cfg(windows)]
 mod monitor;
 #[cfg(windows)]
+mod overlay;
+#[cfg(windows)]
 mod pc;
 #[cfg(windows)]
 mod settings_file;

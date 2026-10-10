@@ -201,13 +201,14 @@ pflegen“, „darum brauchen wir ein System für Offmeta-Builds“. Umgesetzt a
 
 - **Champ-Auswahl (Etappe 1, PR #41):** die besten Augments und Kerne. Dazu kommt: „Umwandler
   für diesen Champ“ mit Ziel-Archetyp.
-- **Im Spiel bei einem Angebot (Etappe 2b):** Ein kleines Overlay an den drei Karten zeigt je
-  Karte die Note Ø, die Spielzahl und einen der drei Hinweise aus 3.7. Es bleibt ruhig und
-  verschwindet nach der Wahl.
+- **Im Spiel bei einem Angebot (Etappe 2b):** gebaut ist es anders, siehe 6 „Anzeige“: das
+  Overlay zeigt je Karte die Stufe und das Bild des passenden Builds, ist für die Maus
+  durchlässig (man klickt die Karten des Spiels) und verschwindet nach der Wahl. Früherer Plan: je
+  Karte Note Ø, Spielzahl und einer der drei Hinweise aus 3.7.
 - **Nach der Wahl:** Das Build-Feld zeigt 2–3 Kerne für den neuen Zustand. Der gewählte Kern ist
   markiert und wird für das nächste Angebot gemerkt.
-- **Welches Augment gewählt wurde:** Anfangs bestätigst du es mit einem Klick auf die Karte im
-  Overlay. Später erkennt die App es, wenn das sicher geht. Riot gibt die Wahl nicht über eine
+- **Welches Augment gewählt wurde:** gebaut in 6: die App erkennt es selbst, sonst ein Klick auf
+  die Karte auf der Champ-Seite (das Overlay lässt Klicks durch). Riot gibt die Wahl nicht über eine
   Schnittstelle heraus.
 
 ## 5. Rechnen: Server und App
@@ -264,8 +265,12 @@ geprüft.
   keine ID-Listen), und der erste davon wird gewählt, solange keiner von Hand gewählt ist. Nichts
   wird versteckt oder umsortiert, Stufen und Zahlen bleiben; die Hand-Wahl geht immer vor.
 - **Anzeige:** in der App bzw. als Popout auf dem anderen Bildschirm (Benutzerwunsch „in der App in
-  Echtzeit“). Ein Overlay über dem Spiel ist nicht nötig; auf dem Bildschirm des Spiels bleibt
-  das Popout wie immer aus.
+  Echtzeit“); auf dem Bildschirm des Spiels bleibt das Popout wie immer aus. Seit 10.10.2026
+  (Benutzerauftrag „Ingame-Overlay für Augment-Rankings“, nur Mayhem-App, `overlay.rs`) zusätzlich
+  ein Overlay über dem Spiel: unter dem Text jeder Karte die Stufe für den gewählten Build und die
+  zwei ersten Items des Builds, zu dem das Augment passt, darüber „Tiers for <Build>“ (bei arammeta-Stufen, die für den ganzen Champion gelten, „Tiers for <Champion>“); durchsichtig,
+  Klicks gehen ans Spiel, nie Fokus, keine Siegquoten. Die Abzeichen sitzen dort, wo die
+  Texterkennung den Namen las; sichtbar, solange alle Karten zu sehen sind.
 - **Grenzen:** Das geht nur im rahmenlosen oder im Fenster-Modus. Andere Client-Sprachen
   funktionieren über die Namen in der Sprache des Clients, solange Windows die Texterkennung für
   diese Sprache hat (sonst Windows' eigene Sprachen).
@@ -443,7 +448,8 @@ hört die Karte auf die Champ-Auswahl.
    Uploads werden größer. Dafür gibt es echte Build-Pfade („nach Hexenhut zuerst Stormsurge“)
    und eine Prüfung der Augment-Reihenfolge. Ohne Timelines gibt es nur Kerne aus dem
    End-Inventar.
-2. **Overlay im Spiel:** nicht nötig, die Anzeige läuft in der App bzw. im Popout (6). Für eine
-   öffentliche Version mit Live-Erkennung fragen wir trotzdem vorher Riot. Früherer Text:
+2. **Overlay im Spiel:** entschieden 10.10.2026, gebaut und gleich ausgeliefert (Benutzerwahl; wie
+   Blitz/OP.GG nur Stufen, keine Augment-Siegquoten, das Risiko trägt der Benutzer), siehe 6.
+   Zwischenstand davor: nicht nötig, die Anzeige läuft in der App bzw. im Popout. Früherer Text:
    **Overlay im Spiel trotz Riot-Grauzone.** Ein privater Test unter Freunden ist gering
    riskant. Für eine öffentliche Version fragen wir vorher Riot.

@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "overlay",
+  "description": "The Mayhem app's overlay over the League game (overlay.rs): a transparent window over the game's client area that lets every click through and never takes the focus. Its page only hears what to draw (overlay-cards: per offered augment a tier letter and up to two item numbers, the build's name, where each card's name is), asks once what to draw now (mayhem_overlay_now) and writes its errors to the error log (errors.rs). Rust alone shows, places and hides it. Nothing else; no window, filesystem, shell or HTTP permissions.",
+  "windows": ["overlay"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-mayhem-overlay-now",
+    "allow-log-error"
+  ]
+}

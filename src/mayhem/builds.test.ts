@@ -10,6 +10,7 @@ import type { Combo } from '../features/aram/combos';
 import {
   buildList,
   chosenEntry,
+  fitFor,
   itemSetFor,
   SET_NAME,
   takenMatches,
@@ -323,6 +324,16 @@ describe('takenMatches', () => {
     expect(chosenEntry(list, 'combo:heal', fits)?.key).toBe('combo:heal');
     expect(chosenEntry(list, 'gone', fits)?.key).toBe('assembled:10,11,12');
     expect(chosenEntry([], null, fits)).toBeUndefined();
+  });
+
+  it('an offered augment: the build shown when it fits, else the first that does', () => {
+    const shown = list.find((e) => e.key === 'combo:heal');
+    expect(fitFor(list, shown, goredrink)?.key).toBe('combo:heal');
+    expect(fitFor(list, undefined, goredrink)?.key).toBe('core:1,2,3');
+    expect(fitFor(list, shown, witchful)?.key).toBe('assembled:10,11,12');
+    expect(fitFor(list, shown, { id: 1, name: 'Donation', cats: ['gold'], text: '' })).toBe(
+      undefined,
+    );
   });
 });
 

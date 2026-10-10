@@ -21,6 +21,8 @@
 //! has it installed, else Windows' own languages.
 //! Fixed GET paths of the client here: `/lol-game-data/assets/v1/cherry-augments.json`,
 //! `/riotclient/region-locale`.
+//! Each reading also gives where a card's name was read; the overlay over the game (Mayhem app,
+//! overlay.rs) puts its badges there while the cards told are on screen.
 
 use std::{
     sync::{
@@ -34,6 +36,11 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
 use super::{client::Lcu, games::CherryAugment, live, GAME_EXE};
+
+pub(crate) use screen::game_area;
+
+/// Where a card's name was read: its centre and top, as parts of the game window's width and height.
+type Spot = (f32, f32);
 
 static WANTED: AtomicBool = AtomicBool::new(false);
 /// The Mayhem app: offers are read in every ARAM Mayhem game, no switch.
@@ -211,13 +218,17 @@ async fn look(app: &AppHandle, names: &Arc<Vec<(u32, String, String)>>, language
     let mut last: Vec<Offer> = Vec::new();
     // Each different set of cards read in this round, in order.
     let mut readings: Vec<Vec<Offer>> = Vec::new();
+    // Readings in a row without all the cards told (the overlay goes at the second).
+    let mut missing = 0u32;
     while started.elapsed() < LOOK_AT_MOST && wanted() {
         let (names, language) = (Arc::clone(names), language.map(str::to_owned));
-        let found = tauri::async_runtime::spawn_blocking(move || {
+        let read = tauri::async_runtime::spawn_blocking(move || {
             screen::read_offers(&names, language.as_deref())
         })
         .await
         .unwrap_or_default();
+        let spots: Vec<(u32, Spot)> = read.iter().map(|(o, at)| (o.id, *at)).collect();
+        let found: Vec<Offer> = read.into_iter().map(|(o, _)| o).collect();
         if !found.is_empty() {
             seen = Some(Instant::now());
         } else if seen.map_or(started.elapsed() > NONE_WITHIN, |t| {
@@ -234,8 +245,18 @@ async fn look(app: &AppHandle, names: &Arc<Vec<(u32, String, String)>>, language
             tell(app, told.clone());
         }
         remember(&mut readings, &told, &last, same.is_some());
+        // The overlay shows the cards told while all of them are on screen; a single misread
+        // keeps it, the second goes (a pick, a reroll turning its card).
+        let all_there = !told.is_empty() && told.iter().all(|c| last.contains(c));
+        missing = if all_there { 0 } else { missing + 1 };
+        if all_there {
+            crate::overlay::cards(app, live::chosen().0, spots);
+        } else if missing == 2 {
+            crate::overlay::cards(app, 0, Vec::new());
+        }
         tokio::time::sleep(LOOK_EVERY).await;
     }
+    crate::overlay::cards(app, 0, Vec::new());
     if !told.is_empty() {
         if let Some(card) = taken_of(&readings) {
             let mut game = game();
@@ -349,23 +370,25 @@ fn plain(text: &str) -> String {
         .collect()
 }
 
-/// Per column of text (one card each), the augment whose name it contains, left to right. A name
-/// counts with up to one wrong letter in eight (`ponytail:` substitutions only; letters the
-/// recognition drops or adds are not forgiven – widen to an edit distance if names get missed).
-fn matched(columns: &[String], names: &[(u32, String, String)]) -> Vec<Offer> {
-    let mut out: Vec<Offer> = Vec::new();
-    for column in columns {
+/// Per column of text (one card each, with where its top line is), the augment whose name it
+/// contains and where, left to right. A name counts with up to one wrong letter in eight
+/// (`ponytail:` substitutions only; letters the recognition drops or adds are not forgiven – widen
+/// to an edit distance if names get missed).
+fn matched(columns: &[(f32, f32, String)], names: &[(u32, String, String)]) -> Vec<(Offer, Spot)> {
+    let mut out: Vec<(Offer, Spot)> = Vec::new();
+    for (x, top, column) in columns {
         let text: Vec<char> = plain(column).chars().collect();
         let best = names
             .iter()
             .filter(|(_, name, _)| contains(&text, name))
             .max_by_key(|(_, name, _)| name.chars().count());
         if let Some((id, _, name)) = best {
-            if !out.iter().any(|o| o.id == *id) {
-                out.push(Offer {
+            if !out.iter().any(|(o, _)| o.id == *id) {
+                let offer = Offer {
                     id: *id,
                     name: name.clone(),
-                });
+                };
+                out.push((offer, (*x, *top)));
             }
         }
     }
@@ -381,8 +404,9 @@ fn contains(text: &[char], name: &str) -> bool {
             .any(|window| window.iter().zip(&name).filter(|(a, b)| a != b).count() <= allowed)
 }
 
-/// Lines of text side by side (x centre, top, text) grouped into columns, each read top to bottom.
-fn columns_of(mut lines: Vec<(f32, f32, String)>, width: f32) -> Vec<String> {
+/// Lines of text side by side (x centre, top, text) grouped into columns, each read top to bottom,
+/// with where its top line is (the card's name: its picture has no text).
+fn columns_of(mut lines: Vec<(f32, f32, String)>, width: f32) -> Vec<(f32, f32, String)> {
     lines.sort_by(|a, b| a.0.total_cmp(&b.0));
     let mut groups: Vec<Vec<(f32, f32, String)>> = Vec::new();
     for line in lines {
@@ -395,7 +419,9 @@ fn columns_of(mut lines: Vec<(f32, f32, String)>, width: f32) -> Vec<String> {
         .into_iter()
         .map(|mut group| {
             group.sort_by(|a, b| a.1.total_cmp(&b.1));
-            group.into_iter().map(|l| l.2).collect::<Vec<_>>().join(" ")
+            let (x, top) = (group[0].0, group[0].1);
+            let text = group.into_iter().map(|l| l.2).collect::<Vec<_>>().join(" ");
+            (x, top, text)
         })
         .collect()
 }
@@ -448,7 +474,7 @@ fn enlarged(pixels: &[u8], width: u32, crop: (i32, i32, i32, i32), scale: u32) -
 
 mod screen {
     //! The capture of the game window's middle and its text, on a blocking thread.
-    use super::Offer;
+    use super::{Offer, Spot};
     use windows::{
         core::HSTRING,
         Globalization::Language,
@@ -471,18 +497,24 @@ mod screen {
     const CLASS: &str = "RiotWindowClass";
     const TITLE: &str = "League of Legends (TM) Client";
 
-    /// The cards on screen now, left to right (empty: none, or nothing readable).
+    /// The cards on screen now, left to right, with where each name is (empty: none, or nothing
+    /// readable).
     pub(super) fn read_offers(
         names: &[(u32, String, String)],
         language: Option<&str>,
-    ) -> Vec<Offer> {
+    ) -> Vec<(Offer, Spot)> {
         read(names, language).unwrap_or_default()
     }
 
-    fn read(names: &[(u32, String, String)], language: Option<&str>) -> Option<Vec<Offer>> {
+    fn read(names: &[(u32, String, String)], language: Option<&str>) -> Option<Vec<(Offer, Spot)>> {
         let (pixels, w, h) = capture()?;
-        let (_, _, width, height) = super::band(w, h);
+        let (left, top, width, height) = super::band(w, h);
         let (width, height) = (width as u32, height as u32);
+        // From pixels of the band to parts of the game window.
+        let at = |cards: Vec<(Offer, Spot)>| {
+            let window = |(x, y): Spot| ((left as f32 + x) / w as f32, (top as f32 + y) / h as f32);
+            cards.into_iter().map(|(o, s)| (o, window(s))).collect()
+        };
         // SAFETY: plain COM initialisation of this thread; a second call only reports it was done.
         let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
         let engine = engine(language).ok()?;
@@ -490,11 +522,11 @@ mod screen {
             .map(|lines| super::matched(&super::columns_of(lines, width as f32), names))
             .unwrap_or_default();
         if band.len() >= super::CARDS {
-            return Some(band);
+            return Some(at(band));
         }
         // The band missed a card (small text, a busy background): each title on its own, enlarged.
         let max = OcrEngine::MaxImageDimension().ok()?;
-        let titles: Vec<String> = super::title_crops(w, h)
+        let titles: Vec<(f32, f32, String)> = super::title_crops(w, h)
             .into_iter()
             .filter_map(|crop| {
                 let scale = if crop.2.max(crop.3) as u32 * 2 <= max {
@@ -505,15 +537,38 @@ mod screen {
                 let image = super::enlarged(&pixels, width, crop, scale);
                 let (cw, ch) = (crop.2 as u32 * scale, crop.3 as u32 * scale);
                 let lines = recognize(&engine, &image, cw, ch).ok()?;
-                Some(lines.into_iter().map(|l| l.2).collect::<Vec<_>>().join(" "))
+                let first = lines.iter().map(|l| l.1).reduce(f32::min).unwrap_or(0.0);
+                let (x, y) = (crop.0 as f32 + crop.2 as f32 / 2.0, crop.1 as f32);
+                let text = lines.into_iter().map(|l| l.2).collect::<Vec<_>>().join(" ");
+                Some((x, y + first / scale as f32, text))
             })
             .collect();
         let by_title = super::matched(&titles, names);
-        Some(if by_title.len() > band.len() {
+        Some(at(if by_title.len() > band.len() {
             by_title
         } else {
             band
-        })
+        }))
+    }
+
+    /// The game window's client area on screen (x, y, width, height in pixels); None when it is
+    /// not there or minimized.
+    pub(crate) fn game_area() -> Option<(i32, i32, i32, i32)> {
+        let (class, title) = (wide(CLASS), wide(TITLE));
+        // SAFETY: the handle is checked; RECT and POINT are plain out-parameters.
+        unsafe {
+            let window = FindWindowW(class.as_ptr(), title.as_ptr());
+            if window.is_null() || IsIconic(window) != 0 {
+                return None;
+            }
+            let mut rect: RECT = std::mem::zeroed();
+            if GetClientRect(window, &mut rect) == 0 {
+                return None;
+            }
+            let mut origin = POINT { x: 0, y: 0 };
+            ClientToScreen(window, &mut origin);
+            Some((origin.x, origin.y, rect.right, rect.bottom))
+        }
     }
 
     /// The recognition in the client's language when Windows has it installed, else in Windows'
@@ -535,22 +590,11 @@ mod screen {
     /// The middle band of the game window (where the cards are, `band`) as BGRA, top row first,
     /// with the window's client size.
     fn capture() -> Option<(Vec<u8>, i32, i32)> {
-        let (class, title) = (wide(CLASS), wide(TITLE));
+        let (left, top, w, h) = game_area()?;
         // SAFETY: every handle is checked and released; the buffer has the size GetDIBits writes.
         unsafe {
-            let window = FindWindowW(class.as_ptr(), title.as_ptr());
-            if window.is_null() || IsIconic(window) != 0 {
-                return None;
-            }
-            let mut rect: RECT = std::mem::zeroed();
-            if GetClientRect(window, &mut rect) == 0 {
-                return None;
-            }
-            let mut origin = POINT { x: 0, y: 0 };
-            ClientToScreen(window, &mut origin);
-            let (w, h) = (rect.right, rect.bottom);
             let (x, y, width, height) = super::band(w, h);
-            let (x, y) = (origin.x + x, origin.y + y);
+            let (x, y) = (left + x, top + y);
             if width < 200 || height < 100 {
                 return None;
             }
@@ -666,10 +710,14 @@ mod tests {
         ];
         let columns = columns_of(lines, 1200.0);
         assert_eq!(columns.len(), 3);
-        let ids: Vec<u32> = matched(&columns, &names()).iter().map(|o| o.id).collect();
+        let found = matched(&columns, &names());
+        let ids: Vec<u32> = found.iter().map(|(o, _)| o.id).collect();
         // The longest name wins ("Tank It Or Leave It" over a shorter one inside it); one wrong
         // letter in eight is forgiven.
         assert_eq!(ids, [1, 4, 3]);
+        // Each card is where its name's first line was read (the overlay's badges go there).
+        let spots: Vec<Spot> = found.iter().map(|(_, at)| *at).collect();
+        assert_eq!(spots, [(150.0, 100.0), (520.0, 100.0), (900.0, 120.0)]);
     }
 
     fn cards(ids: &[u32]) -> Vec<Offer> {
@@ -788,7 +836,7 @@ mod tests {
     #[test]
     fn no_text_no_offer() {
         assert!(matched(&columns_of(Vec::new(), 1200.0), &names()).is_empty());
-        assert!(matched(&["Shop 1500 Gold".to_string()], &names()).is_empty());
+        assert!(matched(&[(0.0, 0.0, "Shop 1500 Gold".to_string())], &names()).is_empty());
         assert_eq!(plain("Tank It, Or-Leave It!"), "tankitorleaveit");
     }
 }

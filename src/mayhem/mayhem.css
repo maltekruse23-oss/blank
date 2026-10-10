@@ -4447,3 +4447,81 @@ li[data-place='3'] .mayhem-place {
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
+
+/* The overlay over the game (OverlayView.tsx, overlay.rs): transparent, its viewport is the game's
+   client area, so everything is in parts of it (vw, vh). Offsets from where a card's name was read,
+   measured on the League wiki's picture of an offer: under the card's text the tier and the
+   fitting build's items (gold ring as on a build that fits), above the cards the build line. No
+   motion: it appears and goes with the cards. */
+html.mayhem-overlay-window,
+html.mayhem-overlay-window body {
+  overflow: hidden;
+  background: transparent;
+}
+
+.mayhem-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mayhem-overlay-card,
+.mayhem-overlay-build {
+  position: absolute;
+  transform: translateX(-50%);
+  background: color-mix(in oklab, var(--bg) 84%, transparent);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.mayhem-overlay-card {
+  left: calc(var(--x) * 100vw);
+  top: calc(var(--y) * 100vh + 19.5vh);
+  display: flex;
+  align-items: center;
+  gap: 0.8vh;
+  padding: 0.5vh;
+  border-radius: 1.3vh;
+}
+
+.mayhem-overlay-card .mayhem-aug-row-tier {
+  position: static;
+  min-width: 3.6vh;
+  height: 3.6vh;
+  border-radius: 0.9vh;
+  font-size: 2vh;
+}
+
+.mayhem-overlay-fit {
+  display: flex;
+  gap: 0.4vh;
+  padding: 0.3vh;
+  border-radius: 0.9vh;
+  box-shadow: 0 0 0 0.25vh color-mix(in oklab, var(--accent) 80%, transparent);
+}
+
+.mayhem-overlay-fit img {
+  display: block;
+  width: 3vh;
+  height: 3vh;
+  border-radius: 0.5vh;
+}
+
+.mayhem-overlay-build {
+  left: 50vw;
+  top: calc(var(--y) * 100vh - 29vh);
+  padding: 0.4vh 1.4vh;
+  border-radius: 999px;
+  color: var(--muted);
+  font: 600 1.5vh/1.4 var(--font);
+  white-space: nowrap;
+}
+
+.mayhem-overlay-build b {
+  color: var(--text);
+}
+
+.mayhem-overlay-mock {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}

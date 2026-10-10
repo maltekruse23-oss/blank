@@ -201,6 +201,12 @@ export function takenMatches<T extends TakenAugment>(
   return out;
 }
 
+/** The build an offered augment fits, by the same rules (user's order 10.10.2026: its picture under
+ * the card in the overlay over the game, before it is taken): the build shown when it fits, else the
+ * first in the list that does. Display only: the build shown does not change by it. */
+export const fitFor = (list: BuildEntry[], shown: BuildEntry | undefined, augment: TakenAugment) =>
+  [...(shown ? [shown] : []), ...list].find((e) => takenMatches([e], [augment]).size > 0);
+
 /** The build the card shows (user's decision 10.10.2026): one chosen by hand this game wins, else
  * the first that fits a taken augment, else the first. */
 export const chosenEntry = (
