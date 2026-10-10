@@ -35,31 +35,18 @@ import {
 import { games, number, percent, winsIn } from './format';
 import { MOCK_SKILL_ORDER } from './mock';
 import { teamProfile, type TierAugment, type TierChampion } from './tiers';
-import { FIRST, More, Tabs } from './ui';
+import { AugmentPicture, FIRST, More, Tabs } from './ui';
 
 export const itemImage = (id: number) =>
   `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/item/${id}.png`;
 /** Staggers a row's soft entrance (mayhem.css, .mayhem-in). */
 const step = (i: number) => ({ ['--i' as string]: Math.min(i, 16) }) as CSSProperties;
 
-/** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game);
- * without a picture its initials, when a name is given. */
-function AugmentIcon({
-  rarity,
-  image,
-  name,
-}: {
-  rarity: string;
-  image: string | null;
-  name?: string;
-}) {
+/** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game). */
+function AugmentIcon({ rarity, image }: { rarity: string; image: string | null }) {
   return (
     <span className="mayhem-aug-icon" data-rarity={rarity}>
-      {image ? (
-        <img src={image} alt="" width={32} height={32} />
-      ) : (
-        name && <span aria-hidden>{initials(name)}</span>
-      )}
+      <AugmentPicture image={image} size={32} />
     </span>
   );
 }
@@ -466,7 +453,6 @@ function OfferPanel({
                   <AugmentIcon
                     rarity={row?.rarity ?? known?.rarity ?? ''}
                     image={row?.image ?? known?.image ?? null}
-                    name={name}
                   />
                   <span className="mayhem-aug-name">{name}</span>
                   {was && <small>Taken</small>}
@@ -517,13 +503,6 @@ function minis(view: ChampView, plan: BuildPlan | undefined, label: string): Min
   return view.augments.map((a) => ({ ...a, tier: null, title: `${a.name}\n${games(a.games)}` }));
 }
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2);
-
 /** Tier S as icons with their letter, the other tiers behind "+n" (user 09.10.2026: small). */
 function AugmentRow({ augments }: { augments: Mini[] }) {
   const [all, setAll] = useState(false);
@@ -540,11 +519,7 @@ function AugmentRow({ augments }: { augments: Mini[] }) {
             tabIndex={0}
             aria-label={`${a.tier ? `Tier ${a.tier}: ` : ''}${a.title.replace('\n', ', ')}`}
           >
-            {a.image ? (
-              <img src={a.image} alt="" width={36} height={36} />
-            ) : (
-              <span aria-hidden>{initials(a.name)}</span>
-            )}
+            <AugmentPicture image={a.image} size={36} />
           </span>
           {a.tier && (
             <span className="mayhem-aug-row-tier" data-tier={a.tier} aria-hidden>
@@ -617,7 +592,7 @@ function BuildRow({
       {fits && (
         <span className="mayhem-build-row-fits" role="img" aria-label={`Fits ${fitNames}`}>
           {fits.slice(0, 2).map((t) => (
-            <AugmentIcon key={t.id} rarity={t.rarity} image={t.image} name={t.name} />
+            <AugmentIcon key={t.id} rarity={t.rarity} image={t.image} />
           ))}
         </span>
       )}
@@ -682,7 +657,7 @@ function BuildAugments({
           {entry.combo.augments.map((a) => (
             // No augment win rates here (Riot: products must not show win rates for Augments).
             <li key={a.id} title={`${a.name}: ${games(a.games)} with ${label}`}>
-              <AugmentIcon rarity={a.rarity} image={a.image} name={a.name} />
+              <AugmentIcon rarity={a.rarity} image={a.image} />
               <span className="mayhem-aug-name">{a.name}</span>
               <span className="mayhem-facts">
                 <span>{games(a.games)}</span>

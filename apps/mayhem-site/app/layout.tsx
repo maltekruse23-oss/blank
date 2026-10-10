@@ -19,7 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="wrap">
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- plain link, no client router needed */}
             <a className="brand" href="/" aria-label="mayhemstats, start page">
-              {/* The same gold "m" as the favicon and the Mayhem app's icon (src-tauri/icons/mayhem.svg). */}
+              {/* The same augment-offer artwork as the favicon and the Mayhem app's icon (src-tauri/icons/mayhem.svg). */}
               {/* eslint-disable-next-line @next/next/no-img-element -- static artwork, fixed size */}
               <img className="brand-mark" src="/favicon.svg" width={34} height={34} alt="" />
               <span aria-hidden>

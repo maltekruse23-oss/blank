@@ -17,7 +17,6 @@ import {
   buildPlans,
   champView,
   directionOf,
-  fitOf,
   metaImage,
   parseAugments,
   parseChampion,
@@ -392,31 +391,41 @@ describe('Champ-Karte mit arammeta', () => {
     expect(view.plans[1].builds).toEqual([]);
   });
 
-  it('AP-Richtung hebt AP-Augments, wenige Spiele zählen nicht, nur eigene Symbole', () => {
+  it('Augments nur nach dem Champion: jede Richtung gleich, wenige Spiele zählen nicht, nur eigene Symbole', () => {
     const view = champView(champ, { champion: null, augments: null, items: MetaItems, meta })!;
+    // Tank Engine (tank) wins most on the champion: first for AP too, no bonus by category.
+    for (const plan of view.plans) expect(plan.augments.map((a) => a.id)).toEqual([1, 2, 3]);
     const ap = view.plans.find((p) => p.direction === 'ap')!;
-    expect(ap.augments[0]).toMatchObject({ id: 2, tier: 'S', rarity: 'gold' });
-    expect(ap.augments.at(-1)!.id).toBe(3);
-    const tankPlan = view.plans.find((p) => p.direction === 'tank')!;
-    expect(tankPlan.augments[0]).toMatchObject({ id: 1, rarity: 'prismatic' });
-    expect(tankPlan.augments.map((a) => a.id)).not.toContain(4);
-    expect(tankPlan.augments[0].image).toBe('https://arammeta.com/assets/icons/a.png');
+    expect(ap.augments[0]).toMatchObject({ id: 1, tier: 'S', rarity: 'prismatic' });
+    expect(ap.augments.map((a) => a.id)).not.toContain(4);
+    expect(ap.augments[0].image).toBe('https://arammeta.com/assets/icons/a.png');
     expect(ap.augments.find((a) => a.id === 3)!.image).toBeNull();
+    expect(view.augments.map((a) => a.id)).toEqual([1, 2, 3]);
     expect(metaImage('assets/icons/x.png')).toBe('https://arammeta.com/assets/icons/x.png');
     expect(metaImage('https://evil.example/x.png')).toBeNull();
   });
 
-  it('Kategorien: eigene Richtung zählt mehr, jede andere Richtung weniger, neutrale bleiben', () => {
-    expect(fitOf(['ap'], 'ap')).toBe(1);
-    expect(fitOf(['tank', 'new'], 'ap')).toBe(-1);
-    expect(fitOf(['ad'], 'ap')).toBe(-1);
-    expect(fitOf(['cd'], 'ap')).toBe(0);
-    expect(fitOf(['tank', 'cd'], 'tank')).toBe(1);
-    expect(fitOf(['ap'], 'tank')).toBe(-1);
-    // Tank Engine (tank) is the best augment overall, but not for AP.
-    const view = champView(champ, { champion: null, augments: null, items: MetaItems, meta })!;
-    const ap = view.plans.find((p) => p.direction === 'ap')!;
-    expect(ap.augments.map((a) => a.id)).toEqual([2, 1, 3]);
+  it('wenige Spiele ziehen zur eigenen Siegquote des Champions, nicht zu 50 %', () => {
+    // A weak champion (≈ 40 %): its rare augment below its own rate must not pass a common one
+    // above it (pulled towards 50 % it did: 48 % against 42 %).
+    const weak = {
+      ...meta,
+      champion: JSON.stringify({
+        poolAugments: [
+          { id: 1, g: 40, wr: 0.38 },
+          { id: 2, g: 4000, wr: 0.42 },
+          { id: 3, g: 8000, wr: 0.39 },
+        ],
+      }),
+    };
+    const view = champView(champ, {
+      champion: null,
+      augments: null,
+      items: MetaItems,
+      meta: weak,
+    })!;
+    expect(view.plans[0].augments.map((a) => a.id)).toEqual([2, 1, 3]);
+    expect(view.augments.map((a) => a.id)).toEqual([2, 1, 3]);
   });
 
   it('Richtung ohne arammeta-Kern: Zahlen der Website, Quelle steht dabei', () => {
@@ -436,24 +445,27 @@ describe('Champ-Karte mit arammeta', () => {
     expect(ap).toMatchObject({ source: 'mayhemstats', games: 6, share: 0 });
     expect(ap.builds[0].items.map((i) => i.id)).toEqual([1, 2, 3]);
     expect(planNote(view, ap)).toBe(
-      'Für AP hat arammeta.com kaum Spiele. Kern und Augments kommen von mayhemstats.lol (6 Spiele).',
+      'Für AP hat arammeta.com kaum Spiele. Der Kern kommt von mayhemstats.lol (6 Spiele).',
     );
     const tankPlan = view.plans.find((p) => p.direction === 'tank')!;
     expect(tankPlan.source).toBe('arammeta');
     expect(planNote(view, tankPlan)).toBeNull();
+    // The augments stay arammeta's of the whole champion, not the website's few AP games.
+    expect(ap.augments.map((a) => a.id)).toEqual([1, 2, 3]);
+    expect(ap.augments).toEqual(tankPlan.augments);
     // No AD games anywhere: arammeta's ranking stays, the card says so.
     const ad = view.plans.find((p) => p.direction === 'ad')!;
     expect(ad).toMatchObject({ source: 'arammeta', builds: [] });
     expect(planNote(view, ad)).toBe(
-      'arammeta.com hat kaum AD-Spiele mit Ahri. Die Stufen beruhen auf allen Spielen, passende Augments stehen höher.',
+      'arammeta.com hat kaum AD-Spiele mit Ahri. Die Stufen beruhen auf allen Spielen mit Ahri.',
     );
     // The Mayhem app is English only; blank. keeps the German line above.
     expect(planNote(view, ap, 'en')).toBe(
-      'arammeta.com has few AP games. Core and augments come from mayhemstats.lol (6 games).',
+      'arammeta.com has few AP games. The core comes from mayhemstats.lol (6 games).',
     );
     expect(planNote(view, tankPlan, 'en')).toBeNull();
     expect(planNote(view, ad, 'en')).toBe(
-      'arammeta.com has few AD games on Ahri. The tiers rest on all games, AD augments rank higher.',
+      'arammeta.com has few AD games on Ahri. The tiers rest on all Ahri games.',
     );
     // The tab order stays arammeta's.
     expect(view.plans.map((p) => p.direction)).toEqual(['tank', 'ap', 'ad']);

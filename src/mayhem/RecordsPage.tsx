@@ -232,11 +232,13 @@ export function RecordsPage({ me, champions }: { me: MeState; champions: TierCha
               ))}
             </ol>
           </section>
-          <ul className="mayhem-rec-grid">
-            {cards.map((card, i) => (
-              <Card key={card.id} card={card} index={i} siteId={siteId} champions={byId} />
-            ))}
-          </ul>
+          <div className="mayhem-scroll">
+            <ul className="mayhem-rec-grid">
+              {cards.map((card, i) => (
+                <Card key={card.id} card={card} index={i} siteId={siteId} champions={byId} />
+              ))}
+            </ul>
+          </div>
         </>
       )}
     </div>

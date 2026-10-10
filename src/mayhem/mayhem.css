@@ -185,6 +185,23 @@ button {
   height: 34px;
 }
 
+/* What sits in the bar's strip rises above it, so its controls take the click (Rank's "Simulate
+   game", Back on the detail pages; the bar covered them). The head lets the mouse through
+   everywhere else, so its title and empty space still drag the window. */
+.mayhem-page-head,
+.mayhem-back {
+  position: relative;
+  z-index: 6;
+}
+
+.mayhem-page-head {
+  pointer-events: none;
+}
+
+.mayhem-page-head-side {
+  pointer-events: auto;
+}
+
 .mayhem-window-buttons {
   display: flex;
 }
@@ -223,9 +240,56 @@ button {
    and spacing grow a little in steps so 1920+ does not look tiny. */
 .mayhem-wrap {
   max-width: 1680px;
-  min-height: 100%;
+  height: 100%;
   margin: 0 auto;
-  padding: 14px clamp(24px, 2.4vw, 44px) 48px;
+  padding: 14px clamp(24px, 2.4vw, 44px) 18px;
+}
+
+/* Nothing below the window (user 10.10.2026: "nichts unter dem Fenster, alles immer innerhalb des
+   Rahmens"): a page is as high as the window, its title and filters stay, and its long list
+   scrolls in its own frame (.mayhem-scroll) that ends above the window's edge. The main area
+   scrolls only as a last resort, when a page cannot fit at all. */
+.mayhem-fill,
+.mayhem-page,
+.mayhem-home,
+.mayhem-card {
+  height: 100%;
+}
+
+.mayhem-page > * {
+  flex-shrink: 0;
+}
+
+.mayhem-page > :is(.mayhem-scroll, .mayhem-columns) {
+  flex-shrink: 1;
+  min-height: 0;
+}
+
+.mayhem-page > .mayhem-columns {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.mayhem-page > .mayhem-columns > * {
+  max-height: 100%;
+}
+
+/* The spacing stays the one of the page or section around it (`gap: inherit`). Rows keep their
+   full height (`max-content`): a clipped card (overflow: hidden) would otherwise be squeezed. */
+.mayhem-scroll {
+  display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: inherit;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.mayhem-scroll::-webkit-scrollbar-track {
+  margin-block: 12px;
 }
 
 @media (min-width: 1700px) {
@@ -358,8 +422,13 @@ button {
 .mayhem-card {
   display: grid;
   grid-template-columns: minmax(300px, 34%) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 24px 28px;
   align-items: start;
+}
+
+.mayhem-card:has(> .mayhem-offer-panel) {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .mayhem-card-hero,
@@ -385,6 +454,28 @@ button {
   display: grid;
   gap: 18px;
   min-width: 0;
+  max-height: 100%;
+}
+
+/* Below the hero (and an offer) the details scroll inside their own panel; the list beside them
+   only in a small window with an offer open (the padding keeps focus rings unclipped). */
+.mayhem-card-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.mayhem-card-main > .mayhem-build-detail {
+  grid-auto-rows: max-content;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mayhem-card-side {
+  grid-auto-rows: max-content;
+  overflow-y: auto;
+  max-height: calc(100% + 8px);
+  margin: -4px;
+  padding: 4px;
 }
 
 /* The chosen build: one panel, the core big, the champion's own facts set apart below. */
@@ -746,8 +837,6 @@ button {
 .mayhem-aug-row .mayhem-aug-icon {
   width: 40px;
   height: 40px;
-  color: var(--muted);
-  font: 800 12px var(--font-title);
 }
 
 .mayhem-aug-row-tier {
@@ -851,10 +940,6 @@ button {
 .mayhem-build-row-fits .mayhem-aug-icon {
   width: 24px;
   height: 24px;
-}
-
-.mayhem-build-row-fits .mayhem-aug-icon > span {
-  font-size: 8.5px;
 }
 
 /* Two lines, not one: twin builds differ only at the end of their names (builds.ts `named`). */
@@ -1184,9 +1269,10 @@ button {
   font-weight: 700;
 }
 
+/* Below the window bar's strip (34 px, the page starts at 14 px): the hero stays under the bar. */
 .mayhem-hero .mayhem-button {
   position: absolute;
-  top: 12px;
+  top: 24px;
   right: 12px;
   background: rgba(11, 12, 16, 0.5);
   backdrop-filter: blur(12px);
@@ -1421,6 +1507,7 @@ button {
   height: 34px;
   border-radius: 50%;
   background: var(--panel-2);
+  color: var(--muted);
   box-shadow:
     0 0 0 1.5px var(--rarity),
     0 0 12px -2px var(--rarity);
@@ -1454,12 +1541,6 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-}
-
-/* Initials when the augment has no picture. */
-.mayhem-aug-icon > span {
-  color: var(--muted);
-  font: 800 11px var(--font-title);
 }
 
 .mayhem-aug-name {
@@ -1659,13 +1740,16 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  max-width: 78px;
   margin-top: 10px;
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.2;
   color: var(--faint);
 }
 
 .mayhem-client::before {
+  flex: none;
   content: '';
   width: 7px;
   height: 7px;
@@ -1745,8 +1829,13 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
 }
 
 .mayhem-page {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 22px;
+}
+
+.mayhem-page > .mayhem-back {
+  align-self: flex-start;
 }
 
 .mayhem-page-head {
@@ -2664,22 +2753,49 @@ li[data-place='3'] .mayhem-place {
 .mayhem-home {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 28%);
+  grid-template-rows: minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
   /* The rank card top right would sit under the window buttons. */
-  margin-top: 22px;
+  padding-top: 22px;
 }
 
 .mayhem-bento .mayhem-ladder {
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 6px;
+  min-height: 0;
   margin-top: 6px;
+  overflow-y: auto;
 }
 
+/* Home fits the window whole: a row or tile that does not fit is left out whole (it wraps into a
+   second column beside the clipped one), never cut at the window's edge. The padding keeps focus
+   rings unclipped. */
 .mayhem-home-main,
 .mayhem-bento {
-  display: grid;
-  gap: 16px;
+  display: flex;
+  flex-flow: column wrap;
+  align-content: flex-start;
+  gap: 16px 40px;
   min-width: 0;
+  margin-inline: -4px;
+  padding-inline: 4px;
+  overflow-x: clip;
+}
+
+.mayhem-home-main > *,
+.mayhem-bento > * {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* "Around you" takes what is left (at least its head and one row, else it is left out) and
+   scrolls inside its tile, never taller than its rows. */
+.mayhem-bento > :has(> .mayhem-ladder) {
+  flex: 1 0 0;
+  min-height: 112px;
+  max-height: max-content;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .mayhem-home-main {
@@ -3692,11 +3808,6 @@ li[data-place='3'] .mayhem-place {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.mayhem-result-augments .mayhem-aug-icon > span {
-  color: var(--muted);
-  font: 700 11px var(--font);
 }
 
 .mayhem-result-body > div:last-child {

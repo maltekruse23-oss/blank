@@ -44,7 +44,7 @@ import {
   RankPage,
   type TierState,
 } from './pages';
-import { loadMe, withChampions, type BoardRow, type MeState } from './me';
+import { loadMe, savedMe, withChampions, type BoardRow, type MeState } from './me';
 import { loadRecords, type RecordCard } from './records';
 import { RecordsPage } from './RecordsPage';
 import { loadTiers, type TierAugment, type TierChampion, type TierLists } from './tiers';
@@ -162,7 +162,7 @@ export function MayhemApp() {
     champFromAddress().state === 'none' ? 'home' : 'champ',
   );
   const [tiers, setTiers] = useState<TierState | null>(null);
-  const [me, setMe] = useState<MeState>({ state: 'loading' });
+  const [me, setMe] = useState<MeState>(() => savedMe() ?? { state: 'loading' });
   const meAsked = useRef({ ask: 0, at: 0 });
 
   const fetchTiers = () => requestTiers(setTiers);
@@ -457,7 +457,7 @@ export function MayhemApp() {
             data-open={client === true}
             title={client ? 'League client is open' : 'League client is closed'}
           >
-            Client
+            {client === false ? 'Client offline' : 'Client'}
           </span>
         </aside>
         <div className="mayhem-body">
@@ -475,7 +475,7 @@ export function MayhemApp() {
                 />
               ) : page === 'augments' ? (
                 <>
-                  <div hidden={!!augment}>
+                  <div className="mayhem-fill" hidden={!!augment}>
                     <AugmentsPage tiers={tierState} onRetry={fetchTiers} onSelect={toAugment} />
                   </div>
                   {lists && augment && (
@@ -490,7 +490,7 @@ export function MayhemApp() {
                 </>
               ) : page === 'champions' ? (
                 <>
-                  <div hidden={!!champion}>
+                  <div className="mayhem-fill" hidden={!!champion}>
                     <ChampionsPage tiers={tierState} onRetry={fetchTiers} onSelect={toChampion} />
                   </div>
                   {lists && champion && (

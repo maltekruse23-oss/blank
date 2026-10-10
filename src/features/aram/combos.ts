@@ -37,11 +37,16 @@ export const USELESS_ITEMS: Readonly<Record<number, string>> = {
 export const MANA_PENALTY = 0.08;
 /** Items in a build core. */
 export const CORE_SIZE = 3;
-/** Win rates from few games are pulled towards 50 % as if this many average games were added. */
+/** Win rates from few games are pulled towards `base` as if this many average games were added. */
 export const META_PRIOR = 200;
-/** A win rate pulled towards `base` (50 %, or the champion's own for combos) when few games. */
+/** A win rate pulled towards `base` (50 %, or the champion's own for augments) when few games. */
 export const pulled = (wr: number, g: number, base = 0.5) =>
   (wr * g + base * META_PRIOR) / (g + META_PRIOR);
+/** The champion's own win rate over its augment games (arammeta's `poolAugments`); 50 % without. */
+export const ownRate = (pool: { wr: number; g: number }[]) => {
+  const games = pool.reduce((t, a) => t + a.g, 0);
+  return games ? pool.reduce((t, a) => t + a.wr * a.g, 0) / games : 0.5;
+};
 
 /** What a rule sees of an item: its direction, Data Dragon tags and arammeta's English text. */
 export type ItemFacts = { kind: ChampItem['kind']; tags: readonly string[]; text: string };
@@ -476,8 +481,7 @@ export function combosFor(input: {
   offmeta: Direction[];
 }): Combo[] {
   const { pool, rows, items, texts, augments, info, offmeta } = input;
-  const games = pool.reduce((t, a) => t + a.g, 0);
-  const base = games ? pool.reduce((t, a) => t + a.wr * a.g, 0) / games : 0.5;
+  const base = ownRate(pool);
   // The champion's own damage (AP or AD, by the games of its measured items): a theme without a
   // measured damage item builds that way when it has enough items for it.
   const dealt = { ap: 0, ad: 0 };

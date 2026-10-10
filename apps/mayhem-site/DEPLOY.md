@@ -23,7 +23,7 @@ Zusätzlich live prüfen (Rechner und um 390 px):
    /tier-list`.
 4. `/leaderboard`: jede Zeile mit Profilsymbol, das Podest (am Rechner) auch; die eigene Zeile nach
    „That's me“ hervorgehoben.
-5. Favicon und das Zeichen links neben „mayhemstats“ sind das goldene „m“ auf dunkler Kachel (gleich
+5. Favicon und das Zeichen links neben „mayhemstats“ sind das Augment-Angebot (drei Karten im Fächer, vorn Gold mit dem „m“) (gleich
    dem App-Icon der Mayhem-App).
 
 ## Vorheriger Auftrag: Download der Mayhem-App (08.10.2026)

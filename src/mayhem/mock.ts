@@ -9,7 +9,7 @@ import { TIERS, type Rank } from '../features/aram/aramRating';
 import type { CardRank } from './afterGame';
 import type { MeState } from './me';
 import type { RecordCard } from './records';
-import type { ChampView, Offer, Tier } from '../features/aram/champCard';
+import { metaImage, type ChampView, type Offer, type Tier } from '../features/aram/champCard';
 import type { ChampItem, HeldChamp } from '../adapters/aramChamp';
 
 const rank = (tier: number, division: number | null, points: number): Rank => ({
@@ -191,6 +191,26 @@ const CHAMPS: [number, string, string, number, number][] = [
   [37, 'Sona', 'Support', 0.527, 1228],
 ];
 
+/** arammeta's real pictures of the augments named here: augments always show one (user 10.10.2026). */
+const AUG_ICON: Record<string, string> = {
+  Goliath: 'goliath_large',
+  Archmage: 'eureka_large',
+  'Back To Basics': 'backtobasics_large',
+  'Dive Bomber': 'divebomber_large',
+  'Bread And Butter': 'genericabilityaugmenticon_gold',
+  Donation: 'donation_large',
+  'First-Aid Kit': 'firstaidkit_large',
+  'Giant Slayer': 'giantslayer_large',
+  'Courage of the Colossus': 'courageofthecolossus_large',
+  'Tank It Or Leave It': 'tankitorleaveit_large',
+  Cruelty: 'cruelty_large',
+  'Fey Magic': 'feymagic_large',
+  'Ocean Soul': 'oceansoul_large',
+  Goredrink: 'goredrink_large',
+};
+const augIcon = (name: string) => `assets/icons/${AUG_ICON[name]}.png`;
+const augImage = (name: string) => metaImage(augIcon(name));
+
 const AUGS: [number, string, string, string, string[], number, number][] = [
   [1001, 'Goliath', 'kPrismatic', 'Grow bigger, gain health and force.', ['tank'], 0.58, 8210],
   [
@@ -215,7 +235,16 @@ const AUGS: [number, string, string, string, string[], number, number][] = [
   [1005, 'Bread And Butter', 'kGold', 'Your Q gains ability haste.', ['cd'], 0.53, 5233],
   [1006, 'Donation', 'kGold', 'Gain gold now.', ['gold'], 0.47, 3301],
   [1007, 'First-Aid Kit', 'kSilver', 'Heals and shields are stronger.', ['support'], 0.52, 2780],
-  [1008, 'Giant Slayer', 'kGold', 'More damage to bigger champions.', ['ad', 'amp'], 0.5, 3990],
+  [
+    1008,
+    'Giant Slayer',
+    'kPrismatic',
+    'More damage to bigger champions.',
+    ['ad', 'amp'],
+    0.5,
+    3990,
+  ],
+  [1011, 'Cruelty', 'kPrismatic', 'Immobilizing a champion strikes it again.', ['amp'], 0.52, 2140],
 ];
 
 /** An invented rate around `base`, different per index. */
@@ -263,7 +292,7 @@ export const MOCK_TIERS = {
     id,
     name,
     rarity,
-    icon: '',
+    icon: augIcon(name),
     text,
     cats,
     wr,
@@ -350,10 +379,10 @@ const CARD_ENTRY: AramEntry = {
 };
 
 const CARD_AUGMENTS: GameCard['augments'] = {
-  '1001': { name: 'Goliath', rarity: 'prismatic', icon: null },
-  '1002': { name: 'Archmage', rarity: 'prismatic', icon: null },
-  '1004': { name: 'Dive Bomber', rarity: 'silver', icon: null },
-  '1005': { name: 'Bread And Butter', rarity: 'gold', icon: null },
+  '1001': { name: 'Goliath', rarity: 'prismatic', icon: augImage('Goliath') },
+  '1002': { name: 'Archmage', rarity: 'prismatic', icon: augImage('Archmage') },
+  '1004': { name: 'Dive Bomber', rarity: 'silver', icon: augImage('Dive Bomber') },
+  '1005': { name: 'Bread And Butter', rarity: 'gold', icon: augImage('Bread And Butter') },
 };
 
 /** A record list as records.ts reads it, held by others than the mock player (`a1`). */
@@ -554,13 +583,13 @@ export function mockChampView(): ChampView {
     1005: ['Bread And Butter', 'gold'],
     1006: ['Donation', 'gold'],
     1007: ['First-Aid Kit', 'silver'],
-    1008: ['Giant Slayer', 'gold'],
-    1009: ['Courage of the Colossus', 'gold'],
-    1010: ['Perseverance', 'silver'],
-    1011: ['Frost Wraith', 'prismatic'],
-    1012: ['Fey Magic', 'gold'],
-    1013: ['Vampirism', 'silver'],
-    1014: ['Goredrink', 'gold'],
+    1008: ['Giant Slayer', 'prismatic'],
+    1009: ['Courage of the Colossus', 'prismatic'],
+    1010: ['Tank It Or Leave It', 'silver'],
+    1011: ['Cruelty', 'prismatic'],
+    1012: ['Fey Magic', 'prismatic'],
+    1013: ['Ocean Soul', 'silver'],
+    1014: ['Goredrink', 'silver'],
   };
   const tiers = (list: [number, Tier, number][]) =>
     list.map(([id, tier, games], n) => ({
@@ -568,7 +597,7 @@ export function mockChampView(): ChampView {
       name: AUG[id]![0],
       rarity: AUG[id]![1],
       icon: false,
-      image: null,
+      image: augImage(AUG[id]![0]),
       tier,
       score: Math.round((0.6 - n * 0.01) * 1e4) / 1e4,
       games,
@@ -579,7 +608,7 @@ export function mockChampView(): ChampView {
     id,
     name: AUG[id]![0],
     rarity: AUG[id]![1],
-    image: null,
+    image: augImage(AUG[id]![0]),
     games,
     winRate,
   });
@@ -647,7 +676,7 @@ export function mockChampView(): ChampView {
       name: a.name,
       rarity: a.rarity,
       icon: false,
-      image: null,
+      image: a.image,
       games: a.games,
       winRate: Math.round((0.58 - n * 0.007) * 1e4) / 1e4,
       grade: null,
@@ -668,14 +697,8 @@ export function mockChampView(): ChampView {
         share: 0,
         source: 'arammeta',
         builds: [apBuild],
-        augments: tiers([
-          [1002, 'S', 310],
-          [1005, 'S', 1_220],
-          [1003, 'A', 702],
-          [1004, 'B', 402],
-          [1001, 'C', 1_412],
-          [1006, 'D', 377],
-        ]),
+        // arammeta's tiers are the champion's, the same in every direction (metaView).
+        augments: tankTiers,
       },
     ],
     combos: [
@@ -752,7 +775,7 @@ export function mockChampView(): ChampView {
 }
 
 /** An augment offer open in the game for the preview's Champ card (`view.offer`): three augments
- * of the tank tiers, and two taken before: Frost Wraith is in the Control Freak combo, First-Aid Kit
+ * of the tank tiers, and two taken before: Cruelty is in the Control Freak combo, First-Aid Kit
  * (MOCK_TIERS: "Heals and shields are stronger.") fits the Maximum Heal rule (`takenMatches`). */
 export const mockAugmentOffer = (): Offer => ({
   direction: 'tank',
@@ -762,7 +785,7 @@ export const mockAugmentOffer = (): Offer => ({
     { id: 1008, name: 'Giant Slayer' },
   ],
   taken: [
-    { id: 1011, name: 'Frost Wraith' },
+    { id: 1011, name: 'Cruelty' },
     { id: 1007, name: 'First-Aid Kit' },
   ],
 });

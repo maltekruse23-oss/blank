@@ -8,11 +8,10 @@
 
 ## New in the Mayhem app
 
-- **Build tabs:** The Champ page now has Meta, Offmeta and Troll tabs on the left. Pick a build and see its items, augments, spells and boots on the right.
-- **Augments in game:** When you get an augment offer in ARAM Mayhem, the app shows the three augments with their tier for your build, and what you already took. Works in borderless or windowed mode.
-- **Fitting builds light up:** Builds that match the augments you took get a gold ring, and the first one is picked for you. Nothing is hidden.
-- **Push build with spells:** Push build now also sets your summoner spells during champ select.
-- **Champion cards:** The cards in the champion pick now show the champion's portrait, always centred.
+- **Augment tiers for your champion:** In game and on the Champ page, an augment's tier now shows only how it wins on your champion. AP, AD and tank augments no longer get an extra boost.
+- **Same tiers in every build:** Picking another build no longer changes the tiers of the augments offered in game.
+- **Always a picture:** Augments always show their picture, or the augment symbol if it can't load. No more letters.
+- **Compact items:** The chosen build's items now sit in one row: Core in buying order, Later beside it. The "More on <Champion>" part is gone.
 
 ## Download
 
