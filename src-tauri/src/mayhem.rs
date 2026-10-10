@@ -18,7 +18,8 @@
 //! ARAM Mayhem game it reads the augment cards offered off the game window (aram/offers.rs, user's
 //! decision 10.10.2026: always on, nothing to switch; images never kept or sent, nothing typed into
 //! the game), event `aram-offers`; a click on an offered card marks it taken (`aram_offer_taken`)
-//! when the screen did not tell. blank. is
+//! when the screen did not tell. While an offer is on screen, the overlay over the game shows each
+//! card's tier and the build it fits (overlay.rs, a second window only then). blank. is
 //! paused: its update installs this app as blank.exe, which then cleans up after blank. once
 //! (from_blank.rs).
 //!
@@ -33,7 +34,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 /// The config's identifier: lib.rs starts this app instead of blank. when it is built with it.
 pub const IDENTIFIER: &str = "lol.mayhemstats.desktop";
-/// The one window (also in `capabilities/mayhem.json`).
+/// The app's window (also in `capabilities/mayhem.json`); the overlay (overlay.rs) is the only other.
 pub const WINDOW: &str = "mayhem";
 /// The window's title from tauri.mayhem.conf.json; a second start finds the window by it.
 const TITLE: &str = "Mayhem";
@@ -59,6 +60,13 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             look_for_client(app.handle().clone());
             Ok(())
         })
+        // Closing the window quits the app, also while the overlay's window still exists (it would
+        // keep the app alive without a window, holding the single-instance mutex).
+        .on_window_event(|window, event| {
+            if window.label() == WINDOW && matches!(event, tauri::WindowEvent::Destroyed) {
+                window.app_handle().exit(0);
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             crate::errors::log_error,
             crate::aram::live::aram_champ_watch,
@@ -74,6 +82,8 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::mayhem_item_set,
             crate::aram::live::mayhem_spells,
             crate::aram::offers::aram_offer_taken,
+            crate::overlay::mayhem_overlay_cards,
+            crate::overlay::mayhem_overlay_now,
             crate::update::update_check,
             crate::update::update_install,
             crate::update::update_news,
@@ -210,8 +220,10 @@ mod tests {
         assert!(permissions.contains(&Value::from("allow-mayhem-find-rank")));
         assert!(permissions.contains(&Value::from("allow-mayhem-open-game")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
-        // The augment offers in the game: only marking an offered card as taken (aram/offers.rs).
+        // The augment offers in the game: only marking an offered card as taken (aram/offers.rs),
+        // and telling the overlay what to draw at them (overlay.rs).
         assert!(permissions.contains(&Value::from("allow-aram-offer-taken")));
+        assert!(permissions.contains(&Value::from("allow-mayhem-overlay-cards")));
         // The only writes into the client, each on the user's click (aram_live.rs).
         assert!(permissions.contains(&Value::from("allow-mayhem-pick-champion")));
         assert!(permissions.contains(&Value::from("allow-mayhem-item-set")));
@@ -248,6 +260,37 @@ mod tests {
         ] {
             assert!(permissions.contains(&Value::from(update)), "{update}");
         }
+    }
+
+    #[test]
+    fn overlay_window_has_its_own_narrow_capability() {
+        let capability = json("capabilities/overlay.json");
+        assert_eq!(
+            capability["windows"],
+            serde_json::json!([crate::overlay::LABEL])
+        );
+        assert_eq!(
+            capability["permissions"],
+            serde_json::json!([
+                "core:event:allow-listen",
+                "core:event:allow-unlisten",
+                "allow-mayhem-overlay-now",
+                "allow-log-error"
+            ])
+        );
+        // The page picks the overlay by the window's label and uses the same names as Rust.
+        let adapter = read("../src/adapters/overlay.ts");
+        assert!(adapter.contains(&format!(".label === '{}'", crate::overlay::LABEL)));
+        assert!(read("../src/mayhem/main.tsx").contains("isOverlayWindow()"));
+        for name in [
+            "mayhem_overlay_cards",
+            "mayhem_overlay_now",
+            "overlay-cards",
+        ] {
+            assert!(adapter.contains(&format!("'{name}'")), "{name}");
+        }
+        assert!(read("src/overlay.rs").contains("\"overlay-cards\""));
+        assert!(read("src/aram/offers.rs").contains("crate::overlay::cards(app"));
     }
 
     #[test]

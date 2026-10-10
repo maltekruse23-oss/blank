@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mayhem-overlay-cards"
+description = "Enables the mayhem_overlay_cards command without any pre-configured scope."
+commands.allow = ["mayhem_overlay_cards"]
+
+[[permission]]
+identifier = "deny-mayhem-overlay-cards"
+description = "Denies the mayhem_overlay_cards command without any pre-configured scope."
+commands.deny = ["mayhem_overlay_cards"]
