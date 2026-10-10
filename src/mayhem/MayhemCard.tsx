@@ -764,9 +764,11 @@ function BuildDetail({
     if (sample) return setPush('example');
     setPush('saving');
     setSpells({ short: '', long: '' });
-    void pushItemSet(view.championId, set).then((ok) =>
-      setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed'),
-    );
+    void pushItemSet(view.championId, set).then((ok) => {
+      // A failed push (client not ready) may go again the next time the build shows.
+      if (ok !== true) autoPushed = '';
+      setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed');
+    });
     if (pair.length === 2)
       void pushSpells(
         view.championId,
