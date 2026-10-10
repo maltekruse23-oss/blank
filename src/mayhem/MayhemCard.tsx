@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { championSplash } from '../adapters/aram';
 import { NOT_SELECTING, openGuide, pushItemSet, pushSpells } from '../adapters/aramChamp';
 import { Guard } from '../components/Guard';
@@ -192,6 +192,7 @@ export function MayhemCard({
   champion,
   augments,
   offer,
+  selecting,
   chosen,
   onChoose,
   onTake,
@@ -205,6 +206,8 @@ export function MayhemCard({
   augments: TierAugment[];
   /** In the game (offers.rs): the offer open now, or the last one (`open` false), and what was taken. */
   offer: (Offer & { open?: boolean }) | null;
+  /** A champion select runs: "Auto push" writes only then, never in the game. */
+  selecting: boolean;
   /** The build chosen by hand this game (it wins over the highlight), null: none yet. */
   chosen: string | null;
   onChoose: (key: string) => void;
@@ -304,6 +307,8 @@ export function MayhemCard({
             plan={plan}
             label={label}
             sample={sample}
+            // An offer means the game runs, even if the end of champ select was missed.
+            selecting={selecting && !offer}
           >
             {facts}
           </BuildDetail>
@@ -685,12 +690,40 @@ function BuildAugments({
 type PushState = 'idle' | 'saving' | 'done' | 'failed' | 'refused' | 'example';
 /** Rust's answer when the set itself does not fit (`mayhem_item_set`), not the client. */
 const NOT_A_SET = 'This build cannot be an item set.';
+
+/** "Auto push" (user 10.10.2026): remembered on this PC; on, every build chosen in champ select
+ * goes into the client by itself (items and spells), never in the game (nothing reacts to it). */
+const AUTO_PUSH = 'mayhem.autoPush.v1';
+const readAuto = () => {
+  try {
+    return localStorage.getItem(AUTO_PUSH) === '1';
+  } catch {
+    return false;
+  }
+};
+const writeAuto = (on: boolean) => {
+  try {
+    localStorage.setItem(AUTO_PUSH, on ? '1' : '0');
+  } catch {
+    // Blocked storage: the switch lasts only this run.
+  }
+};
+/** The build last pushed by itself, on which card: opening the page again does not repeat it, the
+ * next champ select (a new view) does. */
+let autoPushed: { view: ChampView; key: string } | null = null;
+/** Auto push takes this build of this card once; false: done already. */
+export const claimAutoPush = (view: ChampView, key: string) => {
+  if (autoPushed?.view === view && autoPushed.key === key) return false;
+  autoPushed = { view, key };
+  return true;
+};
 const DAMAGE: Record<string, string> = { phys: 'Physical', magic: 'Magic', true: 'True' };
 
 /**
  * The chosen build (right): its core big, later items, its augments, its win rate when measured
  * (else how it was put together), then what is the same in every build of the champion (children),
- * and "Push build" into the client's item sets ("Mayhem: <name>", only on the click).
+ * and "Push build" into the client's item sets ("Mayhem: <name>", on the click or by "Auto push" in
+ * champ select).
  */
 function BuildDetail({
   entry,
@@ -698,6 +731,7 @@ function BuildDetail({
   plan,
   label,
   sample,
+  selecting,
   children,
 }: {
   entry: BuildEntry;
@@ -705,6 +739,7 @@ function BuildDetail({
   plan: BuildPlan | undefined;
   label: string;
   sample: boolean;
+  selecting: boolean;
   children: ReactNode;
 }) {
   const set = useMemo(() => itemSetFor(entry, view), [entry, view]);
@@ -712,35 +747,51 @@ function BuildDetail({
   // The champion's best spell pair (shown below) goes with the build (user 10.10.2026: "muss alles
   // pushen auch summoners"); the client takes spells only in its champion select.
   const pair = view.extra?.spells[0]?.spells ?? [];
-  const [spellsSaid, setSpellsSaid] = useState('');
+  /** The spells' outcome: short on the page, in full in the tooltip. */
+  const [spells, setSpells] = useState<{ short: string; long: string }>({ short: '', long: '' });
+  const [auto, setAuto] = useState(readAuto);
   const save = () => {
     if (sample) return setPush('example');
     setPush('saving');
-    setSpellsSaid('');
-    void pushItemSet(view.championId, set).then((ok) =>
-      setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed'),
-    );
+    setSpells({ short: '', long: '' });
+    void pushItemSet(view.championId, set).then((ok) => {
+      // A failed push (client not ready) may go again the next time the build shows.
+      if (ok !== true) autoPushed = null;
+      setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed');
+    });
     if (pair.length === 2)
       void pushSpells(
         view.championId,
         pair.map((p) => p.id),
       ).then((ok) =>
-        setSpellsSaid(
+        setSpells(
           ok === true
-            ? `Spells set: ${pair.map((p) => p.name).join(' + ')}.`
+            ? { short: '', long: `Spells set: ${pair.map((p) => p.name).join(' + ')}.` }
             : ok === NOT_SELECTING
-              ? 'Spells are only set in champ select.'
-              : 'Could not set the spells.',
+              ? { short: '', long: 'Spells are only set in champ select.' }
+              : { short: 'Spells not set', long: 'Could not set the spells.' },
         ),
       );
   };
-  const said: Record<PushState, string> = {
-    idle: '',
-    saving: 'Saving …',
-    done: `Saved as "Mayhem: ${set.name}" in your item sets.`,
-    failed: 'Could not save the build. Is the League client open?',
-    refused: 'This build does not fit into an item set.',
-    example: 'Mock: nothing is saved in the preview.',
+  // Auto push: each build once, when it is shown (the card picks or the user does) or the switch
+  // goes on; only in champ select, never in the game or the preview.
+  useEffect(() => {
+    if (!auto || sample || !selecting || !claimAutoPush(view, entry.key)) return;
+    save();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per build and switch, not on every render
+  }, [auto]);
+  const toggleAuto = (on: boolean) => {
+    writeAuto(on);
+    setAuto(on);
+  };
+  // Short on the page (user 10.10.2026: "nur saved"), the whole sentence in the tooltip.
+  const said: Record<PushState, [string, string]> = {
+    idle: ['', ''],
+    saving: ['Saving …', ''],
+    done: ['Saved', `Saved as "Mayhem: ${set.name}" in your item sets.`],
+    failed: ['Not saved', 'Could not save the build. Is the League client open?'],
+    refused: ['Not saved', 'This build does not fit into an item set.'],
+    example: ['Mock', 'Mock: nothing is saved in the preview.'],
   };
   const theme = entry.kind === 'combo' ? themeOf(entry.combo.theme) : undefined;
   const line = theme && !theme.direction ? themeText(theme, 'en').line : null;
@@ -772,8 +823,25 @@ function BuildDetail({
           >
             Push build
           </button>
-          <p className="mayhem-note" role="status">
-            {[said[push], push === 'example' ? '' : spellsSaid].filter(Boolean).join(' ')}
+          <label
+            className="mayhem-switch"
+            title="In champ select, pushes every build you pick by itself. Remembered on this PC."
+          >
+            <input
+              type="checkbox"
+              role="switch"
+              checked={auto}
+              onChange={(e) => toggleAuto(e.target.checked)}
+            />
+            <span aria-hidden />
+            Auto push
+          </label>
+          <p
+            className="mayhem-note"
+            role="status"
+            title={[said[push][1], push === 'example' ? '' : spells.long].filter(Boolean).join(' ')}
+          >
+            {[said[push][0], push === 'example' ? '' : spells.short].filter(Boolean).join(' · ')}
           </p>
         </div>
       </header>

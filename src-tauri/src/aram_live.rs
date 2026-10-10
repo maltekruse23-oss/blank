@@ -24,7 +24,8 @@
 //! Mayhem's card phase the same stream also hears the champion cards the client deals (event
 //! `mayhem-champ-offer`, only to the Mayhem window), and only on the user's click
 //! `mayhem_pick_champion` picks one of them and `mayhem_item_set` writes the chosen build as the
-//! item set "Mayhem: <build>" (only the app's own set for that champion is replaced). Nothing
+//! item set "Mayhem: <build>" (only the app's own set for that champion is replaced; the user's
+//! switch "Auto push" writes it by itself, only in the champion select). The pick is never
 //! automatic, nothing preselected.
 use super::{champion_names, lockfile, mayhem_game, parse_lockfile, Lcu, SESSION};
 use futures_util::{SinkExt, StreamExt};
@@ -814,8 +815,9 @@ async fn write_item_set(set: Value, ours: impl Fn(&Value) -> bool) -> Result<(),
 }
 
 /// "Push build" in the Mayhem app: the chosen build as the item set "Mayhem: <name>" for the
-/// champion, replacing only the app's own earlier set for it. Only on that click. The page shows
-/// its own words; the client's real reason goes to the error log.
+/// champion, replacing only the app's own earlier set for it. Only on that click, or by the switch
+/// "Auto push" in the champion select. The page shows its own words; the client's real reason goes
+/// to the error log.
 #[tauri::command]
 pub async fn mayhem_item_set(
     champion_id: i64,
@@ -851,9 +853,9 @@ fn keyed((d, f): (i64, i64), [a, b]: [i64; 2]) -> (i64, i64) {
 }
 
 /// "Push build" in the Mayhem app also sets the build's summoner spells (user 10.10.2026: "muss
-/// alles pushen auch summoners"): only on that click, only two different ARAM spells, only in an
-/// ARAM Mayhem champion select while the user holds this champion. The page shows its own words;
-/// the client's real reason goes to the error log.
+/// alles pushen auch summoners"): only on that click or by "Auto push", only two different ARAM
+/// spells, only in an ARAM Mayhem champion select while the user holds this champion. The page
+/// shows its own words; the client's real reason goes to the error log.
 #[tauri::command]
 pub async fn mayhem_spells(champion_id: i64, spells: Vec<i64>) -> Result<(), String> {
     let result = set_my_spells(champion_id, &spells).await;

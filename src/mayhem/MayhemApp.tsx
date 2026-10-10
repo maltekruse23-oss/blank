@@ -547,6 +547,7 @@ export function MayhemApp() {
                       // Only the offer of this champion: one without a known champion (0) never lands
                       // on another champion's card.
                       offer={offer?.championId === shown.view.championId ? offer : null}
+                      selecting={selecting}
                       chosen={shown.chosen}
                       onTake={take}
                       onChoose={(key) =>

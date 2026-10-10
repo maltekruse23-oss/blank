@@ -3,6 +3,13 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: „Auto push“, kurzer Status — 10.10.2026
+
+- Benutzerwunsch: nach „Push build“ nur kurz „Saved“ (der ganze Satz mit Set-Name und Zaubern im Tooltip; „Not saved“, „Spells not set“ bei Fehlern; „Spells are only set in champ select“ nur im Tooltip) und daneben der Schalter „Auto push“ (`BuildDetail` in `MayhemCard.tsx`): gemerkt in localStorage `mayhem.autoPush.v1` (try/catch, gesperrter Speicher = nur dieser Lauf), an → jeder angezeigte Build wird von selbst gepusht (Items und in der Champ-Auswahl die Zauber), je Champion und Build einmal (`autoPushed`, auch nach Seitenwechsel nicht doppelt), auch der automatisch gewählte; nie in der Vorschau.
+- Gebaut in einem eigenen Worktree (`../mayhem-autopush`), weil parallel die Sitzung „Offline-Datenspeicherung“ im Hauptordner arbeitet.
+- Code-Review 10.10.2026 eingearbeitet: Auto push schrieb auch im Spiel, sobald ein genommenes Augment einen Build wählte (reagierte auf den Spielverlauf) – jetzt nur in der Champ-Auswahl (`selecting`) und nie, solange ein Angebot aus dem Spiel da ist; die Sperre gegen doppeltes Pushen gilt je angezeigter Karte (`claimAutoPush`), eine neue Champ-Auswahl pusht denselben Build wieder; CLAUDE.md-Widerspruch „nur auf Klick, ohne Schalter“ behoben. Riot fragen, ob die Registrierung das automatische Schreiben deckt (ROADMAP).
+- Geprüft: tsc, lint, Prettier, Vitest, Vorschau (Schalter aus/an). Nicht geprüft: Auto push mit echtem Client.
+
 ## Arbeit aus dem gemeinsamen Ordner übernommen — 10.10.2026
 
 - Auftrag malte („mach das erst“: alles Gebaute, aber nicht Ausgelieferte in die App): die drei nicht committeten Arbeiten anderer Sitzungen aus `C:\Users\malte\mayhem-test` (Icon, Layout im Rahmen, letzter Stand ohne Client) als Patch auf main übernommen (PR `claude/mayhem-hauptordner`); der gemeinsame Ordner selbst blieb unverändert (dort liegen sie weiter als Änderungen auf dem alten Branch `claude/mayhem-compact-items` – vor neuer Arbeit dort auf main wechseln und die Änderungen verwerfen). Danach folgen #101 und #102, dann Release 0.12.2.
