@@ -8,12 +8,11 @@
 
 ## New in the Mayhem app
 
-- **Pick your champion:** In ARAM Mayhem's card phase the app jumps to Champ and shows the champions you were dealt, with their tier and win rate. Click one to pick it in the client.
-- **Builds:** One list of builds for your champion: meta first, then offmeta, the best ones on top. Click a build to see its items, boots, spells and damage.
-- **Push build:** Saves the chosen build as an item set ("Mayhem: …") in the League client, ready in the shop. Your own item sets stay untouched.
-- **Champ page:** No more AP/AD/Tank switch; the best augments are a small row at the top.
-- **Home:** Your last 20 games as a win/loss strip, your places in the records, your best champions and how you compare with everyone.
-- **Rank:** A cleaner rank card with a chart of the ranks you went through, and the rank distribution as a bar chart.
+- **Build tabs:** The Champ page now has Meta, Offmeta and Troll tabs on the left. Pick a build and see its items, augments, spells and boots on the right.
+- **Augments in game:** When you get an augment offer in ARAM Mayhem, the app shows the three augments with their tier for your build, and what you already took. Works in borderless or windowed mode.
+- **Fitting builds light up:** Builds that match the augments you took get a gold ring, and the first one is picked for you. Nothing is hidden.
+- **Push build with spells:** Push build now also sets your summoner spells during champ select.
+- **Champion cards:** The cards in the champion pick now show the champion's portrait, always centred.
 
 ## Download
 
