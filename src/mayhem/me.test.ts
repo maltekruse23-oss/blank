@@ -8,6 +8,7 @@ import {
   aroundOf,
   curvePath,
   distributionOf,
+  keptMe,
   ladderOf,
   ownState,
   playerState,
@@ -96,8 +97,16 @@ describe('Mayhem app player', () => {
     withSaved({ name: 'Old#EUW', board: '{', me: null });
     expect(withSaved(null)).toEqual({ state: 'closed' });
     const shown = withSaved({ name: 'Neu#EUW', board, me: null });
-    expect(withSaved(null)).toEqual(shown);
+    const saved = withSaved(null);
+    expect(saved).toEqual({ ...shown, saved: true });
     vi.unstubAllGlobals();
+
+    // With the client open, a failing website shows the failure, never the saved copy (it may be
+    // another account); a player asked for in this session stays through a failed refresh.
+    const failed = { state: 'failed', message: 'x' } as const;
+    expect(keptMe(saved, failed)).toBe(failed);
+    expect(keptMe(shown, failed)).toBe(shown);
+    expect(keptMe(saved, shown)).toBe(shown);
   });
 
   it('shows a player the website does not know, with the leaderboard', () => {

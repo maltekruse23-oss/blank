@@ -44,7 +44,7 @@ import {
   RankPage,
   type TierState,
 } from './pages';
-import { loadMe, savedMe, withChampions, type BoardRow, type MeState } from './me';
+import { keptMe, loadMe, savedMe, withChampions, type BoardRow, type MeState } from './me';
 import { loadRecords, type RecordCard } from './records';
 import { RecordsPage } from './RecordsPage';
 import { loadTiers, type TierAugment, type TierChampion, type TierLists } from './tiers';
@@ -171,12 +171,8 @@ export function MayhemApp() {
     const ask = ++meAsked.current.ask;
     meAsked.current.at = Date.now();
     setMe((old) => (old.state === 'ready' || old.state === 'closed' ? old : { state: 'loading' }));
-    // A quiet refresh that fails keeps the shown player (it tries again by itself).
-    void loadMe().then(
-      (next) =>
-        ask === meAsked.current.ask &&
-        setMe((old) => (next.state === 'failed' && old.state === 'ready' ? old : next)),
-    );
+    // A quiet refresh that fails keeps the shown player (it tries again by itself), see keptMe.
+    void loadMe().then((next) => ask === meAsked.current.ask && setMe((old) => keptMe(old, next)));
   };
   const fetchMeRef = useRef(fetchMe);
   fetchMeRef.current = fetchMe;
