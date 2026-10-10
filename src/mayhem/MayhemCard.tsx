@@ -6,14 +6,11 @@ import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
   assembledFacts,
   itemTitle,
-  slotsText,
   sourceLabel,
   spellName,
-  type AugTypePick,
   type ChampExtra,
   type BuildPlan,
   type ChampView,
-  type MetaItemPick,
   type Offer,
   type Tier,
 } from '../features/aram/champCard';
@@ -74,49 +71,6 @@ const picked = (p: { games: number; winRate: number; pick: number | null }) =>
 
 const spellImage = (key: string) =>
   `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/spell/${key}.png`;
-
-/** Items (one or two per row) with win rate and games; five first, the best marked. */
-function ItemRows({ rows, weak = false }: { rows: MetaItemPick[]; weak?: boolean }) {
-  return (
-    <More
-      list={rows}
-      className={`mayhem-grid${weak ? ' weak' : ''}`}
-      render={(r, n) => (
-        <li key={r.items.map((i) => i.id).join('+')} title={picked(r)} data-top={!weak && n === 0}>
-          <span className="mayhem-items">
-            {r.items.map((i) => (
-              <img
-                key={i.id}
-                data-mana={i.mana || undefined}
-                src={itemImage(i.id)}
-                alt={i.name}
-                title={i.mana ? `${i.name}${MANA}` : i.name}
-                width={30}
-                height={30}
-              />
-            ))}
-          </span>
-          <span className="mayhem-facts">
-            <b>{percent(r.winRate)}</b>
-            <span>{games(r.games)}</span>
-          </span>
-        </li>
-      )}
-    />
-  );
-}
-
-function TypeChips({ rows, weak = false }: { rows: AugTypePick[]; weak?: boolean }) {
-  return (
-    <ul className={`mayhem-chips${weak ? ' weak' : ''}`}>
-      {rows.map((t) => (
-        <li key={t.name} title={picked(t)}>
-          {t.name} <b>{percent(t.winRate)}</b>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 /**
  * Mayhem-Combos (combos.ts): every combo of the champion as a chip, Meta and Offmeta apart, the
@@ -222,114 +176,6 @@ export function ComboSection({ combos, champion }: { combos: Combo[]; champion: 
         {note && <p className="mayhem-note">{note}</p>}
       </div>
       <p className="mayhem-note">{COMBO_HONESTY_EN}</p>
-    </div>
-  );
-}
-
-type ExtraTab = 'items' | 'kinds' | 'avoid';
-
-/**
- * Everything else arammeta has on the champion, one question per tab: items, augment kinds, what
- * to avoid (combos, boots and spells are in the build list and its details now).
- */
-function ChampMore({ view, label }: { view: ChampView; label: string }) {
-  const x = view.extra;
-  const tabs = (
-    [
-      { id: 'items', label: 'Items', has: !!(x?.items.length || x?.pairs.length) },
-      { id: 'kinds', label: 'Augment kinds', has: !!(x?.augTypes.length || x?.weakTypes.length) },
-      { id: 'avoid', label: 'Avoid', has: !!(x?.weak.length || x?.avoid.length) },
-    ] as const
-  ).filter((t) => t.has);
-  const [chosen, setChosen] = useState<ExtraTab | null>(null);
-  const tab = tabs.find((t) => t.id === chosen)?.id ?? tabs[0]?.id;
-  if (!tab) return null;
-  return (
-    <section className="mayhem-section mayhem-card-more mayhem-in" style={step(6)}>
-      <h2>More on {label}</h2>
-      {tabs.length > 1 && (
-        <Tabs tabs={[...tabs]} value={tab} onChange={setChosen} label={`More on ${label}`} />
-      )}
-      <div role="tabpanel" aria-label={tabs.find((t) => t.id === tab)?.label}>
-        {tab === 'items' && x && <ExtraItems extra={x} />}
-        {tab === 'kinds' && x && <Kinds extra={x} />}
-        {tab === 'avoid' && x && <Avoid extra={x} />}
-      </div>
-    </section>
-  );
-}
-
-function ExtraItems({ extra }: { extra: ChampExtra }) {
-  return (
-    <div className="mayhem-panel">
-      {extra.items.length > 0 && (
-        <div className="mayhem-section">
-          <h3>Best items</h3>
-          <ItemRows rows={extra.items} />
-        </div>
-      )}
-      {extra.pairs.length > 0 && (
-        <div className="mayhem-section">
-          <h3>Strong together</h3>
-          <ItemRows rows={extra.pairs} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Kinds({ extra }: { extra: ChampExtra }) {
-  return (
-    <div className="mayhem-panel">
-      {extra.augTypes.length > 0 && (
-        <div className="mayhem-section">
-          <h3>Strong kinds</h3>
-          <TypeChips rows={extra.augTypes} />
-        </div>
-      )}
-      {extra.weakTypes.length > 0 && (
-        <div className="mayhem-section">
-          <h3>Weaker kinds</h3>
-          <TypeChips rows={extra.weakTypes} weak />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Avoid({ extra }: { extra: ChampExtra }) {
-  return (
-    <div className="mayhem-panel">
-      {extra.weak.length > 0 && (
-        <div className="mayhem-section">
-          <h3>Popular but weak</h3>
-          <ItemRows rows={extra.weak} weak />
-        </div>
-      )}
-      {extra.avoid.length > 0 && (
-        <div className="mayhem-section">
-          <h3>Weakest augments</h3>
-          <More
-            list={extra.avoid}
-            className="mayhem-best"
-            render={(a) => (
-              <li
-                key={a.id}
-                title={[winsIn(a.winRate, a.games), slotsText(a.slots, 'en')]
-                  .filter(Boolean)
-                  .join('\n')}
-              >
-                <AugmentIcon rarity={a.rarity} image={a.image} />
-                <span className="mayhem-aug-name">{a.name}</span>
-                <span className="mayhem-facts">
-                  <b className="down">{percent(a.winRate)}</b>
-                  <span>{games(a.games)}</span>
-                </span>
-              </li>
-            )}
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -483,7 +329,6 @@ export function MayhemCard({
           </div>
         )}
       </section>
-      <ChampMore view={view} label={label} />
     </article>
   );
 }
@@ -957,42 +802,48 @@ function BuildDetail({
           </p>
         </div>
       </header>
-      <ul className="mayhem-build-core">
-        {entry.items.map((i, n) => {
-          const facts = itemFacts(entry, n, i, label, false);
-          return (
-            <li key={i.id} title={facts.title}>
-              <img
-                data-mana={i.mana || undefined}
-                src={itemImage(i.id)}
-                alt=""
-                width={48}
-                height={48}
-              />
-              <span>{i.name}</span>
-              {facts.rate && <small>{facts.rate}</small>}
-            </li>
-          );
-        })}
-      </ul>
-      {entry.later.length > 0 && (
-        <div className="mayhem-build-later">
-          <span>Later</span>
-          <span className="mayhem-items">
-            {entry.later.map((i, n) => (
-              <img
-                key={i.id}
-                data-mana={i.mana || undefined}
-                src={itemImage(i.id)}
-                alt={i.name}
-                title={itemFacts(entry, n, i, label, true).title}
-                width={30}
-                height={30}
-              />
-            ))}
-          </span>
+      {/* One compact row (user 10.10.2026, like other apps' "core build"): the core in buying
+          order, then the later items; names and numbers in the tooltip. */}
+      <div className="mayhem-build-items">
+        <div>
+          <span className="mayhem-build-label">Core</span>
+          <ol className="mayhem-build-core">
+            {entry.items.map((i, n) => {
+              const facts = itemFacts(entry, n, i, label, false);
+              return (
+                <li key={i.id} title={facts.title}>
+                  <img
+                    data-mana={i.mana || undefined}
+                    src={itemImage(i.id)}
+                    alt={i.name}
+                    width={40}
+                    height={40}
+                  />
+                  {facts.rate && <small>{facts.rate}</small>}
+                </li>
+              );
+            })}
+          </ol>
         </div>
-      )}
+        {entry.later.length > 0 && (
+          <div>
+            <span className="mayhem-build-label">Later</span>
+            <span className="mayhem-items">
+              {entry.later.map((i, n) => (
+                <img
+                  key={i.id}
+                  data-mana={i.mana || undefined}
+                  src={itemImage(i.id)}
+                  alt={i.name}
+                  title={itemFacts(entry, n, i, label, true).title}
+                  width={32}
+                  height={32}
+                />
+              ))}
+            </span>
+          </div>
+        )}
+      </div>
       <BuildAugments entry={entry} view={view} plan={plan} label={label} />
       {entry.kind === 'combo' && (
         <p className="mayhem-note">{[note, COMBO_HONESTY_EN].filter(Boolean).join(' ')}</p>

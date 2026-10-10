@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: Items kompakt, „More on …“ entfernt — 10.10.2026
+
+- Benutzerwunsch (Vorlagen anderer Apps „Core Build“/„Full Build“): die Items des gewählten Builds als eine kompakte Zeile – „Core“ in Kaufreihenfolge mit Pfeilen (40 px), daneben „Later“ (32 px); Namen und Zahlen im Tooltip, eine Siegquote klein unter dem Bild nur, wo das Item eigene Zahlen hat (zusammengesetzte Builds, Combos).
+- Benutzerwunsch „den Teil kannst du ganz entfernen“: „More on <Champion>“ mit Items, Augment kinds und Avoid ist aus der Champ-Seite der Mayhem-App raus (samt `ItemRows`, `TypeChips`, `ExtraItems`, `Kinds`, `Avoid` und ihren Styles); blank.s Champ-Karte und `ComboSection` (Champion-Seite) unverändert. Damit zeigt die Champ-Seite auch keine Augment-Siegquoten mehr unter „Weakest augments“.
+- Geprüft: tsc, lint, Prettier, Vitest (344), Vorschau (`?champ`).
+
 ## Release 0.12.0 — 10.10.2026
 
 - Enthält Karten mit Ladebild und Push build mit Zaubern (#97) sowie Build-Reiter Meta/Offmeta/Troll, Augments im Spiel in der Mayhem-App und automatisches Hervorheben (#98), ohne aramkit-Zahlen (Entscheidung malte, bis zu deren Erlaubnis). Englischer Abschnitt „New in the Mayhem app“ neu, deutscher Abschnitt unverändert.
