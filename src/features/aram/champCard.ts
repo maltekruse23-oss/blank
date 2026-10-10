@@ -104,6 +104,8 @@ export type ChampView = {
   offer?: Offer;
   /** Mayhem-Combos (combos.ts): themes of augments and items, Meta and Offmeta; arammeta only. */
   combos?: Combo[];
+  /** Data Dragon picture keys of Q, W and E (img/spell/<key>.png); the Mayhem app only. */
+  abilities?: [string, string, string];
 };
 
 /** An item row of arammeta (boots, single items, pairs of two): its games and win rate. */
@@ -115,6 +117,7 @@ export type MetaItemPick = {
   pick: number | null;
 };
 export type SpellPick = {
+  /** `name` German for blank., English in the Mayhem app (`ChampInfo.english`). */
   spells: { id: number; name: string; key: string }[];
   games: number;
   winRate: number;
@@ -545,12 +548,32 @@ export function offerRows(plan: BuildPlan, offer: Offer) {
 }
 
 /** The card for a champion; null when the website's answer does not fit. A champion without
- * games on the website gets a card with empty lists (the card says so). */
+ * games on the website gets a card with empty lists (the card says so). Names in the language the
+ * info came in (`english`: the Mayhem app); the ability pictures when Rust sent them. */
 export function champView(
   champ: { championId: number; alias: string; name: string },
   info: ChampInfo,
 ): ChampView | null {
-  const meta = info.meta && metaView(champ, info.meta, info.items);
+  const view = cardOf(champ, info);
+  const abilities = abilityKeys(info.abilities);
+  return view && abilities ? { ...view, abilities } : view;
+}
+
+/** Picture keys of Q, W and E from Data Dragon's file names (`Pulverize.png` → `Pulverize`, as
+ * `SpellPick.key`); null when missing or anything does not fit. */
+export function abilityKeys(files: unknown): [string, string, string] | null {
+  if (!Array.isArray(files) || files.length < 3) return null;
+  const keys = files
+    .slice(0, 3)
+    .map((f) => (typeof f === 'string' ? /^([\w-]{1,60})(?:\.png)?$/.exec(f)?.[1] : undefined));
+  return keys.every(Boolean) ? (keys as [string, string, string]) : null;
+}
+
+function cardOf(
+  champ: { championId: number; alias: string; name: string },
+  info: ChampInfo,
+): ChampView | null {
+  const meta = info.meta && metaView(champ, info.meta, info.items, info.english ? 'en' : 'de');
   const names = parseAugments(info.augments);
   const parsed = info.champion === null ? null : parseChampion(info.champion);
   if (meta) {
@@ -764,6 +787,7 @@ export function metaView(
     items?: ItemTexts;
   },
   items: Record<string, ChampItem>,
+  lang: Lang = 'de',
 ): ChampView | null {
   const parsed = parseMeta(meta.champion);
   if (!parsed) return null;
@@ -898,6 +922,7 @@ export function metaView(
           p.augments.filter((a) => a.tier === 'S' || a.tier === 'A').map((a) => a.id),
         ),
       ]),
+      lang,
     ),
   };
 }
@@ -983,6 +1008,7 @@ export function metaExtra(
   items: Record<string, ChampItem>,
   info: (id: number) => { name: string; rarity: string; image: string | null },
   best: Set<number>,
+  lang: Lang = 'de',
 ): ChampExtra {
   const pick = (r: ExtraRow): MetaItemPick => ({
     items: r.ids.map((id) => ({
@@ -1014,7 +1040,7 @@ export function metaExtra(
     .filter((r) => r.ids.every((id) => id in SPELLS && !NEVER_SPELLS.includes(id)))
     .slice(0, EXTRA_SHOWN.spells)
     .map((r) => ({
-      spells: r.ids.map((id) => ({ id, name: SPELLS[id][0], key: SPELLS[id][1] })),
+      spells: r.ids.map((id) => ({ id, name: spellName(id, lang)!, key: SPELLS[id][1] })),
       games: r.g,
       winRate: r.wr,
       pick: r.pick,

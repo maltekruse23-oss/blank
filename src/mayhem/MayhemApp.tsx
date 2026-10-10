@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Crown, History, House, LayoutGrid, Plus, Sparkles, Swords, Trophy } from 'lucide-react';
 import {
   leagueClientOpen,
+  markTaken,
   onChamp,
   onChampOffer,
   onLeagueClient,
+  onOffers,
   readChampInfo,
   watchChamp,
   type HeldChamp,
@@ -18,11 +20,18 @@ import {
   type GameCard,
 } from '../adapters/aramSite';
 import { Guard } from '../components/Guard';
-import { champView, type ChampView } from '../features/aram/champCard';
+import { champView, type ChampView, type Offer } from '../features/aram/champCard';
 import { AfterGame } from './AfterGameView';
 import { cardRank, inEnglish, RANK_ASKS, RANK_GIVE_UP, type CardRank } from './afterGame';
 import { found, type FindState } from './findRank';
-import { CARD_PREVIEWS, mockCard, mockChampView, mockOffer, type CardPreview } from './mock';
+import {
+  CARD_PREVIEWS,
+  mockAugmentOffer,
+  mockCard,
+  mockChampView,
+  mockOffer,
+  type CardPreview,
+} from './mock';
 import { MayhemCard } from './MayhemCard';
 import { PickView } from './PickView';
 import { PlayerCard, PlayerProvider, type Who } from './PlayerCard';
@@ -38,7 +47,7 @@ import {
 import { loadMe, withChampions, type BoardRow, type MeState } from './me';
 import { loadRecords, type RecordCard } from './records';
 import { RecordsPage } from './RecordsPage';
-import { loadTiers, type TierChampion } from './tiers';
+import { loadTiers, type TierAugment, type TierChampion, type TierLists } from './tiers';
 import { RETRY_MS, useRefresh } from './ui';
 import { UpdateButton } from './UpdateButton';
 import { WindowBar } from './WindowBar';
@@ -49,6 +58,7 @@ import logo from '../../src-tauri/icons/mayhem.svg';
 const NO_BOARD: BoardRow[] = [];
 /** Stable while the lists load (the player card reloads when its champions change). */
 const NO_CHAMPIONS: TierChampion[] = [];
+const NO_AUGMENTS: TierAugment[] = [];
 
 export type Page = 'home' | 'champ' | 'augments' | 'champions' | 'rank' | 'history' | 'records';
 
@@ -101,15 +111,25 @@ function previewFromAddress(): After | null {
     : null;
 }
 
-/** The browser preview's Champ card (`mayhem.html?champ`) or pick screen (`?pick`), invented,
- * marked "Mock". */
+/** The browser preview's Champ card (`mayhem.html?champ`), the same in a game with an augment
+ * offer open (`?offer`) or the pick screen (`?pick`), invented, marked "Mock". */
 function champFromAddress(): Shown {
   const address = new URLSearchParams(window.location.search);
   if (isTauri()) return { state: 'none' };
   if (address.has('pick')) return { state: 'pick', offered: mockOffer(), sample: true };
-  if (address.has('champ')) return { state: 'ready', view: mockChampView(), sample: true };
+  if (address.has('champ') || address.has('offer'))
+    return { state: 'ready', view: mockChampView(), sample: true, chosen: null };
   return { state: 'none' };
 }
+
+/** The augment offer of the game (offers.rs), with the champion it is for (0: not seen); `open`
+ * false: closed, `augments` are the last offer's. */
+type GameOffer = Offer & { championId: number; open?: boolean };
+
+const offerFromAddress = (): GameOffer | null =>
+  !isTauri() && new URLSearchParams(window.location.search).has('offer')
+    ? { ...mockAugmentOffer(), championId: mockChampView().championId }
+    : null;
 
 /** One Guard and one fresh card per pick screen and per champion. */
 const champKey = (shown: Shown) =>
@@ -125,7 +145,8 @@ type Shown =
   | { state: 'pick'; offered: HeldChamp[]; sample: boolean }
   | { state: 'loading'; champ: HeldChamp }
   | { state: 'failed'; champ: HeldChamp; sample: boolean }
-  | { state: 'ready'; view: ChampView; sample: boolean };
+  /** `chosen`: the build chosen by hand on this card (held for the game, across pages). */
+  | { state: 'ready'; view: ChampView; sample: boolean; chosen: string | null };
 
 /**
  * The Mayhem app (src-tauri/src/mayhem.rs, user's wish: "ganz schlicht", the card "direkt in der
@@ -200,20 +221,46 @@ export function MayhemApp() {
     if ((next === 'home' || own || next === 'records') && stale) fetchMe();
   };
 
-  const show = (champ: HeldChamp, sample: boolean) => {
+  const show = (held: HeldChamp, sample: boolean) => {
+    // Data Dragon's key from arammeta's list: the client's differs for some (FiddleSticks).
+    const alias = listsRef.current?.champions.find((c) => c.id === held.championId)?.alias;
+    const champ = alias ? { ...held, alias } : held;
     const ask = ++asked.current;
     setShown({ state: 'loading', champ });
-    readChampInfo(champ.championId, true).then(
+    readChampInfo(champ.championId, true, champ.alias).then(
       (info) => {
         if (ask !== asked.current) return;
         const view = champView(champ, info);
-        setShown(view ? { state: 'ready', view, sample } : { state: 'failed', champ, sample });
+        setShown(
+          view
+            ? { state: 'ready', view, sample, chosen: null }
+            : { state: 'failed', champ, sample },
+        );
       },
       () => ask === asked.current && setShown({ state: 'failed', champ, sample }),
     );
   };
   const showRef = useRef(show);
   showRef.current = show;
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  const listsRef = useRef<TierLists | null>(null);
+  /** In the game: the augment offer open now (or the last one) and what was taken. */
+  const [offer, setOffer] = useState<GameOffer | null>(offerFromAddress);
+  /** A click on an offered card: taken, a second click undoes it (offers.rs answers with the new
+   * list); in the browser preview the Mock offer itself. */
+  const take = (id: number) => {
+    if (isTauri()) return void markTaken(id);
+    setOffer(
+      (old) =>
+        old && {
+          ...old,
+          taken: old.taken.some((t) => t.id === id)
+            ? old.taken.filter((t) => t.id !== id)
+            : [...old.taken, ...old.augments.filter((a) => a.id === id)],
+        },
+    );
+  };
 
   // Home shows the top augments: the list is asked for once at the start.
   useEffect(() => requestTiers(setTiers), []);
@@ -266,6 +313,7 @@ export function MayhemApp() {
         window.clearTimeout(timer);
         ++asked.current;
         if (!select) setAfter(null);
+        setOffer(null);
         select = true;
         dealt = true;
         held = 0;
@@ -295,16 +343,46 @@ export function MayhemApp() {
       select = now;
       setSelecting(now);
       if (!now) return;
+      // A new champion select: the last game's offer and taken augments are gone.
+      setOffer(null);
       timer = window.setTimeout(() => {
         // A champion select: the card comes to the front.
         setPage('champ');
         showRef.current(champ, false);
       }, SETTLE_MS);
     });
+    // In an ARAM Mayhem game Rust reads the augment offers off the screen by itself (offers.rs,
+    // always on in this app): an offer brings the Champ page to the front with the champion's card.
+    let offerOpen = false;
+    const stopOffers = onOffers((event) => {
+      const { championId } = event;
+      setOffer((old) => ({
+        championId,
+        direction: event.direction,
+        // Closed: the last offer's cards stay clickable, for the one taken when the screen missed it.
+        augments: event.offers.length ? event.offers : (old?.augments ?? []),
+        open: event.offers.length > 0,
+        taken: event.taken,
+      }));
+      const opens = event.offers.length > 0 && !offerOpen;
+      offerOpen = event.offers.length > 0;
+      const at = shownRef.current;
+      // No champion known and no card: no empty page to jump to.
+      if (!opens || (championId <= 0 && at.state === 'none')) return;
+      setPage('champ');
+      const held =
+        (at.state === 'ready' && at.view.championId === championId) ||
+        ((at.state === 'loading' || at.state === 'failed') && at.champ.championId === championId);
+      if (championId <= 0 || held) return;
+      // The app started during the game, or showed another card: the champion's own.
+      const known = listsRef.current?.champions.find((c) => c.id === championId);
+      showRef.current({ championId, alias: known?.alias ?? '', name: known?.name ?? '' }, false);
+    });
     return () => {
       window.clearTimeout(timer);
       window.clearTimeout(over);
       stopOffer();
+      stopOffers();
       stopChamp();
       stopClient();
       void watchChamp(false);
@@ -322,6 +400,7 @@ export function MayhemApp() {
 
   const tierState = tiers ?? { state: 'loading' };
   const lists = tierState.state === 'ready' ? tierState.lists : null;
+  listsRef.current = lists;
   /** The player card over everything (a click on any name, PlayerCard.tsx). */
   const [player, setPlayer] = useState<Who | null>(null);
   const champion = lists?.champions.find((c) => c.id === detail.champion);
@@ -467,6 +546,17 @@ export function MayhemApp() {
                       sample={shown.sample}
                       champion={
                         lists?.champions.find((c) => c.id === shown.view.championId) ?? null
+                      }
+                      augments={lists?.augments ?? NO_AUGMENTS}
+                      offer={
+                        offer && (!offer.championId || offer.championId === shown.view.championId)
+                          ? offer
+                          : null
+                      }
+                      chosen={shown.chosen}
+                      onTake={take}
+                      onChoose={(key) =>
+                        setShown((old) => (old.state === 'ready' ? { ...old, chosen: key } : old))
                       }
                       onClose={shown.sample ? () => setShown({ state: 'none' }) : undefined}
                     />

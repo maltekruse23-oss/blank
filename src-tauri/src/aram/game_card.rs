@@ -143,6 +143,11 @@ async fn card(
     let friends = friend_set(lcu).await;
     let champions = champion_names(lcu).await;
     let entry = own_entry(&summary, &me.puuid, &friends, listed, &champions, eog)?;
+    // Only usable values (an empty end screen would use up the one check per game): the augments
+    // read off the screen against the real ones, into the local error log (offers.rs).
+    if let Some(mine) = summary.players.iter().find(|p| p.puuid == me.puuid) {
+        super::offers::check_taken(summary.game_id, &mine.augments);
+    }
     let augments = augment_info(lcu, &entry.augments.iter().copied().collect()).await;
     Some(Card { entry, augments })
 }

@@ -36,5 +36,6 @@ webview2-com = "0.38"
 hidapi = { version = "2", default-features = false, features = ["windows-native"] }
 windows-core = "0.61"
 # Same version as used by wry; for listing graphics adapters (DXGI) in pc.rs and reading what plays
-# via Windows' media controls (media.rs, WinRT).
-windows = { version = "0.61", features = ["Foundation", "Foundation_Collections", "Graphics_Imaging", "Media", "Media_Control", "Media_Ocr", "Storage", "Storage_Streams", "Win32_Foundation", "Win32_Graphics_Dxgi", "Win32_System_Com"] }
+# via Windows' media controls (media.rs, WinRT); the recognition of augment offers in the client's
+# language (aram/offers.rs: Media_Ocr, Globalization).
+windows = { version = "0.61", features = ["Foundation", "Foundation_Collections", "Globalization", "Graphics_Imaging", "Media", "Media_Control", "Media_Ocr", "Storage", "Storage_Streams", "Win32_Foundation", "Win32_Graphics_Dxgi", "Win32_System_Com"] }

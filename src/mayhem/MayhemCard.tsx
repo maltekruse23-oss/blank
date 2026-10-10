@@ -1,6 +1,7 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { championSplash } from '../adapters/aram';
 import { NOT_SELECTING, openGuide, pushItemSet, pushSpells } from '../adapters/aramChamp';
+import { Guard } from '../components/Guard';
 import { DDRAGON_VERSION } from '../data/proStreamers';
 import {
   assembledFacts,
@@ -13,6 +14,7 @@ import {
   type BuildPlan,
   type ChampView,
   type MetaItemPick,
+  type Offer,
   type Tier,
 } from '../features/aram/champCard';
 import {
@@ -22,9 +24,20 @@ import {
   themeText,
   type Combo,
 } from '../features/aram/combos';
-import { buildList, comboName, itemSetFor, type BuildEntry } from './builds';
+import { skillOrderOf, type SkillKey, type SkillOrders } from '../features/aram/skillOrders';
+import {
+  buildList,
+  chosenEntry,
+  comboName,
+  itemSetFor,
+  takenMatches,
+  type BuildEntry,
+  type BuildGroup,
+  type TakenAugment,
+} from './builds';
 import { games, number, percent, winsIn } from './format';
-import { teamProfile, type TierChampion } from './tiers';
+import { MOCK_SKILL_ORDER } from './mock';
+import { teamProfile, type TierAugment, type TierChampion } from './tiers';
 import { FIRST, More, Tabs } from './ui';
 
 export const itemImage = (id: number) =>
@@ -32,11 +45,24 @@ export const itemImage = (id: number) =>
 /** Staggers a row's soft entrance (mayhem.css, .mayhem-in). */
 const step = (i: number) => ({ ['--i' as string]: Math.min(i, 16) }) as CSSProperties;
 
-/** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game). */
-function AugmentIcon({ rarity, image }: { rarity: string; image: string | null }) {
+/** The augment's rarity as the frame of its picture (silver, gold, prismatic like in the game);
+ * without a picture its initials, when a name is given. */
+function AugmentIcon({
+  rarity,
+  image,
+  name,
+}: {
+  rarity: string;
+  image: string | null;
+  name?: string;
+}) {
   return (
     <span className="mayhem-aug-icon" data-rarity={rarity}>
-      {image && <img src={image} alt="" width={32} height={32} />}
+      {image ? (
+        <img src={image} alt="" width={32} height={32} />
+      ) : (
+        name && <span aria-hidden>{initials(name)}</span>
+      )}
     </span>
   );
 }
@@ -308,33 +334,69 @@ function Avoid({ extra }: { extra: ChampExtra }) {
   );
 }
 
+/** An augment taken this game as the highlight's rules read it, with name and picture from
+ * arammeta's list (unknown there: the client's name, no picture). */
+type Took = TakenAugment & { image: string | null; rarity: string };
+
+const GROUP_LABEL: Record<BuildGroup, string> = {
+  meta: 'Meta',
+  offmeta: 'Offmeta',
+  troll: 'Troll',
+};
+const GROUPS = Object.keys(GROUP_LABEL) as BuildGroup[];
+
 /**
  * The Champ-Karte in the Mayhem app. Its question: what do I build on this champion? The champion
- * as a banner, then the chosen build's details on the left and on the right the tier S augments as
- * small icons and one list of builds to choose from (builds.ts: meta first, then offmeta, the good
- * ones first; user 09.10.2026), "Push build" writes the chosen one into the client. No build
- * directions (user 09.10.2026: "AP AD Tank ganz entfernen"). Everything else in the tabs below.
+ * as a banner; in the game the augment offer under it; left the builds in three tabs Meta | Offmeta
+ * | Troll (builds.ts, user's decision 10.10.2026, like Blitz), right the chosen build: core and
+ * later items, its augments instead of a build order, spells, max order, boots and damage, "Push
+ * build". Augments taken in the game light up the builds they fit, and the first of them is chosen
+ * until the user chooses one by hand. Everything else in the tabs below.
  */
 export function MayhemCard({
   view,
   sample,
   champion,
+  augments,
+  offer,
+  chosen,
+  onChoose,
+  onTake,
   onClose,
 }: {
   view: ChampView;
   sample: boolean;
-  /** The champion in arammeta's champion list (its damage split), null when not there. */
+  /** The champion in arammeta's champion list (its win rate and damage split), null when not there. */
   champion: TierChampion | null;
+  /** arammeta's augment list: English names, pictures and what the highlight's rules read. */
+  augments: TierAugment[];
+  /** In the game (offers.rs): the offer open now, or the last one (`open` false), and what was taken. */
+  offer: (Offer & { open?: boolean }) | null;
+  /** The build chosen by hand this game (it wins over the highlight), null: none yet. */
+  chosen: string | null;
+  onChoose: (key: string) => void;
+  /** A click on an offered card: taken (or no longer). */
+  onTake: (id: number) => void;
   onClose?: () => void;
 }) {
   const label = view.name || view.alias || `Champion ${view.championId}`;
   const splash = championSplash(view.alias);
   const base = champion?.winRate;
   const entries = useMemo(() => buildList(view, base), [view, base]);
-  // Nothing chosen yet: the first build.
-  const [chosen, setChosen] = useState<string | null>(null);
-  const entry = entries.find((e) => e.key === chosen) ?? entries[0];
+  const taken = useMemo(
+    () =>
+      (offer?.taken ?? []).map((t): Took => {
+        const a = augments.find((x) => x.id === t.id);
+        return a
+          ? { id: a.id, name: a.name, cats: a.cats, text: a.text, image: a.image, rarity: a.rarity }
+          : { ...t, cats: [], text: '', image: null, rarity: '' };
+      }),
+    [offer, augments],
+  );
+  const fits = useMemo(() => takenMatches(entries, taken), [entries, taken]);
+  const entry = chosenEntry(entries, chosen, fits);
   const plan = planOf(view, entry);
+  const skills = sample ? MOCK_SKILL_ORDER : skillOrderOf(view.championId);
   const hero = (
     <header
       className="mayhem-hero mayhem-card-hero mayhem-in"
@@ -357,64 +419,227 @@ export function MayhemCard({
       )}
     </header>
   );
-  const guide = (
-    <button type="button" className="mayhem-guide" onClick={() => void openGuide(view.championId)}>
-      Guides and offmeta builds on aramonly.com
-    </button>
+  const facts = (
+    <ForChampion
+      extra={view.extra}
+      champion={champion}
+      label={label}
+      skills={skills}
+      abilities={view.abilities}
+    />
   );
-  const augments = minis(view, plan, label);
   return (
     <article className="mayhem-card">
       {hero}
-      <section className="mayhem-card-main mayhem-in" style={step(1)}>
+      {offer && (offer.augments.length > 0 || taken.length > 0) && (
+        <Guard name="Augment offer" fallback={() => null}>
+          <OfferPanel
+            offer={offer}
+            plan={plan}
+            augments={augments}
+            taken={taken}
+            label={label}
+            onTake={onTake}
+          />
+        </Guard>
+      )}
+      <aside className="mayhem-card-side mayhem-in" style={step(1)}>
+        {entry && (
+          <BuildPicker
+            entries={entries}
+            entry={entry}
+            fits={fits}
+            label={label}
+            known={base !== undefined}
+            onChoose={onChoose}
+          />
+        )}
+        <button
+          type="button"
+          className="mayhem-guide"
+          onClick={() => void openGuide(view.championId)}
+        >
+          Guides and offmeta builds on aramonly.com
+        </button>
+      </aside>
+      <section className="mayhem-card-main mayhem-in" style={step(2)}>
         {entry ? (
           <BuildDetail
             key={entry.key}
             entry={entry}
             view={view}
-            champion={champion}
+            plan={plan}
             label={label}
             sample={sample}
-          />
+          >
+            {facts}
+          </BuildDetail>
         ) : (
-          <p className="mayhem-note">
-            {augments.length
-              ? 'Too few games for a build yet.'
-              : 'Too few games for augments and builds yet.'}
-          </p>
+          // No build yet: the augments and what is the same in every build still show.
+          <div className="mayhem-build-detail">
+            <p className="mayhem-note">Too few games for a build yet.</p>
+            <BuildAugments entry={undefined} view={view} plan={plan} label={label} />
+            {facts}
+          </div>
         )}
       </section>
-      <aside className="mayhem-card-side mayhem-in" style={step(2)}>
-        {augments.length > 0 && (
-          <section className="mayhem-section">
-            <h2>Best augments</h2>
-            <AugmentRow augments={augments} />
-            {plan && plan.source !== view.source && (
-              <p className="mayhem-note">
-                Few games on arammeta.com: from {games(plan.games)} on mayhemstats.lol.
-              </p>
-            )}
-          </section>
-        )}
-        {entries.length > 0 && (
-          <section className="mayhem-section">
-            <h2>Builds</h2>
-            <More
-              list={entries}
-              className="mayhem-build-list"
-              keep={(e) => e === entry}
-              render={(e) => (
-                <li key={e.key}>
-                  <BuildRow entry={e} chosen={e === entry} onChoose={() => setChosen(e.key)} />
-                </li>
-              )}
-            />
-          </section>
-        )}
-        {guide}
-      </aside>
       <ChampMore view={view} label={label} />
     </article>
+  );
+}
+
+/**
+ * The builds of the chosen build's tab (Meta, Offmeta at least as good as the champion's own win
+ * rate, Troll below it; builds.ts). A tab chosen by hand holds while the same build stays chosen,
+ * then the tab follows the build. Rows that fit a taken augment always show (never behind "more").
+ */
+function BuildPicker({
+  entries,
+  entry,
+  fits,
+  label,
+  known,
+  onChoose,
+}: {
+  entries: BuildEntry[];
+  entry: BuildEntry;
+  fits: Map<string, Took[]>;
+  label: string;
+  /** The champion's win rate is known (else no Troll, and Offmeta is not compared with it). */
+  known: boolean;
+  onChoose: (key: string) => void;
+}) {
+  const [tab, setTab] = useState<{ group: BuildGroup; at: string } | null>(null);
+  const group = tab?.at === entry.key ? tab.group : entry.group;
+  const tabs = GROUPS.filter((g) => entries.some((e) => e.group === g)).map((id) => ({
+    id,
+    label: GROUP_LABEL[id],
+    // Fitting builds in another tab are not hidden behind it.
+    mark: entries.some((e) => e.group === id && fits.has(e.key))
+      ? 'A build here fits an augment you took'
+      : undefined,
+  }));
+  const list = entries.filter((e) => e.group === group);
+  // A combo or assembled build was never measured whole: only its parts were.
+  const parts = list.some((e) => e.kind === 'combo' || e.kind === 'assembled')
+    ? ' Builds put together are rated by their parts.'
+    : '';
+  const note =
+    group === 'meta'
+      ? `What ${label} players usually build.`
+      : group === 'troll'
+        ? `Less common and rated below ${label}'s average. For fun.${parts}`
+        : known
+          ? `Less common, rated at least ${label}'s average.${parts}`
+          : 'Less common builds.';
+  return (
+    <section className="mayhem-section mayhem-build-pick">
+      <Tabs
+        tabs={tabs}
+        value={group}
+        onChange={(g) => setTab({ group: g, at: entry.key })}
+        label="Builds"
+      />
+      <div role="tabpanel" aria-label={GROUP_LABEL[group]} className="mayhem-section">
+        <p className="mayhem-note">{note}</p>
+        <More
+          key={group}
+          list={list}
+          className="mayhem-build-list"
+          keep={(e) => e === entry || fits.has(e.key)}
+          render={(e) => (
+            <li key={e.key}>
+              <BuildRow
+                entry={e}
+                chosen={e === entry}
+                fits={fits.get(e.key)}
+                onChoose={() => onChoose(e.key)}
+              />
+            </li>
+          )}
+        />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * In the game: the augments offered now, left to right, with their tier for the chosen build (no
+ * win rates, no advice; Riot's rules), a reroll replaces them; the ones taken so far below. A click
+ * marks a card as taken when the app did not see it go (offers.rs), a second click undoes it.
+ */
+function OfferPanel({
+  offer,
+  plan,
+  augments,
+  taken,
+  label,
+  onTake,
+}: {
+  offer: Offer & { open?: boolean };
+  plan: BuildPlan | undefined;
+  augments: TierAugment[];
+  taken: Took[];
+  label: string;
+  onTake: (id: number) => void;
+}) {
+  const cards = offer.augments.length > 0;
+  // Closed, its cards stay: a click still marks the one taken when the app did not see it go.
+  const open = cards && offer.open !== false;
+  return (
+    <section className="mayhem-offer-panel mayhem-in" aria-live="polite">
+      <header>
+        <h2>{open ? 'Augment offer' : 'This game'}</h2>
+        {cards && (
+          <span className="mayhem-note">
+            {!open
+              ? 'Last offer. Click the one you took if it is not marked.'
+              : plan
+                ? `Tiers for ${label}`
+                : `No tiers yet: too few ${label} games`}
+          </span>
+        )}
+      </header>
+      {cards && (
+        <ul className="mayhem-offer">
+          {offer.augments.map((o) => {
+            const row = plan?.augments.find((a) => a.id === o.id);
+            const known = augments.find((a) => a.id === o.id);
+            const name = row?.name ?? known?.name ?? o.name;
+            const was = offer.taken.some((t) => t.id === o.id);
+            const about = row
+              ? `Tier ${row.tier} for ${label}${row.general ? ': too few games with it, from all games' : `, ${games(row.games)}`}`
+              : `No ${label} games with it`;
+            return (
+              <li key={o.id}>
+                <button
+                  type="button"
+                  aria-pressed={was}
+                  title={`${name}\n${about}\n${was ? 'Taken. Click to undo.' : 'Click if you took it.'}`}
+                  onClick={() => onTake(o.id)}
+                >
+                  <AugmentIcon
+                    rarity={row?.rarity ?? known?.rarity ?? ''}
+                    image={row?.image ?? known?.image ?? null}
+                    name={name}
+                  />
+                  <span className="mayhem-aug-name">{name}</span>
+                  {was && <small>Taken</small>}
+                  <span className="mayhem-aug-row-tier mayhem-offer-tier" data-tier={row?.tier}>
+                    {row?.tier ?? '–'}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {taken.length > 0 && (
+        <p className="mayhem-offer-taken">
+          <span>Taken</span> {taken.map((t) => t.name).join(', ')}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -501,36 +726,58 @@ function AugmentRow({ augments }: { augments: Mini[] }) {
   );
 }
 
-const Tag = ({ meta }: { meta: boolean }) => (
-  <span className="mayhem-combo-tag" data-meta={meta}>
-    {meta ? 'Meta' : 'Offmeta'}
+const Tag = ({ group }: { group: BuildGroup }) => (
+  <span className="mayhem-combo-tag" data-meta={group === 'meta'} data-group={group}>
+    {GROUP_LABEL[group]}
   </span>
 );
 
-/** A row of the build list: name, Meta/Offmeta, the core; a win rate only when it was measured. */
+/**
+ * A row of the build list (like Blitz): name, its games, two core items; a win rate only when it was
+ * measured. A build that fits an augment taken this game gets a ring and that augment's picture.
+ */
 function BuildRow({
   entry: e,
   chosen,
+  fits,
   onChoose,
 }: {
   entry: BuildEntry;
   chosen: boolean;
+  fits: Took[] | undefined;
   onChoose: () => void;
 }) {
+  const fitNames = fits?.map((t) => t.name).join(', ');
   return (
     <button
       type="button"
       className="mayhem-build-row"
       aria-pressed={chosen}
-      title={`${e.name}\n${e.winRate === null ? 'Put together, never measured as a whole' : winsIn(e.winRate, e.games)}`}
+      data-fits={!!fits || undefined}
+      title={[
+        e.name,
+        e.winRate === null ? 'Put together, never measured as a whole' : winsIn(e.winRate, e.games),
+        fitNames && `Fits what you took: ${fitNames}`,
+      ]
+        .filter(Boolean)
+        .join('\n')}
       onClick={onChoose}
     >
       <span className="mayhem-build-row-name">
         <b>{e.name}</b>
-        <Tag meta={e.meta} />
+        <small>
+          {e.games !== null ? games(e.games) : e.kind === 'combo' ? 'Combo' : 'Put together'}
+        </small>
       </span>
+      {fits && (
+        <span className="mayhem-build-row-fits" role="img" aria-label={`Fits ${fitNames}`}>
+          {fits.slice(0, 2).map((t) => (
+            <AugmentIcon key={t.id} rarity={t.rarity} image={t.image} name={t.name} />
+          ))}
+        </span>
+      )}
       <span className="mayhem-items">
-        {e.items.map((i) => (
+        {e.items.slice(0, 2).map((i) => (
           <img
             key={i.id}
             data-mana={i.mana || undefined}
@@ -541,11 +788,7 @@ function BuildRow({
           />
         ))}
       </span>
-      {e.winRate !== null && (
-        <span className="mayhem-facts">
-          <b>{percent(e.winRate)}</b>
-        </span>
-      )}
+      <span className="mayhem-facts">{e.winRate !== null && <b>{percent(e.winRate)}</b>}</span>
     </button>
   );
 }
@@ -571,28 +814,78 @@ function itemFacts(entry: BuildEntry, n: number, i: Item, label: string, later: 
   return { title: itemTitle(entry.build, n, i, 'en'), rate: own ? percent(own.winRate) : null };
 }
 
+/**
+ * The augments of the chosen build, where Blitz shows a build order: a combo's own augments, else
+ * the champion's tiered augments for the build's direction, said to be the champion's.
+ */
+function BuildAugments({
+  entry,
+  view,
+  plan,
+  label,
+}: {
+  entry: BuildEntry | undefined;
+  view: ChampView;
+  plan: BuildPlan | undefined;
+  label: string;
+}) {
+  if (entry?.kind === 'combo')
+    return (
+      <section className="mayhem-build-augs">
+        <h3>Augments of this combo</h3>
+        <ul className="mayhem-best">
+          {entry.combo.augments.map((a) => (
+            // No augment win rates here (Riot: products must not show win rates for Augments).
+            <li key={a.id} title={`${a.name}: ${games(a.games)} with ${label}`}>
+              <AugmentIcon rarity={a.rarity} image={a.image} name={a.name} />
+              <span className="mayhem-aug-name">{a.name}</span>
+              <span className="mayhem-facts">
+                <span>{games(a.games)}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  const row = minis(view, plan, label);
+  if (!row.length) return null;
+  return (
+    <section className="mayhem-build-augs">
+      <h3>Best augments for {label}</h3>
+      <AugmentRow augments={row} />
+      {plan && plan.source !== view.source && (
+        <p className="mayhem-note">
+          Few games on arammeta.com: from {games(plan.games)} on mayhemstats.lol.
+        </p>
+      )}
+    </section>
+  );
+}
+
 type PushState = 'idle' | 'saving' | 'done' | 'failed' | 'refused' | 'example';
 /** Rust's answer when the set itself does not fit (`mayhem_item_set`), not the client. */
 const NOT_A_SET = 'This build cannot be an item set.';
 const DAMAGE: Record<string, string> = { phys: 'Physical', magic: 'Magic', true: 'True' };
 
 /**
- * The chosen build (left): its core big, later items, a combo's augments, what is the same in every
- * build of the champion, its win rate when measured (else how it was put together) and "Push build"
- * into the client's item sets ("Mayhem: <name>", only on the click).
+ * The chosen build (right): its core big, later items, its augments, its win rate when measured
+ * (else how it was put together), then what is the same in every build of the champion (children),
+ * and "Push build" into the client's item sets ("Mayhem: <name>", only on the click).
  */
 function BuildDetail({
   entry,
   view,
-  champion,
+  plan,
   label,
   sample,
+  children,
 }: {
   entry: BuildEntry;
   view: ChampView;
-  champion: TierChampion | null;
+  plan: BuildPlan | undefined;
   label: string;
   sample: boolean;
+  children: ReactNode;
 }) {
   const set = useMemo(() => itemSetFor(entry, view), [entry, view]);
   const [push, setPush] = useState<PushState>('idle');
@@ -638,7 +931,7 @@ function BuildDetail({
       <header className="mayhem-build-head">
         <div>
           <h2>
-            {entry.name} <Tag meta={entry.meta} />
+            {entry.name} <Tag group={entry.group} />
           </h2>
           {entry.winRate !== null ? (
             <p className="mayhem-build-rate" title={winsIn(entry.winRate, entry.games)}>
@@ -700,20 +993,7 @@ function BuildDetail({
           </span>
         </div>
       )}
-      {entry.kind === 'combo' && (
-        <ul className="mayhem-best">
-          {entry.combo.augments.map((a) => (
-            // No augment win rates here (Riot: products must not show win rates for Augments).
-            <li key={a.id} title={`${a.name}: ${games(a.games)} with ${label}`}>
-              <AugmentIcon rarity={a.rarity} image={a.image} />
-              <span className="mayhem-aug-name">{a.name}</span>
-              <span className="mayhem-facts">
-                <span>{games(a.games)}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <BuildAugments entry={entry} view={view} plan={plan} label={label} />
       {entry.kind === 'combo' && (
         <p className="mayhem-note">{[note, COMBO_HONESTY_EN].filter(Boolean).join(' ')}</p>
       )}
@@ -725,47 +1005,75 @@ function BuildDetail({
       {entry.kind === 'site' && (
         <p className="mayhem-note">From games on mayhemstats.lol: arammeta.com has few here.</p>
       )}
-      <ForChampion extra={view.extra} champion={champion} label={label} />
+      {children}
     </div>
   );
 }
 
-/** What is the same in every build: best boots, summoner spells, the damage split (clearly the
- * champion's, not the build's). */
+const SLOT: Record<SkillKey, 0 | 1 | 2> = { Q: 0, W: 1, E: 2 };
+
+/** Which ability most players max first, second, third (aramkit.com, src/features/aram/
+ * skillOrders.ts): three icons, the share of players; the win rate only in the tooltip. */
+function MaxOrder({
+  skills,
+  abilities,
+}: {
+  skills: SkillOrders;
+  abilities: [string, string, string] | undefined;
+}) {
+  const top = skills.orders[0];
+  if (!top) return null;
+  const keys = top.order.split('>') as SkillKey[];
+  return (
+    <div
+      title={`Max ${keys.join(' > ')}: ${percent(top.pick)} of players, ${percent(top.win)} wins\nSkill order: aramkit.com, ARAM Mayhem ${skills.patch} (data of ${skills.date})`}
+    >
+      <dt>Max</dt>
+      <dd>
+        <span className="mayhem-max" role="img" aria-label={`Max ${keys.join(', then ')}`}>
+          {keys.map((k, n) => (
+            <Fragment key={k}>
+              {n > 0 && <span aria-hidden>›</span>}
+              <span className="mayhem-max-key">
+                {abilities && (
+                  <img src={spellImage(abilities[SLOT[k]])} alt="" width={26} height={26} />
+                )}
+                <b>{k}</b>
+              </span>
+            </Fragment>
+          ))}
+        </span>
+        <span className="mayhem-aug-name">{percent(top.pick)} of players</span>
+        <small className="mayhem-max-source">Skill order: aramkit.com ({skills.patch})</small>
+      </dd>
+    </div>
+  );
+}
+
+/** What is the same in every build: summoner spells, max order, best boots, the damage split
+ * (clearly the champion's, not the build's). */
 function ForChampion({
   extra,
   champion,
   label,
+  skills,
+  abilities,
 }: {
   extra: ChampExtra | undefined;
   champion: TierChampion | null;
   label: string;
+  skills: SkillOrders | undefined;
+  abilities: [string, string, string] | undefined;
 }) {
   const boots = extra?.boots[0];
   const spells = extra?.spells[0];
   const damage = champion ? teamProfile(champion, []).damage : [];
-  if (!boots && !spells && !damage.length) return null;
+  if (!boots && !spells && !skills?.orders.length && !damage.length) return null;
   const names = spells?.spells.map((s) => spellName(s.id, 'en') ?? s.name) ?? [];
   return (
     <section className="mayhem-build-for">
       <h3>For {label}</h3>
       <dl>
-        {boots && (
-          <div title={picked(boots)}>
-            <dt>Boots</dt>
-            <dd>
-              <span className="mayhem-items">
-                {boots.items.map((i) => (
-                  <img key={i.id} src={itemImage(i.id)} alt="" width={26} height={26} />
-                ))}
-              </span>
-              <span className="mayhem-aug-name">{boots.items.map((i) => i.name).join(' + ')}</span>
-              <span className="mayhem-facts">
-                <b>{percent(boots.winRate)}</b>
-              </span>
-            </dd>
-          </div>
-        )}
         {spells && (
           <div title={picked(spells)}>
             <dt>Spells</dt>
@@ -778,6 +1086,25 @@ function ForChampion({
               <span className="mayhem-aug-name">{names.join(' + ')}</span>
               <span className="mayhem-facts">
                 <b>{percent(spells.winRate)}</b>
+                <span>{games(spells.games)}</span>
+              </span>
+            </dd>
+          </div>
+        )}
+        {skills && <MaxOrder skills={skills} abilities={abilities} />}
+        {boots && (
+          <div title={picked(boots)}>
+            <dt>Boots</dt>
+            <dd>
+              <span className="mayhem-items">
+                {boots.items.map((i) => (
+                  <img key={i.id} src={itemImage(i.id)} alt="" width={26} height={26} />
+                ))}
+              </span>
+              <span className="mayhem-aug-name">{boots.items.map((i) => i.name).join(' + ')}</span>
+              <span className="mayhem-facts">
+                <b>{percent(boots.winRate)}</b>
+                <span>{games(boots.games)}</span>
               </span>
             </dd>
           </div>

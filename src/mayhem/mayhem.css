@@ -352,17 +352,18 @@ button {
 
 /* --- The card ----------------------------------------------------------------------------- */
 
-/* The champion as a banner over both columns; the chosen build's details left, the augment icons
-   and the build list right, the tabs with everything else under both (user 09.10.2026:
-   "unaufgeräumt"). */
+/* The champion as a banner over both columns, in the game the augment offer under it; the builds
+   in their tabs left, the chosen build's details right (like Blitz, user 10.10.2026), the tabs with
+   everything else under both. */
 .mayhem-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 36%);
+  grid-template-columns: minmax(300px, 34%) minmax(0, 1fr);
   gap: 24px 28px;
   align-items: start;
 }
 
 .mayhem-card-hero,
+.mayhem-offer-panel,
 .mayhem-card-more {
   grid-column: 1 / -1;
 }
@@ -504,10 +505,80 @@ button {
   border-top: 1px solid var(--line);
 }
 
-.mayhem-build-for h3 {
+.mayhem-build-for h3,
+.mayhem-build-augs h3 {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+/* The chosen build's augments, where Blitz shows a build order. */
+.mayhem-build-augs {
+  display: grid;
+  gap: 10px;
+}
+
+/* Max order: three ability icons, the key at each (the letter alone without a picture). */
+.mayhem-max {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+}
+
+.mayhem-max-key {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--text) 12%, transparent);
+}
+
+.mayhem-max-key img {
+  border-radius: 8px;
+}
+
+.mayhem-max-key b {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font: 800 9px/1 var(--font-title);
+}
+
+.mayhem-max-key:not(:has(img)) b {
+  position: static;
+  border: 0;
+  background: none;
+  font-size: 12px;
+}
+
+/* The source goes under the row when it does not fit beside it. */
+.mayhem-build-for dd:has(.mayhem-max) {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.mayhem-max + .mayhem-aug-name {
+  flex: none;
+}
+
+.mayhem-max-source {
+  margin-left: auto;
+  color: var(--faint);
+  font: 400 11.5px var(--font-mono);
+  white-space: nowrap;
 }
 
 .mayhem-build-for dl {
@@ -659,13 +730,18 @@ button {
   color: var(--accent);
 }
 
-/* One list of builds to choose from: name and Meta/Offmeta on top, the core below, the win rate
-   (measured builds only) on the right. */
-/* After the shared row style below (flex), so the list's own selector. */
+/* The builds of a tab (like Blitz): name over its games, two core items and the win rate (measured
+   builds only) on the right. The tabs as wide as the list. */
+.mayhem-build-pick .mayhem-tabs {
+  justify-self: stretch;
+}
+
+.mayhem-build-pick .mayhem-tabs button {
+  flex: 1;
+  padding: 0 10px;
+}
+
 .mayhem-build-list .mayhem-build-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px 10px;
   width: 100%;
   color: inherit;
   text-align: left;
@@ -673,10 +749,37 @@ button {
 }
 
 .mayhem-build-row-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  flex: 1;
+  gap: 1px;
   min-width: 0;
+}
+
+.mayhem-build-row-name small {
+  color: var(--faint);
+  font: 400 11.5px var(--font-mono);
+}
+
+/* Fits an augment taken this game: a ring with a gap, the augment's picture on the row. */
+.mayhem-build-row[data-fits] {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 3.5px color-mix(in oklab, var(--accent) 80%, transparent);
+}
+
+.mayhem-build-row-fits {
+  display: flex;
+  flex: none;
+  gap: 3px;
+}
+
+.mayhem-build-row-fits .mayhem-aug-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.mayhem-build-row-fits .mayhem-aug-icon > span {
+  font-size: 8.5px;
 }
 
 /* Two lines, not one: twin builds differ only at the end of their names (builds.ts `named`). */
@@ -696,14 +799,114 @@ button {
 }
 
 .mayhem-build-row .mayhem-items {
-  grid-column: 1;
+  flex: none;
 }
 
 .mayhem-build-row .mayhem-facts {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  align-self: center;
-  font-size: 15px;
+  min-width: 36px;
+  margin-left: 0;
+  font-size: 14px;
+}
+
+/* In the game: the augments offered now as three cards with their tier, what was taken below. */
+.mayhem-offer-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px 20px 18px;
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--line));
+  border-radius: var(--radius-tile);
+  background:
+    radial-gradient(
+      460px 140px at 18% 0%,
+      color-mix(in oklab, var(--accent) 9%, transparent),
+      transparent
+    ),
+    var(--panel);
+}
+
+.mayhem-offer-panel header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.mayhem-offer-panel h2 {
+  font: 800 17px var(--font-title);
+}
+
+.mayhem-offer-panel header .mayhem-note {
+  font-size: 13px;
+}
+
+.mayhem-offer {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mayhem-offer button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-row);
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--slow) var(--ease);
+}
+
+.mayhem-offer button:hover {
+  border-color: var(--line-strong);
+}
+
+.mayhem-offer button[aria-pressed='true'] {
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+.mayhem-offer .mayhem-aug-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.mayhem-offer small {
+  flex: none;
+  color: var(--accent);
+  font: 800 10.5px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mayhem-offer-tier.mayhem-aug-row-tier {
+  position: static;
+  flex: none;
+  min-width: 30px;
+  height: 30px;
+  margin-left: auto;
+  border-radius: 9px;
+  font-size: 14px;
+}
+
+.mayhem-offer-taken {
+  color: var(--text);
+  font-size: 13.5px;
+}
+
+.mayhem-offer-taken span {
+  margin-right: 6px;
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /* --- The pick screen (PickView.tsx): the dealt champions as big cards, a click picks one ---- */
@@ -1184,6 +1387,12 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   width: 100%;
   height: 100%;
   border-radius: 50%;
+}
+
+/* Initials when the augment has no picture. */
+.mayhem-aug-icon > span {
+  color: var(--muted);
+  font: 800 11px var(--font-title);
 }
 
 .mayhem-aug-name {
@@ -2525,6 +2734,21 @@ li[data-place='3'] .mayhem-place {
   color: var(--text);
 }
 
+/* A tab with something for you in it (Tabs `mark`). */
+.mayhem-tab-mark {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.mayhem-tabs button[aria-selected='true'] .mayhem-tab-mark {
+  background: currentColor;
+}
+
 .mayhem-tabs button[aria-pressed='true'],
 .mayhem-tabs button[aria-selected='true'] {
   background: var(--accent);
@@ -3182,6 +3406,10 @@ li[data-place='3'] .mayhem-place {
 
 .mayhem-combo-tag[data-meta='false'] {
   --tag: var(--prisma);
+}
+
+.mayhem-combo-tag[data-group='troll'] {
+  --tag: var(--down);
 }
 
 .mayhem-combo {

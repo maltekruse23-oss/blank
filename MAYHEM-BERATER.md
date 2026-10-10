@@ -230,9 +230,22 @@ noch nicht geprüft. Abweichungen vom Plan: gelesen wird nach jedem Stufenaufsti
 Angebots-Stufen sind nicht fest eingetragen), Anzeige nur als Popout; „welches genommen wurde“
 ist seit Etappe 3a gebaut (nur Anzeige, siehe unten).
 
+Stand 10.10.2026 (Benutzerentscheidung „alles automatisch“): auch in der Mayhem-App, dort ohne
+Schalter in jedem ARAM-Mayhem-Spiel (`offers::always_on`; blank. behält „Augments im Spiel“,
+Standard aus), gestartet von derselben Spielerkennung wie „Find my Mayhem rank“
+(`ladder::after_game`). Anzeige auf der Champ-Seite (drei Augments mit Stufe für den dort gewählten
+Build, keine Siegquoten, „Taken: …“). Gehärtet nach dem Vorbild anderer Werkzeuge
+(aram-mayhem-overlay, aramgg_client, Hexgate): ein Angebot gilt erst, wenn zwei Lesungen
+übereinstimmen (die übrige Karte nach dem Wählen schon nach einer); liest das Band weniger als drei
+Karten, wird jeder Kartentitel einzeln vergrößert gelesen; die Sprache der Texterkennung kommt aus
+der Sprache des Clients (`/riotclient/region-locale`, nur lesend). Mit echtem Spiel noch nicht
+geprüft.
+
 - **Champion:** wie Etappe 1 aus der Champ-Auswahl, im Spiel aus der Gameflow-Sitzung.
 - **Gewählter Build:** Die Wahl auf der Champ-Karte geht wie die Knöpfe des Mix-Popouts an die App
-  zurück und gilt bis zum Spielende.
+  zurück und gilt bis zum Spielende. In der Mayhem-App nimmt die Champ-Seite ihren eigenen gewählten
+  Build; ohne Wahl von Hand wählt sie den ersten, der zu einem genommenen Augment passt (Punkt
+  „Welches Augment genommen wurde“).
 - **Wann geschaut wird:** Den Level liest die App aus den Live-Spieldaten (`127.0.0.1:2999`, nur
   lesend), einmal pro Sekunde und nur während eines Mayhem-Spiels. Erreicht er eine Angebots-Stufe
   (und zu Rundenbeginn), beginnt das Lesen der Karten.
@@ -245,18 +258,23 @@ ist seit Etappe 3a gebaut (nur Anzeige, siehe unten).
 - **Welches Augment genommen wurde:** Zuerst das, dessen Karte als letzte allein übrig war;
   sonst ein Klick auf die Zeile der Champ-Karte (`aram_offer_taken`). Riot gibt die Wahl nicht über
   eine Schnittstelle heraus. Gebaut 08.10.2026 (Etappe 3a); nach dem Spiel landet nur eine
-  Abweichung von den echten Augments als Zeile `Augment-Erkennung` im lokalen Fehlerlog.
+  Abweichung von den echten Augments als Zeile `Augment-Erkennung` im lokalen Fehlerlog. Seit
+  10.10.2026 (Benutzerentscheidung, nur Mayhem-App) markiert ein genommenes Augment – nie ein bloß
+  angebotenes – die Builds, die es enthalten oder deren Thema es trifft (Regeln aus `combos.ts`,
+  keine ID-Listen), und der erste davon wird gewählt, solange keiner von Hand gewählt ist. Nichts
+  wird versteckt oder umsortiert, Stufen und Zahlen bleiben; die Hand-Wahl geht immer vor.
 - **Anzeige:** in der App bzw. als Popout auf dem anderen Bildschirm (Benutzerwunsch „in der App in
   Echtzeit“). Ein Overlay über dem Spiel ist nicht nötig; auf dem Bildschirm des Spiels bleibt
   das Popout wie immer aus.
 - **Grenzen:** Das geht nur im rahmenlosen oder im Fenster-Modus. Andere Client-Sprachen
-  funktionieren über die Namen in der Sprache des Clients.
+  funktionieren über die Namen in der Sprache des Clients, solange Windows die Texterkennung für
+  diese Sprache hat (sonst Windows' eigene Sprachen).
 - **Neue Ausnahmen in den App-Regeln (CLAUDE.md), erst mit dem Bau von 2b:**
   - Bildschirmausschnitt nur des League-Fensters, nur während eines Angebots.
   - Abfrage der Live-Spieldaten nur während eines Mayhem-Spiels.
 
-  Alles ist abschaltbar, und es wird nie etwas ins Spiel eingegeben oder aus dem Speicher
-  gelesen.
+  In blank. ist alles abschaltbar, in der Mayhem-App immer an (10.10.2026). Es wird nie etwas ins
+  Spiel eingegeben oder aus dem Speicher gelesen, Bilder werden nie gespeichert oder gesendet.
 
 ## 6a. In den Client schreiben: Item-Set und Beschwörerzauber (Benutzerentscheidung, 06.10.2026)
 
@@ -305,6 +323,12 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
     Paarung des Champions (arammeta, wie angezeigt): nur zwei verschiedene ARAM-Zauber, nur in einer
     ARAM-Mayhem-Auswahl, solange dieser Champion gehalten wird (); ein Zauber,
     der schon auf einer Taste liegt, bleibt dort (`keyed`). Außerhalb der Auswahl nur das Item-Set.
+  - **Build-Ansicht** (Benutzerentscheidung 10.10.2026, Vorlage Blitz): links Reiter „Meta |
+    Offmeta | Troll“ mit der Build-Liste (Offmeta = Qualität mindestens die Siegquote des Champions
+    bei arammeta, Troll = darunter, ohne bekannte Siegquote kein Troll), rechts der gewählte Build
+    mit Kern, Später, „Push build“, statt einer Kaufreihenfolge den Augments des Builds (nur
+    Stufen, keine Augment-Siegquoten), Zaubern und der Max-Reihenfolge der Fähigkeiten als drei
+    Bilder (aramkit.com, siehe 8a). Was „Push build“ schreibt, bleibt gleich.
 - Abstimmung: Der Thread „Konkurrenz-Analyse“ plant den Lobby-Check; beide nutzen dieselbe
   Verbindung zur Champ-Auswahl (`aram_live.rs`).
 
@@ -327,8 +351,8 @@ Schalter (dauerhaft an oder aus), Standard aus, und geschieht nur in der ARAM-Ma
 | 1      | Champ-Karte in der Champ-Auswahl                                                                                                                  | PR #41                        |
 | 2a     | Build-Richtungen vor dem Spiel, Wahl per Klick, alle Augments mit Stufe S–D je Richtung, Umwandler                                                | PR #41                        |
 | 2c     | Item-Set und Beschwörerzauber in den Client schreiben, je mit Schalter (6a)                                                                       | PR #64, nur blank., ungeprüft |
-| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen                                                          | PR #65, nur blank., ungeprüft |
-| 3a     | Genommenes Augment erkennen (übrige Karte oder Klick), nur Anzeige, Abweichungen ins lokale Log                                                   | PR #67, nur blank., ungeprüft |
+| 2b     | Angebote im Spiel sofort erkennen (auch Reroll), Stufen in der App bzw. im Popout zeigen; seit 10.10.2026 auch Mayhem-App, dort immer an          | PR #65, ungeprüft             |
+| 3a     | Genommenes Augment erkennen (übrige Karte oder Klick), Abweichungen ins lokale Log; Mayhem-App markiert dazu passende Builds automatisch          | PR #67, ungeprüft             |
 | 2d     | Mayhem-App: Champion aus den Karten per Klick wählen, „Push build“ als Item-Set (6a)                                                              | Mayhem-App, ungeprüft         |
 | 3      | Situations-Tags gegen das Gegnerteam (3.8), Rückblick-Test auf der Website, Synergien mit gewählten Augments, Rückfall über Champs gleicher Rolle | Datenmenge                    |
 | 4      | Umplanen nach jeder Wahl (3.6, 3.7), Ridge-Modell                                                                                                 | wenn der Test es trägt        |
@@ -359,6 +383,18 @@ Champion aus den ausgeteilten Karten und schreibt per „Push build“ ein Item-
 „Mayhem-App“). Die Champ-Seite hat keine Richtungs-Wahl AP/AD/Tank mehr: kompakte Augment-Reihe,
 eine Build-Liste (Meta, dann Offmeta nach Qualität, ohne Stufe je Build), Details des gewählten
 Builds links.
+
+Stand 10.10.2026 (Benutzerentscheidungen 09./10.10.2026, Vorlage Blitz): Build-Ansicht mit Reitern
+„Meta | Offmeta | Troll“ links und den Details rechts (6a, Punkt „Build-Ansicht“); Angebote im Spiel
+jetzt auch in der Mayhem-App, ohne Schalter in jedem ARAM-Mayhem-Spiel (6); genommene Augments
+markieren passende Builds und wählen den ersten automatisch (6, Punkt „Welches Augment genommen
+wurde“). Max-Reihenfolge der Fähigkeiten (z. B. „Max E > Q > W“, Anteil der Spieler, Siegquote nur im
+Tooltip) aus aramkit.com – die einzige Ausnahme zu „kein Scraping“: nur das Werkzeug
+`node server/tools/skill-orders.ts` liest einmal je Patch die Champion-Seiten (eine Seite alle
+2–3 s, Abbruch bei Ablehnung) und schreibt `src/features/aram/skillOrders.ts` ins Repo; die App
+liest zur Laufzeit nichts von aramkit und nennt die Quelle. Fähigkeits-Bilder von Data Dragon.
+Die Erlaubnis von aramkit ist noch offen (ROADMAP, malte schickt die Anfrage). Mit echtem Spiel
+noch nicht geprüft.
 
 arammetas ganze Liste (Benutzerauftrag 08.10.2026: „ich will alle Daten von arammeta in mein System
 und App gut einbauen, so viele Daten wie möglich“): `tier-list.json` liefert mehr als Siegquote und

@@ -1,8 +1,9 @@
-// The build list of the Mayhem app's Champ page (user's decisions 09.10.2026): one list to choose a
-// build from, first the measured meta cores, then the meta combos, then every offmeta build, the
-// really good ones first. Each row only a Meta/Offmeta badge and its name; no tier letter. Only a
-// measured build has a win rate: combos and assembled builds were never measured as a whole
-// (CLAUDE.md), their `winRate` is null. Pure, tested in builds.test.ts.
+// The build list of the Mayhem app's Champ page (user's decisions 09./10.10.2026): one list to
+// choose a build from, first the measured meta cores, then the meta combos, then every offmeta
+// build, the really good ones first; shown in three tabs Meta | Offmeta | Troll (`group`). No tier
+// letter. Only a measured build has a win rate: combos and assembled builds were never measured as
+// a whole (CLAUDE.md), their `winRate` is null. Builds that fit the augments taken in the game are
+// highlighted (`takenMatches`). Pure, tested in builds.test.ts.
 import {
   DIRECTION_LABEL,
   isOffmeta,
@@ -15,20 +16,26 @@ import {
 } from '../features/aram/champCard';
 import {
   CORE_SIZE,
+  DIRECTION_THEMES,
   META_ITEM_PICK,
   pulled,
   themeOf,
   themeText,
+  type AugmentFacts,
   type Combo,
 } from '../features/aram/combos';
 
 type Item = { id: number; name: string; mana: boolean };
+/** The tab of a build (user's decision 10.10.2026): Meta; Offmeta at least as good as the
+ * champion's own win rate; Troll below it. */
+export type BuildGroup = 'meta' | 'offmeta' | 'troll';
 type Common = {
   /** Unique in the list, stable for the same build. */
   key: string;
   /** Unique in the list, English. */
   name: string;
   meta: boolean;
+  group: BuildGroup;
   /** Sort key of the offmeta part only, never shown (not a win rate of the whole build). */
   quality: number | null;
   /** The core (a combo: its first three items) and the items after it. */
@@ -74,15 +81,22 @@ export function comboName(c: Combo) {
 }
 
 /**
- * `base`: the champion's own win rate (arammeta's champion list), 50 % when unknown; every sort key
- * is pulled towards it when few games (towards 50 %, a weak champion's rare builds rank first).
+ * `known`: the champion's own win rate (arammeta's champion list); every sort key is pulled towards
+ * it when few games (towards 50 %, a weak champion's rare builds rank first). An offmeta build below
+ * it is Troll; unknown: 50 % for the order and no Troll (never against a guessed 50 %).
  */
-export function buildList(view: ChampView, base = 0.5): BuildEntry[] {
+export function buildList(view: ChampView, known?: number): BuildEntry[] {
+  const base = known ?? 0.5;
   const combos = view.combos ?? [];
   // One scale for the offmeta order: each measured win rate pulled the same way, a build put
   // together by the Ø of its measured parts (single items, a combo's augments).
   const quality = (rows: { winRate: number; games: number }[]) =>
     mean(rows.map((r) => pulled(r.winRate, r.games, base)));
+  const rank = (meta: boolean, q: number) => ({
+    meta,
+    group: (meta ? 'meta' : known !== undefined && q < known ? 'troll' : 'offmeta') as BuildGroup,
+    quality: q,
+  });
   // Meta: arammeta's measured cores. A website core beside them is offmeta (arammeta has none in
   // that direction); on a card from the website's games alone, a direction it goes in ≥ 20 %.
   const isMeta = (p: BuildPlan) =>
@@ -96,9 +110,8 @@ export function buildList(view: ChampView, base = 0.5): BuildEntry[] {
       kind,
       key: `${kind}:${ids(b.items).join(',')}`,
       name: label && !BARE.has(label.toLowerCase()) ? label : itemNames(b.items),
-      meta,
       // Few games pull towards the base (a website core of 3 games would top the list otherwise).
-      quality: quality([b]),
+      ...rank(meta, quality([b])),
       items: b.items,
       later: b.later ?? [],
       build: b,
@@ -122,8 +135,7 @@ export function buildList(view: ChampView, base = 0.5): BuildEntry[] {
           kind: 'assembled',
           key: `assembled:${ids(b.items).join(',')}`,
           name: firstBuild(b.items),
-          meta: false,
-          quality: quality(b.assembled!),
+          ...rank(false, quality(b.assembled!)),
           items: b.items,
           later: b.later ?? [],
           build: b,
@@ -136,8 +148,7 @@ export function buildList(view: ChampView, base = 0.5): BuildEntry[] {
     kind: 'combo',
     key: `combo:${c.theme}`,
     name: comboName(c),
-    meta: c.meta,
-    quality: quality(c.augments),
+    ...rank(c.meta, quality(c.augments)),
     items: c.items.slice(0, CORE_SIZE),
     later: c.items.slice(CORE_SIZE),
     combo: c,
@@ -163,6 +174,40 @@ export function buildList(view: ChampView, base = 0.5): BuildEntry[] {
     }),
   );
 }
+
+/** An augment taken in the game as the rules see it: arammeta's categories, English name and text
+ * (the tier list's augment; unknown: `cats: []`, `text: ''`, then only its own combo fits). */
+export type TakenAugment = { id: number } & AugmentFacts;
+
+/**
+ * The builds that fit the augments taken this game (user's decision 10.10.2026, automatic
+ * highlight): a combo that has the augment or whose theme's rule takes it, a core or assembled build
+ * whose direction's rule takes it (`DIRECTION_THEMES`; rules, never id lists). By entry key the
+ * taken augments that fit, in the order taken. Nothing hidden or re-sorted; offers do not count.
+ */
+export function takenMatches<T extends TakenAugment>(
+  list: BuildEntry[],
+  taken: T[],
+): Map<string, T[]> {
+  const out = new Map<string, T[]>();
+  for (const e of list) {
+    const fits = (t: T) =>
+      e.kind === 'combo'
+        ? e.combo.augments.some((a) => a.id === t.id) || !!themeOf(e.combo.theme)?.augment(t)
+        : !!e.plan && DIRECTION_THEMES[e.plan.direction].augment(t);
+    const by = taken.filter(fits);
+    if (by.length) out.set(e.key, by);
+  }
+  return out;
+}
+
+/** The build the card shows (user's decision 10.10.2026): one chosen by hand this game wins, else
+ * the first that fits a taken augment, else the first. */
+export const chosenEntry = (
+  list: BuildEntry[],
+  chosen: string | null,
+  fits: Map<string, unknown>,
+) => list.find((e) => e.key === chosen) ?? list.find((e) => fits.has(e.key)) ?? list[0];
 
 /** Equal names get the first item of their own ("Tank / Heartsteel · Thornmail"), else a number. */
 function named(list: BuildEntry[]): BuildEntry[] {

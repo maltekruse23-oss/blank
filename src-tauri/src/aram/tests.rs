@@ -1,4 +1,4 @@
-use super::after_game::{note_skins, Session};
+use super::after_game::{note_skins, own_champion, Session};
 use super::client::icon_path;
 use super::games::{from_eog, skin_from_path, Eog, Identity, IdentityPlayer, Participant, Stats};
 use super::*;
@@ -345,6 +345,22 @@ fn the_skin_played_comes_from_the_picture_paths() {
     add_noted_skins(&mut summary);
     assert_eq!(summary.players[0].skin, Some(14));
     assert_eq!(summary.players[1].skin, Some(7));
+}
+
+#[test]
+fn the_own_champion_comes_from_the_own_seat() {
+    let session: Session = serde_json::from_str(&format!(
+        r#"{{"gameData":{{"gameId":88,"teamOne":[{{"championId":62,"puuid":"{}"}}],
+            "teamTwo":[{{"championId":103,"puuid":"{}"}}],
+            "playerChampionSelections":[{{"championId":1}}]}}}}"#,
+        puuid(1),
+        puuid(2)
+    ))
+    .unwrap();
+    assert_eq!(own_champion(&session.game_data, &puuid(2)), Some(103));
+    // Not seated, or no PUUID to look for: unknown.
+    assert_eq!(own_champion(&session.game_data, &puuid(3)), None);
+    assert_eq!(own_champion(&session.game_data, ""), None);
 }
 
 #[test]

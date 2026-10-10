@@ -52,7 +52,7 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 
 - **Mayhem-App ausbauen** (Benutzerwunsch 07.10.2026, „machen wir später“)
   Ziel: Die App kann mehr als die Champ-Karte.
-  Fertig, wenn: malte hat entschieden, welche Teile dazukommen (z. B. Karte nach dem Spiel, Angebote im Spiel, Item-Sets und Zauber – dafür bräuchte sie Einstellungen), und sie sind gebaut und getestet. Home, Tier-Listen und Rang-Seite kamen mit #63. Seit 09.10.2026 gebaut (ohne Einstellungen, nur auf Klick): Champion-Wahl aus den ausgeteilten Karten und „Push build“ als Item-Set.
+  Fertig, wenn: malte hat entschieden, welche Teile dazukommen (z. B. Karte nach dem Spiel, Angebote im Spiel, Item-Sets und Zauber – dafür bräuchte sie Einstellungen), und sie sind gebaut und getestet. Home, Tier-Listen und Rang-Seite kamen mit #63. Seit 09.10.2026 gebaut (ohne Einstellungen, nur auf Klick): Champion-Wahl aus den ausgeteilten Karten und „Push build“ als Item-Set. Seit 10.10.2026 (ohne Einstellungen, immer an): Angebote im Spiel und automatische Hervorhebung nach genommenen Augments (ungeprüft, VALIDATION Prüfschritt 4).
 
 - **Mayhem-Teile mit echtem Client bestätigen** (malte, wenn er testen will)
   Ziel: Es ist belegt, dass Champ-Karte, Item-Set und Zauber (2c), Angebote im Spiel (2b), genommene Augments (3a) sowie Champion-Wahl aus den Karten und „Push build“ der Mayhem-App im echten Client bzw. Spiel funktionieren.
@@ -62,6 +62,7 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
   Ziel: Riot hat eigene Rangliste, Live-Hinweise im Spiel, das Lesen der Angebote per Bildschirmausschnitt, das Schreiben von Item-Sets und Zaubern und die Champion-Wahl aus den Karten über den Client (LCU, `PATCH …/session/actions/<id>`, Mayhem-App) bewertet, bevor wir öffentlich werben oder etwas davon öffentlich machen.
   Fertig, wenn: Die Anfrage ist im Developer Portal (App 887776) gestellt und Riots Antwort steht in AI-NOTES.md.
   Stand 09.10.2026: malte sagt, die App ist bei Riot registriert (die Registrierung von blank. deckt die Mayhem-App ab); deshalb werden Champion-Wahl und „Push build“ ausgeliefert, beide schreiben nur auf Klick. Eine Bewertung durch Riot (Ziel oben) liegt damit noch nicht vor.
+  Dazu seit 10.10.2026: (1) Die Mayhem-App liest die Angebote im Spiel ohne Schalter und markiert nach einem genommenen Augment passende Builds und wählt den ersten davon automatisch (reagiert auf den Spielverlauf; nichts wird umsortiert, immer mehrere Builds sichtbar, die eigene Wahl geht vor). (2) Riots Richtlinie „Products cannot display win rates for Augments“: neue Stellen zeigen seit 10.10.2026 nur Stufen und Spiele; fragen, ob die vorhandenen Augment-Siegquoten bleiben dürfen (Mayhem-App: Seite Augments, Champion-Detail; Website `/augments`; Champ-Karte von blank.) oder entfernt werden müssen.
 
 - **Reddit-Post** (malte postet, Claude überarbeitet den Entwurf)
   Ziel: Mehr Leute kennen mayhemstats.lol und laden den Collector.
@@ -81,6 +82,7 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 - **Build folgt den genommenen Augments** (Benutzerwunsch 08.10.2026: „er erkennt, du nimmst mit Alistar AP-Augments, und schlägt in der App direkt AP-Items vor“; MAYHEM-BERATER.md „Hauptargument“)
   Ziel: Nimmt man im Spiel Augments einer Richtung (z. B. AP auf Alistar), wechselt die Karte von selbst zu dieser Richtung bzw. zum passenden Offmeta-Build und zeigt dessen Items.
   Fertig, wenn: Nach einem genommenen Augment mit klarer Richtung (Kategorie bei arammeta, Umwandler) zeigt die Karte innerhalb einer Sekunde den Build dieser Richtung mit mehreren Item-Optionen und Zahlen; die eigene Wahl per Klick geht immer vor. Braucht 3a (genommenes Augment) und die Offmeta-Builds. Riot-Grauzone (reagiert auf den Spielverlauf): immer mehrere Optionen, vor einer öffentlichen Version Riot fragen.
+  Stand 10.10.2026: in der Mayhem-App gebaut (Benutzerentscheidung „nichts manuell, alles automatisch“): genommene Augments markieren passende Builds und Combos (Thema-Regeln aus `combos.ts`), der erste wird gewählt, solange keiner von Hand gewählt ist; nichts umsortiert. Offen: Test im echten Spiel (VALIDATION, Prüfschritt 4), Riots Antwort („Riot fragen“).
 
 - **Angebote nach den genommenen Augments ranken** (Etappe 3b, MAYHEM-BERATER.md)
   Ziel: Die nächsten Angebote bekommen ihre Stufe auch danach, welche Augments schon genommen sind.
@@ -109,6 +111,10 @@ Fokus seit 08.10.2026 (malte): nur Mayhem-App und Website. blank. ist pausiert (
 - **Datenlizenz arammeta.com klären**
   Ziel: Die Zahlen von arammeta.com dürfen in einer öffentlichen Mayhem-App stehen.
   Fertig, wenn: Der Macher (GitHub Lanternko) hat schriftlich zugestimmt. Claude schreibt die Nachricht. Vorher gibt es keine öffentliche Version mit diesen Zahlen.
+
+- **Erlaubnis von aramkit.com für die Skill-Reihenfolge** (malte schickt, Claude hat den Text geschrieben)
+  Ziel: Die Max-Reihenfolge der Fähigkeiten (aus aramkits Champion-Seiten, einmal je Patch mit `node server/tools/skill-orders.ts`, Benutzerwahl 10.10.2026) darf in der öffentlichen Mayhem-App und im AGPL-Repo stehen. aramkits Bedingungen erlauben nur persönliche, nicht-kommerzielle Nutzung und verbieten das Kopieren ihres Datenprodukts.
+  Fertig, wenn: aramkit (admin@aramkit.com) hat schriftlich zugestimmt und die Antwort steht in AI-NOTES.md; bei einer Absage fliegen `src/features/aram/skillOrders.ts` und das Werkzeug wieder raus. Bis zur Antwort entscheidet malte, ob die Skill-Reihenfolge ins nächste Release geht.
 
 - **Chinesische Mayhem-Seiten (Hexdata, RESG) prüfen** (vorerst durch arammeta erledigt)
   Ziel: Wissen, ob sie eine offene API oder eine Erlaubnis für ihre Zahlen bieten.
