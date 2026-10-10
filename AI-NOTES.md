@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Release 0.12.2 — 10.10.2026
+
+- Auftrag malte („mach das erst“: alles Gebaute in die App, ins nächste Release). Enthält: Overlay mit Augment-Stufen im Spiel (#102), Schalter „Auto push“ (#101), Layout im Rahmen, letzter Stand ohne Client und neues Icon (#106, Review-Korrekturen #107), Knöpfe unter der Fensterleiste (#105). Vor dem Merge je PR ein Code-Review mit Gegenprüfung; die bestätigten Funde (u. a. Auto push schrieb auch im Spiel) sind behoben. Englischer Abschnitt „New in the Mayhem app“ neu, deutscher unverändert.
+- Klick-Prüfung („Vor jedem Release“) mit `pnpm mayhem:build` (0.12.2) auf Windows, echte Maus und echte Daten: 1. ein Fenster, ein zweiter Start lässt nur einen Prozess; 2. Home, Augments, Champions, Rank, Records, Matches mit echten Daten, auf keiner Seite läuft die Seite über den Fensterrand (Listen scrollen im Rahmen), kein Knopf unter der Fensterleiste, „Simulate game“ öffnet die Karte, Back auf der Champion-Seite, Ziehen am Seitentitel, Doppelklick maximiert und stellt wieder her, neues Icon in Seitenleiste und Taskleiste; 5. „Update“ → „You're up to date, Version 0.12.2“; 8. `errors.log` ohne neue Zeilen. Nicht geprüft: 3, 4 (brauchen eine ARAM-Mayhem-Auswahl bzw. ein Spiel – dazu gehören jetzt auch Overlay und Auto push), 6, 7.
+- Website: das neue Favicon steckt im Codex-Auftrag in `apps/mayhem-site/DEPLOY.md` (zusammen mit dem noch nicht veröffentlichten Auftrag vom 08.10.).
+
 ## Mayhem-App: Overlay mit Augment-Stufen im Spiel — 10.10.2026 (Branch `claude/ingame-overlay`)
 
 - Benutzerauftrag „Ingame-Overlay für Augment-Rankings“, Entscheidungen im Chat: Click-through-Ausnahme nur für dieses Overlay; je Karte Stufe plus einmal „Tiers for <Build>“; unter dem Augment das Bild des Builds, zu dem es passt (zwei Items, Goldring), schon vor dem Nehmen, sonst nichts extra, keine Animation; gleich ins nächste Release (Riot-Grauzone wie Blitz/OP.GG, keine Siegquoten).
