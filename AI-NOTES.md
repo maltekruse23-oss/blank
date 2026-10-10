@@ -6,6 +6,7 @@ Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Sta
 ## Arbeit aus dem gemeinsamen Ordner übernommen — 10.10.2026
 
 - Auftrag malte („mach das erst“: alles Gebaute, aber nicht Ausgelieferte in die App): die drei nicht committeten Arbeiten anderer Sitzungen aus `C:\Users\malte\mayhem-test` (Icon, Layout im Rahmen, letzter Stand ohne Client) als Patch auf main übernommen (PR `claude/mayhem-hauptordner`); der gemeinsame Ordner selbst blieb unverändert (dort liegen sie weiter als Änderungen auf dem alten Branch `claude/mayhem-compact-items` – vor neuer Arbeit dort auf main wechseln und die Änderungen verwerfen). Danach folgen #101 und #102, dann Release 0.12.2.
+- Code-Review 10.10.2026 eingearbeitet: „Find my Mayhem rank“ bei geschlossenem Client meldet jetzt „Start League and sign in, then try again.“ statt still zurückzuspringen; der gespeicherte Stand (`saved: true`) erscheint nur beim Start und bei geschlossenem Client, nie bei offenem Client und Website-Fehler (sonst konnte ein früheres Konto als „You“ erscheinen; `keptMe`); auf Home bekommen weggefallene Kacheln `inert` (`useLeftOut`), damit Tastatur und Screenreader nicht in Unsichtbares springen.
 
 ## Neues App-Icon „Augment-Angebot“ — 10.10.2026
 
