@@ -245,13 +245,15 @@ export function MayhemCard({
         items: (fit?.items ?? []).slice(0, 2).map((i) => i.id),
       };
     });
-    // A combo of no direction takes another direction's tiers: then they are the champion's.
+    // arammeta's tiers are the champion's in every direction (cardOf), and a combo of no direction
+    // takes another direction's tiers: then the header names the champion, not the build.
     const own =
-      entry?.kind === 'combo'
+      view.source !== 'arammeta' &&
+      (entry?.kind === 'combo'
         ? plan?.direction === entry.combo.theme
-        : !!plan && entry?.plan === plan;
+        : !!plan && entry?.plan === plan);
     void tellOverlay(view.championId, own && entry ? entry.name : label, cards);
-  }, [sample, offer, augments, entries, entry, plan, view.championId, label]);
+  }, [sample, offer, augments, entries, entry, plan, view.championId, view.source, label]);
   const skills = sample ? MOCK_SKILL_ORDER : skillOrderOf(view.championId);
   const hero = (
     <header

@@ -13,14 +13,17 @@
 //! borderless or windowed, like the reading itself.
 
 use std::{
-    sync::{Mutex, MutexGuard},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex, MutexGuard,
+    },
     time::Duration,
 };
 
 use serde::{Deserialize, Serialize};
 use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow,
-    WebviewWindowBuilder,
+    webview::PageLoadEvent, AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize,
+    WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
 use windows_sys::Win32::{
     Foundation::HWND,
@@ -95,6 +98,8 @@ static STATE: Mutex<State> = Mutex::new(State {
 });
 /// One change of the window at a time (creating it takes a moment).
 static WINDOW: Mutex<()> = Mutex::new(());
+/// The page finished loading: shown before, the window would be empty and miss the cards.
+static LOADED: AtomicBool = AtomicBool::new(false);
 
 fn state() -> MutexGuard<'static, State> {
     STATE.lock().unwrap_or_else(|p| p.into_inner())
@@ -215,6 +220,14 @@ fn show(app: &AppHandle, shown: &Shown) -> Result<(), String> {
     }
     app.emit_to(LABEL, EVENT, shown)
         .map_err(|e| e.to_string())?;
+    // A page still loading asks for the cards itself (`mayhem_overlay_now`); its load shows it.
+    if LOADED.load(Ordering::SeqCst) {
+        raise(app, &window)?;
+    }
+    Ok(())
+}
+
+fn raise(app: &AppHandle, window: &WebviewWindow) -> Result<(), String> {
     let handle = window.hwnd().map_err(|e| e.to_string())?.0 as isize;
     // On the main thread, after tao applied its own flags (click-through, no focus): those rewrite
     // the extended style and would drop the tool-window bit.
@@ -244,6 +257,7 @@ fn show(app: &AppHandle, shown: &Shown) -> Result<(), String> {
 /// the last two in its own flags), left out of screen captures (`WDA_EXCLUDEFROMCAPTURE`, Windows
 /// 10 2004 and later; offers.rs reads the screen).
 fn create(app: &AppHandle) -> Result<WebviewWindow, String> {
+    LOADED.store(false, Ordering::SeqCst);
     let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("mayhem.html".into()))
         .title("Mayhem overlay")
         .decorations(false)
@@ -258,6 +272,17 @@ fn create(app: &AppHandle) -> Result<WebviewWindow, String> {
         .focused(false)
         .focusable(false)
         .visible(false)
+        .on_page_load(|window, payload| {
+            if matches!(payload.event(), PageLoadEvent::Finished) {
+                LOADED.store(true, Ordering::SeqCst);
+                // Not under WINDOW: `refresh` may hold it while it waits for this (main) thread.
+                if state().shown.is_some() {
+                    if let Err(error) = raise(window.app_handle(), &window) {
+                        crate::errors::record("Overlay", &error);
+                    }
+                }
+            }
+        })
         .build()
         .map_err(|e| e.to_string())?;
     window
