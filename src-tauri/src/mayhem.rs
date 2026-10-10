@@ -14,7 +14,11 @@
 //! in the Windows Credential Manager). It writes into the client only on the user's click (user's
 //! decision 09.10.2026, aram_live.rs): the pick of one of the dealt champion cards
 //! (`mayhem_pick_champion`), the item set "Mayhem: <build>" (`mayhem_item_set`) and, with it, the
-//! build's summoner spells in the champion select (`mayhem_spells`, since 10.10.2026). blank. is
+//! build's summoner spells in the champion select (`mayhem_spells`, since 10.10.2026). In every
+//! ARAM Mayhem game it reads the augment cards offered off the game window (aram/offers.rs, user's
+//! decision 10.10.2026: always on, nothing to switch; images never kept or sent, nothing typed into
+//! the game), event `aram-offers`; a click on an offered card marks it taken (`aram_offer_taken`)
+//! when the screen did not tell. blank. is
 //! paused: its update installs this app as blank.exe, which then cleans up after blank. once
 //! (from_blank.rs).
 //!
@@ -51,6 +55,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             // replaced `.old` before clean_up removes it.
             crate::from_blank::start(app.handle());
             crate::update::clean_up();
+            crate::aram::offers::always_on();
             look_for_client(app.handle().clone());
             Ok(())
         })
@@ -68,6 +73,7 @@ pub fn run(context: tauri::Context<tauri::Wry>) {
             crate::aram::live::mayhem_pick_champion,
             crate::aram::live::mayhem_item_set,
             crate::aram::live::mayhem_spells,
+            crate::aram::offers::aram_offer_taken,
             crate::update::update_check,
             crate::update::update_install,
             crate::update::update_news,
@@ -204,6 +210,8 @@ mod tests {
         assert!(permissions.contains(&Value::from("allow-mayhem-find-rank")));
         assert!(permissions.contains(&Value::from("allow-mayhem-open-game")));
         assert!(permissions.contains(&Value::from("allow-league-client-open")));
+        // The augment offers in the game: only marking an offered card as taken (aram/offers.rs).
+        assert!(permissions.contains(&Value::from("allow-aram-offer-taken")));
         // The only writes into the client, each on the user's click (aram_live.rs).
         assert!(permissions.contains(&Value::from("allow-mayhem-pick-champion")));
         assert!(permissions.contains(&Value::from("allow-mayhem-item-set")));
@@ -265,8 +273,13 @@ mod tests {
         ] {
             assert!(live.contains(command), "{command}");
         }
+        // The augment offers in the game reach this window too, always on here (aram/offers.rs).
+        let offers = read("src/aram/offers.rs");
+        assert!(offers.contains("\"aram-offers\"") && offers.contains("crate::mayhem::WINDOW"));
+        assert!(adapter.contains("'aram-offers'") && adapter.contains("'aram_offer_taken'"));
         // "Find my Mayhem rank" (aram/ladder.rs).
         let ladder = read("src/aram/ladder.rs");
+        assert!(ladder.contains("offers::follow(&app, game_id)"));
         let site = read("../src/adapters/aramSite.ts");
         assert!(site.contains("'mayhem_find_rank'"));
         for event in ["mayhem-upload", "mayhem-uploaded"] {

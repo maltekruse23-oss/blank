@@ -105,6 +105,21 @@ pub(super) struct SessionGame {
 struct Selection {
     champion_id: i64,
     selected_skin_index: i64,
+    /// Only in `teamOne`/`teamTwo`: whose seat it is.
+    puuid: String,
+}
+
+/// The champion the signed-in player (`puuid`) plays in the game, if its session names it.
+pub(super) fn own_champion(game: &SessionGame, puuid: &str) -> Option<i64> {
+    if !valid_puuid(puuid) {
+        return None;
+    }
+    game.team_one
+        .iter()
+        .chain(&game.team_two)
+        .find(|seat| seat.puuid == puuid)
+        .map(|seat| seat.champion_id)
+        .filter(|&id| id > 0)
 }
 
 /// Skins played in the last games (game id, champion id, skin), noted at the start of a game; in
@@ -193,6 +208,14 @@ async fn started_game() -> Option<(bool, u64)> {
             if let Ok(session) = lcu.get::<Session>(SESSION).await {
                 if session.game_data.game_id != 0 {
                     note_skins(&session.game_data);
+                    // For the offers (offers.rs), also when the app missed the champion select.
+                    if session.mayhem() {
+                        if let Ok(me) = lcu.get::<Summoner>(SUMMONER).await {
+                            if let Some(champion_id) = own_champion(&session.game_data, &me.puuid) {
+                                live::playing(champion_id);
+                            }
+                        }
+                    }
                     return Some((session.mayhem(), session.game_data.game_id));
                 }
             }

@@ -29,6 +29,7 @@ import {
   sourceLabel,
   spellName,
   SPELLS,
+  abilityKeys,
   USELESS_ITEMS,
 } from './champCard';
 
@@ -595,6 +596,15 @@ describe('Champ-Karte mit arammeta', () => {
       'Mark',
       null,
     ]);
+    // Info read in English (the Mayhem app): the spells come in English too.
+    const english = champView(champ, {
+      champion: null,
+      augments: null,
+      items: MetaItems,
+      meta: fullMeta,
+      english: true,
+    })!;
+    expect(english.extra!.spells[0].spells.map((s) => s.name)).toEqual(['Flash', 'Mark']);
     expect(extra.augTypes).toEqual([{ name: 'Health', games: 1071, winRate: 0.5453, pick: 0.66 }]);
     expect(extra.weakTypes.map((t) => t.name)).toEqual(['General A']);
     // The core group's name and its later items (Umbral never).
@@ -620,6 +630,30 @@ describe('Champ-Karte mit arammeta', () => {
     expect(parsed.extra.items).toHaveLength(3);
     expect(parsed.pool).toHaveLength(4);
     expect(parseExtra({})).toMatchObject({ boots: [], pairs: [], weak: [] });
+  });
+
+  it('Fähigkeiten-Bilder nur, wenn Rust sie geschickt hat und sie passen', () => {
+    const info = { champion: null, augments: null, items: MetaItems, meta };
+    expect(champView(champ, info)!.abilities).toBeUndefined();
+    const files = ['Pulverize.png', 'Headbutt.png', 'AlistarE.png'];
+    expect(champView(champ, { ...info, abilities: files })!.abilities).toEqual([
+      'Pulverize',
+      'Headbutt',
+      'AlistarE',
+    ]);
+    expect(abilityKeys([...files, 'FerociousHowl.png'])).toEqual([
+      'Pulverize',
+      'Headbutt',
+      'AlistarE',
+    ]);
+    for (const bad of [
+      null,
+      files.slice(0, 2),
+      ['../x.png', 'a', 'b'],
+      [1, 2, 3],
+      ['a b', 'c', 'd'],
+    ])
+      expect(abilityKeys(bad)).toBeNull();
   });
 
   it('prüft arammetas Datei streng', () => {

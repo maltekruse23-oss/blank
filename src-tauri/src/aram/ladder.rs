@@ -127,6 +127,8 @@ async fn after_game(app: AppHandle) {
     let Some(game_id) = started_mayhem_game().await else {
         return;
     };
+    // The augments offered in this game, read off the screen until it ends (offers.rs).
+    super::offers::follow(&app, game_id);
     // The card names the players of the game the leaderboard lists: read while the game runs.
     let listed = tauri::async_runtime::spawn(game_card::listed_names());
     // ponytail: a game whose end cannot be awaited (or that ends while the client is closed) goes

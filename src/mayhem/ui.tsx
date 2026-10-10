@@ -89,7 +89,8 @@ export function Tabs<T extends string>({
   onChange,
   label,
 }: {
-  tabs: { id: T; label: string }[];
+  /** `mark`: a dot after the label, the text read aloud and as tooltip. */
+  tabs: { id: T; label: string; mark?: string }[];
   value: T;
   onChange: (id: T) => void;
   label: string;
@@ -113,8 +114,14 @@ export function Tabs<T extends string>({
           aria-selected={t.id === value}
           tabIndex={t.id === value ? 0 : -1}
           onClick={() => onChange(t.id)}
+          title={t.mark}
         >
           {t.label}
+          {t.mark && (
+            <span className="mayhem-tab-mark">
+              <span className="mayhem-hidden">{t.mark}</span>
+            </span>
+          )}
         </button>
       ))}
     </div>

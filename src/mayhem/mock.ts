@@ -9,7 +9,7 @@ import { TIERS, type Rank } from '../features/aram/aramRating';
 import type { CardRank } from './afterGame';
 import type { MeState } from './me';
 import type { RecordCard } from './records';
-import type { ChampView, Tier } from '../features/aram/champCard';
+import type { ChampView, Offer, Tier } from '../features/aram/champCard';
 import type { ChampItem, HeldChamp } from '../adapters/aramChamp';
 
 const rank = (tier: number, division: number | null, points: number): Rank => ({
@@ -725,8 +725,8 @@ export function mockChampView(): ChampView {
       spells: [
         {
           spells: [
-            { id: 32, name: 'Markieren', key: 'SummonerSnowball' },
-            { id: 4, name: 'Blitz', key: 'SummonerFlash' },
+            { id: 32, name: 'Mark', key: 'SummonerSnowball' },
+            { id: 4, name: 'Flash', key: 'SummonerFlash' },
           ],
           games: 2_412,
           winRate: 0.561,
@@ -734,8 +734,8 @@ export function mockChampView(): ChampView {
         },
         {
           spells: [
-            { id: 32, name: 'Markieren', key: 'SummonerSnowball' },
-            { id: 6, name: 'Geist', key: 'SummonerHaste' },
+            { id: 32, name: 'Mark', key: 'SummonerSnowball' },
+            { id: 6, name: 'Ghost', key: 'SummonerHaste' },
           ],
           games: 803,
           winRate: 0.552,
@@ -746,8 +746,38 @@ export function mockChampView(): ChampView {
       augTypes: [],
       weakTypes: [],
     },
+    // Alistar's real Data Dragon pictures (Pulverize, Headbutt, Trample).
+    abilities: ['Pulverize', 'Headbutt', 'AlistarE'],
   };
 }
+
+/** An augment offer open in the game for the preview's Champ card (`view.offer`): three augments
+ * of the tank tiers, and two taken before: Frost Wraith is in the Control Freak combo, First-Aid Kit
+ * (MOCK_TIERS: "Heals and shields are stronger.") fits the Maximum Heal rule (`takenMatches`). */
+export const mockAugmentOffer = (): Offer => ({
+  direction: 'tank',
+  augments: [
+    { id: 1001, name: 'Goliath' },
+    { id: 1005, name: 'Bread And Butter' },
+    { id: 1008, name: 'Giant Slayer' },
+  ],
+  taken: [
+    { id: 1011, name: 'Frost Wraith' },
+    { id: 1007, name: 'First-Aid Kit' },
+  ],
+});
+
+/** The preview's skill order for the mock champion, in the shape of one entry of
+ * src/features/aram/skillOrders.ts (`SkillOrders`, server/tools/skill-orders.ts); invented numbers. */
+export const MOCK_SKILL_ORDER = {
+  patch: '16.19',
+  date: '2026-10-09',
+  orders: [
+    { order: 'Q>E>W', pick: 0.64, win: 0.534 },
+    { order: 'Q>W>E', pick: 0.22, win: 0.541 },
+    { order: 'E>Q>W', pick: 0.08, win: 0.512 },
+  ],
+} as const;
 
 /** The champions dealt in the card phase, for the browser preview's pick screen (`?pick`). */
 export const mockOffer = (): HeldChamp[] =>

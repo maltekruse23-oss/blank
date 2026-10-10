@@ -9,7 +9,8 @@
 //! `aram_champ_info` then reads what the card shows: the champion's public Mayhem stats from
 //! arammeta.com (user's choice 06.10.2026: open JSON files of an MIT-licensed project, ARAM Mayhem
 //! only, many more games) and from our website, and the item list from Data Dragon (name, finished
-//! or not, mana), reduced here. Nothing personal is sent, only the champion's number.
+//! or not, mana), reduced here, and when asked with the champion's key the icons of its Q, W and E
+//! from its Data Dragon file. Nothing personal is sent, only the champion's number and key.
 //!
 //! Writing into the client (user's decision 06.10.2026, MAYHEM-BERATER.md 6a), each with its own
 //! switch, off by default, only for the champion held in an ARAM Mayhem champion select: the item
@@ -986,6 +987,15 @@ pub(super) fn chosen() -> (i64, Option<String>) {
     CHOSEN.lock().unwrap_or_else(|p| p.into_inner()).clone()
 }
 
+/// The champion of the game that started (after_game.rs, from its session): the picked one keeps
+/// its build; another (the app missed the champion select) replaces it.
+pub(super) fn playing(champion_id: i64) {
+    let mut chosen = CHOSEN.lock().unwrap_or_else(|p| p.into_inner());
+    if chosen.0 != champion_id {
+        *chosen = (champion_id, None);
+    }
+}
+
 /// The build chosen on the card for the champion held in the ARAM Mayhem champion select (only
 /// then): remembered for the game's offers, and written as item set with that switch on.
 #[tauri::command]
@@ -1049,6 +1059,10 @@ pub struct ChampInfo {
     items: HashMap<u32, ItemInfo>,
     /// arammeta's numbers; None when it did not answer (the card then uses the website's).
     meta: Option<MetaInfo>,
+    /// The icons of Q, W and E (Data Dragon `img/spell/<name>`), only when asked with the
+    /// champion's key and Data Dragon answered.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    abilities: Option<Vec<String>>,
 }
 
 #[derive(Serialize)]
@@ -1548,6 +1562,51 @@ fn kind_of(tag: &dyn Fn(&str) -> bool) -> &'static str {
     }
 }
 
+/// Data Dragon's file of one champion: only its key and its spells' icons are read.
+#[derive(Deserialize)]
+struct DragonChampion {
+    data: HashMap<String, DragonChampionData>,
+}
+
+#[derive(Deserialize)]
+struct DragonChampionData {
+    key: String,
+    spells: Vec<DragonSpell>,
+}
+
+#[derive(Deserialize)]
+struct DragonSpell {
+    image: DragonImage,
+}
+
+#[derive(Deserialize)]
+struct DragonImage {
+    full: String,
+}
+
+/// The icons of Q, W and E from the champion's file, only when the file is that champion's and
+/// every name is a plain image file name.
+fn abilities_of(bytes: &[u8], alias: &str, champion_id: u32) -> Option<Vec<String>> {
+    let file: DragonChampion = serde_json::from_slice(bytes).ok()?;
+    let champion = file.data.get(alias)?;
+    if champion.key != champion_id.to_string() {
+        return None;
+    }
+    let names: Vec<String> = champion
+        .spells
+        .iter()
+        .take(3)
+        .map(|spell| spell.image.full.clone())
+        .collect();
+    let plain = |name: &String| {
+        name.strip_suffix(".png").is_some_and(|stem| {
+            (1..=60).contains(&stem.len())
+                && stem.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+        })
+    };
+    (names.len() == 3 && names.iter().all(plain)).then_some(names)
+}
+
 /// Data Dragon versions look like "15.20.1".
 fn valid_version(version: &str) -> bool {
     let parts: Vec<&str> = version.split('.').collect();
@@ -1590,13 +1649,18 @@ fn item_locale(english: Option<bool>) -> &'static str {
 
 /// The champion's stats from the website and the items from Data Dragon (`version`: the app's).
 /// Item names in German for blank., in English with `english` (the Mayhem app is English only).
+/// With `alias` (the champion's Data Dragon key) also the icons of its Q, W and E.
 #[tauri::command]
 pub async fn aram_champ_info(
     champion_id: u32,
     version: String,
     english: Option<bool>,
+    alias: Option<String>,
 ) -> Result<ChampInfo, String> {
-    if !(1..100_000).contains(&champion_id) || !valid_version(&version) {
+    if !(1..100_000).contains(&champion_id)
+        || !valid_version(&version)
+        || alias.as_deref().is_some_and(|a| !alias_ok(a))
+    {
         return Err("Ungültige Anfrage.".into());
     }
     let locale = item_locale(english);
@@ -1605,11 +1669,19 @@ pub async fn aram_champ_info(
     let champion_url = format!("{SITE}/api/champions/{champion_id}");
     let augments_url = format!("{SITE}/api/augments");
     let items_url = format!("{DDRAGON}/{version}/data/{locale}/item.json");
-    let (champion, augments, items, meta) = tokio::join!(
+    // Only when asked: the champion's own file, for its ability icons (the names are the same in
+    // every language).
+    let abilities = async {
+        let alias = alias.as_deref()?;
+        let url = format!("{DDRAGON}/{version}/data/en_US/champion/{alias}.json");
+        abilities_of(&fetch(&http, &url).await.ok()??, alias, champion_id)
+    };
+    let (champion, augments, items, meta, abilities) = tokio::join!(
         fetch(&http, &champion_url),
         fetch(&http, &augments_url),
         fetch(&http, &items_url),
         meta_info(&http, champion_id),
+        abilities,
     );
     let items = match items? {
         Some(bytes) => items_of(
@@ -1628,6 +1700,7 @@ pub async fn aram_champ_info(
         augments: text(augments.unwrap_or(None)),
         items,
         meta,
+        abilities,
     })
 }
 
@@ -2164,6 +2237,44 @@ mod tests {
         assert!(!valid_version("15.20"));
         assert!(!valid_version("../x.1.1"));
         assert!(!valid_version("15.20.1/../../"));
+    }
+
+    #[test]
+    fn ability_icons_only_from_the_champions_own_file() {
+        // Trimmed from Data Dragon's MonkeyKing.json (Wukong, key 62): Q, W, E, R.
+        let file = |key: &str, q: &str| {
+            json!({ "type": "champion", "data": { "MonkeyKing": {
+                "id": "MonkeyKing", "key": key, "name": "Wukong",
+                "spells": [
+                    { "id": "MonkeyKingDoubleAttack", "image": { "full": q } },
+                    { "id": "MonkeyKingDecoy", "image": { "full": "MonkeyKingDecoy.png" } },
+                    { "id": "MonkeyKingNimbus", "image": { "full": "MonkeyKingNimbus.png" } },
+                    { "id": "MonkeyKingSpinToWin", "image": { "full": "MonkeyKingSpinToWin.png" } }
+                ]
+            } } })
+            .to_string()
+            .into_bytes()
+        };
+        let good = file("62", "MonkeyKingDoubleAttack.png");
+        assert_eq!(
+            abilities_of(&good, "MonkeyKing", 62),
+            Some(vec![
+                "MonkeyKingDoubleAttack.png".to_string(),
+                "MonkeyKingDecoy.png".to_string(),
+                "MonkeyKingNimbus.png".to_string(),
+            ])
+        );
+        // Another champion's number or key, an odd file name or no file: nothing.
+        assert_eq!(abilities_of(&good, "MonkeyKing", 63), None);
+        assert_eq!(abilities_of(&good, "Aatrox", 62), None);
+        assert_eq!(
+            abilities_of(&file("62", "../x.png"), "MonkeyKing", 62),
+            None
+        );
+        assert_eq!(abilities_of(&file("62", "a.svg"), "MonkeyKing", 62), None);
+        assert_eq!(abilities_of(b"not json", "MonkeyKing", 62), None);
+        // Only plain keys go into the address.
+        assert!(alias_ok("MonkeyKing") && !alias_ok("../x") && !alias_ok(""));
     }
 
     /// blank. keeps German item names; only the Mayhem app asks for English ones.

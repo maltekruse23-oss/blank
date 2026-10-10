@@ -24,6 +24,11 @@ export type ChampInfo = {
   items: Record<string, ChampItem>;
   /** arammeta.com's numbers (user's choice, Rust `meta_info`); null when it did not answer. */
   meta?: MetaInfo | null;
+  /** Data Dragon picture names of the champion's Q, W and E (`Pulverize.png`), only when asked
+   * with its alias (the Mayhem app); missing or null otherwise (checked in champCard.ts). */
+  abilities?: string[] | null;
+  /** Set here, not by Rust: the names came in English (`readChampInfo` with `english`). */
+  english?: boolean;
 };
 
 /** An augment as arammeta lists it: English name, rarity kSilver/kGold/kPrismatic, categories
@@ -126,9 +131,20 @@ export const pushSpells = (championId: number, spells: number[]) =>
 /** Rust's answer outside a champion select with the champion held (`NOT_SELECTING`). */
 export const NOT_SELECTING = 'Spells can only be set in champ select.';
 
-/** `english`: item names in English (the Mayhem app); blank. keeps German. */
-export const readChampInfo = (championId: number, english = false): Promise<ChampInfo> =>
-  invoke<ChampInfo>('aram_champ_info', { championId, version: DDRAGON_VERSION, english });
+/** `english`: item and spell names in English (the Mayhem app); blank. keeps German. With the
+ * champion's Data Dragon `alias` also its ability pictures (one more Data Dragon file). */
+export const readChampInfo = (
+  championId: number,
+  english = false,
+  alias?: string,
+): Promise<ChampInfo> =>
+  invoke<ChampInfo>('aram_champ_info', {
+    championId,
+    version: DDRAGON_VERSION,
+    english,
+    // Rust refuses the whole card for an odd alias: then only the ability pictures are missing.
+    alias: alias && /^[A-Za-z0-9]{1,40}$/.test(alias) ? alias : undefined,
+  }).then((info) => ({ ...info, english }));
 
 /** Mayhem app only (src-tauri/src/mayhem.rs): whether the League client runs. */
 export const leagueClientOpen = () =>

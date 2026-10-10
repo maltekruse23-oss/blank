@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import type { BuildPick, BuildPlan, ChampView, MetaItemPick } from '../features/aram/champCard';
+import {
+  offerRows,
+  type BuildPick,
+  type BuildPlan,
+  type ChampView,
+  type MetaItemPick,
+} from '../features/aram/champCard';
 import type { Combo } from '../features/aram/combos';
-import { buildList, itemSetFor, SET_NAME, type BuildEntry } from './builds';
-import { MOCK_TIERS, mockChampView, mockOffer } from './mock';
+import {
+  buildList,
+  chosenEntry,
+  itemSetFor,
+  SET_NAME,
+  takenMatches,
+  type BuildEntry,
+  type TakenAugment,
+} from './builds';
+import { MOCK_TIERS, mockAugmentOffer, mockChampView, mockOffer } from './mock';
 
 // Build list of the Mayhem app's Champ page (user's decisions 09.10.2026).
 const KIND: Record<number, 'ap' | 'ad' | 'tank' | 'other'> = {
@@ -232,6 +246,86 @@ describe('buildList', () => {
   });
 });
 
+describe('groups', () => {
+  const groups = (list: BuildEntry[]) => list.map((e) => [e.key, e.group]);
+
+  it('Meta, Offmeta at least as good as the champion, Troll below it; order kept', () => {
+    // Pulled towards 53 % over 500 games: heal 0.551 and Ø 0.537 stay, cc 0.523 is below.
+    expect(groups(buildList(ALISTAR, 0.53))).toEqual([
+      ['core:1,2,3', 'meta'],
+      ['core:1,2,4', 'meta'],
+      ['core:5,20,21', 'meta'],
+      ['combo:armor', 'meta'],
+      ['combo:heal', 'offmeta'],
+      ['assembled:10,11,12', 'offmeta'],
+      ['combo:cc', 'troll'],
+    ]);
+    // The same order as without groups.
+    expect(buildList(ALISTAR, 0.53).map((e) => e.key)).toEqual(
+      buildList(ALISTAR).map((e) => e.key),
+    );
+  });
+
+  it('champion’s win rate unknown: no Troll, never against a guessed 50 %', () => {
+    const list = buildList(ALISTAR);
+    expect(list.some((e) => e.group === 'troll')).toBe(false);
+    expect(list.filter((e) => !e.meta).every((e) => e.group === 'offmeta')).toBe(true);
+  });
+});
+
+describe('takenMatches', () => {
+  // arammeta's real texts and categories (combos.test.ts, 08.10.2026).
+  const goredrink: TakenAugment = {
+    id: 1138,
+    name: 'Goredrink',
+    cats: ['tank'],
+    text: 'Gain [數值] Omnivamp.',
+  };
+  const goliath: TakenAugment = {
+    id: 1041,
+    name: 'Goliath',
+    cats: ['amp', 'tank'],
+    text: 'Become large, gaining [數值] Health and [數值] Adaptive Force.',
+  };
+  const witchful: TakenAugment = {
+    id: 1097,
+    name: 'Witchful Thinking',
+    cats: ['ap'],
+    text: 'Gain [數值] Ability Power.',
+  };
+  const list = buildList(ALISTAR);
+  const hits = (taken: TakenAugment[]) =>
+    [...takenMatches(list, taken)].map(([key, by]) => [key, by.map((t) => t.name)]);
+
+  it('a combo by its theme rule, a core or assembled build by its direction rule', () => {
+    expect(hits([goredrink, goliath, witchful])).toEqual([
+      ['core:1,2,3', ['Goredrink', 'Goliath']],
+      ['core:1,2,4', ['Goredrink', 'Goliath']],
+      ['combo:heal', ['Goredrink']],
+      ['assembled:10,11,12', ['Witchful Thinking']],
+    ]);
+  });
+
+  it('a combo with the taken augment itself, also without its facts', () => {
+    const own = { id: 900, name: 'Aug', cats: [], text: '' };
+    expect(hits([own]).map(([key]) => key)).toEqual(['combo:armor', 'combo:heal', 'combo:cc']);
+  });
+
+  it('nothing taken, nothing that fits: no highlight', () => {
+    expect(takenMatches(list, []).size).toBe(0);
+    expect(hits([{ id: 1, name: 'Donation', cats: ['gold'], text: 'Gain gold now.' }])).toEqual([]);
+  });
+
+  it('shows a build chosen by hand, else the first that fits, else the first', () => {
+    const fits = takenMatches(list, [witchful]);
+    expect(chosenEntry(list, null, new Map())?.key).toBe(list[0]!.key);
+    expect(chosenEntry(list, null, fits)?.key).toBe('assembled:10,11,12');
+    expect(chosenEntry(list, 'combo:heal', fits)?.key).toBe('combo:heal');
+    expect(chosenEntry(list, 'gone', fits)?.key).toBe('assembled:10,11,12');
+    expect(chosenEntry([], null, fits)).toBeUndefined();
+  });
+});
+
 describe('itemSetFor', () => {
   const list = buildList(ALISTAR);
   const byKey = (key: string) => list.find((e) => e.key === key)!;
@@ -309,6 +403,28 @@ describe('preview mocks', () => {
     expect(list.filter((e) => e.name.startsWith('Tank / Heartsteel · '))).toHaveLength(2);
     expect(new Set(list.map((e) => e.name)).size).toBe(list.length);
     for (const e of list) expect(itemSetFor(e, mock).core.length).toBeGreaterThan(0);
+  });
+
+  it('the Champ card in all three tabs; the taken augments highlight two combos', () => {
+    const mock = mockChampView();
+    const base = MOCK_TIERS.champions.find((c) => c.id === mock.championId)!.wr;
+    const list = buildList(mock, base);
+    expect([...new Set(list.map((e) => e.group))]).toEqual(['meta', 'offmeta', 'troll']);
+    // The facts as the app has them: the tier list's augment, else only the id.
+    const facts = (t: { id: number; name: string }): TakenAugment => {
+      const a = MOCK_TIERS.augments.find((x) => x.id === t.id);
+      return a
+        ? { id: t.id, name: a.name, cats: a.cats, text: a.text }
+        : { ...t, cats: [], text: '' };
+    };
+    const offer = mockAugmentOffer();
+    expect([...takenMatches(list, offer.taken.map(facts)).keys()]).toEqual([
+      'combo:cc',
+      'combo:heal',
+    ]);
+    expect(offerRows(mock.plans[0], offer).map((r) => r.tier)).toEqual(['S', 'S', 'B']);
+    expect(mock.abilities).toEqual(['Pulverize', 'Headbutt', 'AlistarE']);
+    expect(mock.extra!.spells[0].spells.map((s) => s.name)).toEqual(['Mark', 'Flash']);
   });
 
   it('three dealt champions, all in MOCK_TIERS', () => {

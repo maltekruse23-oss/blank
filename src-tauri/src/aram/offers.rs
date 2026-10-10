@@ -11,11 +11,21 @@
 //! before it, or a click on its row on the card (`aram_offer_taken`); checked against the game's
 //! real augments afterwards, a mismatch goes into the local error log.
 //! Only borderless or windowed: a capture of an exclusive full-screen game is black.
+//! The Mayhem app reads the offers in every ARAM Mayhem game (user's decision 10.10.2026: all
+//! automatic, it has no settings; `always_on` from mayhem.rs) and hears `aram-offers` in its own
+//! window; blank. only with its switch.
+//! Hardened like the overlays that do the same (aram-mayhem-overlay, aramgg_client, Hexgate): a
+//! set of cards counts only when two readings in a row agree (`agreed`); when the band gives fewer
+//! than three cards, each title is read again in its own enlarged crop (`title_crops`); the
+//! recognition reads the client's language (`/riotclient/region-locale`, read-only) when Windows
+//! has it installed, else Windows' own languages.
+//! Fixed GET paths of the client here: `/lol-game-data/assets/v1/cherry-augments.json`,
+//! `/riotclient/region-locale`.
 
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        Mutex, MutexGuard,
+        Arc, Mutex, MutexGuard,
     },
     time::{Duration, Instant},
 };
@@ -26,6 +36,8 @@ use tauri::{AppHandle, Emitter};
 use super::{client::Lcu, games::CherryAugment, live, GAME_EXE};
 
 static WANTED: AtomicBool = AtomicBool::new(false);
+/// The Mayhem app: offers are read in every ARAM Mayhem game, no switch.
+static ALWAYS: AtomicBool = AtomicBool::new(false);
 static RUNNING: AtomicBool = AtomicBool::new(false);
 static GAME: Mutex<Game> = Mutex::new(Game::new(0));
 
@@ -56,6 +68,10 @@ fn game() -> MutexGuard<'static, Game> {
 }
 
 const LIVE: &str = "https://127.0.0.1:2999/liveclientdata/activeplayer";
+/// The client's language, for the recognition (the augment names are in it).
+const LOCALE: &str = "/riotclient/region-locale";
+/// Cards in one offer.
+const CARDS: usize = 3;
 const EVENT: &str = "aram-offers";
 const LOOK_EVERY: Duration = Duration::from_millis(250);
 const LOOK_AT_MOST: Duration = Duration::from_secs(60);
@@ -71,8 +87,13 @@ pub(super) fn set_wanted(on: bool) {
     WANTED.store(on, Ordering::Relaxed);
 }
 
+/// The Mayhem app (mayhem.rs, at its start): offers in every ARAM Mayhem game.
+pub fn always_on() {
+    ALWAYS.store(true, Ordering::Relaxed);
+}
+
 pub(super) fn wanted() -> bool {
-    WANTED.load(Ordering::Relaxed)
+    ALWAYS.load(Ordering::Relaxed) || WANTED.load(Ordering::Relaxed)
 }
 
 #[derive(Serialize, Clone, PartialEq)]
@@ -110,7 +131,9 @@ pub(super) fn follow(app: &AppHandle, game_id: u64) {
 }
 
 async fn run(app: &AppHandle) -> Result<(), String> {
-    let names = augment_names().await?;
+    let lcu = Lcu::connect()?.ok_or(super::NOT_OPEN)?;
+    let names = Arc::new(augment_names(&lcu).await?);
+    let language = client_language(&lcu).await;
     let http = reqwest::Client::builder()
         // The game's own certificate for 127.0.0.1, accepted for this local connection only.
         .tls_danger_accept_invalid_certs(true)
@@ -129,7 +152,7 @@ async fn run(app: &AppHandle) -> Result<(), String> {
                 answered = Some(Instant::now());
                 if now > level {
                     level = now;
-                    look(app, &names).await;
+                    look(app, &names, language.as_deref()).await;
                 }
             }
             None if answered.is_some_and(|t| t.elapsed() > LIVE_GONE) => return Ok(()),
@@ -149,8 +172,7 @@ async fn game_level(http: &reqwest::Client) -> Option<u32> {
 }
 
 /// The client's augments with their names in its language, as compared (`plain`).
-async fn augment_names() -> Result<Vec<(u32, String, String)>, String> {
-    let lcu = Lcu::connect()?.ok_or(super::NOT_OPEN)?;
+async fn augment_names(lcu: &Lcu) -> Result<Vec<(u32, String, String)>, String> {
     let list: Vec<CherryAugment> = lcu
         .get("/lol-game-data/assets/v1/cherry-augments.json")
         .await?;
@@ -161,35 +183,57 @@ async fn augment_names() -> Result<Vec<(u32, String, String)>, String> {
         .collect())
 }
 
+/// The client's language as a tag for the recognition; None when it does not answer.
+async fn client_language(lcu: &Lcu) -> Option<String> {
+    #[derive(Deserialize)]
+    struct RegionLocale {
+        locale: String,
+    }
+    let answer: RegionLocale = lcu.get(LOCALE).await.ok()?;
+    language_tag(&answer.locale)
+}
+
+/// The client's locale ("de_DE") as a language tag ("de-DE"); anything else is not used.
+fn language_tag(locale: &str) -> Option<String> {
+    let (language, region) = locale.split_once('_')?;
+    let ok = (2..=3).contains(&language.len())
+        && language.bytes().all(|b| b.is_ascii_lowercase())
+        && region.len() == 2
+        && region.bytes().all(|b| b.is_ascii_uppercase());
+    ok.then(|| format!("{language}-{region}"))
+}
+
 /// Reads the screen while an offer may be open and tells the app each new set of cards.
-async fn look(app: &AppHandle, names: &[(u32, String, String)]) {
+async fn look(app: &AppHandle, names: &Arc<Vec<(u32, String, String)>>, language: Option<&str>) {
     let started = Instant::now();
     let mut seen = None::<Instant>;
     let mut told: Vec<Offer> = Vec::new();
+    let mut last: Vec<Offer> = Vec::new();
     // Each different set of cards read in this round, in order.
     let mut readings: Vec<Vec<Offer>> = Vec::new();
     while started.elapsed() < LOOK_AT_MOST && wanted() {
-        let columns = tauri::async_runtime::spawn_blocking(screen::read_columns)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_default();
-        let found = matched(&columns, names);
+        let (names, language) = (Arc::clone(names), language.map(str::to_owned));
+        let found = tauri::async_runtime::spawn_blocking(move || {
+            screen::read_offers(&names, language.as_deref())
+        })
+        .await
+        .unwrap_or_default();
         if !found.is_empty() {
             seen = Some(Instant::now());
-            if found != told {
-                if told.is_empty() {
-                    game().round.clear();
-                }
-                told = found;
-                readings.push(told.clone());
-                tell(app, told.clone());
-            }
         } else if seen.map_or(started.elapsed() > NONE_WITHIN, |t| {
             t.elapsed() > GONE_AFTER
         }) {
             break;
         }
+        let same = agreed(&mut last, found);
+        if let Some(cards) = same.as_ref().filter(|cards| **cards != told) {
+            if told.is_empty() {
+                game().round.clear();
+            }
+            told.clone_from(cards);
+            tell(app, told.clone());
+        }
+        remember(&mut readings, &told, &last, same.is_some());
         tokio::time::sleep(LOOK_EVERY).await;
     }
     if !told.is_empty() {
@@ -201,6 +245,22 @@ async fn look(app: &AppHandle, names: &[(u32, String, String)]) {
             }
         }
         tell(app, Vec::new());
+    }
+}
+
+/// A reading counts once the next one agrees: a single misread frame is never told.
+fn agreed(last: &mut Vec<Offer>, now: Vec<Offer>) -> Option<Vec<Offer>> {
+    let same = !now.is_empty() && *last == now;
+    *last = now;
+    same.then(|| last.clone())
+}
+
+/// The readings `taken_of` sees: each agreed set, and at once a lone card of the cards told (the
+/// card left after a pick may be on screen too briefly to be read twice).
+fn remember(readings: &mut Vec<Vec<Offer>>, told: &[Offer], now: &[Offer], agreed: bool) {
+    let lone = matches!(now, [card] if told.contains(card));
+    if (agreed || lone) && readings.last().map(Vec::as_slice) != Some(now) {
+        readings.push(now.to_vec());
     }
 }
 
@@ -269,16 +329,16 @@ fn tell(app: &AppHandle, offers: Vec<Offer>) {
         game.taken.clone()
     };
     let (champion_id, direction) = live::chosen();
-    let _ = app.emit_to(
-        "main",
-        EVENT,
-        Offers {
-            champion_id,
-            direction,
-            offers,
-            taken,
-        },
-    );
+    let offers = Offers {
+        champion_id,
+        direction,
+        offers,
+        taken,
+    };
+    // blank.'s window, or the Mayhem app's (mayhem.rs); only one of them exists.
+    for window in ["main", crate::mayhem::WINDOW] {
+        let _ = app.emit_to(window, EVENT, offers.clone());
+    }
 }
 
 /// Lowercase letters and digits only: what the recognition reliably gives back.
@@ -340,9 +400,58 @@ fn columns_of(mut lines: Vec<(f32, f32, String)>, width: f32) -> Vec<String> {
         .collect()
 }
 
+/// The band of the game window where the cards are (x, y, width, height in client pixels).
+fn band(w: i32, h: i32) -> (i32, i32, i32, i32) {
+    (w / 10, h * 15 / 100, w * 8 / 10, h * 60 / 100)
+}
+
+/// The three card titles inside the band (x, y, width, height in its pixels), left to right, for a
+/// game window of `w` × `h`: the cards sit in the middle and 0.34 h to each side, a title 0.145 h
+/// to each side of its card's centre, between 35 and 45 % of the height (as aram-mayhem-overlay
+/// measured them).
+fn title_crops(w: i32, h: i32) -> Vec<(i32, i32, i32, i32)> {
+    let (x, y, width, height) = band(w, h);
+    let (middle, h) = (w as f32 / 2.0, h as f32);
+    let top = ((h * 0.35) as i32 - y).max(0);
+    let bottom = ((h * 0.45) as i32 - y).min(height);
+    [-1.0f32, 0.0, 1.0]
+        .into_iter()
+        .filter_map(|side| {
+            let centre = middle + side * 0.34 * h;
+            let left = ((centre - 0.145 * h) as i32 - x).max(0);
+            let right = ((centre + 0.145 * h) as i32 - x).min(width);
+            (right > left && bottom > top).then_some((left, top, right - left, bottom - top))
+        })
+        .collect()
+}
+
+/// A part of a BGRA image (`width` pixels a row), each pixel `scale` × `scale` times
+/// (`ponytail:` nearest pixel; smooth scaling if titles still get missed).
+fn enlarged(pixels: &[u8], width: u32, crop: (i32, i32, i32, i32), scale: u32) -> Vec<u8> {
+    let [x, y, w, h] = [crop.0, crop.1, crop.2, crop.3].map(|v| v.max(0) as usize);
+    let (width, scale) = (width as usize, scale as usize);
+    let mut out = Vec::with_capacity(w * h * scale * scale * 4);
+    for row in y..y + h {
+        let mut line = Vec::with_capacity(w * scale * 4);
+        for col in x..x + w {
+            let at = (row * width + col) * 4;
+            for _ in 0..scale {
+                line.extend_from_slice(&pixels[at..at + 4]);
+            }
+        }
+        for _ in 0..scale {
+            out.extend_from_slice(&line);
+        }
+    }
+    out
+}
+
 mod screen {
     //! The capture of the game window's middle and its text, on a blocking thread.
+    use super::Offer;
     use windows::{
+        core::HSTRING,
+        Globalization::Language,
         Graphics::Imaging::{BitmapPixelFormat, SoftwareBitmap},
         Media::Ocr::OcrEngine,
         Storage::Streams::DataWriter,
@@ -362,18 +471,70 @@ mod screen {
     const CLASS: &str = "RiotWindowClass";
     const TITLE: &str = "League of Legends (TM) Client";
 
-    pub(super) fn read_columns() -> Option<Vec<String>> {
-        let (pixels, width, height) = capture()?;
-        let lines = recognize(&pixels, width, height).ok()?;
-        Some(super::columns_of(lines, width as f32))
+    /// The cards on screen now, left to right (empty: none, or nothing readable).
+    pub(super) fn read_offers(
+        names: &[(u32, String, String)],
+        language: Option<&str>,
+    ) -> Vec<Offer> {
+        read(names, language).unwrap_or_default()
+    }
+
+    fn read(names: &[(u32, String, String)], language: Option<&str>) -> Option<Vec<Offer>> {
+        let (pixels, w, h) = capture()?;
+        let (_, _, width, height) = super::band(w, h);
+        let (width, height) = (width as u32, height as u32);
+        // SAFETY: plain COM initialisation of this thread; a second call only reports it was done.
+        let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
+        let engine = engine(language).ok()?;
+        let band = recognize(&engine, &pixels, width, height)
+            .map(|lines| super::matched(&super::columns_of(lines, width as f32), names))
+            .unwrap_or_default();
+        if band.len() >= super::CARDS {
+            return Some(band);
+        }
+        // The band missed a card (small text, a busy background): each title on its own, enlarged.
+        let max = OcrEngine::MaxImageDimension().ok()?;
+        let titles: Vec<String> = super::title_crops(w, h)
+            .into_iter()
+            .filter_map(|crop| {
+                let scale = if crop.2.max(crop.3) as u32 * 2 <= max {
+                    2
+                } else {
+                    1
+                };
+                let image = super::enlarged(&pixels, width, crop, scale);
+                let (cw, ch) = (crop.2 as u32 * scale, crop.3 as u32 * scale);
+                let lines = recognize(&engine, &image, cw, ch).ok()?;
+                Some(lines.into_iter().map(|l| l.2).collect::<Vec<_>>().join(" "))
+            })
+            .collect();
+        let by_title = super::matched(&titles, names);
+        Some(if by_title.len() > band.len() {
+            by_title
+        } else {
+            band
+        })
+    }
+
+    /// The recognition in the client's language when Windows has it installed, else in Windows'
+    /// own languages.
+    fn engine(language: Option<&str>) -> windows::core::Result<OcrEngine> {
+        let language = language.and_then(|tag| Language::CreateLanguage(&HSTRING::from(tag)).ok());
+        if let Some(language) = language {
+            if OcrEngine::IsLanguageSupported(&language).unwrap_or(false) {
+                return OcrEngine::TryCreateFromLanguage(&language);
+            }
+        }
+        OcrEngine::TryCreateFromUserProfileLanguages()
     }
 
     fn wide(text: &str) -> Vec<u16> {
         text.encode_utf16().chain(Some(0)).collect()
     }
 
-    /// The middle band of the game window (where the cards are) as BGRA, top row first.
-    fn capture() -> Option<(Vec<u8>, u32, u32)> {
+    /// The middle band of the game window (where the cards are, `band`) as BGRA, top row first,
+    /// with the window's client size.
+    fn capture() -> Option<(Vec<u8>, i32, i32)> {
         let (class, title) = (wide(CLASS), wide(TITLE));
         // SAFETY: every handle is checked and released; the buffer has the size GetDIBits writes.
         unsafe {
@@ -388,8 +549,8 @@ mod screen {
             let mut origin = POINT { x: 0, y: 0 };
             ClientToScreen(window, &mut origin);
             let (w, h) = (rect.right, rect.bottom);
-            let (x, y) = (origin.x + w / 10, origin.y + h * 15 / 100);
-            let (width, height) = (w * 8 / 10, h * 60 / 100);
+            let (x, y, width, height) = super::band(w, h);
+            let (x, y) = (origin.x + x, origin.y + y);
             if width < 200 || height < 100 {
                 return None;
             }
@@ -423,19 +584,17 @@ mod screen {
             DeleteObject(bitmap);
             DeleteDC(memory);
             ReleaseDC(std::ptr::null_mut(), screen);
-            read.then_some((pixels, width as u32, height as u32))
+            read.then_some((pixels, w, h))
         }
     }
 
     /// Lines of text with their x centre and top, in pixels of the capture.
     fn recognize(
+        engine: &OcrEngine,
         pixels: &[u8],
         width: u32,
         height: u32,
     ) -> windows::core::Result<Vec<(f32, f32, String)>> {
-        // SAFETY: plain COM initialisation of this thread; a second call only reports it was done.
-        let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
-        let engine = OcrEngine::TryCreateFromUserProfileLanguages()?;
         // The recognition takes images up to its maximum side; larger captures are halved.
         let max = OcrEngine::MaxImageDimension()?;
         let (pixels, width, height, scale) = if width > max || height > max {
@@ -533,6 +692,89 @@ mod tests {
         // A single card that was never among the others (a misread): unknown.
         assert!(taken_of(&[cards(&[1, 2, 3]), cards(&[6])]).is_none());
         assert!(taken_of(&[]).is_none());
+    }
+
+    #[test]
+    fn a_lone_card_read_once_is_enough_to_be_taken() {
+        // Each reading as `look` gets it: [1,2,3] twice, the card left read once, then nothing.
+        let walk = |frames: &[&[u32]]| {
+            let (mut last, mut told, mut readings) = (Vec::new(), Vec::new(), Vec::new());
+            for frame in frames {
+                let same = agreed(&mut last, cards(frame));
+                if let Some(cards) = &same {
+                    told.clone_from(cards);
+                }
+                remember(&mut readings, &told, &last, same.is_some());
+            }
+            taken_of(&readings).map(|o| o.id)
+        };
+        assert_eq!(walk(&[&[1, 2, 3], &[1, 2, 3], &[2], &[]]), Some(2));
+        // A lone misread while the three are still there is undone when they are read again.
+        let three: &[u32] = &[1, 2, 3];
+        assert_eq!(walk(&[three, three, &[2], three, three, &[]]), None);
+        // A lone card never among the cards told counts for nothing.
+        assert_eq!(walk(&[&[1, 2, 3], &[1, 2, 3], &[6], &[]]), None);
+    }
+
+    #[test]
+    fn a_set_of_cards_counts_when_two_readings_agree() {
+        let ids = |cards: Option<Vec<Offer>>| cards.map(|c| c.iter().map(|o| o.id).collect());
+        let mut last = Vec::new();
+        assert!(agreed(&mut last, cards(&[1, 2, 3])).is_none());
+        // A single misread frame in between is never told.
+        assert!(agreed(&mut last, cards(&[1, 7, 3])).is_none());
+        assert!(agreed(&mut last, cards(&[1, 2, 3])).is_none());
+        assert_eq!(
+            ids(agreed(&mut last, cards(&[1, 2, 3]))),
+            Some(vec![1, 2, 3])
+        );
+        // Nothing read twice is no offer.
+        assert!(agreed(&mut last, Vec::new()).is_none());
+        assert!(agreed(&mut last, Vec::new()).is_none());
+    }
+
+    #[test]
+    fn titles_are_cropped_inside_the_band() {
+        // 1920 × 1080: the band starts at (192, 162) and is 1536 × 648.
+        assert_eq!(
+            title_crops(1920, 1080),
+            [
+                (244, 216, 313, 108),
+                (611, 216, 313, 108),
+                (978, 216, 313, 108)
+            ]
+        );
+        for (w, h) in [(1280, 720), (1024, 768), (3440, 1440), (2560, 1600)] {
+            let (_, _, width, height) = band(w, h);
+            let crops = title_crops(w, h);
+            assert_eq!(crops.len(), 3, "{w}×{h}");
+            for (x, y, cw, ch) in crops {
+                assert!(x >= 0 && y >= 0 && cw > 0 && ch > 0, "{w}×{h}");
+                assert!(x + cw <= width && y + ch <= height, "{w}×{h}");
+            }
+        }
+        // A window too small for cards has no titles.
+        assert!(title_crops(0, 0).is_empty());
+    }
+
+    #[test]
+    fn a_crop_is_enlarged_pixel_by_pixel() {
+        // 2 × 2 pixels, each with its own value; the right column, twice as large.
+        let pixels: Vec<u8> = (0..4u8).flat_map(|p| [p; 4]).collect();
+        let big = enlarged(&pixels, 2, (1, 0, 1, 2), 2);
+        let values: Vec<u8> = big.chunks(4).map(|p| p[0]).collect();
+        assert_eq!(values, [1, 1, 1, 1, 3, 3, 3, 3]);
+    }
+
+    #[test]
+    fn the_clients_locale_becomes_a_language_tag() {
+        assert_eq!(language_tag("de_DE").as_deref(), Some("de-DE"));
+        assert_eq!(language_tag("en_US").as_deref(), Some("en-US"));
+        for odd in [
+            "", "de", "DE_de", "de-DE", "de_DEU", "d_DE", "de_DE;x", "../x_YY",
+        ] {
+            assert_eq!(language_tag(odd), None, "{odd}");
+        }
     }
 
     #[test]

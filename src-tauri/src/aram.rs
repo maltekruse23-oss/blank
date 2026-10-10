@@ -1,7 +1,8 @@
 //! ARAM Mayhem leaderboard (user's wish: the best games of the user and three friends, with a
 //! ranking by damage and more). Riot's public web API does not serve ARAM Mayhem (403), so the
 //! games come from the League client on this PC, read-only: its port and password from the
-//! lockfile stay in Rust, requests go only to 127.0.0.1 and only to the fixed GET paths below;
+//! lockfile stay in Rust, requests go only to 127.0.0.1 and only to the fixed GET paths below
+//! (aram/offers.rs also asks `/riotclient/region-locale` for the client's language);
 //! nothing in the client is changed, the game itself is never touched. The games are kept in
 //! aram.json next to twitch.json, for good (user's choice); friends' games are read the way the
 //! client shows their profile.
