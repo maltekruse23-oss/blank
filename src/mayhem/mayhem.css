@@ -363,8 +363,7 @@ button {
 }
 
 .mayhem-card-hero,
-.mayhem-offer-panel,
-.mayhem-card-more {
+.mayhem-offer-panel {
   grid-column: 1 / -1;
 }
 
@@ -432,10 +431,23 @@ button {
   font: 500 22px var(--font-mono);
 }
 
-.mayhem-build-core {
+/* The items as one compact row: the core in buying order with arrows, then the later items. */
+.mayhem-build-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 32px;
+}
+
+.mayhem-build-items > div {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
-  gap: 10px;
+  gap: 6px;
+}
+
+.mayhem-build-core {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -444,17 +456,26 @@ button {
 .mayhem-build-core li {
   display: grid;
   justify-items: center;
-  align-content: start;
-  gap: 6px;
-  padding: 12px 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-row);
-  background: var(--surface);
-  text-align: center;
+  gap: 3px;
+}
+
+.mayhem-build-core li + li::before {
+  content: '›';
+  position: absolute;
+  top: 10px;
+  left: -14px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.mayhem-build-core li + li {
+  position: relative;
+  margin-left: 16px;
 }
 
 .mayhem-build-core img {
-  border-radius: 11px;
+  border-radius: 9px;
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--text) 14%, transparent);
 }
 
@@ -463,38 +484,18 @@ button {
   opacity: 0.7;
 }
 
-.mayhem-build-core span {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 12.5px;
-  font-weight: 700;
-  line-height: 1.25;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
 .mayhem-build-core small {
   color: var(--up);
-  font: 400 12px var(--font-mono);
+  font: 400 11px var(--font-mono);
 }
 
-.mayhem-build-later {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.mayhem-build-later > span:first-child,
+.mayhem-build-label,
 .mayhem-build-for dt {
   color: var(--faint);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.mayhem-build-later > span:first-child {
-  width: 64px;
 }
 
 /* What is the same in every build of the champion, set apart by a line. */
@@ -1148,14 +1149,6 @@ button {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
 }
 
-/* A tab's content: its blocks side by side when there is room. */
-.mayhem-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
-  gap: 18px 28px;
-  align-items: start;
-}
-
 /* "Show more" under a list (lists show five first, MAYHEM-DESIGN.md). */
 .mayhem-more {
   justify-self: start;
@@ -1424,16 +1417,6 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
   background: var(--panel);
 }
 
-.mayhem-grid.weak li,
-.mayhem-chips.weak li {
-  opacity: 0.6;
-}
-
-.mayhem-grid.weak .mayhem-facts b,
-.mayhem-facts b.down {
-  color: var(--down);
-}
-
 .mayhem-items img.later {
   align-self: center;
   opacity: 0.55;
@@ -1458,10 +1441,6 @@ li:has(> .mayhem-aug-icon[data-rarity='prismatic']) {
 .mayhem-chips b {
   font: 500 12px var(--font-mono);
   color: var(--up);
-}
-
-.mayhem-chips.weak b {
-  color: var(--muted);
 }
 
 /* --- Navigation and pages (desktop, as Blitz) -------------------------------------------- */
