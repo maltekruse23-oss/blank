@@ -405,40 +405,12 @@ export function ownState(answer: OwnRanks | null): MeState {
   }
 }
 
-/** The last answer with a player (user's wish 10.10.2026: the last session's data stays while the
- * client is closed or the website does not answer); checked again by ownState when read. */
-const SAVED = 'mayhem.me.v1';
-
-export function savedMe(): MeState | null {
-  try {
-    const text = localStorage.getItem(SAVED);
-    const answer = text ? (JSON.parse(text) as OwnRanks) : null;
-    const state = answer && typeof answer.name === 'string' ? ownState(answer) : null;
-    return state?.state === 'ready' ? state : null;
-  } catch {
-    return null;
-  }
-}
-
-function save(answer: OwnRanks | null) {
-  try {
-    if (answer) localStorage.setItem(SAVED, JSON.stringify(answer));
-  } catch {
-    // Full or blocked storage: the next start just waits for the client.
-  }
-  return answer;
-}
-
 /** The player's rank; the browser preview shows invented values (and says "Mock"). Rust's reasons
  * are German (blank.'s), so the Mayhem app says it in English. */
 export const loadMe = (): Promise<MeState> =>
   isTauri()
-    ? readOwnRanks().then(
-        (answer) => (answer ? ownState(save(answer)) : (savedMe() ?? ownState(null))),
-        () =>
-          savedMe() ?? {
-            state: 'failed' as const,
-            message: 'mayhemstats.lol did not answer. Check your connection.',
-          },
-      )
+    ? readOwnRanks().then(ownState, () => ({
+        state: 'failed' as const,
+        message: 'mayhemstats.lol did not answer. Check your connection.',
+      }))
     : Promise.resolve(MOCK_STATE);
