@@ -548,11 +548,9 @@ export function MayhemApp() {
                         lists?.champions.find((c) => c.id === shown.view.championId) ?? null
                       }
                       augments={lists?.augments ?? NO_AUGMENTS}
-                      offer={
-                        offer && (!offer.championId || offer.championId === shown.view.championId)
-                          ? offer
-                          : null
-                      }
+                      // Only the offer of this champion: one without a known champion (0) never lands
+                      // on another champion's card.
+                      offer={offer?.championId === shown.view.championId ? offer : null}
                       chosen={shown.chosen}
                       onTake={take}
                       onChoose={(key) =>
