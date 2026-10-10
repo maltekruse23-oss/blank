@@ -3,6 +3,12 @@
 Aktuelle zusammenhängende Übergabe: [CLAUDE-HANDOFF-MAYHEM.md](CLAUDE-HANDOFF-MAYHEM.md).
 Sie dokumentiert auch den getrennten Website-Ratingstand und die noch offene Statistikseiten-Recherche.
 
+## Mayhem-App: „Auto push“, kurzer Status — 10.10.2026
+
+- Benutzerwunsch: nach „Push build“ nur kurz „Saved“ (der ganze Satz mit Set-Name und Zaubern im Tooltip; „Not saved“, „Spells not set“ bei Fehlern; „Spells are only set in champ select“ nur im Tooltip) und daneben der Schalter „Auto push“ (`BuildDetail` in `MayhemCard.tsx`): gemerkt in localStorage `mayhem.autoPush.v1` (try/catch, gesperrter Speicher = nur dieser Lauf), an → jeder angezeigte Build wird von selbst gepusht (Items und in der Champ-Auswahl die Zauber), je Champion und Build einmal (`autoPushed`, auch nach Seitenwechsel nicht doppelt), auch der automatisch gewählte; nie in der Vorschau.
+- Gebaut in einem eigenen Worktree (`../mayhem-autopush`), weil parallel die Sitzung „Offline-Datenspeicherung“ im Hauptordner arbeitet.
+- Geprüft: tsc, lint, Prettier, Vitest, Vorschau (Schalter aus/an). Nicht geprüft: Auto push mit echtem Client.
+
 ## Mayhem-App: Items kompakt, „More on …“ entfernt — 10.10.2026
 
 - Benutzerwunsch (Vorlagen anderer Apps „Core Build“/„Full Build“): die Items des gewählten Builds als eine kompakte Zeile – „Core“ in Kaufreihenfolge mit Pfeilen (40 px), daneben „Later“ (32 px); Namen und Zahlen im Tooltip, eine Siegquote klein unter dem Bild nur, wo das Item eigene Zahlen hat (zusammengesetzte Builds, Combos).

@@ -637,6 +637,80 @@ button {
   text-align: right;
 }
 
+/* Button and "Auto push" side by side, the short status under both. */
+.mayhem-build-push:has(.mayhem-switch) {
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 14px;
+}
+
+.mayhem-build-push:has(.mayhem-switch) .mayhem-note {
+  grid-column: 1 / -1;
+}
+
+.mayhem-build-push .mayhem-switch {
+  order: -1;
+}
+
+/* A switch (checkbox with role switch): the track, its knob gold when on. */
+.mayhem-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mayhem-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mayhem-switch span {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--panel);
+  transition: background var(--slow) var(--ease);
+}
+
+.mayhem-switch span::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform var(--slow) var(--ease);
+}
+
+.mayhem-switch input:checked + span {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 25%, transparent);
+}
+
+.mayhem-switch input:checked + span::after {
+  background: var(--accent);
+  transform: translateX(14px);
+}
+
+.mayhem-switch input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mayhem-switch:has(input:checked) {
+  color: var(--text);
+}
+
 /* Tier S of the augments as small icons, a letter at each; the other tiers behind "+n". */
 .mayhem-aug-row {
   display: flex;
