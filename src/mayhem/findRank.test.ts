@@ -33,8 +33,13 @@ describe('Find my Mayhem rank', () => {
     expect(found({ games: 4, sent: 0, ranks: none }).me).toMatchObject({ me: null });
   });
 
-  it('leaves a closed client to the pages and turns odd answers into an error', () => {
-    expect(found(null)).toEqual({ find: { state: 'idle' }, me: { state: 'closed' } });
+  it('says so when the client is closed and turns odd answers into an error', () => {
+    // Never silently back to the bare button: the click shows why nothing happened.
+    expect(found(null)).toEqual({
+      find: { state: 'failed', message: 'Start League and sign in, then try again.' },
+      me: { state: 'closed' },
+    });
+    expect(findView(found(null).find, true).action).toBe('retry');
     const odd = found({ games: 1, sent: 1, ranks: { name: 'x', board: '<html>', me: null } });
     expect(odd.find.state).toBe('failed');
   });

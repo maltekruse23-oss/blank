@@ -2769,8 +2769,8 @@ li[data-place='3'] .mayhem-place {
 }
 
 /* Home fits the window whole: a row or tile that does not fit is left out whole (it wraps into a
-   second column beside the clipped one), never cut at the window's edge. The padding keeps focus
-   rings unclipped. */
+   second column beside the clipped one, made inert by useLeftOut), never cut at the window's edge.
+   The padding keeps focus rings unclipped. */
 .mayhem-home-main,
 .mayhem-bento {
   display: flex;

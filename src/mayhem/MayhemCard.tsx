@@ -194,6 +194,7 @@ export function MayhemCard({
   champion,
   augments,
   offer,
+  selecting,
   chosen,
   onChoose,
   onTake,
@@ -207,6 +208,8 @@ export function MayhemCard({
   augments: TierAugment[];
   /** In the game (offers.rs): the offer open now, or the last one (`open` false), and what was taken. */
   offer: (Offer & { open?: boolean }) | null;
+  /** A champion select runs: "Auto push" writes only then, never in the game. */
+  selecting: boolean;
   /** The build chosen by hand this game (it wins over the highlight), null: none yet. */
   chosen: string | null;
   onChoose: (key: string) => void;
@@ -329,6 +332,8 @@ export function MayhemCard({
             plan={plan}
             label={label}
             sample={sample}
+            // An offer means the game runs, even if the end of champ select was missed.
+            selecting={selecting && !offer}
           >
             {facts}
           </BuildDetail>
@@ -711,8 +716,8 @@ type PushState = 'idle' | 'saving' | 'done' | 'failed' | 'refused' | 'example';
 /** Rust's answer when the set itself does not fit (`mayhem_item_set`), not the client. */
 const NOT_A_SET = 'This build cannot be an item set.';
 
-/** "Auto push" (user 10.10.2026): remembered on this PC; on, every chosen build goes into the
- * client by itself (items, and spells in champ select). */
+/** "Auto push" (user 10.10.2026): remembered on this PC; on, every build chosen in champ select
+ * goes into the client by itself (items and spells), never in the game (nothing reacts to it). */
 const AUTO_PUSH = 'mayhem.autoPush.v1';
 const readAuto = () => {
   try {
@@ -728,14 +733,22 @@ const writeAuto = (on: boolean) => {
     // Blocked storage: the switch lasts only this run.
   }
 };
-/** The build last pushed by itself (champion and build): opening the page again does not repeat it. */
-let autoPushed = '';
+/** The build last pushed by itself, on which card: opening the page again does not repeat it, the
+ * next champ select (a new view) does. */
+let autoPushed: { view: ChampView; key: string } | null = null;
+/** Auto push takes this build of this card once; false: done already. */
+export const claimAutoPush = (view: ChampView, key: string) => {
+  if (autoPushed?.view === view && autoPushed.key === key) return false;
+  autoPushed = { view, key };
+  return true;
+};
 const DAMAGE: Record<string, string> = { phys: 'Physical', magic: 'Magic', true: 'True' };
 
 /**
  * The chosen build (right): its core big, later items, its augments, its win rate when measured
  * (else how it was put together), then what is the same in every build of the champion (children),
- * and "Push build" into the client's item sets ("Mayhem: <name>", only on the click).
+ * and "Push build" into the client's item sets ("Mayhem: <name>", on the click or by "Auto push" in
+ * champ select).
  */
 function BuildDetail({
   entry,
@@ -743,6 +756,7 @@ function BuildDetail({
   plan,
   label,
   sample,
+  selecting,
   children,
 }: {
   entry: BuildEntry;
@@ -750,6 +764,7 @@ function BuildDetail({
   plan: BuildPlan | undefined;
   label: string;
   sample: boolean;
+  selecting: boolean;
   children: ReactNode;
 }) {
   const set = useMemo(() => itemSetFor(entry, view), [entry, view]);
@@ -766,7 +781,7 @@ function BuildDetail({
     setSpells({ short: '', long: '' });
     void pushItemSet(view.championId, set).then((ok) => {
       // A failed push (client not ready) may go again the next time the build shows.
-      if (ok !== true) autoPushed = '';
+      if (ok !== true) autoPushed = null;
       setPush(ok === true ? 'done' : ok === NOT_A_SET ? 'refused' : 'failed');
     });
     if (pair.length === 2)
@@ -784,11 +799,9 @@ function BuildDetail({
       );
   };
   // Auto push: each build once, when it is shown (the card picks or the user does) or the switch
-  // goes on; never in the preview.
+  // goes on; only in champ select, never in the game or the preview.
   useEffect(() => {
-    const id = `${view.championId}:${entry.key}`;
-    if (!auto || sample || autoPushed === id) return;
-    autoPushed = id;
+    if (!auto || sample || !selecting || !claimAutoPush(view, entry.key)) return;
     save();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per build and switch, not on every render
   }, [auto]);
@@ -837,7 +850,7 @@ function BuildDetail({
           </button>
           <label
             className="mayhem-switch"
-            title="Pushes every build you pick by itself, remembered on this PC."
+            title="In champ select, pushes every build you pick by itself. Remembered on this PC."
           >
             <input
               type="checkbox"

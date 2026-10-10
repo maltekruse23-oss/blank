@@ -268,7 +268,7 @@ geprüft.
   Echtzeit“); auf dem Bildschirm des Spiels bleibt das Popout wie immer aus. Seit 10.10.2026
   (Benutzerauftrag „Ingame-Overlay für Augment-Rankings“, nur Mayhem-App, `overlay.rs`) zusätzlich
   ein Overlay über dem Spiel: unter dem Text jeder Karte die Stufe für den gewählten Build und die
-  zwei ersten Items des Builds, zu dem das Augment passt, darüber „Tiers for <Build>“; durchsichtig,
+  zwei ersten Items des Builds, zu dem das Augment passt, darüber „Tiers for <Build>“ (bei arammeta-Stufen, die für den ganzen Champion gelten, „Tiers for <Champion>“); durchsichtig,
   Klicks gehen ans Spiel, nie Fokus, keine Siegquoten. Die Abzeichen sitzen dort, wo die
   Texterkennung den Namen las; sichtbar, solange alle Karten zu sehen sind.
 - **Grenzen:** Das geht nur im rahmenlosen oder im Fenster-Modus. Andere Client-Sprachen
